@@ -25,12 +25,15 @@
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
 - Chỉ 2 vai trò (`ADMIN`, `RESULTS_OPERATOR`) cho nhóm nhân viên nhỏ; thêm vai trò khi có người thật cần (thêm giá trị enum + cột ma trận, không đổi kiến trúc).
 <!-- Spike B/C results — 2026-11-12 -->
-- Auth: chọn **Better Auth** (không cần Passport). Đã thử `better-auth` 1.7.21 (phát hành 2026-11-11, rất mới) → ghim bản patch; cân nhắc bản cũ hơn 1.7.21 rồi chạy lại 32 test e2e của spike. Báo cáo: `plans/reports/spike-c-261112-1007-better-auth-nest-results.md`.
+- Auth: chọn **Better Auth** (không cần Passport), ghim đúng `better-auth` 1.7.21 (đã chốt 2026-11-12: giữ bản đã spike). Báo cáo: `plans/reports/spike-c-261112-1007-better-auth-nest-results.md`.
+<!-- Decisions after spike — 2026-11-12 -->
+- Đã chốt 2026-11-12: hash mật khẩu giữ scrypt mặc định của Better Auth; **không có "quên mật khẩu"** (không gửi email), mật khẩu chỉ do `ADMIN` đặt/cấp lại mật khẩu tạm.
+- Đã chốt 2026-11-12: tham số vận hành của auth (ngưỡng rate limit, khóa theo tài khoản, thời hạn phiên, idle timeout, TTL mật khẩu tạm, step-up, độ dài mật khẩu tối thiểu) **chỉnh trên trang `/settings` của admin**, lưu bảng `AppSetting` (có sẵn từ phase 01), không để env. Env chỉ còn secret/kết nối/`TRUST_PROXY_HOPS` và sàn an toàn (vd ngưỡng không được thấp tới mức tự khóa mọi người). Better Auth đọc `rateLimit` lúc khởi tạo → rate limit + khóa tài khoản tự làm ở Redis (đã có trong Non-functional), đọc setting qua cache ngắn; tắt hoặc nới rate limit có sẵn của Better Auth (chưa kiểm, kiểm khi làm).
 - Bốn việc bắt buộc khi làm phase này:
   1. Allowlist default-deny ở Express theo `req.path` chính xác (`disabledPaths` không phủ path có tham số).
   2. Ghi đè `X-Forwarded-For` bằng `req.ip` trước handler (rate limit đọc thẳng XFF; nhiều giá trị dồn chung bucket); số hop qua `TRUST_PROXY_HOPS`.
   3. Đặt tường minh `disableOriginCheck: false`, `disableCSRFCheck: false` (BA tự tắt khi `NODE_ENV=test`).
-  4. Ngưỡng rate limit đăng nhập đưa ra env (mặc định 3 lần/10 s/IP quá chặt cho mạng chung tại sân).
+  4. Ngưỡng rate limit đăng nhập chỉnh trên `/settings` (mặc định 3 lần/10 s/IP của Better Auth quá chặt cho mạng chung tại sân).
 - Allowlist chưa đăng nhập (dưới `/api/v1`): `POST /auth/sign-in/email`, `POST /auth/sign-out`, `GET /auth/get-session`, `GET /health`. Danh sách endpoint đầy đủ lấy từ `auth.api` (45 endpoint); duyệt router Express không cho ra danh sách này.
 - Refine: chọn **Refine 5 + @refinedev/antd 6.0.3 + antd 5.29.3** (không cần ProComponents). Việc bắt buộc: import `antd/es/locale/vi_VN`; patch React 19; `i18nProvider` cho nhãn Refine; `getPopupContainer` cho Select trong `FilterDropdown`; `title` list tường minh; `ThemedSider` bỏ qua `Layout.siderBg` (tự dựng sider tối); ghim `react-router@7`. Báo cáo: `plans/reports/spike-b-261112-1007-refine-antd-results.md`.
 - Chưa kiểm: chặn truy cập thẳng route theo role (cần `CanAccess` + API tự kiểm role); XFF qua nginx/Traefik thật (chờ staging, spike D).
@@ -47,16 +50,18 @@ Functional
 - Khung admin: menu theo nhóm, trang chủ theo vai trò, bull-board cho `ADMIN`.
 <!-- Red Team: Audit, phạm vi công khai, VĐV nhỏ tuổi, song ngữ — 2026-11-11 -->
 - Màn "Nhật ký thao tác" chỉ đọc cho `ADMIN`: lọc theo người, đối tượng, hành động, khoảng ngày; phân trang server.
+<!-- Decisions after spike — 2026-11-12 -->
+- Trang **`/settings`** (chỉ `ADMIN`, nhóm menu Cấu hình): form theo nhóm (Đăng nhập & phiên, …; phase sau thêm nhóm của mình), mỗi mục có nhãn tiếng Việt, mô tả, giá trị mặc định, validate tại field, nút "Khôi phục mặc định"; lưu `AppSetting`, ghi `AuditLog`, có hiệu lực không cần redeploy.
 <!-- Red Team: Auth/bull-board ngoài guard + vòng đời phiên — 2026-11-11 -->
 - Thu hồi **mọi phiên** của user khi: đổi vai trò, reset/đổi mật khẩu, khóa tài khoản.
 - `mustChangePassword` enforce ở guard toàn cục: khi cờ bật chỉ cho `/auth/me`, `/auth/change-password`, `/auth/logout`; còn lại 403 `PASSWORD_CHANGE_REQUIRED`.
-- Mật khẩu tạm hết hạn sau `AUTH_TEMP_PASSWORD_TTL_HOURS` (mặc định ví dụ 24).
-- Nhập lại mật khẩu (step-up, hiệu lực `AUTH_STEP_UP_TTL_MINUTES`, mặc định ví dụ 5) trước: mở lại/cưỡng chế kết quả (phase 07), điểm thủ công + công bố snapshot (phase 09), gộp VĐV (phase 05).
+- Mật khẩu tạm hết hạn sau thời hạn chỉnh trên `/settings` (mặc định ví dụ 24 giờ).
+- Nhập lại mật khẩu (step-up, hiệu lực chỉnh trên `/settings`, mặc định ví dụ 5 phút) trước: mở lại/cưỡng chế kết quả (phase 07), điểm thủ công + công bố snapshot (phase 09), gộp VĐV (phase 05).
 
 Non-functional
 <!-- Red Team: Auth/bull-board ngoài guard + vòng đời phiên — 2026-11-11 -->
-- Rate limit đăng nhập theo IP thật (mặc định ví dụ 5 lần/phút/IP, env) **và** khóa tạm theo tài khoản có backoff (mặc định ví dụ 5 lần sai → khóa 1 phút, nhân đôi mỗi lần, trần 30 phút; env), lưu Redis với tiền tố `QUEUE_PREFIX`. Thông báo lỗi chung "Email hoặc mật khẩu không đúng" (không lộ tài khoản bị khóa hay không tồn tại).
-- Thời hạn phiên tuyệt đối từ env (mặc định ví dụ 12 giờ); idle timeout từ env `AUTH_IDLE_TIMEOUT_MINUTES` (mặc định ví dụ 60) cho mọi vai trò, kể cả máy tính bảng dùng chung ở bàn điều hành. Mọi thay đổi người dùng ghi `AuditLog`.
+- Rate limit đăng nhập theo IP thật (mặc định ví dụ 5 lần/phút/IP, `/settings`) **và** khóa tạm theo tài khoản có backoff (mặc định ví dụ 5 lần sai → khóa 1 phút, nhân đôi mỗi lần, trần 30 phút; `/settings`), lưu Redis với tiền tố `QUEUE_PREFIX`. Thông báo lỗi chung "Email hoặc mật khẩu không đúng" (không lộ tài khoản bị khóa hay không tồn tại).
+- Thời hạn phiên tuyệt đối trên `/settings` (mặc định ví dụ 12 giờ); idle timeout trên `/settings` (mặc định ví dụ 60 phút) cho mọi vai trò, kể cả máy tính bảng dùng chung ở bàn điều hành. Mọi thay đổi người dùng ghi `AuditLog`.
 
 ## Architecture
 
@@ -198,13 +203,13 @@ Modify: `apps/api/src/app.module.ts`, `apps/admin/src/app.tsx`.
 | Lệch quyền UI và server | Thấp × Cao | Một ma trận chung + test phủ route |
 | Mất ADMIN duy nhất | Thấp × Cao | Ràng buộc trong service + CLI tạo lại |
 | Khóa tạm bị lạm dụng để khóa người khác | Trung bình × Thấp | Khóa ngắn có backoff, tự mở; ADMIN mở tay |
-| Idle timeout làm phiền bàn điều hành | Trung bình × Thấp | Giá trị trong env; đăng nhập lại quay về đúng màn |
+| Idle timeout làm phiền bàn điều hành | Trung bình × Thấp | Chỉnh trên `/settings`; đăng nhập lại quay về đúng màn |
 
 Rollback: migration chỉ thêm bảng; revert app về bản phase 02.
 
 ## Security Considerations
 
-- Hash mật khẩu argon2/bcrypt theo mặc định thư viện; độ dài tối thiểu từ env (mặc định ví dụ 10).
+- Hash mật khẩu scrypt mặc định của Better Auth (đã chốt 2026-11-12); độ dài tối thiểu trên `/settings` (mặc định ví dụ 10).
 - Cookie `HttpOnly; Secure; SameSite=Lax`; CSRF: chỉ nhận JSON + kiểm `Origin` khớp `ADMIN_PUBLIC_URL` cho request ghi (gồm bull-board).
 <!-- Red Team: Tô-pô mạng, IP thật, rate limit, health — 2026-11-11 -->
 - Rate limit dùng IP thật qua `trust proxy` (phase 01); không tin header IP do client gửi.

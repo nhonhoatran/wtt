@@ -75,7 +75,7 @@ Phase 04–08 làm 2 đợt: phần **lát cắt dọc** (tuần 4–6) rồi ph
 - Không lấy giá trị từ dòng `.env` đã comment; lệnh đụng DB phải in host + tên DB và được xác nhận trước khi chạy.
 <!-- Red Team: Hạ tầng dùng chung không cách ly — 2026-11-11 -->
 - `QUEUE_PREFIX` bắt buộc (vd `kamito-tt:{env}`) cho mọi queue và khóa Redis, kiểm lúc khởi động, khác nhau giữa môi trường. Payload job chỉ chứa id; worker nạp lại từ DB.
-- Mọi giá trị nghiệp vụ là cấu hình động (DB/admin); tham số kỹ thuật (giới hạn upload/import, page size, thời hạn lưu, host nhúng video, phiên…) ở env; số trong plan chỉ là mặc định ví dụ. Danh sách thứ cố ý fix cứng: phase 4, mục "Cố định có chủ đích".
+- Mọi giá trị nghiệp vụ là cấu hình động (DB/admin); tham số vận hành (giới hạn upload/import, page size, thời hạn lưu, host nhúng video, phiên, rate limit…) chỉnh trên trang `/settings` của admin (bảng `AppSetting`, đã chốt 2026-11-12); env chỉ cho secret, chuỗi kết nối, thứ cần lúc boot và sàn/trần an toàn; số trong plan chỉ là mặc định ví dụ. Danh sách thứ cố ý fix cứng: phase 4, mục "Cố định có chủ đích".
 - Lọc/sắp xếp/phân trang luôn ở server. RBAC enforce ở NestJS guard (deny-by-default); admin chỉ ẩn/hiện UI.
 - Comment ít, tiếng Anh; commit tiếng Anh conventional, không nhắc AI. File code < 200 dòng, tên kebab-case.
 - Site tham chiếu chỉ dùng cấu trúc/chức năng; không dùng asset, chữ, logo, dữ liệu của worldtabletennis.com.
