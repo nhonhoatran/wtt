@@ -1,4 +1,5 @@
 import { Controller, Get, HttpCode, Res } from '@nestjs/common';
+import { Public } from '../access-control/access-decorators.js';
 import type { Response } from 'express';
 import { type CheckResult, ReadinessChecksService } from './readiness-checks.service.js';
 
@@ -14,6 +15,7 @@ export function summarize(checks: Record<string, CheckResult>): ReadinessReport[
 }
 
 /** Internal network only: the admin proxy and public client never forward /health/*. */
+@Public()
 @Controller('health')
 export class HealthReadyController {
   constructor(private readonly checks: ReadinessChecksService) {}
