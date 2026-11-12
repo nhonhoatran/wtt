@@ -1,11 +1,12 @@
 import { Redis } from 'ioredis';
 import { pino } from 'pino';
+import { startMediaWorker } from './media-worker.js';
 import { checkRedisEvictionPolicy } from './redis-eviction-guard.js';
 import { loadWorkerEnv } from './worker-env.js';
 import { startWorkerHealthServer, type WorkerHealthState } from './worker-health-server.js';
 
 // Processor rule: job payloads carry ids only; processors reload records from the DB
-// and check their state before acting. Processors are registered from later phases.
+// and check their state before acting.
 
 async function main(): Promise<void> {
   const env = loadWorkerEnv();
@@ -23,9 +24,11 @@ async function main(): Promise<void> {
     health = { status: 'degraded', detail: verdict.message };
   }
 
-  // Shared connection for BullMQ workers (later phases); BullMQ requires maxRetriesPerRequest: null.
+  // Shared connection for BullMQ workers; BullMQ requires maxRetriesPerRequest: null.
   const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
   redis.on('error', (error) => logger.error({ err: error.message }, 'redis connection error'));
+
+  const stopMedia = await startMediaWorker(env, redis, logger);
 
   const server = await startWorkerHealthServer(env.WORKER_HEALTH_PORT, () => health);
   logger.info({ queuePrefix: env.QUEUE_PREFIX, healthPort: env.WORKER_HEALTH_PORT }, 'worker started');
@@ -33,6 +36,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'worker shutting down');
     server.close();
+    await stopMedia();
     await redis.quit();
     process.exit(0);
   };

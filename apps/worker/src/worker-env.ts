@@ -1,5 +1,8 @@
-import { appEnvSchema, isQueuePrefixValid, parseEnv, requiredString } from '@kamito/shared';
+import { appEnvSchema, csvList, isQueuePrefixValid, parseEnv, requiredString } from '@kamito/shared';
+import { parseVariantWidths, refineStorageEnv, storageEnvShape } from '@kamito/shared/media';
 import { z } from 'zod';
+
+const positiveInt = z.coerce.number().int().positive();
 
 export const workerEnvSchema = z
   .object({
@@ -11,10 +14,22 @@ export const workerEnvSchema = z
     QUEUE_PREFIX: requiredString,
     REDIS_EVICTION_CHECK_OVERRIDE: z.string().optional(),
     WORKER_HEALTH_PORT: z.coerce.number().int().positive().default(3010),
+    ...storageEnvShape,
+    UPLOAD_MAX_IMAGE_BYTES: positiveInt,
+    UPLOAD_ALLOWED_IMAGE_TYPES: csvList,
+    MEDIA_IMAGE_VARIANT_WIDTHS: csvList,
+    MEDIA_WORKER_CONCURRENCY: positiveInt.default(2),
+    MEDIA_CLEANUP_INTERVAL_MINUTES: positiveInt.default(15),
   })
   .superRefine((env, ctx) => {
     if (!isQueuePrefixValid(env.QUEUE_PREFIX, env.APP_ENV)) {
       ctx.addIssue({ code: 'custom', path: ['QUEUE_PREFIX'], message: 'must be "kamito-tt:<APP_ENV>"' });
+    }
+    refineStorageEnv(env, ctx);
+    try {
+      parseVariantWidths(env.MEDIA_IMAGE_VARIANT_WIDTHS);
+    } catch (error) {
+      ctx.addIssue({ code: 'custom', path: ['MEDIA_IMAGE_VARIANT_WIDTHS'], message: (error as Error).message });
     }
   });
 
