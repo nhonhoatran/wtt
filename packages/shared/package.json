@@ -13,6 +13,14 @@
     "./redis-probe": {
       "types": "./dist/redis-probe.d.ts",
       "default": "./dist/redis-probe.js"
+    },
+    "./media": {
+      "types": "./dist/media/index.d.ts",
+      "default": "./dist/media/index.js"
+    },
+    "./object-storage": {
+      "types": "./dist/object-storage/index.d.ts",
+      "default": "./dist/object-storage/index.js"
     }
   },
   "files": ["dist"],
@@ -22,6 +30,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1159.0",
     "ioredis": "6.0.0",
     "zod": "4.6.7"
   },

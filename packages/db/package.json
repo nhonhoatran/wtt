@@ -22,7 +22,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "migrate:status": "prisma migrate status"
+    "migrate:status": "prisma migrate status",
+    "seed:config": "node --env-file-if-exists=../../.env prisma/seed/seed-config-defaults.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
