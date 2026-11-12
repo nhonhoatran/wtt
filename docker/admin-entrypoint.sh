@@ -28,6 +28,14 @@ esac
 printf 'client_max_body_size %s;
 ' "$UPLOAD_MAX_IMAGE_BYTES" > "$OUTPUT_DIR/upload-limit.conf"
 
+# Excel import uploads: same ceiling as the API (IMPORT_MAX_FILE_BYTES).
+IMPORT_MAX_FILE_BYTES="${IMPORT_MAX_FILE_BYTES:?IMPORT_MAX_FILE_BYTES is required}"
+case "$IMPORT_MAX_FILE_BYTES" in
+  '' | *[!0-9]*) echo "IMPORT_MAX_FILE_BYTES must be a positive integer" >&2; exit 1 ;;
+esac
+printf 'client_max_body_size %s;
+' "$IMPORT_MAX_FILE_BYTES" > "$OUTPUT_DIR/import-limit.conf"
+
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi

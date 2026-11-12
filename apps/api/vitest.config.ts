@@ -15,6 +15,8 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'test/**/*.e2e-spec.ts'],
     setupFiles: ['reflect-metadata'],
     fileParallelism: false,
+    // Forked workers crash intermittently on Windows (0xC0000409) with no stderr; threads have not.
+    pool: 'threads',
   },
   plugins: [swc.vite({ module: { type: 'es6' } })],
 });

@@ -108,7 +108,6 @@ jobs:
       IMPORT_MAX_FILE_BYTES: "5242880"
       IMPORT_MAX_UNZIPPED_BYTES: "52428800"
       IMPORT_MAX_ROWS: "5000"
-      IMPORT_RETENTION_DAYS: "30"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
