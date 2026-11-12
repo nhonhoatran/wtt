@@ -27,6 +27,10 @@
 - Rút entry đang nằm trong draw đã công bố làm hỏng nhánh → chặn ở đây, chuyển sang thao tác `withdraw-from-draw` của phase 06.
 - Thư viện đọc/ghi xlsx: ứng viên `exceljs` — giấy phép, phiên bản, bảo trì, đọc stream có trần **chưa kiểm chứng**; tra npm/GitHub trước khi cài.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có: `@RequireStepUp()` + StepUpGuard (chưa gắn route nào), `POST /api/v1/auth/step-up`, `apps/admin/src/components/step-up-modal.tsx`, `AppSettingsService` (đọc setting), resource `players` trong ma trận quyền (`packages/shared/src/permissions.ts`; RESULTS_OPERATOR chỉ `list`, `read`).
+- Gộp VĐV: phải gắn `@RequireStepUp()` trên route gộp (phase 05 làm). Ma trận hiện cho phép ADMIN mọi action trên `players`.
+
 ## Requirements
 
 Functional

@@ -26,6 +26,9 @@
 - Revalidate bảng xếp hạng dùng `revalidateTag(tag, { expire: 0 })` như phase 07; tag khai báo trước khi fetch. Cache dài vẫn giữ trần TTL (phòng mất lệnh revalidate).
 - Sitemap bảng xếp hạng: `dynamic = 'force-dynamic'` như phase 08. Client restart → entrypoint đã xóa `.next/cache` (phase 01).
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 không cung cấp thành phần công khai. Phân trang công khai (`pageSize ≤ 100`) là tham số riêng, không dùng `list.defaultPageSize`.
+
 ## Requirements
 
 Functional

@@ -10,7 +10,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. Tuần 2–3 (≈5,5 ngày công; ước lại từ 2 ngày, gồm ui-consistency ≈0,5 ngày).
+- Priority: P1. Status: Hoàn thành (chưa deploy staging). Tuần 2–3 (≈5,5 ngày công; ước lại từ 2 ngày, gồm ui-consistency ≈0,5 ngày).
 - Đăng nhập chỉ cho nhân viên; admin **mở ra internet** → khóa tạm theo tài khoản, idle timeout, thu hồi phiên; phân quyền 2 vai trò enforce ở NestJS; khung admin Refine + antd 5 tiếng Việt; quản lý người dùng; nhật ký thao tác (chỉ đọc); bull-board.
 - Phụ thuộc: phase 01 xong; spike B, C có kết quả.
 
@@ -34,7 +34,7 @@
   2. Ghi đè `X-Forwarded-For` bằng `req.ip` trước handler (rate limit đọc thẳng XFF; nhiều giá trị dồn chung bucket); số hop qua `TRUST_PROXY_HOPS`.
   3. Đặt tường minh `disableOriginCheck: false`, `disableCSRFCheck: false` (BA tự tắt khi `NODE_ENV=test`).
   4. Ngưỡng rate limit đăng nhập chỉnh trên `/settings` (mặc định 3 lần/10 s/IP của Better Auth quá chặt cho mạng chung tại sân).
-- Allowlist chưa đăng nhập (dưới `/api/v1`): `POST /auth/sign-in/email`, `POST /auth/sign-out`, `GET /auth/get-session`, `GET /health`. Danh sách endpoint đầy đủ lấy từ `auth.api` (45 endpoint); duyệt router Express không cho ra danh sách này.
+- Allowlist chưa đăng nhập (dưới `/api/v1`, khớp đường dẫn chính xác): raw Better Auth chỉ `POST /auth/sign-in/email` và `POST /auth/sign-out`; phiên đọc qua Nest `GET /auth/me` (cần đăng nhập); health `GET /health/live`, `GET /health/ready`. Danh sách endpoint đầy đủ lấy từ `auth.api` (45 endpoint); duyệt router Express không cho ra danh sách này.
 - Refine: chọn **Refine 5 + @refinedev/antd 6.0.3 + antd 5.29.3** (không cần ProComponents). Việc bắt buộc: import `antd/es/locale/vi_VN`; patch React 19; `i18nProvider` cho nhãn Refine; `getPopupContainer` cho Select trong `FilterDropdown`; `title` list tường minh; `ThemedSider` bỏ qua `Layout.siderBg` (tự dựng sider tối); ghim `react-router@7`. Báo cáo: `plans/reports/spike-b-261112-1007-refine-antd-results.md`.
 - Chưa kiểm: chặn truy cập thẳng route theo role (cần `CanAccess` + API tự kiểm role); XFF qua nginx/Traefik thật (chờ staging, spike D).
 
@@ -110,7 +110,7 @@ API
 <!-- Red Team: Auth/bull-board ngoài guard + vòng đời phiên — 2026-11-11 -->
 | Method | Path | Quyền |
 |---|---|---|
-| POST | `/api/v1/auth/login`, `/auth/logout` | public (rate limit IP + khóa tạm theo tài khoản) |
+| POST | `/api/v1/auth/sign-in/email`, `/auth/sign-out` | public (raw Better Auth; rate limit IP + khóa tạm theo tài khoản) |
 | GET | `/api/v1/auth/me` | đã đăng nhập → `{ id, name, role, permissions[], mustChangePassword }` |
 | POST | `/api/v1/auth/change-password` | đã đăng nhập; thu hồi các phiên khác |
 | POST | `/api/v1/auth/step-up {password}` | đã đăng nhập → đánh dấu phiên đã nhập lại mật khẩu |
@@ -121,7 +121,7 @@ API
 | GET | `/api/v1/admin/audit-logs?filter[actorId]&filter[entity]&filter[action]&filter[from]&filter[to]&page&sort` | audit.list |
 | GET | `/api/v1/admin/queues/*` (bull-board) | queues.read; POST/PUT/DELETE cần queues.manage |
 
-- Ưu tiên bọc Better Auth sau controller Nest tường minh (`login`, `logout`, `me`, `change-password`) nếu spike C xác nhận khả thi; handler gốc chỉ mount cho đường dẫn bắt buộc, có trong allowlist.
+- Đã chốt khi triển khai: sign-in/sign-out giữ handler gốc Better Auth, chỉ mount đường dẫn trong allowlist (2 route); `me`, `change-password`, `step-up` là controller Nest gọi API phía server của Better Auth. Không dùng admin plugin; quản lý người dùng bằng module `users`.
 
 Module Nest: `auth` (controller, service, session guard, step-up guard, account-lockout service), `users`, `access-control` (guard + decorator), `audit-logs` (controller đọc), `bull-board` (mount `@bull-board/express` dưới middleware kiểm session + quyền + `Origin`; mặc định chỉ đọc, thao tác ghi cần `queues.manage`).
 
@@ -135,6 +135,26 @@ Luồng người dùng (góc nhìn quản trị)
 - Tạo người dùng: Người dùng → "Thêm" (1) → nhập email, tên, chọn vai trò (mặc định `RESULTS_OPERATOR`) → "Tạo" (2) → modal hiện mật khẩu tạm + hạn dùng + nút "Sao chép" (3). Mật khẩu tạm không xem lại được.
 - Khóa: nút "Khóa" trên dòng → xác nhận "Khóa tài khoản X? Người này bị đăng xuất ngay." → phiên của user bị thu hồi.
 - Thao tác nhạy cảm (vd mở lại kết quả): modal nhỏ "Nhập lại mật khẩu để tiếp tục" → thao tác chạy tiếp, không mất dữ liệu đang nhập.
+
+<!-- ui-consistency finding-patterns — 2026-11-12 -->
+### Mẫu UI admin dùng chung (checklist ui-consistency)
+
+Admin chưa có trang nào lúc dò (chỉ khung trống) → đây là **đề xuất** lấy theo plan + thư viện (antd 5, `@refinedev/antd`), không phải đếm từ trang có sẵn. Phase sau dùng đúng mẫu này, không tạo mẫu mới. Linh kiện mới đã được chủ repo đồng ý 2026-11-12.
+
+| Vai trò | Viết bằng | Căn cứ |
+|---|---|---|
+| Khung trang | `layout/admin-layout.tsx`: antd `Layout` + `Layout.Sider` (nền `Layout.siderBg` = `ink`) + `Menu theme="dark"` nhóm theo `menu-groups.ts`; header có tên người dùng + vai trò + "Đăng xuất" | plan (tên file); `ThemedSider` bỏ qua `siderBg` (spike B) |
+| Trang danh sách | `List` của `@refinedev/antd` với `title` tường minh; nút chính ("Thêm …") góc phải trên qua `headerButtons` | plan bước 1; thư viện |
+| Thanh lọc | `components/list-filter-bar.tsx` (ô tìm `q` nếu API hỗ trợ + bộ lọc + "Xóa lọc") ngay trên bảng; đổi lọc → về trang 1. Nhật ký không có ô tìm `q` vì API audit chỉ lọc theo người thực hiện / đối tượng / hành động / khoảng ngày | linh kiện mới, dùng ở Người dùng + Nhật ký |
+| Bảng | antd `Table` từ `useTable` (`syncWithLocation`, sort/filter/page ở server); cột thao tác cuối, nút `size="small"` | spike B 4.1; luật server-side |
+| Trống | antd `Empty` theo locale `vi_VN` (import `antd/es/locale/vi_VN`) | spike B 4.2 |
+| Form | 1 cột, `layout="vertical"`, nhóm bằng `Typography.Title level={5}`/`Divider`; nút lưu cuối form; lỗi field từ API 422 `fields` tự gắn qua data provider | plan; spike B 4.5 |
+| Xác nhận nguy hiểm | `modal.confirm` từ `App.useApp()`, câu hỏi nói rõ hậu quả ("Người này bị đăng xuất ngay.") | plan luồng "Khóa" |
+| Thông báo | `message`/`notification` từ `App.useApp()` (không gọi static) | thư viện |
+| Mật khẩu tạm | `components/temp-password-modal.tsx`: mật khẩu + hạn dùng + "Sao chép"; không xem lại được | linh kiện mới, dùng ở tạo user + cấp lại |
+| Step-up | `components/step-up-modal.tsx`: "Nhập lại mật khẩu để tiếp tục", không làm mất dữ liệu đang nhập | plan (tên file) |
+| Giá trị | màu/khoảng cách/bo góc qua theme (`antdTheme` từ `@kamito/ui-tokens`, `theme.useToken()`, `Space`/`Flex` size); không viết số tay. Theme không có thang khoảng cách riêng → dùng token khoảng cách của antd | theme `packages/ui-tokens` |
+| Nhãn | tiếng Việt qua `i18n/vi.ts` (`i18nProvider` cho nhãn Refine); chữ mới là bản nháp, cần người đọc lại | spike B 4.8 |
 
 ## Related Code Files
 
@@ -168,21 +188,23 @@ Modify: `apps/api/src/app.module.ts`, `apps/admin/src/app.tsx`.
 12. Chạy `ui-consistency:verifying` cho các màn admin vừa làm (login, users, nhật ký, layout) theo checklist đã chốt ở bước 1.
 13. Deploy + migrate staging theo quy trình phát hành phase 01.
 
+Trạng thái bước: 1–12 xong (xem Kết quả triển khai); 13 chưa làm (chờ staging).
+
 ## Todo List
 
-- [ ] ui-consistency: finding-patterns → planning (mẫu admin dùng chung)
-- [ ] permissions.ts (ADMIN, RESULTS_OPERATOR) + test
-- [ ] Auth theo spike C + migration `add_users_and_auth_sessions`; sign-up/impersonation tắt
-- [ ] Guard: session từ DB + idle timeout, must-change-password, permission, step-up
-- [ ] Test phủ route Nest + test allowlist router Express
-- [ ] Rate limit IP + khóa tạm theo tài khoản; mật khẩu tạm có hạn
-- [ ] Users CRUD + ràng buộc ADMIN cuối + thu hồi phiên + audit
-- [ ] CLI create-admin
-- [ ] bull-board sau session + quyền + Origin; chỉ đọc mặc định
-- [ ] Màn Nhật ký thao tác
-- [ ] Khung admin: providers, layout, menu, login, users, step-up
-- [ ] ui-consistency: verifying
-- [ ] Deploy + migrate staging
+- [x] ui-consistency: finding-patterns → planning (mẫu admin dùng chung) — mục "Mẫu UI admin dùng chung" trong file này
+- [x] permissions.ts (ADMIN, RESULTS_OPERATOR) + test — `packages/shared/src/permissions.ts`, `permissions.test.ts`
+- [x] Auth theo spike C + migration `add_users_and_auth_sessions`; sign-up/impersonation tắt — raw allowlist 2 route; admin plugin không dùng
+- [x] Guard: session từ DB + idle timeout, must-change-password, permission, step-up — `auth-guards.ts`, `permission.guard.ts`
+- [x] Test phủ route Nest + test allowlist router Express — `permission-coverage`, `express-router-allowlist` e2e (trạng thái chạy: xem Kết quả triển khai)
+- [x] Rate limit IP + khóa tạm theo tài khoản; mật khẩu tạm có hạn — `login-ip-rate-limiter.service.ts`, `account-lockout.service.ts`, `temp-password.ts`
+- [x] Users CRUD + ràng buộc ADMIN cuối + thu hồi phiên + audit — `apps/api/src/modules/users/*`
+- [x] CLI create-admin — `apps/api/src/cli/create-admin.ts` (chưa xóa khóa Redis, xem L9)
+- [x] bull-board sau session + quyền + Origin; chỉ đọc mặc định — `apps/api/src/modules/queue/bull-board-mount.ts`
+- [x] Màn Nhật ký thao tác — `audit-logs/*`, `apps/admin/src/resources/audit-logs/audit-log-list.tsx`
+- [x] Khung admin: providers, layout, menu, login, users, step-up — `apps/admin/src/**`
+- [x] ui-consistency: verifying — báo cáo `plans/reports/ui-consistency-261112-phase-03-admin-pages.md` (3 vòng, lỗi đã sửa)
+- [ ] Deploy + migrate staging — chờ staging (phase 01 chưa qua cổng ra)
 
 ## Success Criteria
 
@@ -218,3 +240,43 @@ Rollback: migration chỉ thêm bảng; revert app về bản phase 02.
 ## Next Steps
 
 - Lát cắt dọc (tuần 4–6) dùng auth + khung admin này; phase 04 thêm resource vào nhóm Giải đấu, Cấu hình; dùng mẫu UI đã chốt.
+
+## Kết quả triển khai
+
+**Trạng thái:** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy staging).
+
+**Sai lệch cổng ra phase 01:** phase 01 ghi không sang phase 03 khi chưa đủ 4 điều kiện (staging, Redis riêng `noeviction`, thiết kế upload, chủ sở hữu sao lưu + RPO). Phase 03 đã code khi các điều kiện này chưa đạt. Cần chủ repo chốt: chấp nhận tiếp tục, hay dừng deploy tới khi phase 01 qua cổng.
+
+**Kiểm chứng** (số liệu người thực hiện báo cáo 2026-11-12; không chạy lại khi sync):
+- `turbo` typecheck, lint, build: 18/18 pass.
+- Test: api 18 file / 87 test; shared 20; worker 4; ui-tokens 3. Pass.
+- `vite build` admin: OK.
+- Chưa xác nhận: e2e (`apps/api/test/*.e2e-spec.ts`, 13 file) cần Postgres + Redis thật. Code review 2026-11-12 ghi e2e chưa chạy; chưa rõ 87 test có gồm e2e không.
+
+**Sai khác so với plan:**
+- Better Auth admin plugin bỏ; quản lý người dùng bằng controller Nest riêng.
+- Allowlist raw: `POST /auth/sign-in/email`, `POST /auth/sign-out` (plan ghi `/auth/login`, `/auth/logout`, `/auth/get-session`). Admin đọc phiên qua Nest `GET /auth/me`.
+- Health: `/api/v1/health/live`, `/api/v1/health/ready` (plan ghi `/health`).
+- Settings: giới hạn an toàn (min/max) khai trong registry zod.
+- ui-tokens: thêm mục Menu dark theme.
+- Page size mặc định: env `PAGINATION_DEFAULT_PAGE_SIZE` chuyển thành setting `list.defaultPageSize` trên `/settings`. Env `PAGINATION_MAX_PAGE_SIZE` và `QUERY_MAX_LENGTH` giữ làm trần an toàn. Số trang tối đa 10000 (chặn offset lớn).
+
+**Review fix đã áp dụng** (`plans/reports/code-reviewer-261112-phase-03-auth-rbac.md`):
+- H1: đổi mật khẩu có lockout; sai mật khẩu hiện tại ghi audit `auth.password.change.failed`.
+- M1: poll nền bull-board không gia hạn idle timeout (`touch: false`).
+- M2: từ chối đăng nhập tốn thời gian scrypt như trường hợp thật.
+- M3: ghi lỗi khóa tạm nguyên tử (Redis Lua).
+- M4: page size lên setting; admin bỏ fix cứng 20.
+- L1 (một phần): step-up khi đang khóa không cộng thêm lỗi; thông báo vẫn "Mật khẩu không đúng".
+- L6: redirect sau đăng nhập chặn đường dẫn có `\`.
+- Ngoài review: `create-admin` lỗi đọc mật khẩu từ stdin khi pipe, đã sửa.
+
+**Quyết định 2026-11-12:** chấp nhận code phase 03 trước khi phase 01 qua cổng ra; chỉ deploy staging khi đủ 4 điều kiện của phase 01 (staging, Redis riêng, thiết kế upload, chủ sao lưu).
+
+**Việc còn mở:**
+1. Deploy staging + migrate (bước 13). Chưa có staging nên chưa kiểm XFF sau Traefik thật (spike D) và CSP bull-board qua nginx.
+2. Redis sập → rate limit và khóa tạm mở cửa. Đã chốt 2026-11-12: giữ fail-open, bổ sung cảnh báo vận hành khi Redis lỗi (làm ở phase sau, gắn với L5).
+3. Chưa có test tự động cho admin UI (`apps/admin` chưa có runner).
+4. Review Low chưa làm: L2, L3, L4, L5, L7, L8, L9, L10, L11. L1 còn thông báo "Mật khẩu không đúng" khi đang khóa, nên đổi sang mã `ACCOUNT_LOCKED`.
+5. `@RequireStepUp` chưa gắn route nào. Dự kiến gắn ở phase 05, 07, 09. Review đề xuất gắn sớm cho `PUT/DELETE /admin/settings/:key` và `POST /admin/users/:id/reset-password`; chờ chủ repo quyết.
+6. Trang chủ `RESULTS_OPERATOR` chưa có lối tắt nhập tỷ số (phase 07).

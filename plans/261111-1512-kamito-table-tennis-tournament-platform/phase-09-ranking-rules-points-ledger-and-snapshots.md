@@ -27,6 +27,9 @@
 - Job id cố định (`rank-se-{subEventId}`) làm debounce: theo reviewer, BullMQ bỏ qua `add` khi job cùng id còn tồn tại (kể cả đã xong nhưng được giữ) → lần chốt thứ hai bị rơi. Không dựa vào id cố định; ngữ nghĩa deduplication/debounce của BullMQ phải kiểm trên bản đã cài trước khi dùng.
 - Dấu "bẩn" bền `SubEvent.rankingDirtyAt` ghi trong transaction chốt/mở lại → không mất việc tính lại kể cả khi Redis/enqueue lỗi. Đây không phải bảng outbox.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có `@RequireStepUp()` + StepUpGuard (chưa gắn route). Cần gắn cho `publishSnapshot` và `POST/DELETE /admin/ranking-points`. Ma trận quyền: resource `rankings` chỉ ADMIN.
+
 ## Requirements
 
 Functional

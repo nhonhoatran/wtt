@@ -1,8 +1,8 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: khung phase 01 (chưa có nghiệp vụ thi đấu).
+> Cập nhật: 2026-11-12 · Trạng thái: phase 01 (khung) và phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin). Chưa có nghiệp vụ thi đấu.
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
-> Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md).
+> Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
 
 ## Contents
 - [Tổng quan](#tổng-quan)
@@ -10,7 +10,8 @@
 - [Luồng mạng (staging và production)](#luồng-mạng-staging-và-production)
 - [Luồng khởi động](#luồng-khởi-động)
 - [Health endpoints](#health-endpoints)
-- [Dữ liệu (phase 01)](#dữ-liệu-phase-01)
+- [Dữ liệu](#dữ-liệu)
+- [Xác thực và phân quyền (phase 03)](#xác-thực-và-phân-quyền-phase-03)
 - [Dịch vụ dùng chung trong api](#dịch-vụ-dùng-chung-trong-api)
 - [Packages dùng chung](#packages-dùng-chung)
 - [Chưa xây dựng](#chưa-xây-dựng)
@@ -22,17 +23,17 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 
 Đường đi chính:
 - Người xem: trình duyệt → client (Next.js, SSR) → api (nội bộ).
-- Quản trị: trình duyệt → admin (nginx phục vụ SPA, proxy vào api) → api.
-- Nền: api và worker dùng chung PostgreSQL, Redis (`noeviction`, dành cho queue; BullMQ chưa cài), S3-compatible storage.
+- Quản trị: trình duyệt → admin (nginx phục vụ SPA, proxy vào api) → api. Đăng nhập bằng session cookie (Better Auth), phân quyền ở api.
+- Nền: api và worker dùng chung PostgreSQL, Redis (`noeviction`, dành cho queue và khóa đăng nhập), S3-compatible storage. BullMQ hiện chỉ api dùng (bull-board); worker chưa có processor.
 
 ## Thành phần
 
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
 | `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Khung: layout `[locale]`, trang trống, route health |
-| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Khung: entrypoint, `runtime-config.ts`, proxy |
-| `apps/api` | NestJS 12.3.2 trên Express 5.3.0 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, kiểm migration và Redis lúc boot |
-| `apps/worker` | Node + ioredis | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP. **Chưa có processor, chưa có BullMQ** |
+| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký thao tác, `/settings`, menu theo quyền, đổi mật khẩu |
+| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1 (cho bull-board) | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, CLI `create-admin`, kiểm migration và Redis lúc boot |
+| `apps/worker` | Node + ioredis | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP. **Chưa có processor. Chưa dùng BullMQ** (BullMQ hiện chỉ api dùng, để bull-board đọc queue) |
 | `migrate` (target của `api.Dockerfile`) | Prisma CLI | — (chạy một lần) | `internal` | Xác nhận target, `prisma migrate deploy` |
 | PostgreSQL | 17.11 (dev) | 5433 (dev) | ngoài compose prod | Dữ liệu nghiệp vụ, `_prisma_migrations` |
 | Redis | 8.2.11, `noeviction`, AOF (dev) | 6380 (dev) | ngoài compose prod | Queue BullMQ (từ phase sau) |
@@ -88,7 +89,7 @@ Vì vậy đổi URL không cần build lại admin image. File `/config.json` c
 
 **API** (`apps/api/src/main.ts`):
 1. `loadApiEnv()` parse env bằng zod. Lỗi → in tên biến, thoát.
-2. `createApiApp()`: Nest + pino, `trust proxy`, prefix `api/v1`, `HttpExceptionFilter`, shutdown hooks.
+2. `createApiApp()` (`bootstrap-app.ts`): Nest + pino, `trust proxy`, prefix `api/v1`, `HttpExceptionFilter`, shutdown hooks. Trước `app.init()` gắn trên Express: handler raw của Better Auth (`/api/v1/auth/sign-in/email`, `/sign-out`) và bull-board (`/api/v1/admin/queues`). Các guard toàn cục (session, mật khẩu tạm, quyền, step-up) đăng ký trong `AuthModule`. Chi tiết xem [auth-and-rbac.md](./auth-and-rbac.md#chuỗi-guard).
 3. `RedisEvictionPolicyCheck` kiểm `maxmemory-policy` lúc bootstrap, cache kết quả cho `/health/ready`.
 4. `findPendingMigrations(prisma)`: nếu còn migration đi kèm image chưa áp dụng → log và `exit(1)`.
 5. `listen(API_PORT, '0.0.0.0')`.
@@ -136,20 +137,38 @@ Chi tiết `/health/ready`:
 
 Health không được ghi log (`autoLogging.ignore`). Admin và client không chuyển tiếp `/health/*` ra ngoài; nginx admin trả 404.
 
-## Dữ liệu (phase 01)
+## Dữ liệu
 
-Migration duy nhất: `packages/db/prisma/migrations/20261112015704_init_app_settings_audit_log`.
+Migration theo thứ tự:
+1. `packages/db/prisma/migrations/20261112015704_init_app_settings_audit_log` (phase 01)
+2. `packages/db/prisma/migrations/20261112042429_add_users_and_auth_sessions` (phase 03)
 
-**`AppSetting`** — chỉ giá trị nghiệp vụ. Key, zod schema và default nằm trong `@kamito/shared`.
+Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`.
+
+**`AppSetting`** — chỉ giá trị nghiệp vụ và tham số vận hành. Key, zod schema và default nằm trong `@kamito/shared` (`app-setting-registry.ts`).
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
-| `key` | TEXT, PK | Ví dụ `site.name` |
+| `key` | TEXT, PK | Ví dụ `auth.login.ipMaxAttempts` |
 | `value` | JSONB | |
 | `updatedById` | TEXT, nullable | |
 | `updatedAt` | TIMESTAMP(3) | `@updatedAt` |
 
-Registry hiện có một key: `siteName` (`site.name`, mặc định `vi` và `en`).
+Registry hiện có 12 key:
+- `site.name` (`siteName`, mặc định `vi` và `en`). Chưa có editor, không sửa được trên `/settings`.
+- 10 key `auth.*` và `list.defaultPageSize`. Đều sửa được trên `/settings`. Bảng đầy đủ xem [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
+
+**`AuditLog`** — ghi mọi thay đổi nghiệp vụ (xem bảng bên dưới).
+
+**Bảng auth (migration phase 03)** — shape Better Auth yêu cầu, cộng cột riêng của dự án:
+
+| Bảng | Cột riêng của dự án | Ghi chú |
+|---|---|---|
+| `User` | `role` (enum `UserRole`: `ADMIN`, `RESULTS_OPERATOR`, mặc định `RESULTS_OPERATOR`), `isActive` (mặc định true), `mustChangePassword`, `tempPasswordExpiresAt`, `lastLoginAt` | Index `(role, isActive)`. Sign-up tắt, không có tài khoản mặc định trong code |
+| `Session` | `lastSeenAt`, `stepUpAt` | Index `userId`. Hết hạn tuyệt đối và idle do api kiểm, không do Better Auth |
+| `Account` | `password` (scrypt, không bao giờ trả ra API) | Provider `credential`. Index `userId` |
+| `Verification` | — | Shape bắt buộc của Better Auth, dự án chưa dùng |
+
 
 **`AuditLog`** — ghi mọi thay đổi nghiệp vụ.
 
@@ -169,6 +188,33 @@ Index: `(entity, entityId)` và `(actorId, createdAt)`.
 
 Schema tách file: `base.prisma` (generator, datasource), `app-setting.prisma`, `audit-log.prisma`.
 
+## Xác thực và phân quyền (phase 03)
+
+Tóm tắt. Chi tiết, bảng mã lỗi, và API xem [auth-and-rbac.md](./auth-and-rbac.md).
+
+```
+Trình duyệt (admin SPA)
+  │  POST /api/v1/auth/sign-in/email   ──> Better Auth raw handler (Express, trước Nest)
+  │                                         ├─ IP rate limit (Redis)
+  │                                         └─ khóa theo tài khoản (Redis, Lua)
+  │  Cookie phiên
+  ▼
+Nest guard toàn cục (theo thứ tự)
+  1. SessionGuard              phiên trong bảng Session; hết hạn tuyệt đối / idle
+  2. MustChangePasswordGuard   mật khẩu tạm → chỉ /auth/me, /auth/change-password
+  3. PermissionGuard           deny-by-default; @RequirePermission ↔ PERMISSION_MATRIX
+  4. StepUpGuard               @RequireStepUp (chưa gắn route)
+  ▼
+Controller: /auth/*, /admin/users, /admin/audit-logs, /admin/settings
+Express (ngoài guard Nest): /api/v1/admin/queues (bull-board, kiểm lại các bước trên)
+```
+
+Quy tắc chung:
+- Ma trận quyền ở `@kamito/shared` dùng chung cho api và admin UI. Admin UI chỉ ẩn, api là nơi chặn.
+- Vai trò, `isActive`, `mustChangePassword` đọc từ DB mỗi request. Đổi quyền có hiệu lực ngay, và thu hồi phiên khi đổi vai trò hoặc khóa.
+- Ngưỡng đăng nhập, khóa, phiên, mật khẩu nằm ở `/settings` (`AppSetting`). Env chỉ giữ secret (`AUTH_SECRET`), URL (`ADMIN_PUBLIC_URL` cho Origin), và `TRUST_PROXY_HOPS`.
+- Ghi audit cho mọi thay đổi user, setting, mật khẩu, và phiên. Xem danh sách action trong [auth-and-rbac.md](./auth-and-rbac.md#api-quản-trị).
+
 ## Dịch vụ dùng chung trong api
 
 | Dịch vụ | File | Hành vi |
@@ -176,12 +222,21 @@ Schema tách file: `base.prisma` (generator, datasource), `app-setting.prisma`, 
 | Config | `common/config/env-schema.ts`, `app-config.module.ts` | Symbol `API_ENV`. Schema zod toàn cục, global module |
 | Logger | `common/logger/logger.module.ts` | pino JSON. Request ID, redact theo danh sách trong `LOG_REDACT_PATHS` |
 | Error filter | `common/filters/http-exception.filter.ts` | Mọi lỗi trả `{error:{code,message,fields?}}`. Lỗi không phải HttpException → 500 `INTERNAL_ERROR` |
-| Pagination | `common/pagination/pagination-query.ts` | Whitelist sort/filter, giới hạn page size và độ dài `q`. Xem [code-standards.md](./code-standards.md#quy-ước-api) |
-| Request context | `common/audit/request-context.ts` | Middleware trên mọi route. `AsyncLocalStorage` giữ `requestId`, `ip`, `userAgent`. `userId`, `sessionId` sẽ do lớp auth điền (phase 03) |
+| Pagination | `common/pagination/pagination-query.ts`, `pagination-limits.ts` | Whitelist sort/filter. `pageSize` mặc định lấy từ `list.defaultPageSize` (`/settings`), trần từ env `PAGINATION_MAX_PAGE_SIZE`. `page` tối đa 10 000. Xem [code-standards.md](./code-standards.md#quy-ước-api) |
+| Request context | `common/audit/request-context.ts` | Middleware trên mọi route. `AsyncLocalStorage` giữ `requestId`, `ip`, `userAgent`. `SessionGuard` điền `userId`, `sessionId` |
 | AuditService | `common/audit/audit.service.ts` | `record(entry, tx?)`. Actor = `USER` nếu có userId, ngược lại `SYSTEM`. Ghi `before`/`after` sau khi mask |
 | PII mask | `common/audit/mask-pii.ts` | Khớp chuỗi con trên khóa, không phân biệt hoa thường. Đệ quy, tối đa 20 cấp. Không sửa object gốc |
+| Auth | `modules/auth/auth-instance.ts`, `auth-raw-handler.ts`, `session-resolver.service.ts`, `auth-guards.ts` | Better Auth 1.7.21 (không dùng plugin admin). Raw handler chỉ 2 route. Phiên đọc từ DB mỗi request |
+| Login throttling | `modules/auth/login-ip-rate-limiter.service.ts`, `account-lockout.service.ts` | Redis, key có `QUEUE_PREFIX`, email băm. Fail-open khi Redis lỗi |
+| Access control | `modules/access-control/` | `@Public`, `@RequireSession`, `@RequirePermission`, `PermissionGuard` |
+| Origin check | `common/security/trusted-origin.ts` | `TrustedOriginMiddleware` cho ghi dưới `admin/*`, `auth/*`. Dùng lại trong bull-board |
+| Users | `modules/users/` | CRUD user (không xóa), reset mật khẩu, thu hồi phiên, ràng buộc ADMIN cuối |
+| Settings | `modules/settings/` | `AppSettingsService`: đọc (cache 10 giây), sửa, reset, audit |
+| Audit log (đọc) | `modules/audit-logs/` | Chỉ GET. Lọc theo actor, entity, action (tiền tố), khoảng thời gian |
+| Bull-board | `modules/queue/bull-board-mount.ts` | UI hàng đợi trên Express, guard theo phiên và quyền `queues` |
+| CLI | `cli/create-admin.ts` | Tạo hoặc khôi phục ADMIN đầu tiên, xác nhận DB target trước khi ghi |
 | Prisma | `modules/prisma/prisma.service.ts` | `PrismaClient` + `@prisma/adapter-pg`. Đóng kết nối khi tắt |
-| Redis | `modules/queue/redis-connection.provider.ts` | `enableOfflineQueue: false`: lệnh lỗi ngay khi Redis mất. Chờ ready tối đa 5 giây lúc boot |
+| Redis | `modules/queue/redis-connection.provider.ts` | `enableOfflineQueue: false`: lệnh lỗi ngay khi Redis mất. Chờ ready tối đa 5 giây lúc boot. Dùng chung cho queue, bull-board, và khóa đăng nhập |
 | Eviction check | `modules/queue/redis-eviction-policy-check.ts` | Kết nối riêng ngắn hạn (`redis-probe`) để đọc `CONFIG GET maxmemory-policy` |
 | S3 | `modules/storage/s3-client.provider.ts` | `@aws-sdk/client-s3`, `forcePathStyle` theo `S3_FORCE_PATH_STYLE` |
 
@@ -192,7 +247,7 @@ Kiểm tra prefix queue: `isQueuePrefixValid` trong `@kamito/shared`. Dạng h�
 | Package | Export chính | Ghi chú |
 |---|---|---|
 | `@kamito/db` | `PrismaClient` (generated), `buildPrismaClientOptions`, `createPrismaClient`, `findPendingMigrations`, `listBundledMigrations`, `bundledMigrationsDir` | Build chạy `prisma generate` trước `tsc` |
-| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `judgeEvictionPolicy` | `redis-probe` là subpath riêng vì dùng ioredis |
+| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `authSettings`, `listSettings`, `APP_SETTING_GROUPS`, `judgeEvictionPolicy`, `PERMISSION_MATRIX`, `can`, `permissionsFor`, `USER_ROLES`, `isUserRole` | `redis-probe` là subpath riêng vì dùng ioredis. Ma trận quyền dùng cho cả api và admin |
 | `@kamito/ui-tokens` | `tokens`, `buildCssVariables`, `buildCssText` (root); `buildAntdTheme`, `antdTheme` (subpath `./antd-theme`) | `tokens.ts` là nguồn duy nhất. Build sinh `dist/tokens.css` |
 | `@kamito/config` | `tsconfig.base.json`, `tsconfig.node.json`, `eslint.config.mjs`, `vitest-preset` | Preset Vitest: `src/**/*.test.ts`, `test/**/*.spec.ts` |
 
@@ -204,9 +259,9 @@ Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đ
 |---|---|---|
 | `packages/competition-engine` (bracket, seeding, round robin) | 06–07 | Chưa có |
 | `packages/ranking-engine` (điểm, snapshot) | 09 | Chưa có |
-| BullMQ processor và đăng ký queue | 02 trở đi | Chưa cài `bullmq`; worker chỉ có Redis connection |
-| Auth và RBAC admin | 03 | Chưa có. Context đã sẵn chỗ cho `userId`, `sessionId` |
-| Refine trong admin | 02 (Spike B) | Chưa cài |
+| BullMQ processor và đăng ký queue | Phase sau | Chưa có processor. `bullmq` chỉ api dùng (bull-board). Worker chưa dùng BullMQ |
+| Queue nghiệp vụ | Phase sau | Chỉ có `maintenance` trong `QueueName`, chưa có job |
+| Auth và RBAC | 03 | Đã có (xem [Xác thực và phân quyền](#xác-thực-và-phân-quyền-phase-03)). Còn việc mở, liệt kê trong [auth-and-rbac.md](./auth-and-rbac.md#giới-hạn-đã-biết) |
 | Upload: thiết kế (a) trình duyệt upload trực tiếp qua URL ký, hoặc (b) upload qua API | 01 bước 15 | Chưa chọn. Hai biến `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` chỉ dùng cho (a) |
 | Revalidate Next.js từ worker | 02 (Spike E) | Chưa có. Worker chưa có `CLIENT_INTERNAL_URL`, `REVALIDATE_SECRET` |
 | Thi đấu, bảng điểm, site công khai | 04–12 | Chưa có |
@@ -227,6 +282,11 @@ Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đ
 | 10 | Admin đọc `/config.json` lúc chạy | Không cần build lại khi đổi URL |
 | 11 | Cấu hình nghiệp vụ trong `AppSetting`, kỹ thuật trong env | Admin đổi được giá trị nghiệp vụ mà không deploy |
 | 12 | Health tách live và ready | Container healthcheck không phụ thuộc DB; ready chỉ nội bộ |
+| 13 | Better Auth không dùng plugin admin. Chỉ 2 route (`sign-in/email`, `sign-out`) đi qua handler raw, phần còn lại qua Nest | Allowlist chính xác, route mới mặc định bị chặn. Plugin admin không cần cho mô hình 2 vai trò |
+| 14 | Phân quyền deny-by-default ở guard toàn cục; ma trận quyền một nguồn cho api và admin UI | Route quên khai báo quyền vẫn bị chặn. UI không phải lớp bảo vệ |
+| 15 | Vai trò, `isActive`, `mustChangePassword` đọc từ DB mỗi request | Đổi quyền và khóa tài khoản có hiệu lực ngay, không chờ hết phiên |
+| 16 | Tham số đăng nhập, phiên, mật khẩu, phân trang nằm ở `/settings` (`AppSetting`) | Theo luật dự án: đổi được trên giao diện, không cần redeploy. Env chỉ còn secret, URL, và trần an toàn |
+| 17 | Admin dùng Refine + antd, phân quyền UI qua `accessControlProvider` cùng ma trận của api | Refine cho list, form, và router. Quyền vẫn do api quyết định |
 
 Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của chủ repo. Chưa đối chiếu lại trong lần viết này.
 
@@ -234,3 +294,5 @@ Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của ch�
 
 - [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API.
 - [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành.
+- [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.
+- [project-changelog.md](./project-changelog.md) và [development-roadmap.md](./development-roadmap.md): lịch sử và trạng thái phase.

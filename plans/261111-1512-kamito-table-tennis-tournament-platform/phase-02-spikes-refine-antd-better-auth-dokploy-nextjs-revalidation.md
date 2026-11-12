@@ -165,6 +165,7 @@ Báo cáo: [spike-c-261112-1007-better-auth-nest-results.md](../reports/spike-c-
 - Bắt buộc ở phase 03: (1) allowlist default-deny ở Express (`disabledPaths` không phủ path có tham số); (2) ghi đè `x-forwarded-for = req.ip` trước handler (rate limit đọc thẳng XFF, XFF nhiều giá trị dồn chung bucket); (3) đặt tường minh `disableOriginCheck:false`, `disableCSRFCheck:false` (tự tắt khi `NODE_ENV=test`); (4) ngưỡng rate limit đăng nhập ra env (mặc định 3 lần/10 s/IP quá chặt cho mạng chung tại sân).
 - Sai lệch quy trình: `migrate dev --create-only` lần 2 đã áp migration trước khi review SQL; review sau: chỉ enum + 5 bảng + index + FK trong `spike_auth`.
 - Chưa kiểm: nginx/Traefik thật (mới mô phỏng proxy Node); tăng tham số hash. Bản 1.7.21 mới < 1 ngày → phase 03 cân nhắc ghim bản cũ hơn và chạy lại bộ test.
+- Cập nhật phase 03 (2026-11-12): allowlist raw thu còn 2 route (`POST /auth/sign-in/email`, `POST /auth/sign-out`); `GET /auth/get-session` không dùng (admin đọc phiên qua Nest `GET /auth/me`); admin plugin không dùng; ngưỡng rate limit đăng nhập đã chuyển lên `/settings` (`auth.login.ipMaxAttempts`). Xem phase 03.
 
 ### Spike D — CHƯA CHẠY (chờ staging Dokploy)
 

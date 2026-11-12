@@ -29,6 +29,9 @@
 - BXH bảng là dữ liệu tổng hợp nhiều trận → hai lần chốt cùng bảng đồng thời có thể ghi đè nhau. Khóa ở mức `Draw`/`Group` (`SELECT … FOR UPDATE`) trước khi đọc trạng thái tổng hợp; tính BXH luôn từ đầu (idempotent).
 - Engine tự viết thay vì thư viện: nhu cầu chỉ gồm loại trực tiếp (hạt giống, BYE, vòng loại dừng ở k suất), vòng tròn, bảng → nhánh; giữ một bộ bảng domain, không có lớp trung gian.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có: `AppSettingsService` và khung `/settings` (key `draw.*` thêm vào registry khi làm phase này); resource `tournaments` trong ma trận quyền (RESULTS_OPERATOR chỉ đọc); `@RequireStepUp()` nếu thao tác sau công bố cần nhập lại mật khẩu (chưa gắn route nào).
+
 ## Requirements
 
 Functional

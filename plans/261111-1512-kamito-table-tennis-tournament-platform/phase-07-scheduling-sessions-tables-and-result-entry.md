@@ -33,6 +33,11 @@
 - Worker gọi `POST {CLIENT_INTERNAL_URL}/api/revalidate` (header secret, body `{ tags: [...] }`); lô nhiều tag, kiểm độ dài ≤ 256.
 - Chưa kiểm: nhiều replica client (cache theo instance, lệnh chỉ trúng 1 instance); `'use cache'`/`cacheTag`; hành vi trên Docker thật.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có sẵn: idle timeout (mặc định ví dụ 60 phút, chỉnh `auth.session.idleMinutes` trên `/settings`) áp cho máy bàn điều hành; `@RequireStepUp()` + StepUpGuard + `step-up-modal.tsx` + `POST /api/v1/auth/step-up` (trả hạn nhập lại mật khẩu, `auth.stepUp.ttlMinutes`).
+- Ma trận quyền hiện có: `start`, `un-start`, `save-progress` đi qua `matches.update` (không có action riêng); `confirm`, `amend` là `matches.confirm`, `matches.amend` (RESULTS_OPERATOR có); `reopen`, `force-reopen` là `matches.reopen` (chỉ ADMIN).
+- Trang chủ RESULTS_OPERATOR hiện là khung `role-home-page.tsx`; màn nhập tỷ số làm ở phase này.
+
 ## Requirements
 
 Functional

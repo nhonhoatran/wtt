@@ -34,6 +34,9 @@
 - Sitemap: `app/sitemap.ts` + `dynamic = 'force-dynamic'` (build Docker không gọi được API nên không sinh lúc build).
 - Chưa kiểm: rule Traefik/`passHostHeader` thật; nhiều replica client.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 không cung cấp thành phần công khai. Phân trang công khai dùng tham số riêng (`pageSize` ≤ 24 ở `/public/events`), không dùng `list.defaultPageSize` (chỉ áp cho admin).
+
 ## Requirements
 
 Functional

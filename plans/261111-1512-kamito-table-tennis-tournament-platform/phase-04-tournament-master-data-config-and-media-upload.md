@@ -27,6 +27,11 @@
 <!-- Red Team: Kiểm soát bảo mật sớm — 2026-11-11 -->
 - Sanitizer rich text là kiểm soát bảo mật, không phải tính năng CMS → làm ở đây, **không thuộc danh sách cắt**. Trước khi có sanitizer, `infoBody` lưu/hiển thị dạng text thuần.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có: khung `/settings` (registry `packages/shared/src/app-setting-registry.ts`, API `GET/PUT/DELETE /api/v1/admin/settings`, trang `apps/admin/src/pages/settings-page.tsx`), `AppSettingsService`. Phase 04 chỉ thêm key nghiệp vụ vào registry, không dựng lại.
+- Phân trang admin đã có khung chung: `parsePaginationQuery` (server), `use-list-page-size.ts`, `list-filter-bar.tsx`. Page size mặc định là setting `list.defaultPageSize`; env chỉ là trần.
+- Chưa thống nhất: mục "Cài đặt hiển thị" ghi tham số kỹ thuật (upload, import, page size...) ở env theo phase 01, trong khi plan.md yêu cầu tham số vận hành lên `/settings`. Chốt trước khi làm phase 04.
+
 ## Requirements
 
 Functional
@@ -209,7 +214,7 @@ Phần còn lại (tuần 7–8)
 - [ ] ui-consistency: finding-patterns → planning
 - [ ] Sanitizer + bộ test XSS + validator `https:` (không cắt)
 - [ ] Modules catalog (6) + venues/tables bulk + sub-events bulk; luật vòng bảng (unfinished, withdrawal)
-- [ ] AppSetting registry (chỉ nghiệp vụ) + API + màn cài đặt
+- [ ] AppSetting registry (chỉ nghiệp vụ) + API + màn cài đặt (khung registry, API `/admin/settings` và trang `/settings` đã có từ phase 03; còn key nghiệp vụ)
 - [ ] Upload-intent + worker mã hóa lại + dọn intent; migration `add_media_assets`
 - [ ] Màn admin: catalog, giải, hub, địa điểm
 - [ ] Đăng ký tag revalidate cho mutation của module

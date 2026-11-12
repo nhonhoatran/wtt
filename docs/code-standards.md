@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-12 · Phạm vi: khung phase 01 (monorepo, api, worker, client, admin, packages).
+> Cập nhật: 2026-11-12 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages) và phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin).
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -29,9 +29,13 @@
 | Turborepo | 2.11.10 | `devDependencies` root |
 | TypeScript | 6.0.3 | root + mọi package |
 | NestJS | 12.3.2 | `apps/api/package.json` |
+| Better Auth | 1.7.21 | `apps/api/package.json` (không dùng plugin admin) |
+| BullMQ + bull-board | 6.5.1 / 9.10.5 | `apps/api/package.json` (chỉ api; worker chưa dùng) |
 | Prisma + adapter | 7.10.1 | `packages/db/package.json` (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) |
 | Next.js / React | 16.4.3 / 19.3.1 | `apps/client/package.json` |
 | Vite / antd | 8.3.5 / 5.29.3 | `apps/admin/package.json` |
+| Refine | core 5.0.12, antd 6.0.3, router 2.0.4 | `apps/admin/package.json` |
+| react-router | 7.18.5 | `apps/admin/package.json` |
 | Vitest | 5.0.5 | `apps/api`, `apps/worker`, `packages/shared`, `packages/ui-tokens` |
 | zod | 4.6.7 | api, worker, shared |
 | ioredis | 6.0.0 | api, worker, shared |
@@ -51,19 +55,26 @@ Quy ước:
 apps/
   api/        NestJS 12 (Express 5). REST /api/v1/{admin,public,auth}
     src/      main.ts, bootstrap-app.ts, app.module.ts
-              common/{config,logger,filters,pagination,audit}/
-              modules/{health,prisma,storage,queue}/   (feature modules thêm dần)
-    test/     *.e2e-spec.ts (dùng dependency thật)
+              common/{config,logger,filters,pagination,audit,security,validation}/
+              modules/{health,prisma,storage,queue}/   (phase 01)
+              modules/{auth,access-control,users,settings,audit-logs}/   (phase 03)
+              cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
+    test/     *.e2e-spec.ts (dùng dependency thật), support/
   worker/     Node + ioredis. Health HTTP nội bộ. Chưa có processor.
     src/      main.ts, worker-env.ts, redis-eviction-guard.ts, worker-health-server.ts
   client/     Next.js App Router. Segment [locale], i18n vi/en.
-  admin/      Vite + React + antd. Runtime config từ /config.json.
+  admin/      Vite + React + antd + Refine. Runtime config từ /config.json.
     src/      main.tsx, app.tsx, runtime-config.ts
+              api/ (http-client), providers/ (auth, access control, data, current-user)
+              components/ (require-access, list-filter-bar, step-up-modal, temp-password-modal)
+              layout/ (admin-layout, menu-groups), pages/ (login, change-password, settings, role home)
+              resources/{users,audit-logs}/, i18n/vi.ts
     test/     *.test.mjs (node:test)
 packages/
   config/     tsconfig.base.json, tsconfig.node.json, eslint.config.mjs, vitest-preset
   db/         prisma/schema/*.prisma, prisma/migrations/, prisma.config.ts, src/
-  shared/     pagination, queue-names, app-setting-registry, env-validation, redis-eviction-policy, redis-probe
+  shared/     pagination, queue-names, app-setting-registry, auth-settings, list-settings,
+              permissions, user-role, env-validation, redis-eviction-policy, redis-probe
   ui-tokens/  tokens.ts -> tokens.css, antd-theme.ts
 docker/       Dockerfile x4, admin-nginx.conf, admin-api-proxy.conf, admin-security-headers.conf,
               admin-entrypoint.sh, migrate-entrypoint.sh
@@ -111,7 +122,8 @@ Chưa có: `packages/competition-engine`, `packages/ranking-engine` (phase 06–
 - **Validate lúc boot.** API và worker parse env bằng zod (`parseEnv` trong `@kamito/shared`). Thiếu hoặc sai thì dừng, báo **tên biến và lý do**, không in giá trị.
 - **Secret:** tối thiểu 32 ký tự. Giá trị bắt đầu bằng `replace-with` hoặc `change-me` bị từ chối. `AUTH_SECRET`, `REVALIDATE_SECRET`, `SSR_INTERNAL_SECRET`, `IP_HASH_SALT` phải khác nhau (api kiểm trong `env-schema.ts`).
 - **Giá trị nghiệp vụ không hard-code.** Giá trị admin có thể đổi (tên site, ngưỡng, khung thời gian...) đi vào bảng `AppSetting`. Mỗi key khai báo trong registry `packages/shared/src/app-setting-registry.ts` với zod schema và default.
-- **Tham số kỹ thuật** (timeout, concurrency, giới hạn upload/import, TTL cache) đi vào env. Giá trị mặc định nằm trong code khi biến là tùy chọn.
+- **Tham số vận hành** (ngưỡng đăng nhập, khóa tạm, phiên, mật khẩu, page size) cũng đi vào `AppSetting`, sửa ở `/settings`. Key khai báo bằng `defineNumberSetting` (`auth-settings.ts`, `list-settings.ts`) kèm khoảng min/max và mặc định. Danh sách đầy đủ: [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
+- **Tham số kỹ thuật** (timeout, concurrency, trần an toàn) đi vào env. Giá trị mặc định nằm trong code khi biến là tùy chọn. Env hiện có `PAGINATION_MAX_PAGE_SIZE` và `QUERY_MAX_LENGTH` làm trần cứng cho phân trang.
 - **Không có giá trị kết nối trong code hay compose.** `.env.example` chỉ chứa placeholder. Danh sách biến theo service xem [deployment-guide.md](./deployment-guide.md#biến-môi-trường-theo-service).
 - **`.env` không được commit** (`.gitignore`). Gitleaks chạy trong CI.
 - **Khi lệnh có đụng database:**
@@ -148,8 +160,10 @@ Chưa có: `packages/competition-engine`, `packages/ranking-engine` (phase 06–
   { "error": { "code": "INVALID_QUERY", "message": "Invalid pagination query", "fields": { "page": "..." } } }
   ```
   `fields` chỉ có khi lỗi validate từng trường. Lỗi 500 luôn trả `INTERNAL_ERROR`, không lộ chi tiết.
-- **Danh sách** dùng `parsePaginationQuery(raw, rules, limits)` (`common/pagination/pagination-query.ts`):
-  - `page` ≥ 1; `pageSize` mặc định 20, trần 100 (`PAGINATION_DEFAULT_PAGE_SIZE`, `PAGINATION_MAX_PAGE_SIZE`).
+- **Lỗi validate dữ liệu** (body) trả 422 `VALIDATION_FAILED`, `fields` theo từng trường (`parseBody`, `fieldError`). Lỗi query danh sách trả 400 `INVALID_QUERY`.
+- **Danh sách** dùng `parsePaginationQuery(raw, rules, limits)` (`common/pagination/pagination-query.ts`). `limits` lấy từ `PaginationLimitsService`:
+  - `page` ≥ 1, tối đa 10 000.
+  - `pageSize` mặc định lấy từ setting `list.defaultPageSize` (20, khoảng 5–100, sửa ở `/settings`). Trần cứng là env `PAGINATION_MAX_PAGE_SIZE` (mặc định 100).
   - `sort=field:asc|desc`: field phải nằm trong whitelist của resource.
   - `q`: tối đa `QUERY_MAX_LENGTH` ký tự.
   - `filter[key]`: key phải nằm trong whitelist. Key lạ trả 400.
@@ -188,7 +202,7 @@ Chưa có: `packages/competition-engine`, `packages/ranking-engine` (phase 06–
 |---|---|---|---|
 | api, worker, shared, ui-tokens | Vitest 5 | `pnpm test` (qua turbo) | Không dùng Jest |
 | api (Nest) | Vitest + `unplugin-swc` | `pnpm --filter @kamito/api test` | SWC để giữ decorator metadata; esbuild không làm được |
-| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` | như trên | Dùng dependency thật từ `.env` ở root, **không mock** |
+| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (13 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Đã chạy 2026-11-12 (pass) |
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |
@@ -210,7 +224,7 @@ Lint: ESLint 10 (flat config). `apps/api`, `apps/admin`, `apps/client` có `esli
   feat: add audit log service with PII masking
   fix: reject placeholder secrets at boot
   ```
-- Repo đã `git init` nhưng **chưa có commit nào** và **chưa có remote** (kiểm 2026-11-12: `git log`, `git remote -v`).
+- Repo có 6 commit cục bộ (`git log`, mới nhất `ecfdb2f`, 2026-11-12) và **chưa có remote** (`git remote -v` trống, kiểm 2026-11-12). Code phase 03 chưa commit.
 - Đã chốt 2026-11-12: chỉ commit cục bộ, push khi kết thúc dự án. Trước khi thêm remote, xác nhận lại tài khoản GitHub, email commit, tên repo.
 - Tài khoản dự kiến cho repo này: `midomax-hoa`, SSH host alias `github.com` (chưa thêm remote, chưa xác nhận lại). Không dùng URL HTTPS. Email commit đặt bằng `git config user.email` mức repo, không đặt `--global`.
 - Không commit `.env`, `packages/db/src/generated/`, `dist/`, `.next/`, `.turbo/`, `coverage/`.
@@ -227,3 +241,4 @@ Trước khi dùng thư viện lần đầu:
 
 - [system-architecture.md](./system-architecture.md): thành phần, luồng mạng, luồng khởi động.
 - [deployment-guide.md](./deployment-guide.md): môi trường, compose, quy trình phát hành, sao lưu.
+- [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.

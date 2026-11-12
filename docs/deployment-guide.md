@@ -1,7 +1,7 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: phase 01. Staging và production chưa được dựng trên Dokploy.
-> Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`.
+> Cập nhật: 2026-11-12 · Trạng thái: phase 01 và code phase 03 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
+> Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
 ## Contents
@@ -47,6 +47,7 @@ Cả staging và production dùng cùng `docker-compose.yml`. Giá trị khác n
    pnpm db:print-target
    pnpm --filter @kamito/db exec prisma migrate deploy
    ```
+5. Tạo ADMIN đầu tiên để đăng nhập admin. Xem [Tạo admin đầu tiên](#tạo-admin-đầu-tiên).
 
 Cổng dev:
 
@@ -96,7 +97,9 @@ Quy tắc:
 | `CLIENT_INTERNAL_URL` | api | không | Mặc định `http://client:3000` |
 | `PUBLIC_SITE_URL` | api, client, admin | có | Canonical, sitemap, kiểm `Origin` |
 | `ADMIN_PUBLIC_URL` | api, admin | có | |
-| `TRUST_PROXY_HOPS` | api | có (compose) | Mã mặc định trong code là `0`. Số proxy tin cậy trước api |
+| `TRUST_PROXY_HOPS` | api | có (compose) | Mã mặc định trong code là `0`. Số proxy tin cậy trước api. Phải khớp đúng số hop thật, xem [auth-and-rbac.md](./auth-and-rbac.md#chống-dò-mật-khẩu) |
+| `PAGINATION_MAX_PAGE_SIZE` | api | không | Mặc định 100. Trần cứng của `pageSize`. Page size mặc định sửa ở `/settings` |
+| `QUERY_MAX_LENGTH` | api | không | Mặc định 100. Độ dài tối đa của tham số `q` |
 | `API_PORT` | api | cố định | `3000` |
 | `UPLOAD_MAX_IMAGE_BYTES`, `UPLOAD_ALLOWED_IMAGE_TYPES`, `MEDIA_IMAGE_VARIANT_WIDTHS` | api | có | Tham số kỹ thuật upload |
 | `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS`, `IMPORT_RETENTION_DAYS` | api | có | Trần import (phase 05) |
@@ -109,12 +112,9 @@ Biến có trong code nhưng **không có trong compose và `.env.example`**:
 
 | Biến | Đọc ở | Mặc định | Vấn đề |
 |---|---|---|---|
-| `PAGINATION_DEFAULT_PAGE_SIZE` | api (`env-schema.ts`) | 20 | Compose không truyền, nên Dokploy không đổi được nếu không sửa compose |
-| `PAGINATION_MAX_PAGE_SIZE` | api | 100 | Như trên |
-| `QUERY_MAX_LENGTH` | api | 100 | Như trên |
 | `SHADOW_DATABASE_URL` | `packages/db/prisma.config.ts` | — | Chỉ cho `migrate dev` trên server dev dùng chung (phase 01 bước 15). Chưa có trong `.env.example` |
 
-Quyết định cần chốt: đưa ba biến phân trang vào compose hoặc giữ mặc định trong code.
+`PAGINATION_DEFAULT_PAGE_SIZE` đã bỏ khỏi code (2026-11-12). Page size mặc định nằm ở `/settings` (`list.defaultPageSize`). Hai biến trần còn lại đã có trong compose và `.env.example`.
 
 ## Dokploy: compose và domain
 
@@ -174,6 +174,38 @@ Lưu ý:
 - Mật khẩu không bao giờ được in ra.
 - `migrate status` thoát khác 0 khi còn migration chờ. Điều này là bình thường trong bước này.
 
+## Tạo admin đầu tiên
+
+Chạy một lần cho mỗi database, sau khi migration đã áp dụng. Code không có tài khoản mặc định.
+
+**Dev local** (đã đối chiếu với `apps/api/package.json`, script `create-admin`):
+
+```bash
+pnpm --filter @kamito/api create-admin --email <email> --name "<Họ tên>"
+```
+
+Lệnh này đọc `DATABASE_URL` từ `.env` ở root (`--env-file-if-exists=../../.env`). Không truyền `DATABASE_URL` bằng tay.
+
+Thứ tự hỏi khi chạy:
+
+| Bước | CLI in ra | Bạn làm |
+|---|---|---|
+| 1 | `DB target: <host>:<port>/<database> (user: ...)` | Đọc và đối chiếu với đúng môi trường |
+| 2 | `Type the database name (<database>) to continue:` | Gõ đúng tên database. Sai thì thoát, không ghi gì |
+| 3 | Nếu email đã có: `... exists. Make it an active ADMIN and set a new password? (yes/no)` | Gõ `yes` để khôi phục |
+| 4 | `Password (min N characters):` | Nhập mật khẩu, không hiện ra màn hình. `N` lấy từ `auth.password.minLength` (mặc định 10) |
+| 5 | `Repeat password:` | Nhập lại |
+
+Kết quả:
+- Tạo mới: `Created ADMIN <email>`. Tài khoản không bắt đổi mật khẩu ở lần đăng nhập đầu, vì mật khẩu do người vận hành nhập.
+- Khôi phục: `Restored ADMIN <email>`. Đặt `isActive` và vai trò `ADMIN`, xóa mọi phiên hiện có.
+- Ghi audit `user.admin.create.cli` hoặc `user.admin.restore.cli` với actor `SYSTEM`.
+
+Lưu ý:
+- **Không xóa khóa đăng nhập trong Redis.** Nếu tài khoản đang bị khóa tạm, phải chờ hết thời gian khóa (mặc định tối đa 30 phút) hoặc xóa key bằng tay.
+- Tự động hóa: CLI nhận stdin khi không có TTY (`printf` các dòng theo đúng thứ tự trên). Không ghi mật khẩu vào lệnh, file, hay lịch sử shell.
+- **Staging và production: chưa kiểm chứng.** Image `api` chỉ chứa `dist/` và dependency production, không có `.env` ở root và không có `devDependencies` (`@swc-node/register`). `dist/cli/create-admin.js` có trong build, nhưng chưa thử chạy trong container. Thử trên staging trước khi dựa vào đường này. Trước khi chạy, đối chiếu dòng `DB target` với `MIGRATE_CONFIRM_TARGET` của môi trường đó.
+
 ## Runbook: migration lỗi
 
 Lệnh `prisma migrate resolve` đọc `DATABASE_URL` qua `prisma.config.ts` (từ biến môi trường hoặc `.env` ở root). Trước khi chạy, luôn xác nhận target:
@@ -214,6 +246,8 @@ curl -fsS https://<admin-domain>/healthz                 # 200 {"status":"ok"}
 curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/health/ready   # 404 (đúng: không lộ ra ngoài)
 curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/public/x      # 404
 curl -fsS https://<admin-domain>/config.json             # chỉ 3 khóa: API_BASE_PATH, ADMIN_PUBLIC_URL, PUBLIC_SITE_URL
+curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/auth/me          # 401 (chưa đăng nhập)
+curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/admin/queues     # 401 (bull-board, chưa đăng nhập)
 ```
 
 Kiểm nội bộ, trong container api (cùng lệnh với healthcheck của compose):
@@ -240,6 +274,14 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | Service thoát ngay khi start, log có tên biến | Biến bắt buộc thiếu hoặc sai | Thêm biến theo tên trong log. Log không in giá trị |
 | `/config.json` của admin sai | `API_BASE_PATH`, `ADMIN_PUBLIC_URL` hoặc `PUBLIC_SITE_URL` của service `admin` sai | Sửa env rồi restart container. Không cần build lại |
 | Secret bị từ chối | Ngắn hơn 32 ký tự, hoặc bắt đầu bằng `replace-with` / `change-me` | Thay bằng giá trị ngẫu nhiên mới |
+| Đăng nhập admin trả 429 `TOO_MANY_REQUESTS` | Vượt ngưỡng đếm theo IP, hoặc đang bị khóa tạm theo tài khoản | Chờ hết `Retry-After`. Nếu ngưỡng quá thấp, chỉnh ở `/settings` (không tắt bằng env) |
+| Nhiều người cùng bị 429 trong một lúc | `TRUST_PROXY_HOPS` thấp hơn số proxy thật, nên mọi client chung một IP | Kiểm số hop thực tế của Traefik và nginx, rồi đặt lại biến |
+| Ghi bị 403 `ORIGIN_MISMATCH` | `ADMIN_PUBLIC_URL` không khớp scheme và host của domain admin | Sửa `ADMIN_PUBLIC_URL` của service `api` (và `admin`), redeploy |
+| 403 `PASSWORD_CHANGE_REQUIRED` | Tài khoản đang có mật khẩu tạm | Đổi mật khẩu ở màn `/change-password`. Quá hạn tạm thì quản trị reset lại |
+| 401 `SESSION_IDLE_TIMEOUT` hoặc `SESSION_EXPIRED` | Hết `auth.session.idleMinutes` hoặc `auth.session.maxAgeHours` | Đăng nhập lại |
+| 409 `LAST_ACTIVE_ADMIN` | Thao tác sẽ làm hệ thống không còn ADMIN đang hoạt động | Cấp ADMIN khác trước, rồi mới hạ hoặc khóa |
+| Đổi setting, replica khác chưa thấy | Cache 10 giây trong từng replica | Chờ tối đa 10 giây |
+| Log `login rate limit unavailable` hoặc `lockout ... unavailable` | Redis lỗi. Đăng nhập đang fail-open (không đếm, không khóa) | Khôi phục Redis. Đây là cửa mở, xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
 
 ## Việc còn mở
 
@@ -252,11 +294,13 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 5 | Chủ sở hữu, RPO, lịch, nơi lưu sao lưu | Phase 01 bước 15 | Chưa chốt |
 | 6 | Thiết kế upload (a) hoặc (b) | Phase 01 bước 15 | Chưa chốt |
 | 7 | Hạ tầng PostgreSQL, Redis, MinIO có dùng chung không; role và quyền | Phase 01 bước 15 | Chưa có câu trả lời |
-| 8 | Ba biến phân trang nằm ngoài compose | Mục [Biến môi trường](#biến-môi-trường-theo-service) | Chốt đưa vào compose hay giữ mặc định |
-| 9 | Client chưa truyền `ADMIN_PUBLIC_URL` trong compose (phase 01 bảng biến có ghi) | So sánh compose với bảng phase | Thêm nếu client cần đọc |
-| 10 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo chưa có remote | Quyết định 2026-11-12 | Push cuối dự án |
+| 8 | Client chưa truyền `ADMIN_PUBLIC_URL` trong compose (phase 01 bảng biến có ghi) | So sánh compose với bảng phase | Thêm nếu client cần đọc |
+| 9 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo chưa có remote | Quyết định 2026-11-12 | Push cuối dự án |
+| 10 | Tạo admin đầu tiên trong container `api` chưa kiểm chứng | [Tạo admin đầu tiên](#tạo-admin-đầu-tiên) | Thử trên staging |
+| 11 | Deploy staging và migration `20261112042429_add_users_and_auth_sessions` chưa chạy | Phase 03 bước 13; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md) |
 
 ## Liên quan
 
 - [system-architecture.md](./system-architecture.md): thành phần, luồng mạng, health endpoints.
+- [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, lỗi thường gặp của đăng nhập.
 - [code-standards.md](./code-standards.md): tiêu chuẩn migration, `.env`, git.

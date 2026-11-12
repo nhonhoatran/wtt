@@ -367,3 +367,7 @@ Rollback: phase chỉ thêm file + 1 migration tạo bảng mới; revert = xóa
 3. Tài khoản GitHub và tên repo để push cuối dự án (chưa ghi nhận).
 4. Ai sở hữu sao lưu PG + S3, RPO, lịch, thời gian giữ.
 5. PG/Redis/S3 có dùng chung với dự án khác không (quyết định Redis riêng).
+
+Cập nhật sync phase 03 (2026-11-12):
+- Phase 03 đã code trước khi cổng ra phase 01 đạt (xem mục sai lệch cổng trong phase 03). Chủ repo cần chốt tiếp tục hay dừng deploy.
+- Phân trang: `PAGINATION_MAX_PAGE_SIZE` và `QUERY_MAX_LENGTH` là trần an toàn (env); page size mặc định là setting `list.defaultPageSize` trên `/settings`.

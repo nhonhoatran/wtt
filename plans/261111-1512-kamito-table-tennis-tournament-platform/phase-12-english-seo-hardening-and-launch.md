@@ -23,6 +23,9 @@
 <!-- Red Team: Deploy/migrate/staging/sao lưu — 2026-11-11 -->
 - Staging, quy trình phát hành và diễn tập khôi phục sao lưu đã có từ phase 01–02 và pilot; phase này chỉ diễn tập lại trên bản ra mắt.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có e2e auth/RBAC trong `apps/api/test/` (13 file, gồm `express-router-allowlist`, `permission-coverage`, `session-lifecycle`, `bull-board-access`). Phase 12 chạy lại trên Postgres + Redis thật làm nền cho mục tích hợp. Trạng thái chạy: xem phase 03.
+
 ## Requirements
 
 Functional

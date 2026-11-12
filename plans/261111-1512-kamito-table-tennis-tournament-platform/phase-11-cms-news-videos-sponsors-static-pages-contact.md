@@ -25,6 +25,9 @@
 <!-- Red Team: Tô-pô mạng, IP thật, rate limit, health — 2026-11-11 -->
 - Form liên hệ đi Browser → Next (Server Action) → API; API chỉ thấy IP container → rate limit theo IP thật đặt ở Next/Traefik.
 
+<!-- Phase 03 sync — 2026-11-12 -->
+- Phase 03 đã có khung `/settings` (registry + API + trang). Các key `news.categories`, `home.sections` thêm vào registry ở phase này. `NEWS_PAGE_SIZE` đang ghi là env; theo quy tắc `/settings` cân nhắc chuyển thành setting. Resource `content` trong ma trận quyền chỉ ADMIN.
+
 ## Requirements
 
 Functional
