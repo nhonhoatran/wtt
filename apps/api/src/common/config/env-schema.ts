@@ -38,7 +38,6 @@ export const apiEnvSchema = z
     IMPORT_MAX_UNZIPPED_BYTES: positiveInt,
     IMPORT_MAX_ROWS: positiveInt,
     IMPORT_RETENTION_DAYS: positiveInt,
-    PAGINATION_DEFAULT_PAGE_SIZE: positiveInt.default(20),
     PAGINATION_MAX_PAGE_SIZE: positiveInt.default(100),
     QUERY_MAX_LENGTH: positiveInt.default(100),
   })

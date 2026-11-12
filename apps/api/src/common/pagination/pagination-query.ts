@@ -15,6 +15,8 @@ export interface PaginationRules {
   filterable?: readonly string[];
 }
 
+// Caps OFFSET so a crafted page number cannot force a huge scan.
+const MAX_PAGE = 10_000;
 const FILTER_KEY = /^filter\[([A-Za-z0-9_.]+)\]$/;
 
 export function parsePaginationQuery(
@@ -23,7 +25,7 @@ export function parsePaginationQuery(
   limits: PaginationLimits,
 ): PaginationQueryShape {
   const schema = z.object({
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).max(MAX_PAGE).default(1),
     pageSize: z.coerce.number().int().min(1).max(limits.maxPageSize).default(limits.defaultPageSize),
     sort: z
       .string()
