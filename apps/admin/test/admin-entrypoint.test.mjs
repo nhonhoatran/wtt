@@ -8,15 +8,21 @@ import { fileURLToPath } from 'node:url';
 
 const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../docker/admin-entrypoint.sh');
 
-function runEntrypoint(extraEnv) {
+function runEntrypointFiles(extraEnv) {
   const outDir = mkdtempSync(path.join(tmpdir(), 'admin-config-'));
   try {
-    execFileSync('sh', [script], { env: { PATH: process.env.PATH, ADMIN_CONFIG_OUTPUT_DIR: outDir, ...extraEnv } });
-    return JSON.parse(readFileSync(path.join(outDir, 'config.json'), 'utf8'));
+    const env = { PATH: process.env.PATH, ADMIN_CONFIG_OUTPUT_DIR: outDir, UPLOAD_MAX_IMAGE_BYTES: '5242880', ...extraEnv };
+    execFileSync('sh', [script], { env, stdio: 'pipe' });
+    return {
+      config: JSON.parse(readFileSync(path.join(outDir, 'config.json'), 'utf8')),
+      uploadLimit: readFileSync(path.join(outDir, 'upload-limit.conf'), 'utf8'),
+    };
   } finally {
     rmSync(outDir, { recursive: true, force: true });
   }
 }
+
+const runEntrypoint = (extraEnv) => runEntrypointFiles(extraEnv).config;
 
 test('config.json contains only allowlisted keys', () => {
   const config = runEntrypoint({
@@ -36,4 +42,13 @@ test('values are JSON-escaped and missing keys become empty strings', () => {
   const config = runEntrypoint({ API_BASE_PATH: 'a"b\\c' });
   assert.equal(config.API_BASE_PATH, 'a"b\\c');
   assert.equal(config.PUBLIC_SITE_URL, '');
+});
+
+test('nginx upload limit follows UPLOAD_MAX_IMAGE_BYTES', () => {
+  assert.equal(runEntrypointFiles({ UPLOAD_MAX_IMAGE_BYTES: '20971520' }).uploadLimit, 'client_max_body_size 20971520;\n');
+});
+
+test('a missing or non-numeric UPLOAD_MAX_IMAGE_BYTES stops the container instead of writing config', () => {
+  assert.throws(() => runEntrypointFiles({ UPLOAD_MAX_IMAGE_BYTES: '5m; evil' }));
+  assert.throws(() => runEntrypointFiles({ UPLOAD_MAX_IMAGE_BYTES: '' }));
 });

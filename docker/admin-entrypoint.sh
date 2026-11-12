@@ -20,6 +20,14 @@ done
 mkdir -p "$OUTPUT_DIR"
 printf '{%s}\n' "$body" > "$OUTPUT_DIR/config.json"
 
+# Same ceiling the API enforces (UPLOAD_MAX_IMAGE_BYTES), so nginx never rejects an upload the API would accept.
+UPLOAD_MAX_IMAGE_BYTES="${UPLOAD_MAX_IMAGE_BYTES:?UPLOAD_MAX_IMAGE_BYTES is required}"
+case "$UPLOAD_MAX_IMAGE_BYTES" in
+  '' | *[!0-9]*) echo "UPLOAD_MAX_IMAGE_BYTES must be a positive integer" >&2; exit 1 ;;
+esac
+printf 'client_max_body_size %s;
+' "$UPLOAD_MAX_IMAGE_BYTES" > "$OUTPUT_DIR/upload-limit.conf"
+
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
