@@ -13,6 +13,9 @@ const base = {
   UPLOAD_MAX_IMAGE_BYTES: '5242880',
   UPLOAD_ALLOWED_IMAGE_TYPES: 'image/jpeg,image/png',
   MEDIA_IMAGE_VARIANT_WIDTHS: '320,640',
+  IMPORT_MAX_FILE_BYTES: '5242880',
+  IMPORT_MAX_UNZIPPED_BYTES: '52428800',
+  IMPORT_MAX_ROWS: '5000',
 };
 
 // buildMediaDeps only stores the client; the variant-width wiring does not touch the database.

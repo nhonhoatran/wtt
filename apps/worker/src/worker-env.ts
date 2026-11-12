@@ -20,6 +20,11 @@ export const workerEnvSchema = z
     MEDIA_IMAGE_VARIANT_WIDTHS: csvList,
     MEDIA_WORKER_CONCURRENCY: positiveInt.default(2),
     MEDIA_CLEANUP_INTERVAL_MINUTES: positiveInt.default(15),
+    IMPORT_MAX_FILE_BYTES: positiveInt,
+    IMPORT_MAX_UNZIPPED_BYTES: positiveInt,
+    IMPORT_MAX_ROWS: positiveInt,
+    IMPORT_WORKER_CONCURRENCY: positiveInt.default(1),
+    IMPORT_CLEANUP_INTERVAL_MINUTES: positiveInt.default(60),
   })
   .superRefine((env, ctx) => {
     if (!isQueuePrefixValid(env.QUEUE_PREFIX, env.APP_ENV)) {

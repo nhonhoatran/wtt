@@ -11,11 +11,14 @@ const base = {
   UPLOAD_MAX_IMAGE_BYTES: '5242880',
   UPLOAD_ALLOWED_IMAGE_TYPES: 'image/jpeg,image/png',
   MEDIA_IMAGE_VARIANT_WIDTHS: '320,640',
+  IMPORT_MAX_FILE_BYTES: '5242880',
+  IMPORT_MAX_UNZIPPED_BYTES: '52428800',
+  IMPORT_MAX_ROWS: '5000',
 };
 
 describe('loadWorkerEnv', () => {
   it('parses a valid env with defaults', () => {
-    expect(loadWorkerEnv(base)).toMatchObject({ WORKER_HEALTH_PORT: 3010, LOG_LEVEL: 'info', MEDIA_WORKER_CONCURRENCY: 2 });
+    expect(loadWorkerEnv(base)).toMatchObject({ WORKER_HEALTH_PORT: 3010, LOG_LEVEL: 'info', MEDIA_WORKER_CONCURRENCY: 2, IMPORT_WORKER_CONCURRENCY: 1 });
   });
 
   it('rejects a prefix belonging to another environment', () => {
