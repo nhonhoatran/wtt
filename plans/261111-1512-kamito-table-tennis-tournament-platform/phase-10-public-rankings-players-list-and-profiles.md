@@ -29,6 +29,13 @@
 <!-- Phase 03 sync — 2026-11-12 -->
 - Phase 03 không cung cấp thành phần công khai. Phân trang công khai (`pageSize ≤ 100`) là tham số riêng, không dùng `list.defaultPageSize`.
 
+<!-- Phase 05 sync — 2026-11-12 -->
+- Model `Player` đã có: `isPublicProfile` (mặc định true), `noindex` (mặc định true), `publicDisplayName`, `photoMediaId`, `bio`/`bioEn` (text thuần), `birthDate`/`birthYear`, `mergedIntoId`, `mergedAt`. Chưa có route công khai nào.
+- 301 slug VĐV đã gộp sang hồ sơ đích: làm ở phase này (`mergedIntoId` đã lưu). Chưa có test.
+- Ảnh hồ sơ: media purpose `player-photo` đã thêm (`packages/shared/src/media/media-contract.ts`).
+- Tuổi hiển thị: setting `player.showAge` (mặc định tắt, `packages/shared/src/player-settings.ts`). Tính từ `birthDate`; không có thì dùng `birthYear`.
+- Serializer công khai không trả `phone`, `email`, `birthDate`: test ở phase 08.
+
 ## Requirements
 
 Functional

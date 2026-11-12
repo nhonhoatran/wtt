@@ -112,7 +112,9 @@ Quy tắc:
 | `MEDIA_PUBLIC_BASE_URL` | api | không | URL của prefix `public/` (ví dụ `https://<host>/<bucket>/public`). Trống (dev) thì API phục vụ `/api/v1/media/public/*` |
 | `MEDIA_WORKER_CONCURRENCY` | worker | không | Mặc định 2. Số job ảnh chạy song song |
 | `MEDIA_CLEANUP_INTERVAL_MINUTES` | worker | không | Mặc định 15. Chu kỳ job dọn intent hết hạn và ảnh kẹt |
-| `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS`, `IMPORT_RETENTION_DAYS` | api | có | Trần import (phase 05) |
+| `IMPORT_WORKER_CONCURRENCY`, `IMPORT_CLEANUP_INTERVAL_MINUTES` | worker | không | Mặc định 1 và 60. Số job import song song; chu kỳ dọn file import quá hạn |
+| `WORKER_MAX_OLD_SPACE_MB`, `WORKER_MEM_LIMIT` | compose | không | Mặc định 384 và 512m. Trần heap Node và giới hạn RAM container worker (import đọc cả file vào bộ nhớ) |
+| `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` | api, worker | có | Trần import (phase 05). Thời hạn giữ file (`import.retentionDays`) và hạn chờ tải file (`import.uploadTtlHours`) chỉnh ở `/settings` |
 | `WORKER_HEALTH_PORT` | worker | cố định | `3010` |
 | `API_INTERNAL_URL` | client | không | Mặc định `http://api:3000` |
 | `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có (compose) | TTL cache. Code client chưa đọc (phase 02+) |
@@ -146,6 +148,19 @@ Biến có trong code nhưng **không có trong compose và `.env.example`**:
 
 - Đổi trần: đổi `UPLOAD_MAX_IMAGE_BYTES` cho cả api, worker và admin, rồi restart. Không cần build lại admin.
 - Nginx admin giới hạn body JSON thường ở `2m`, lớn hơn `JSON_BODY_LIMIT` của api (khoảng 1,2 MB). Đừng hạ thấp mức này.
+
+### Giới hạn import Excel
+
+| Lớp | Giá trị (mặc định trong `.env.example`) | Nơi áp dụng |
+|---|---|---|
+| Trần env | `IMPORT_MAX_FILE_BYTES` (5242880), `IMPORT_MAX_UNZIPPED_BYTES` (52428800), `IMPORT_MAX_ROWS` (5000) | api và worker. Compose bắt buộc khai (`:?`). Đổi thì restart api và worker |
+| Tham số admin | `import.maxFileMegabytes` (5 MB, 1–100), `import.maxRows` (5000, 1–100000) | Sửa ở `/settings`. Không vượt trần env |
+| Bộ nhớ worker | `WORKER_MAX_OLD_SPACE_MB` (384), `WORKER_MEM_LIMIT` (512m) | compose, service `worker` |
+| Nginx admin | `client_max_body_size 2m` cho cả server | `docker/admin-nginx.conf` |
+
+`IMPORT_MAX_UNZIPPED_BYTES` chỉ có ở env (chốt an toàn chống zip bomb), không có trên `/settings`.
+
+**Đã sửa 2026-11-12:** `docker/admin-nginx.conf` có `location` riêng cho `^/api/v1/admin/imports/[^/]+/file$`, `client_max_body_size` lấy từ `IMPORT_MAX_FILE_BYTES` (ghi ra `/tmp/admin-config/import-limit.conf` lúc container admin khởi động, `docker/admin-entrypoint.sh`). Container admin giờ bắt buộc có `IMPORT_MAX_FILE_BYTES` (đã thêm trong `docker-compose.yml`); test ở `apps/admin/test/admin-entrypoint.test.mjs`.
 
 ## Dokploy: compose và domain
 
@@ -364,6 +379,11 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 11 | Deploy staging và migration `20261112042429_add_users_and_auth_sessions` chưa chạy. Phase 04 thêm 3 migration: `20261112061544_add_tournament_master_data`, `20261112061630_add_media_assets`, `20261112070130_add_single_default_partial_indexes` | Phase 03 bước 13; phase 04; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md). Sau migrate chạy seed danh mục |
 | 12 | Sharp trên image Alpine (`node:24.22.3-alpine3.23`) chưa kiểm chứng | Phase 04 | Build image rồi xử lý một ảnh thật trong container api và worker trước khi dựa vào upload |
 | 13 | `STORAGE_DRIVER=s3` với bucket thật chưa thử: tải, xử lý, xóa `incoming/`, đọc `public/` | Phase 04 | Thử trên staging. Nên dùng `S3_INCOMING_BUCKET` riêng để đóng cửa sổ phơi bày (xem [Bucket công khai](#bucket-công-khai)) |
+| 14 | ~~Nginx admin giới hạn `2m` cho route upload import~~ | Đã sửa 2026-11-12 | Location riêng theo `IMPORT_MAX_FILE_BYTES` (xem [Giới hạn import Excel](#giới-hạn-import-excel)) |
+| 15 | Deploy staging và 4 migration phase 05 chưa chạy: `20261112074412_add_players_pairs_competitors`, `20261112074503_add_entries`, `20261112074532_add_import_jobs`, `20261112074553_add_player_merge` | Phase 05 bước 1 và 6 đến 8 | Làm sau migration phase 04 theo [roadmap](./development-roadmap.md). Trước `migrate deploy` chạy `pnpm db:print-target` |
+| 16 | Test API có một lần crash native `0xC0000409` (1/6 lần chạy đầy đủ, Windows), chưa rõ nguyên nhân | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Chạy lặp với reporter verbose để tìm file cuối trước khi crash. Trùng với F1 phase 04 |
+| 17 | Chưa thử file xlsx do Excel thật tạo. Bộ test dùng file viết tay có cấu trúc giống Excel | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Thêm một file mẫu nhỏ, không có dữ liệu thật, vào `apps/api/test/fixtures/` trước pilot |
+| 18 | Worker đọc sheet đầu theo tên `xl/worksheets/sheetN.xml`, không theo thứ tự tab. Nếu người dùng đổi thứ tự tab, kiểm header báo lỗi | `plans/reports/code-reviewer-261112-1436-phase-05-review-2.md` | Ghi rõ trong hướng dẫn cho BTC: sheet đăng ký phải là sheet đầu tiên của file |
 
 ## Liên quan
 

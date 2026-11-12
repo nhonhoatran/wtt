@@ -16,6 +16,7 @@
 - [Danh mục, danh sách và xóa (phase 04)](#danh-mục-danh-sách-và-xóa-phase-04)
 - [URL và rich text (phase 04)](#url-và-rich-text-phase-04)
 - [Worker và queue](#worker-và-queue)
+- [Nghiệp vụ VĐV và import (phase 05)](#nghiệp-vụ-vđv-và-import-phase-05)
 - [Frontend](#frontend)
 - [Kiểm thử](#kiểm-thử)
 - [Git và commit](#git-và-commit)
@@ -217,7 +218,10 @@ Giữ dạng env (chốt trong plan phase 04):
   |---|---|---|
   | Query danh sách sai (sort, filter, `q`) | 400 | `INVALID_QUERY` |
   | Dữ liệu body sai, kể cả URL không phải https, slug trùng, mã trùng | 422 | `VALIDATION_FAILED`, `SLUG_TAKEN`, `DUPLICATE`, `SLUG_LOCKED` |
-  | Xung đột trạng thái: đang được dùng, mặc định, đã công bố, phiên tải ảnh | 409 | `IN_USE`, `IS_DEFAULT`, `EVENT_PUBLISHED`, `DEFAULT_CHANGED`, `INTENT_EXPIRED` |
+  | Đăng ký không hợp lệ theo luật (có `issues`) | 422 | `ENTRY_INELIGIBLE` |
+  | Xung đột trạng thái: đang được dùng, mặc định, đã công bố, phiên tải ảnh, đã đăng ký, đã gộp | 409 | `IN_USE`, `IS_DEFAULT`, `EVENT_PUBLISHED`, `DEFAULT_CHANGED`, `INTENT_EXPIRED`, `ALREADY_ENTERED`, `SEED_TAKEN`, `PLAYER_MERGED`, `MERGE_RETRY`, `MERGE_CONFLICT`, `NOT_COMMITTABLE` |
+  | Có quyền vào màn hình nhưng không đủ quyền cho một tham số (ghi đè chỉ ADMIN) | 403 | `OVERRIDE_FORBIDDEN`, `OVERRIDE_ADMIN_ONLY` |
+  | File import: quá lớn, sai loại, rỗng | 413, 415, 422 | `PAYLOAD_TOO_LARGE`, `CONTENT_TYPE_MISMATCH`, `EMPTY_UPLOAD` |
   | Không tìm thấy | 404 | `EVENT_NOT_FOUND`, `TIER_NOT_FOUND` |
 
   Quy tắc: dữ liệu sai đã biết trước theo field → 422. Trạng thái hiện tại không cho phép → 409. Slug trùng là 422 (không phải 409) để form gắn lỗi vào field `slug`, kèm `suggestion` là slug còn trống.
@@ -349,11 +353,26 @@ Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó 
 - BullMQ bắt buộc `maxmemory-policy noeviction` trên Redis. Redis dùng chung làm cache có eviction sẽ mất job.
 - Mọi khóa Redis và tên queue có tiền tố `QUEUE_PREFIX`, dạng `kamito-tt:<APP_ENV>[:...]`. Prefix sai thì api và worker không khởi động.
 - **Job payload chỉ chứa id.** Processor nạp lại bản ghi từ DB, kiểm trạng thái, rồi mới làm việc. Không tin dữ liệu trong payload. Ví dụ: `process-image` chỉ mang `{ mediaId }`.
-- Tên queue khai trong `packages/shared/src/queue-names.ts`: `media` (phase 04), `maintenance` (chưa có job).
+- Tên queue khai trong `packages/shared/src/queue-names.ts`: `media` (phase 04), `import` (phase 05), `maintenance` (chưa có job).
+- **Job import** (`import`): job id gắn `attemptNo` (`imp-<id>-validate-<n>`, `imp-<id>-commit-<n>`). Job commit mang `attemptNo` trong payload. Worker bỏ qua job có `attemptNo` cũ hơn lượt hiện tại. Chi tiết xem [system-architecture](./system-architecture.md#queue-import).
 - **Job id cố định khi cần chống trùng:** `media-<mediaId>`. Trước khi `add`, xóa job cũ cùng id (`queue.remove`), vì BullMQ bỏ qua `add` khi job cùng id còn tồn tại.
 - **Retry:** job ảnh tối đa 3 lần, backoff exponential từ 5 giây. Lỗi tạm thời (storage, DB) để dữ liệu tạm cho lần sau. Hết lượt thử thì worker đặt trạng thái cuối (`FAILED`) và xóa dữ liệu tạm. Nếu worker chết giữa chừng, job dọn định kỳ đảm nhận.
 - **Job lặp:** dùng `upsertJobScheduler` với id cố định (`media-intent-cleanup`), không dùng `setInterval`.
 - BullMQ là dependency của `apps/api` và `apps/worker` (xem [Toolchain](#toolchain-đã-ghim)). Khi thêm queue mới, kiểm license và mức bảo trì như mục [Thư viện mới](#thư-viện-mới).
+
+## Nghiệp vụ VĐV và import (phase 05)
+
+- **Logic dùng chung nằm trong package, không copy giữa api và worker.**
+  - `@kamito/db` (`packages/db/src/domain/`): định danh và mã VĐV, competitor, khóa (`lockSubEvent`, `lockPlayersForShare`, `advisoryLock`...), kiểm đăng ký.
+  - `@kamito/shared`: hàm thuần (`normalizePersonName`, `ageOnEvent`, `checkEntryEligibility`), cột import (`ENTRY_IMPORT_COLUMNS`), định nghĩa setting.
+  - Module Nest chỉ gọi các hàm này. Không viết lại trong service.
+- **Thứ tự khóa là luật bắt buộc.** Advisory lock, rồi dòng `SubEvent` theo id tăng dần, rồi dòng `Player` theo id tăng dần. Đoạn code mới ghi entry hoặc Player phải tuân theo. Lấy khóa sai thứ tự có thể gây deadlock với gộp VĐV và commit import. Đọc lại dữ liệu sau khi đã có khóa, không đọc trước rồi mới khóa.
+- **Kiểm tra trùng và sức chứa phải nằm dưới khóa.** Kiểm trước khi khóa rồi ghi là đua điều kiện. Ràng buộc DB (unique, CHECK) là lớp cuối. Lỗi P2002 được map theo tên index (`entry-errors.ts`), không map theo chuỗi thông báo. P2002 không khớp index đã biết được ném lại nguyên trạng.
+- **Lỗi nghiệp vụ hợp lệ** trả 422 (hoặc 409 khi xung đột trạng thái), có mảng `issues` tùy chọn. Filter lỗi giữ nguyên `issues` và `fields` trong envelope `{ error: { code, message, ... } }`. Admin UI dùng `issues` để hiện lỗi ngay dưới ô liên quan. Mỗi issue có `code`, `message`, `overridable`, và `playerId` nếu có.
+- **Ghi đè** (`overrideReason`) chỉ ADMIN được gửi, và chỉ bỏ qua issue `overridable`. Đăng ký tay lưu lý do vào `Entry.eligibilityOverrideReason`. Import lưu vào `ImportJob.overrideReason` và ghi audit `import.commit.request`.
+- **Dữ liệu riêng tư** (SĐT, email, ngày sinh): API chỉ trả khi có `players.update` (`canSeePlayerPii`) ở danh sách và chi tiết VĐV. Lookup, export và dòng import không đưa các trường này vào select. Phần công khai (`GET /public/*`) sẽ có test serializer ở phase 08.
+- **Đọc file Excel:** chỉ đọc qua stream và đếm byte thật. Không tin kích thước khai trong header zip. Mọi file từ người dùng đều được coi là không tin cậy. Chi tiết và giới hạn: [system-architecture](./system-architecture.md#giới-hạn-và-bảo-vệ-file-import).
+- **Commit import idempotent.** Dòng `COMMITTED` không được xử lý lại. Lô được commit trong một transaction. Chạy lại sau lỗi không được tạo bản ghi trùng.
 
 ## Frontend
 

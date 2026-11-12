@@ -3,6 +3,59 @@
 > Cập nhật: 2026-11-12. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
+## 2026-11-12 — Phase 05: VĐV, đăng ký, import Excel (chưa commit)
+
+### Thêm
+- Bốn migration: `20261112074412_add_players_pairs_competitors` (`Player`, `Pair`, `Competitor`, sequence `player_code_seq`, CHECK), `20261112074503_add_entries` (`Entry`), `20261112074532_add_import_jobs` (`ImportJob`, `ImportRow`), `20261112074553_add_player_merge` (`Player.mergedAt`, gộp VĐV).
+- VĐV: `/api/v1/admin/players` (list, lookup, get, create, update). Mã VĐV = tiền tố + số từ sequence. Slug có hậu tố khi trùng.
+- Cặp đôi: `/api/v1/admin/pairs` (chỉ đọc). Cặp được tạo khi đăng ký đôi.
+- Đăng ký: `/api/v1/admin/sub-events/:id/entries` (thêm đơn, đôi), `PATCH /api/v1/admin/entries/:id`, `POST /api/v1/admin/entries/bulk` (rút, đổi vòng, đổi suất), `GET /api/v1/admin/events/:eventId/entry-counts`. Kiểm đăng ký (giới, tuổi theo hai cách, cặp nam nữ, sức chứa) trả 422 `ENTRY_INELIGIBLE` kèm `issues`. Ghi đè bằng lý do (ADMIN).
+- Import Excel: `/api/v1/admin/imports` (tạo, tải file, xác nhận tải, kiểm tra, nhập, xem dòng, quyết định dòng `NEEDS_CONFIRM`), `GET /api/v1/admin/imports/template`. Queue `import` với hai job `validate-import` và `commit-import`, dọn file định kỳ.
+- Export: `GET /api/v1/admin/exports/entries` (xlsx, stream đồng bộ).
+- Gộp VĐV: `GET /api/v1/admin/players/merge/preview` và `POST /api/v1/admin/players/merge` (lý do 5 đến 500 ký tự).
+- Thư viện: `exceljs` 4.4.0 (đọc và ghi xlsx) và `fflate` 0.8.3 (giải nén thử, dựng lại zip tạm). Kiểm giấy phép và bảo trì trước khi thêm, xem [code-standards](./code-standards.md#thư-viện-mới).
+- Sáu setting mới trên `/settings` (nhóm players): `player.codePrefix`, `player.codeDigits`, `player.defaultCountryCode`, `player.showAge`, `entry.maxBulkItems`, `category.ageCalculation`. Bốn setting import: `import.maxFileMegabytes`, `import.maxRows`, `import.retentionDays`, `import.uploadTtlHours`.
+- Admin: menu Vận động viên (Danh sách VĐV, Cặp đôi, Lịch sử import). Hub giải có tab **Danh sách** (menu dọc chọn nội dung, bảng đăng ký, thêm nhanh, hàng loạt). Modal gộp VĐV. Wizard import ba bước với chỉ báo tiến độ.
+- Helper dùng chung: `@kamito/db` (`src/domain/`) và `@kamito/shared` (`normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`).
+
+### Thay đổi
+- Đăng ký chuyển sang `Competitor`. Entry không trỏ thẳng vào Player hay Pair.
+- Thứ tự khóa cố định: advisory lock, `SubEvent` theo id, `Player` theo id. Áp dụng cho ghi entry, commit import và gộp VĐV.
+- Import hai bước: validate ghi kết quả xem trước (dòng `VALID`, `ERROR`, `NEEDS_CONFIRM`). Commit đọc lại dữ liệu và khớp lại dưới khóa. Dòng `COMMITTED` không nhập lại. Lượt `FAILED` có dữ liệu được "Thử lại".
+- Đổi lại file (revalidate) xóa `fileSha256`, nên lượt lỗi không thể nhập bản xem trước cũ.
+- Worker commit kiểm `attemptNo` trong payload. Job cũ bị bỏ qua.
+- Admin: `players.update` là quyền xem SĐT, email, ngày sinh. `RESULTS_OPERATOR` không thấy các trường này.
+
+### Bảo mật
+- **Zip bomb:** kiểm chữ ký zip, giải nén thử theo khối và đếm byte thật (`assertSafeXlsx`). Trần `IMPORT_MAX_UNZIPPED_BYTES` (chỉ env). Sau review 2, `worksheetsLast` cộng dồn kích thước khai báo của mọi entry trong central directory, nên entry chồng lấn không lọt qua (N1).
+- **Ẩn PII theo vai trò:** SĐT, email, ngày sinh chỉ trả khi có `players.update`. Dòng import và export không chứa các trường này.
+- **Step-up khi gộp VĐV:** `POST /admin/players/merge` có `@RequireStepUp()`. Gộp cần `players.manage`. Mọi lần gộp ghi audit `player.merge` kèm lý do.
+- **Giới hạn file:** dung lượng (`import.maxFileMegabytes` kẹp theo env), số dòng (`import.maxRows`), trần giải nén, bộ nhớ worker (`WORKER_MAX_OLD_SPACE_MB`, `WORKER_MEM_LIMIT`). File tạm xóa trong `finally`.
+- **Lưu giữ:** file xóa sau `import.retentionDays`. Lượt chưa tải file hết hạn sau `import.uploadTtlHours`.
+
+### Sửa theo review
+- Review đầu (H1 đến H3, M1 đến M6, L1 đến L10): đã sửa, review 2 xác nhận.
+- Review 2 (N1, N2, N3): đã có trong code, đọc code ngày 2026-11-12. N1 zip bomb qua central directory chồng lấn. N2 `attemptNo` cũ có thể chạy song song. N3 "Thử lại" nhập bản xem trước cũ sau khi kiểm lại bị lỗi.
+
+### Breaking và lưu ý cấu hình
+- Bốn biến `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` là bắt buộc khi boot (api và worker). Compose dùng `:?`. Thiếu thì dừng.
+- `IMPORT_RETENTION_DAYS` đã bỏ. Dùng setting `import.retentionDays`.
+- Compose thêm: `IMPORT_WORKER_CONCURRENCY` (1), `IMPORT_CLEANUP_INTERVAL_MINUTES` (60), `WORKER_MAX_OLD_SPACE_MB` (384), `WORKER_MEM_LIMIT` (512m).
+- Nginx admin giới hạn `2m` cho route upload import. File trên 2 MB bị 413. Chưa sửa (xem [deployment-guide](./deployment-guide.md#giới-hạn-import-excel)).
+- Migration chỉ thêm bảng, cột và index. Chưa áp dụng lên staging.
+
+### Kiểm chứng
+- Báo cáo tester `plans/reports/tester-261112-1436-phase-05-test-run-2.md` (chạy trên code trước các sửa N1 đến N3, báo cáo ghi prod code không đổi): build `db` và `shared` OK. Test shared 80, worker 30, admin 4/4, admin build OK. API 254/254 ở 3 lần chạy đầy đủ, một lần crash native `0xC0000409` (1/6). Turbo typecheck và lint 14/14.
+- Review 2 (`plans/reports/code-reviewer-261112-1436-phase-05-review-2.md`): điểm 8/10, kèm N1 đến N3.
+- Sau sửa N1–N3: worker 30/30; 2 file e2e import 31/31 (có test riêng cho từng sửa, gỡ sửa thì test rớt); API đầy đủ 37 file 257/257 (một lần chạy). Nginx admin có location riêng cho upload import theo `IMPORT_MAX_FILE_BYTES`; admin test 5/5.
+
+### Chưa xong
+- Chưa commit. Chưa deploy staging. Chưa chạy migration phase 05 trên staging.
+- Chưa có `cache-tags.ts` (phase 07). Hook chặn rút và import khi draw đã công bố còn trả rỗng (phase 06). Số trận trong xem trước gộp còn 0 (phase 06 và 07). Chuyển hướng 301 (phase 10).
+- Chưa thử file xlsx do Excel thật tạo.
+- Crash native `0xC0000409` trong test API chưa rõ nguyên nhân.
+- Các việc tiếp theo: xem [development-roadmap](./development-roadmap.md).
+
 ## 2026-11-12 — Phase 04: dữ liệu gốc giải đấu, cấu hình, upload ảnh (chưa commit)
 
 ### Thêm

@@ -40,6 +40,12 @@
 
 <!-- Phase 04 sync — 2026-11-12 -->
 - `cache-tags.ts` chưa có. Hook đã đặt sẵn ở `apps/api/src/modules/events/events.service.ts:15` (create/update/publish/cancel/delete giải). Sub-event (`apps/api/src/modules/sub-events/sub-events.service.ts`) và AppSetting (`apps/api/src/modules/settings/`) chưa có hook; thêm khi làm.
+
+<!-- Phase 05 sync — 2026-11-12 -->
+- Cần ánh xạ trong `cache-tags.ts`: entry (tạo, sửa, rút, hàng loạt — `apps/api/src/modules/entries/`), VĐV (tạo, sửa; đổi tên làm mới `displayName` của Competitor), cặp (tạo ngầm cùng entry), gộp VĐV (`players/player-merge.service.ts`).
+- Import commit chạy trong worker (`apps/worker/src/processors/import-commit-processor.ts`) và ghi entry/VĐV → phải enqueue revalidate từ worker, không chỉ từ API. Chưa có cơ chế này.
+- Route chỉ ghi bảng import (tạo job, validate, sửa dòng) → `NO_PUBLIC_EFFECT` trong test phủ.
+- Revalidate tag cho VĐV đã gộp: cả hồ sơ A và B.
 - Mẫu chặn thao tác khi đã công bố có sẵn: `EVENT_PUBLISHED` 409 ở `sub-events.service.ts:125`. Dùng cùng mẫu cho sửa/xóa sau công bố.
 - Lọc vòng đời theo múi giờ từng giải: `apps/api/src/modules/events/event-lifecycle-filter.ts`, `packages/shared/src/lifecycle-from-dates.ts`.
 

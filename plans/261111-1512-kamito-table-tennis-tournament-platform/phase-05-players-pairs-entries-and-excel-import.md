@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. ≈8 ngày công (gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: Hoàn thành (chưa deploy staging; làm trọn 2026-11-12, không tách lát cắt). ≈8 ngày công (gồm ui-consistency ≈0,5 ngày), kế hoạch gốc làm 2 đợt:
   - **Lát cắt (tuần 4, ≈1,5 ngày):** `Player` tối thiểu (mã, slug, tên chuẩn hóa), `Competitor` loại PLAYER, thêm entry đơn bằng tay vào 1 nội dung (ô tìm VĐV / tạo nhanh), rút entry khi draw còn nháp.
   - **Phần còn lại (tuần 8–9, ≈6,5 ngày):** cặp đôi, kiểm hợp lệ đầy đủ, thao tác hàng loạt, import ENTRIES 2 bước có trần + khớp lại khi commit, export đồng bộ, gộp hai hồ sơ VĐV, cờ hiển thị công khai. Phải xong trước **pilot BTC (tuần 9)** vì pilot nạp dữ liệu giải cũ bằng import.
 - VĐV, cặp đôi, lớp trừu tượng **Competitor** (VĐV hoặc cặp; đội thêm sau), đăng ký theo nội dung (trạng thái, vòng chính/vòng loại, suất, hạt giống), import Excel 2 bước (kiểm tra → nhập), export danh sách.
@@ -104,7 +104,7 @@ model ImportJob { id String @id @default(uuid()); eventId String; fileKey String
 enum ImportRowStatus { VALID ERROR NEEDS_CONFIRM COMMITTED }
 model ImportRow { importJobId String; rowNo Int; status ImportRowStatus; plannedAction String
   /* CREATE_PLAYER | LINK_PLAYER | CREATE_ENTRY | UPDATE_ENTRY */; data Json; messages Json?
-  candidatePlayerIds Json?; chosenPlayerId String? /* operator decision for NEEDS_CONFIRM */
+  candidatePlayerIds Json?; decisions Json? /* {"1": playerId | "NEW", "2": ...}; thay chosenPlayerId */
   createdEntityIds Json?; @@id([importJobId, rowNo]); @@index([importJobId, status]) }
 ```
 
@@ -140,7 +140,7 @@ thử lại: chỉ chạy các dòng chưa COMMITTED
 
 Cột mẫu ENTRIES: `Mã nội dung | Mã VĐV 1 | Họ tên VĐV 1 | Giới tính 1 | Năm sinh 1 | CLB 1 | Mã VĐV 2 | Họ tên VĐV 2 | Giới tính 2 | Năm sinh 2 | CLB 2 | Vòng (Chính/Loại) | Suất (Thường/Đặc cách) | Hạt giống | Ghi chú`.
 
-Queue `import` (tiền tố `QUEUE_PREFIX`): `validate-import` attempts 2 backoff 10 s; `commit-import` attempts 1 (nút "Thử lại" thủ công, an toàn vì trạng thái theo dòng). Job id: `imp-{importJobId}-{action}-{attemptNo}` (duy nhất mỗi lần bấm). File import xóa sau `IMPORT_RETENTION_DAYS` bằng job dọn định kỳ.
+Queue `import` (tiền tố `QUEUE_PREFIX`): `validate-import` attempts 2 backoff 10 s; `commit-import` attempts 1 (nút "Thử lại" thủ công, an toàn vì trạng thái theo dòng). Job id: `imp-{importJobId}-{action}-{attemptNo}` (duy nhất mỗi lần bấm). File import xóa sau setting `import.retentionDays` bằng job dọn định kỳ.
 
 Gộp VĐV (`player-merge.service.ts`, 1 transaction, advisory lock theo 2 player id)
 ```
@@ -165,6 +165,27 @@ API
 | GET | `/admin/imports/template?eventId` | stream xlsx |
 | POST/GET | `/admin/imports`, `/admin/imports/:id/uploaded`, `GET /admin/imports/:id`, `GET /admin/imports/:id/rows?page&filter[status]`, `PATCH /admin/imports/:id/rows/:rowNo {chosenPlayerId | createNew}`, `POST /admin/imports/:id/commit` | |
 | GET | `/admin/exports/entries?eventId&subEventId?` | stream xlsx đồng bộ |
+
+<!-- Implementation sync — 2026-11-12 -->
+Hợp đồng đã chốt khi code (2026-11-12)
+
+- Kiểm thư viện (bước 3): `exceljs` 4.4.0 (MIT, bản ổn định cuối 2023-10-19, bảo trì chậm, kéo theo `uuid@8`, `fstream` đã deprecated) dùng để đọc/ghi xlsx; `fflate` 0.8.3 (MIT, cập nhật 2026-07) giải nén thử để đếm byte giải nén **thật** (không tin kích thước khai trong header zip) trước khi đưa buffer cho `exceljs`. File đã có trần `IMPORT_MAX_FILE_BYTES` nên đọc vào bộ nhớ có giới hạn.
+- Tham số vận hành trên `/settings`: `player.codePrefix` (KMT), `player.codeDigits` (5), `player.defaultCountryCode` (VIE), `player.showAge` (tắt), `category.ageCalculation` (BIRTH_YEAR, editor mới `choice`), `import.maxFileMegabytes` (5), `import.maxRows` (5000), `import.retentionDays` (30). Env `IMPORT_MAX_*` là trần; `IMPORT_MAX_UNZIPPED_BYTES` chỉ env (chốt an toàn). `IMPORT_RETENTION_DAYS` env không còn dùng.
+- `ImportRow.chosenPlayerId` → `decisions Json` (`{"1": playerId | "NEW", "2": …}`) vì dòng đôi có 2 VĐV cần xác nhận. `ImportJob` thêm `fileName`, `fileSize`, `failureReason`, `committedRows`, `overrideReason`, `attemptNo`, `fileDeletedAt`. `Entry` thêm `updatedAt`. `Player` thêm `mergedAt`.
+- Mã VĐV: sequence Postgres `player_code_seq` (SQL tay trong migration 1) + CHECK `Pair_ordered_distinct_players`, `Competitor_type_matches_reference`.
+- Helper dùng chung API + worker: `@kamito/shared` (`normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`, `playerSettings`, `importSettings`) và `@kamito/db` (`allocatePlayerIdentity`, `findOrCreateCompetitor`, `refreshCompetitorNames`, `lockSubEvent`, `advisoryLock`, `playersAlreadyEntered`, `confirmedEntryCount`, `entriesInLockedDraw`, `subEventsWithLockedDraw` — 2 hàm cuối trả rỗng tới phase 06).
+- Draw chưa có (phase 06): chặn rút/import theo draw đi qua 2 hook trên; số trận trong xem trước gộp = 0 tới phase 06/07. Chuyển hướng 301 slug VĐV đã gộp làm ở trang công khai (phase 10); ở đây chỉ lưu `mergedIntoId`.
+- Lỗi hợp lệ trả 422 `{ code: 'ENTRY_INELIGIBLE', message, issues: [{code, message, playerId?, overridable}] }`; `overrideReason` (ADMIN) bỏ qua các issue `overridable` + vượt `maxEntries`.
+
+<!-- Phase 05 sync — 2026-11-12: bổ sung hợp đồng khi code -->
+- `ImportRow.decisions` (Json) đã thay `chosenPlayerId` (xem khối model ở trên).
+- Setting mới: `entry.maxBulkItems` (trần số dòng hàng loạt), `import.uploadTtlHours`. `IMPORT_RETENTION_DAYS` env đã bỏ → setting `import.retentionDays`.
+- Worker cần env: `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` (trần, chốt an toàn), `WORKER_MAX_OLD_SPACE_MB`, `WORKER_MEM_LIMIT` (giới hạn bộ nhớ container).
+- Đọc xlsx: sau khi viết lại zip, `exceljs` đọc stream bằng `WorkbookReader` (sheet đọc sau cùng). Đã test bằng file do `exceljs` tạo và file dựng tay theo layout Excel. **Chưa test file thật do Excel lưu** → phải thử trước pilot.
+- Thêm route `POST /admin/imports/:id/validate` (chạy lại kiểm tra khi bấm "Kiểm tra lại").
+- Lỗi gộp VĐV trả `MERGE_CONFLICT` trong `error.issues`.
+- Thứ tự khóa: SubEvent trước, Player sau, ở mọi nơi ghi.
+- Rút entry làm xóa `seed` (audit ghi seed cũ); import ô trống giữ giá trị đang lưu.
 
 Module Nest: `players` (+ `player-merge.service.ts`), `pairs`, `competitors` (service nội bộ, `findOrCreateForPlayers(ids)`), `entries`, `eligibility` (service thuần, test riêng), `imports`, `exports`. Worker: `import-validate-processor.ts`, `import-commit-processor.ts`, `import-file-cleanup-processor.ts`.
 
@@ -214,17 +235,21 @@ Phần còn lại (tuần 8–9)
 
 ## Todo List
 
-- [ ] (Lát cắt) Migrations players/pairs/competitors + entries
-- [ ] (Lát cắt) Player tối thiểu + entry đơn thêm/rút tay
-- [ ] Kiểm chứng thư viện xlsx
-- [ ] ui-consistency: finding-patterns → planning
-- [ ] Pair/Entry + eligibility + bulk + override có lý do + audit; chặn rút entry trong draw đã công bố
-- [ ] Import ENTRIES: trần, SHA-256, khớp lại khi commit, NEEDS_CONFIRM, trạng thái theo dòng, chặn draw khác DRAFT, audit
-- [ ] Export stream đồng bộ
-- [ ] Gộp VĐV + cờ công khai + tên hiển thị thay thế
-- [ ] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp
-- [ ] Đăng ký tag revalidate
-- [ ] ui-consistency: verifying; deploy staging; file import cho pilot
+- [x] (Lát cắt) Migrations players/pairs/competitors + entries — áp dụng DB local (`add_players_pairs_competitors` gồm `player_code_seq` + 2 CHECK, `add_entries`)
+- [x] (Lát cắt) Player tối thiểu + entry đơn thêm/rút tay
+- [x] Kiểm chứng thư viện xlsx — `exceljs` 4.4.0 + `fflate` 0.8.3 (xem "Hợp đồng đã chốt")
+- [x] ui-consistency: finding-patterns → planning — `ui/phase-05-ui-checklists.md`, `ui/phase-05-ui-plan.md`
+- [x] Pair/Entry + eligibility + bulk + override có lý do + audit seed/stage/quota/status
+- [ ] Chặn rút entry và import khi draw đã công bố — chờ phase 06: hook `entriesInLockedDraw`, `subEventsWithLockedDraw` (`packages/db/src/domain/entry-guards.ts`) đang trả rỗng
+- [x] Import ENTRIES: trần, SHA-256, khớp lại khi commit, NEEDS_CONFIRM, trạng thái theo dòng, audit, resume khi commit dở
+- [ ] Import: chặn draw khác DRAFT (cùng hook trên, chờ phase 06)
+- [x] Export stream đồng bộ (`exports` module; test xuất > 1 trang 1000 dòng)
+- [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug chuyển phase 10
+- [x] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp — `apps/admin` (tests 4/4, build OK)
+- [ ] Đăng ký tag revalidate — chờ phase 07 tạo `cache-tags.ts` (xem phase 07, sync 2026-11-12)
+- [x] ui-consistency: verifying — 2 vòng kiểm độc lập trên UI ban đầu (kết quả trong `plans/reports/ui-261112-1436-phase-05-admin-ui.md`, checklist ở `ui/`); các chỉnh UI sau review (nút "Thử lại"/"Kiểm tra lại" trang import, ẩn thẻ liên hệ riêng tư trên form VĐV, nhãn "Từ vòng loại") chưa qua verifying lại; chưa chạy trên trình duyệt
+- [ ] Deploy + migrate staging — chờ cổng ra phase 01 (chủ hạ tầng)
+- [ ] File import thử cho pilot — chờ staging; cần thử file do Excel thật lưu trước
 
 ## Success Criteria
 
@@ -255,10 +280,67 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 ## Security Considerations
 
 - Dữ liệu cá nhân (SĐT, email, ngày sinh): chỉ admin đọc; public chỉ năm sinh/tuổi nếu bật cờ AppSetting `player.showAge`; `noindex` mặc định bật cho tới khi có trả lời về đồng ý công khai.
-- File import trong prefix private, không public; xóa sau `IMPORT_RETENTION_DAYS`.
+- File import trong prefix private, không public; xóa sau setting `import.retentionDays`.
 - Kiểm loại file xlsx bằng nội dung (zip signature) trước khi parse; trần dung lượng, giải nén, số dòng.
 - Gộp VĐV và override cần `ADMIN`; gộp cần step-up.
 
 ## Next Steps
 
 - Lát cắt tiếp tục ở phase 06 (bốc thăm loại trực tiếp). Phase 06 dùng `Entry` `CONFIRMED` + `seed`; phase 09 điền `rankingAtEntry/pointsAtEntry` và nối gộp VĐV vào sổ điểm.
+- Phase 06: implement 2 hook `entry-guards.ts`; phase 07: đăng ký mutation vào `cache-tags.ts`; phase 09/10: xem ghi chú "Phase 05 sync" trong các file đó.
+
+## Kết quả thực hiện
+
+**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: chặn draw (chờ phase 06), tag revalidate (chờ phase 07), staging + pilot (chờ cổng phase 01).
+
+**Cách làm:** làm trọn phase trong một đợt. Hai vòng review: 7/10 → 8/10, đã sửa N1–N3.
+
+**Kiểm chứng** (số liệu chạy 2026-11-12):
+- Migration đã áp dụng DB local: `add_players_pairs_competitors`, `add_entries`, `add_import_jobs`, `add_player_merge`.
+- Test: shared 80/80; worker 30/30; admin 4/4 + build OK; API full suite 37 file 257/257 (lần chạy cuối).
+- Turbo typecheck + lint 14/14.
+- Báo cáo: `plans/reports/fullstack-developer-261112-1436-phase-05-{api-core,imports-exports,api-review-fixes,import-review-fixes}.md`, `plans/reports/ui-261112-1436-phase-05-admin-ui.md`, `plans/reports/tester-261112-1436-phase-05-test-run{,-2}.md`, `plans/reports/code-reviewer-261112-1436-phase-05-review{,-2}.md`.
+
+**Tiêu chí thành công** (đối chiếu test có tên trong repo):
+
+| Tiêu chí | Trạng thái | Bằng chứng |
+|---|---|---|
+| Unit eligibility | Đạt | `packages/shared/src/entry-eligibility.test.ts` |
+| Unit matcher | Đạt | `apps/worker/src/import/player-matcher.test.ts` |
+| Import 1.000 dòng, 20 lỗi, commit idempotent | Đạt | `apps/api/test/imports-worker.e2e-spec.ts:71` |
+| 2 dòng cùng VĐV mới → 1 VĐV | Đạt | `imports-worker.e2e-spec.ts:112` |
+| File vượt trần, quá nhiều dòng, zip bomb → FAILED, bộ nhớ bị chặn | Đạt | `imports-worker.e2e-spec.ts:303, 314, 326, 346` |
+| Sửa giữa validate và commit không nhân đôi | Đạt | `imports-worker.e2e-spec.ts:124` |
+| Commit dở → thử lại chỉ chạy dòng còn lại | Đạt | `imports-worker.e2e-spec.ts:225` |
+| Trùng seed cùng nội dung/giai đoạn bị DB chặn | Đạt | `apps/api/test/entries.e2e-spec.ts:113` |
+| Gộp: xung đột chặn; cặp trùng gộp, entry chuyển | Đạt một phần | `player-merge.e2e-spec.ts:129, 141`; 301 chờ phase 10 |
+| Rút entry trong draw đã công bố → 409 | Chưa | chờ phase 06 |
+| Import vào draw PUBLISHED bị từ chối | Chưa | chờ phase 06 (không có test) |
+| Thêm VĐV đơn: 2 click + gõ tên | Chưa đo | cần kiểm tay trên staging |
+| `GET /public/*` không trả phone/email/birthDate | Chưa | phase 08 |
+
+**Quyết định đã chốt 2026-11-12 (chủ repo):**
+- Làm trọn phase, không tách lát cắt.
+- Rút entry → xóa seed.
+- Ô trống trong file import giữ giá trị đang lưu.
+- `RESULTS_OPERATOR` không thấy SĐT, email, ngày sinh.
+- Thêm media purpose `player-photo`.
+- Nhãn suất `QUALIFIER` là "Từ vòng loại"; nhãn cũ "Vòng loại" vẫn nhận khi import.
+- API vitest pool `threads`.
+
+**Mặc định của lead (chủ repo không phản đối):**
+- Import đưa entry `WITHDRAWN` về `CONFIRMED` (có audit).
+- Không savepoint theo dòng cho race P2002 slug VĐV: cả lô lỗi, chạy lại là được.
+- Không thêm nút kiểm tra lại ngoài "Kiểm tra lại" đã có.
+
+**Sai lệch so với plan:** đã ghi trong "Hợp đồng đã chốt khi code" ở trên. Tóm tắt: `decisions` thay `chosenPlayerId`; setting thay env `IMPORT_RETENTION_DAYS`; thêm route `validate`; thứ tự khóa SubEvent → Player; xlsx đọc bằng exceljs stream.
+
+**Việc còn mở:**
+1. Chặn draw đã công bố (hook `entry-guards.ts`) — phase 06.
+2. Tag revalidate cho entry/VĐV/gộp/import — phase 07 (`cache-tags.ts`).
+3. 301 slug VĐV đã gộp — phase 10.
+4. Deploy staging + migrate + pilot — chờ cổng phase 01 (chủ hạ tầng).
+5. Thử file do Excel thật lưu trước pilot. Hiện mới test bằng file exceljs và file dựng tay.
+6. Crash ngẫu nhiên tiến trình test trên Windows (mã `0xC0000409`), khoảng 1/6 lần chạy full API, cả hai pool; nguyên nhân chưa rõ; không có assertion lỗi. Cùng mã lỗi đã gặp ở phase 04 (việc còn mở 4) — chưa chắc cùng nguyên nhân.
+7. Chèn trùng `Competitor_playerId_key` khi tạo đồng thời → 500 (chưa xử lý; import thì cả lô lỗi, chạy lại được).
+8. Verifying UI chưa chạy lại cho các chỉnh sau review và chưa kiểm trên trình duyệt (kích thước, thứ tự focus, Tab/Enter).

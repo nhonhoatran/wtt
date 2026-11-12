@@ -113,6 +113,8 @@ Nguồn duy nhất: `packages/shared/src/permissions.ts` (`PERMISSION_MATRIX`). 
 | `rankings`, `content`, `sponsors`, `media` | tất cả | không |
 
 - `reopen` và `publish` chỉ có ở ADMIN (ghi chú trong ma trận: thao tác mở lại kết quả là đặc quyền ADMIN).
+- Phase 05: VĐV, cặp đôi và gộp VĐV dùng `players` (gộp cần `manage` và step-up). Đăng ký, import và export dùng `tournaments`. `RESULTS_OPERATOR` xem được đăng ký và lịch sử import, nhưng không tạo lượt import, không đăng ký, không gộp.
+- `players.update` quyết định có thấy SĐT, email và ngày sinh của VĐV không (xem [system-architecture](./system-architecture.md#quyền-xem-dữ-liệu-cá-nhân)).
 - Thêm resource ở phase sau: thêm vào `PERMISSION_RESOURCES`, không thêm vai trò mới.
 
 **Ánh xạ action của Refine** (`apps/admin/src/providers/access-control-provider.ts`): `list`→`list`, `show`→`read`, `create`→`create`, `edit`→`update`, `delete`→`delete`.
@@ -186,6 +188,18 @@ Hai API:
 | `media.maxImageMegabytes` | media | 5 | 1–50 | MB (không vượt `UPLOAD_MAX_IMAGE_BYTES`) |
 | `media.intentTtlMinutes` | media | 15 | 1–240 | phút |
 | `media.processingTimeoutMinutes` | media | 10 | 1–240 | phút |
+| `player.codePrefix` | players | `KMT` | 1–8 ký tự: chữ, số, gạch ngang | — |
+| `player.codeDigits` | players | 5 | 1–10 | chữ số |
+| `player.defaultCountryCode` | players | `VIE` | 3 chữ in hoa (ISO alpha-3) | — |
+| `player.showAge` | players | tắt | bật/tắt. Chưa có nơi đọc (phase 08, 10) | — |
+| `entry.maxBulkItems` | players | 200 | 1–1000 | entry mỗi lần thao tác hàng loạt |
+| `category.ageCalculation` | players | `BIRTH_YEAR` | `BIRTH_YEAR` (theo năm sinh) hoặc `EVENT_START_DATE` (tuổi tròn tại ngày khai mạc) | — |
+| `import.maxFileMegabytes` | imports | 5 | 1–100 | MB (kẹp theo `IMPORT_MAX_FILE_BYTES`) |
+| `import.maxRows` | imports | 5000 | 1–100000 | dòng (kẹp theo `IMPORT_MAX_ROWS`) |
+| `import.retentionDays` | imports | 30 | 1–365 | ngày. Hết hạn thì xóa file, giữ lịch sử |
+| `import.uploadTtlHours` | imports | 24 | 1–168 | giờ. Lượt chưa tải file quá hạn thì thành `FAILED` |
+
+Mã VĐV mới = `player.codePrefix` + số thứ tự từ sequence, đệm `player.codeDigits` chữ số. Đổi tiền tố không đổi mã đã cấp.
 
 Khoảng min/max là rào an toàn để validate, không phải giá trị nghiệp vụ. Ví dụ: không cho đặt ngưỡng khóa làm khóa tất cả mọi người.
 

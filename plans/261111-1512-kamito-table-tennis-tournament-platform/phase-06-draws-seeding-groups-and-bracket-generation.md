@@ -39,6 +39,13 @@
 - `draw.defaultGroupSize`, `draw.defaultAdvancePerGroup` chưa có trong `packages/shared/src/tournament-settings.ts`; thêm khi làm phase này.
 - Đăng ký `cache-tags.ts` đợi phase 07.
 
+<!-- Phase 05 sync — 2026-11-12 -->
+- Phase 05 để sẵn 2 hook trả rỗng trong `packages/db/src/domain/entry-guards.ts`: `entriesInLockedDraw`, `subEventsWithLockedDraw`. Phase này phải implement (draw khác `DRAFT` → rút entry 409 kèm hướng dẫn "Rút khỏi nhánh"; import vào draw khác `DRAFT` bị từ chối). Hai tiêu chí tương ứng chưa có test.
+- Thao tác `withdraw-from-draw` (tab Bốc thăm) là phần của phase này; thông báo 409 phase 05 đã trỏ tới tên thao tác này.
+- Rút entry đã xóa `seed` (chốt 2026-11-12): đọc hạt giống draw phải chấp nhận `seed = null` với entry `WITHDRAWN`.
+- Khóa: luôn lấy SubEvent trước, Player sau (`lockSubEvent` trong `@kamito/db`).
+- Xem trước gộp VĐV (`/admin/players/merge/preview`) đang đếm trận = 0; điền số trận khi có bảng trận.
+
 ## Requirements
 
 Functional

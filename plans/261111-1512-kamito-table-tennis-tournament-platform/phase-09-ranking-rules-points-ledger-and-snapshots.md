@@ -30,6 +30,11 @@
 <!-- Phase 03 sync — 2026-11-12 -->
 - Phase 03 đã có `@RequireStepUp()` + StepUpGuard (chưa gắn route). Cần gắn cho `publishSnapshot` và `POST/DELETE /admin/ranking-points`. Ma trận quyền: resource `rankings` chỉ ADMIN.
 
+<!-- Phase 05 sync — 2026-11-12 -->
+- Entry đã có `rankingAtEntry Int?`, `pointsAtEntry Int?` (migration `add_entries`), còn trống. Cặp: `pointsAtEntry` = tổng 2 VĐV, `rankingAtEntry` = null.
+- Gộp VĐV (`apps/api/src/modules/players/player-merge.service.ts`) hiện chỉ trỏ lại Competitor/Pair/Entry. Phase này thêm: trỏ lại dòng sổ điểm về VĐV đích, đánh dấu `rankingDirtyAt` cho nội dung bị ảnh hưởng. Trường `rankingDirtyAt` chưa có trong schema — thêm trong migration của phase này.
+- `POST /admin/players/merge` đã có `@RequireStepUp()` (`admin-players.controller.ts:45`); không cần gắn lại.
+
 ## Requirements
 
 Functional
