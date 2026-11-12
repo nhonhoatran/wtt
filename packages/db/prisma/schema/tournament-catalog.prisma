@@ -1,0 +1,162 @@
+// Configurable catalogs. Rows in use cannot be deleted (FK Restrict); admins hide them with isActive=false.
+// Bilingual fields: `x` is Vietnamese (required), `xEn` is optional; public pages read `xEn ?? x`.
+
+model Tier {
+  id                String      @id @default(uuid())
+  code              String      @unique
+  name              String
+  nameEn            String?
+  colorHex          String
+  logoMediaId       String?
+  logoMedia         MediaAsset? @relation("TierLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  backgroundMediaId String?
+  backgroundMedia   MediaAsset? @relation("TierBackground", fields: [backgroundMediaId], references: [id], onDelete: SetNull)
+  order             Int         @default(0)
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  eventTypes        EventType[]
+}
+
+model EventType {
+  id                String      @id @default(uuid())
+  tierId            String
+  tier              Tier        @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  code              String      @unique
+  name              String
+  nameEn            String?
+  colorHex          String?
+  logoMediaId       String?
+  logoMedia         MediaAsset? @relation("EventTypeLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  backgroundMediaId String?
+  backgroundMedia   MediaAsset? @relation("EventTypeBackground", fields: [backgroundMediaId], references: [id], onDelete: SetNull)
+  order             Int         @default(0)
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  events            Event[]
+
+  @@index([tierId])
+}
+
+enum CategoryKind {
+  AGE
+  SKILL
+  OPEN
+}
+
+model Category {
+  id        String       @id @default(uuid())
+  kind      CategoryKind
+  code      String       @unique
+  name      String
+  nameEn    String?
+  minAge    Int?
+  maxAge    Int?
+  order     Int          @default(0)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  subEvents SubEvent[]
+}
+
+enum CompetitorKind {
+  SINGLES
+  DOUBLES
+}
+
+enum GenderRule {
+  MEN
+  WOMEN
+  MIXED
+  OPEN
+}
+
+model Discipline {
+  id             String         @id @default(uuid())
+  code           String         @unique
+  name           String
+  nameEn         String?
+  competitorKind CompetitorKind
+  genderRule     GenderRule
+  order          Int            @default(0)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  subEvents      SubEvent[]
+}
+
+model MatchFormat {
+  id               String     @id @default(uuid())
+  name             String
+  nameEn           String?
+  bestOf           Int
+  pointsPerGame    Int
+  winBy            Int
+  estimatedMinutes Int
+  // At most one row is default; enforced in the service inside a transaction.
+  isDefault        Boolean    @default(false)
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  subEvents        SubEvent[]
+}
+
+enum UnfinishedMatchScoring {
+  COUNT_PLAYED_ONLY
+  AWARD_REMAINING_TO_WINNER
+}
+
+enum GroupWithdrawalPolicy {
+  KEEP_PLAYED_RESULTS
+  VOID_ALL_RESULTS
+}
+
+model GroupScoringRule {
+  id                     String                 @id @default(uuid())
+  name                   String
+  nameEn                 String?
+  pointsWin              Int
+  pointsLoss             Int
+  pointsWalkoverLoss     Int
+  pointsUnfinishedLoss   Int
+  unfinishedMatchScoring UnfinishedMatchScoring
+  awardedGamePoints      Int?
+  // null = organisers have not decided; mid-group withdrawal stays blocked until set.
+  withdrawalPolicy       GroupWithdrawalPolicy?
+  // Ordered TiebreakCriterion[] from @kamito/shared.
+  tiebreakers            Json
+  isDefault              Boolean                @default(false)
+  isActive               Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  subEvents              SubEvent[]
+}
+
+model Venue {
+  id        String       @id @default(uuid())
+  name      String
+  nameEn    String?
+  address   String?
+  city      String?
+  mapUrl    String?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  tables    VenueTable[]
+  events    Event[]
+}
+
+model VenueTable {
+  id          String   @id @default(uuid())
+  venueId     String
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  code        String
+  displayName String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([venueId, code])
+}

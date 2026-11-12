@@ -1,0 +1,37 @@
+enum MediaStatus {
+  AWAITING_UPLOAD
+  PROCESSING
+  READY
+  FAILED
+}
+
+// Uploads land under incoming/ and are never served; the worker re-encodes them into public/ variants.
+model MediaAsset {
+  id                   String      @id @default(uuid())
+  purpose              String
+  incomingKey          String      @unique
+  publicKey            String?     @unique
+  declaredMime         String
+  declaredSize         Int
+  mime                 String?
+  size                 Int?
+  width                Int?
+  height               Int?
+  status               MediaStatus @default(AWAITING_UPLOAD)
+  failureReason        String?
+  // [{ width, height, key }] of the re-encoded webp files.
+  variants             Json?
+  altText              String?
+  altTextEn            String?
+  createdById          String
+  expiresAt            DateTime
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  tierLogos            Tier[]      @relation("TierLogo")
+  tierBackgrounds      Tier[]      @relation("TierBackground")
+  eventTypeLogos       EventType[] @relation("EventTypeLogo")
+  eventTypeBackgrounds EventType[] @relation("EventTypeBackground")
+  eventBanners         Event[]     @relation("EventBanner")
+
+  @@index([status, expiresAt])
+}
