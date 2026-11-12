@@ -16,6 +16,8 @@ export function buildAntdTheme(source: Tokens = tokens): ThemeConfig {
     },
     components: {
       Layout: { headerBg: source.color.ink, siderBg: source.color.ink },
+      // Dark menu sits on the sider; without this antd paints its own navy behind the items.
+      Menu: { darkItemBg: source.color.ink, darkSubMenuItemBg: source.color.ink, darkPopupBg: source.color.ink },
     },
   };
 }

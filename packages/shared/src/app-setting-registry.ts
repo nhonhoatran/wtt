@@ -1,20 +1,14 @@
 import { z } from 'zod';
+import { defineAppSetting, type AppSettingDefinition } from './app-setting-definition.js';
+import { authSettings } from './auth-settings.js';
+import { listSettings } from './list-settings.js';
+
+export * from './app-setting-definition.js';
 
 /**
- * Registry of business settings stored in AppSetting (editable by admins).
- * Each entry owns its zod schema and default; technical knobs stay in env.
+ * Registry of settings stored in AppSetting (editable by admins).
+ * Each entry owns its zod schema and default; secrets and connection strings stay in env.
  */
-export interface AppSettingDefinition<T extends z.ZodType = z.ZodType> {
-  key: string;
-  schema: T;
-  defaultValue: z.infer<T>;
-  description: string;
-}
-
-export function defineAppSetting<T extends z.ZodType>(def: AppSettingDefinition<T>): AppSettingDefinition<T> {
-  return def;
-}
-
 export const appSettingRegistry = {
   siteName: defineAppSetting({
     key: 'site.name',
@@ -22,12 +16,18 @@ export const appSettingRegistry = {
     defaultValue: { vi: 'Giải bóng bàn Kamito', en: 'Kamito Table Tennis' },
     description: 'Tên site hiển thị ở header, tiêu đề trang',
   }),
+  ...authSettings,
+  ...listSettings,
 } as const;
 
 export type AppSettingKey = (typeof appSettingRegistry)[keyof typeof appSettingRegistry]['key'];
 
 export function findAppSetting(key: string): AppSettingDefinition | undefined {
   return Object.values(appSettingRegistry).find((def) => def.key === key);
+}
+
+export function listEditableAppSettings(): AppSettingDefinition[] {
+  return (Object.values(appSettingRegistry) as AppSettingDefinition[]).filter((def) => Boolean(def.editor));
 }
 
 /** Parses a stored value; falls back to the default when invalid or missing. */
