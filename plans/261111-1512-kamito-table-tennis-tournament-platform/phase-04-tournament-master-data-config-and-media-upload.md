@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. ≈8 ngày công (gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: Hoàn thành (chưa deploy staging). ≈8 ngày công (gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 4, ≈2 ngày):** model + seed danh mục (nhóm giải, hạng giải, nội dung chuẩn, thể thức trận, luật vòng bảng mặc định), helper list query, giải + nội dung thi đấu tạo tay trong hub (tab Thông tin, Nội dung thi đấu) — chưa có màn danh mục, chưa upload.
   - **Phần còn lại (tuần 7–8, ≈6 ngày):** màn danh mục, địa điểm + bàn, cài đặt hiển thị (AppSetting), tạo nội dung hàng loạt, pipeline upload ảnh, sanitizer rich text + bộ test XSS, ràng buộc xóa.
 - Danh mục cấu hình (nhóm giải, hạng giải, nội dung chuẩn, nhóm tuổi/trình độ, thể thức trận, luật vòng bảng), giải, nội dung thi đấu, địa điểm + bàn, AppSetting (chỉ giá trị nghiệp vụ), upload ảnh qua upload-intent + worker mã hóa lại.
@@ -30,7 +30,7 @@
 <!-- Phase 03 sync — 2026-11-12 -->
 - Phase 03 đã có: khung `/settings` (registry `packages/shared/src/app-setting-registry.ts`, API `GET/PUT/DELETE /api/v1/admin/settings`, trang `apps/admin/src/pages/settings-page.tsx`), `AppSettingsService`. Phase 04 chỉ thêm key nghiệp vụ vào registry, không dựng lại.
 - Phân trang admin đã có khung chung: `parsePaginationQuery` (server), `use-list-page-size.ts`, `list-filter-bar.tsx`. Page size mặc định là setting `list.defaultPageSize`; env chỉ là trần.
-- Chưa thống nhất: mục "Cài đặt hiển thị" ghi tham số kỹ thuật (upload, import, page size...) ở env theo phase 01, trong khi plan.md yêu cầu tham số vận hành lên `/settings`. Chốt trước khi làm phase 04.
+- ~~Chưa thống nhất: mục "Cài đặt hiển thị" ghi tham số kỹ thuật (upload, import, page size...) ở env theo phase 01, trong khi plan.md yêu cầu tham số vận hành lên `/settings`. Chốt trước khi làm phase 04.~~ **Đã chốt 2026-11-12:** tham số vận hành lên `/settings`, env chỉ làm trần (chi tiết: Kết quả thực hiện).
 
 ## Requirements
 
@@ -40,7 +40,7 @@ Functional
 - Giải: tạo/sửa/công bố/hủy (sao chép giải dời sang giai đoạn sau).
 - Nội dung thi đấu: tạo hàng loạt (chọn nhiều nội dung chuẩn × nhóm tuổi/trình độ trong 1 modal).
 - Địa điểm + bàn: tạo nhanh N bàn với tiền tố (mặc định lấy từ AppSetting).
-- Cài đặt hiển thị: form sinh từ registry key (kiểu, mặc định, mô tả), validate bằng zod. Registry chỉ giữ **giá trị nghiệp vụ**; tham số kỹ thuật (giới hạn upload, loại ảnh, bề rộng biến thể, trần import, thời hạn lưu, page size, host nhúng video) nằm ở env (phase 01).
+- Cài đặt hiển thị: form sinh từ registry key (kiểu, mặc định, mô tả), validate bằng zod. Registry chỉ giữ **giá trị nghiệp vụ**; tham số kỹ thuật (giới hạn upload, loại ảnh, bề rộng biến thể, trần import, thời hạn lưu, page size, host nhúng video) nằm ở env (phase 01). <!-- Sync 2026-11-12: đổi, tham số vận hành lên /settings, env làm trần (xem Kết quả thực hiện) -->.
 - Upload ảnh (logo, ảnh nền, banner): upload-intent → upload → worker kiểm + mã hóa lại → admin thấy trạng thái.
 <!-- Red Team: Luật vòng bảng cho walkover/bỏ cuộc/rút lui — 2026-11-11 -->
 - Luật vòng bảng cấu hình được: điểm thắng/thua/thua walkover/**thua chưa hết trận** (`pointsUnfinishedLoss`); cách tính ván/điểm cho trận không đấu hết (walkover, bỏ cuộc); cách xử lý VĐV rút lui giữa vòng bảng.
@@ -208,17 +208,17 @@ Phần còn lại (tuần 7–8)
 
 ## Todo List
 
-- [ ] (Lát cắt) Model + migration `add_tournament_master_data`; seed mặc định (idempotent)
-- [ ] (Lát cắt) prisma-list-query helper + test
-- [ ] (Lát cắt) Events CRUD/slug/publish; sub-event tạo tay; hub tab Thông tin + Nội dung thi đấu
-- [ ] ui-consistency: finding-patterns → planning
-- [ ] Sanitizer + bộ test XSS + validator `https:` (không cắt)
-- [ ] Modules catalog (6) + venues/tables bulk + sub-events bulk; luật vòng bảng (unfinished, withdrawal)
-- [ ] AppSetting registry (chỉ nghiệp vụ) + API + màn cài đặt (khung registry, API `/admin/settings` và trang `/settings` đã có từ phase 03; còn key nghiệp vụ)
-- [ ] Upload-intent + worker mã hóa lại + dọn intent; migration `add_media_assets`
-- [ ] Màn admin: catalog, giải, hub, địa điểm
-- [ ] Đăng ký tag revalidate cho mutation của module
-- [ ] ui-consistency: verifying; deploy staging
+- [x] (Lát cắt) Model + migration `add_tournament_master_data`; seed mặc định (idempotent) — `packages/db/prisma/schema/tournament-catalog.prisma`, `packages/db/prisma/seed/seed-config-defaults.ts`
+- [x] (Lát cắt) prisma-list-query helper + test — `apps/api/src/common/crud/prisma-list-query.ts`, `prisma-list-query.test.ts`
+- [x] (Lát cắt) Events CRUD/slug/publish; sub-event tạo tay; hub tab Thông tin + Nội dung thi đấu — `apps/api/src/modules/events/`, `apps/api/src/modules/sub-events/`, `apps/admin/src/pages/event-hub/`
+- [x] ui-consistency: finding-patterns → planning — checklist trong `./reports/implementation-plan-261112-1304-phase-04-task-breakdown.md` (mục "Checklist giao diện admin")
+- [x] Sanitizer + bộ test XSS + validator `https:` (không cắt) — `apps/api/src/common/html/sanitize-rich-html.ts` (+ test), `packages/shared/src/https-url.ts` (+ test)
+- [x] Modules catalog (6) + venues/tables bulk + sub-events bulk; luật vòng bảng (unfinished, withdrawal) — `apps/api/src/modules/{tiers,event-types,categories,disciplines,match-formats,group-scoring-rules,venues}/`; hằng số còn lại xem "Việc còn mở" mục 6
+- [x] AppSetting registry (chỉ nghiệp vụ) + API + màn cài đặt — `packages/shared/src/tournament-settings.ts`, `apps/admin/src/pages/settings-editors/`
+- [x] Upload-intent + worker mã hóa lại + dọn intent; migration `add_media_assets` — `apps/api/src/modules/media/`, `apps/worker/src/processors/media-image-processor.ts`, `media-intent-cleanup-processor.ts`; thiết kế (b), không dùng presigned
+- [x] Màn admin: catalog, giải, hub, địa điểm — `apps/admin/src/resources/`, `apps/admin/src/pages/event-hub/`; smoke trình duyệt đã làm cho tạo giải; màn địa điểm/bàn chưa smoke riêng
+- [ ] Đăng ký tag revalidate cho mutation của module — chưa: `cache-tags.ts` tạo ở phase 07; điểm nối có sẵn `apps/api/src/modules/events/events.service.ts:15`; chưa có hook cho sub-event và AppSetting
+- [ ] ui-consistency: verifying; deploy staging — chưa có báo cáo verifying cho phase 04; chưa có staging
 
 ## Success Criteria
 
@@ -228,7 +228,7 @@ Phần còn lại (tuần 7–8)
 - Upload ảnh 3 MB jpeg → `READY` có 3 biến thể webp trong ≤ 10 s ở máy dev; object `incoming/` đã bị xóa; không có bản gốc trong `public/`.
 - Test upload: file vượt trần → bị chặn ở bước upload (thiết kế a: MinIO từ chối theo `content-length-range`, đã kiểm trên bản chạy thật; thiết kế b: API cắt) hoặc worker đánh `FAILED` qua `HeadObject`; sai Content-Type → từ chối; `complete` với id lạ/của người khác → 404; file giả mạo (text đổi đuôi .jpg) → `FAILED`.
 - Đổi `MEDIA_IMAGE_VARIANT_WIDTHS` trong env → ảnh upload sau dùng kích thước mới, không sửa code.
-- Bộ test XSS xanh; `ticketUrl = "javascript:..."` hoặc `http://...` → 400.
+- Bộ test XSS xanh; `ticketUrl = "javascript:..."` hoặc `http://...` → 422 kèm lỗi theo field `ticketUrl` (đã chốt 2026-11-12: theo quy ước dự án, `parseBody` lỗi dữ liệu body trả 422; 400 chỉ dành cho query sai như sort/filter ngoài whitelist).
 
 ## Risk Assessment
 
@@ -251,3 +251,42 @@ Rollback: migrations chỉ thêm bảng; revert app về phase 03; MediaAsset/�
 ## Next Steps
 
 - Lát cắt tiếp tục ở phase 05 (thêm entry tay). Phần còn lại: phase 05 dùng helper upload cho file import; phase 06 dùng `MatchFormat`, `GroupScoringRule`.
+
+## Kết quả thực hiện
+
+**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy staging) và đăng ký tag revalidate (chờ phase 07).
+
+**Cách làm:** làm trọn phase trong một đợt, không tách lát cắt. Kế hoạch và quyết định kèm theo: `./reports/implementation-plan-261112-1304-phase-04-task-breakdown.md`.
+
+**Kiểm chứng** (số liệu ghi nhận 2026-11-12, không chạy lại khi sync):
+- Typecheck 10/10, lint 7/7, build 7/7.
+- Test: api 185/185 (30 file, gồm e2e); shared 52; worker 20; ui-tokens 3.
+- Migration trên DB local `localhost:5433/kamito_tt_dev`: `add_tournament_master_data`, `add_media_assets`, `add_single_default_partial_indexes`. `prisma migrate diff` sau đó không ra thay đổi.
+- Seed `packages/db/prisma/seed/seed-config-defaults.ts` đã chạy, idempotent.
+- Smoke trình duyệt: tạo giải + 5 nội dung trong 4 click; slug tự sinh và báo trùng; `ticketUrl` `javascript:` bị từ chối bằng lỗi gắn field; editor mới ở `/settings` hiển thị.
+- Review `./reports/code-reviewer-261112-1329-phase-04-review.md`, đối chiếu trong code: H1 (`apps/api/src/common/http/json-body-limit.ts`), H2 (`media-intent-cleanup-processor.ts`, nhánh PROCESSING quá hạn), M1 (`events-query.service.ts`, `distinctTimezones`), M2 (migration `add_single_default_partial_indexes`), M3 (`common/crud/ready-media.ts`), M4 (page size lấy từ setting), M5 (entrypoint admin ghi `client_max_body_size` từ env). M6 còn một phần.
+
+**Quyết định đã chốt 2026-11-12:**
+- Upload thiết kế (b): API nhận stream, có trần cứng; không dùng presigned. Lưu theo `STORAGE_DRIVER`: `local` (dev, `apps/api/uploads/`) hoặc `s3` (production). Không có `presigned-upload.service.ts` như plan ghi; helper thực tế: `apps/api/src/modules/media/media-upload-stream.ts`, `apps/api/src/modules/storage/object-storage.provider.ts`.
+- Tham số vận hành lên `/settings`, env làm trần: `media.maxImageMegabytes`, `media.intentTtlMinutes`, `media.processingTimeoutMinutes`, `event.defaultTimezone`, `event.defaultDurationDays`, `venue.tablePrefix`, `header.resultsStrip.enabled`, `home.featuredEventId` (`packages/shared/src/tournament-settings.ts`).
+- Slug khóa khi giải đã công bố.
+- Xóa sub-event của giải đã công bố bị chặn: 409 `EVENT_PUBLISHED`.
+- `ticketUrl` không hợp lệ trả 422 kèm lỗi theo field (quy ước dự án). Spec ghi 400; đã đổi theo quy ước, ghi nhận là sai lệch so với spec. Sort/filter ngoài whitelist vẫn 400.
+- Production bucket public toàn bộ: bucket `incoming/` riêng, private, là tùy chọn qua `S3_INCOMING_BUCKET`; đã ghi trong `docs/deployment-guide.md`.
+
+**Sai lệch so với plan:**
+- Không dùng presigned; xem trên.
+- Đăng ký tag revalidate (bước 12) dời sang phase 07.
+- Mục "Cài đặt hiển thị": env đổi thành `/settings` (xem trên).
+- Editor rich text dùng TipTap; sanitizer `sanitize-html` chạy ở API.
+
+**Việc còn mở:**
+1. Deploy staging + migrate (bước 13). Cổng ra phase 01 chưa đạt (xem phase 03), chưa làm.
+2. Đăng ký tag revalidate cho mutation giải, sub-event, AppSetting: chờ `cache-tags.ts` ở phase 07.
+3. Driver `s3` chưa test với MinIO thật. Chưa xác nhận `content-length-range` và `HeadObject` trên đường S3 (`s3-object-storage.ts` chưa có test tích hợp).
+4. Native crash `0xC0000409` (exit 3221226505) xảy ra 1 trên 3 lần chạy full api, ở `must-change-password.e2e-spec.ts`. Chưa tái hiện; nghi `sharp` (chưa xác minh). Lần crash đó để lại 2 user `@test.kamito.local` trong DB dev; chưa dọn, cần chủ repo xác nhận trước khi xóa.
+5. Review Low chưa làm: L1, L2, L3, L4, L5, L6, L8, L9, L10, L11, L13. L7 (sanitizer cho phép `img`/`table` mà editor không tạo được) cần quyết định khi phase 11.
+6. M6 còn hằng số chưa đưa lên `/settings` hoặc chưa ghi lý do giữ env: `MAX_BULK_ITEMS` = 50 và `MAX_ENTRIES` = 10 000 (`apps/api/src/modules/sub-events/sub-event-dtos.ts`); tối đa 100 bàn mỗi lần (`apps/api/src/modules/venues/venue-dtos.ts`); chất lượng WebP 82 (`apps/worker/src/processors/media-image-processor.ts`); attempts/backoff của queue media (`apps/api/src/modules/media/media-queue.ts`). Chờ chủ repo quyết: chuyển hay giữ env.
+7. `@RequireStepUp` chưa gắn route admin nào (`apps/api/src/modules/auth/auth-decorators.ts`). Phase 03 dự kiến gắn ở phase 05, 07, 09; review đề xuất gắn sớm cho `PUT/DELETE /admin/settings/:key`. Chờ chủ repo quyết.
+8. Admin UI chưa có test tự động (`apps/admin` chưa có runner). Chưa có báo cáo `ui-consistency:verifying` cho phase 04. Tiêu chí "≤ 4 click" chỉ kiểm bằng tay.
+9. Bundle admin khoảng 2,5 MB (JS chunk, cảnh báo Vite > 500 kB). Không chặn; cần code-split khi tối ưu.

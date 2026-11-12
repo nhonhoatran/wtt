@@ -38,6 +38,11 @@
 - Ma trận quyền hiện có: `start`, `un-start`, `save-progress` đi qua `matches.update` (không có action riêng); `confirm`, `amend` là `matches.confirm`, `matches.amend` (RESULTS_OPERATOR có); `reopen`, `force-reopen` là `matches.reopen` (chỉ ADMIN).
 - Trang chủ RESULTS_OPERATOR hiện là khung `role-home-page.tsx`; màn nhập tỷ số làm ở phase này.
 
+<!-- Phase 04 sync — 2026-11-12 -->
+- `cache-tags.ts` chưa có. Hook đã đặt sẵn ở `apps/api/src/modules/events/events.service.ts:15` (create/update/publish/cancel/delete giải). Sub-event (`apps/api/src/modules/sub-events/sub-events.service.ts`) và AppSetting (`apps/api/src/modules/settings/`) chưa có hook; thêm khi làm.
+- Mẫu chặn thao tác khi đã công bố có sẵn: `EVENT_PUBLISHED` 409 ở `sub-events.service.ts:125`. Dùng cùng mẫu cho sửa/xóa sau công bố.
+- Lọc vòng đời theo múi giờ từng giải: `apps/api/src/modules/events/event-lifecycle-filter.ts`, `packages/shared/src/lifecycle-from-dates.ts`.
+
 ## Requirements
 
 Functional

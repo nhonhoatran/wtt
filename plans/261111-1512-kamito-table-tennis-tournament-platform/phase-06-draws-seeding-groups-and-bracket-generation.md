@@ -32,6 +32,13 @@
 <!-- Phase 03 sync — 2026-11-12 -->
 - Phase 03 đã có: `AppSettingsService` và khung `/settings` (key `draw.*` thêm vào registry khi làm phase này); resource `tournaments` trong ma trận quyền (RESULTS_OPERATOR chỉ đọc); `@RequireStepUp()` nếu thao tác sau công bố cần nhập lại mật khẩu (chưa gắn route nào).
 
+<!-- Phase 04 sync — 2026-11-12 -->
+- Phase 04 đã có model `MatchFormat` và `GroupScoringRule` (`packages/db/prisma/schema/tournament-catalog.prisma`); `withdrawalPolicy` để trống (API trả `withdrawalPolicyMissing`), seed không tự chọn (`packages/db/prisma/seed/seed-config-defaults.ts`).
+- Bộ tiêu chí phá hòa đã có: `packages/shared/src/tiebreak-criteria.ts`. Dùng lại, không tạo danh sách mới.
+- "Đúng một mục mặc định" có partial unique index (`MatchFormat_single_default`, `GroupScoringRule_single_default`, migration `add_single_default_partial_indexes`); helper dùng chung `apps/api/src/common/crud/default-flag.ts`.
+- `draw.defaultGroupSize`, `draw.defaultAdvancePerGroup` chưa có trong `packages/shared/src/tournament-settings.ts`; thêm khi làm phase này.
+- Đăng ký `cache-tags.ts` đợi phase 07.
+
 ## Requirements
 
 Functional

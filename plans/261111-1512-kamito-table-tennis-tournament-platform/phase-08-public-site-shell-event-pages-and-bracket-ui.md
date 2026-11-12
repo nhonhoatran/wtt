@@ -37,6 +37,13 @@
 <!-- Phase 03 sync — 2026-11-12 -->
 - Phase 03 không cung cấp thành phần công khai. Phân trang công khai dùng tham số riêng (`pageSize` ≤ 24 ở `/public/events`), không dùng `list.defaultPageSize` (chỉ áp cho admin).
 
+<!-- Phase 04 sync — 2026-11-12 -->
+- Sanitizer đã có ở API: `apps/api/src/common/html/sanitize-rich-html.ts` (`sanitizeRichHtml`, `sanitizeRichHtmlOrNull`). `infoBody`/`infoBodyEn` đã sanitize khi lưu (`apps/api/src/modules/events/event-write-data.ts:14-15`). Chưa quyết: render công khai gọi lại sanitizer ở Next.js (cần chuyển lib sang `packages/shared`) hay API trả HTML đã sanitize. Chốt trước khi làm.
+- Song ngữ: `infoBodyEn` đã có (`apps/api/src/modules/events/event-dtos.ts:58`). Quy ước public đọc `xxxEn ?? xxx` là của plan, chưa có code public.
+- `home.featuredEventId` (AppSetting) chưa kiểm giải đã công bố (L9 chưa làm): public phải bỏ qua giải DRAFT, hoặc sửa ở phase này.
+- Allowlist sanitizer cho phép `img`/`table` mà editor (`apps/admin/src/components/rich-text-field.tsx`) không tạo được (L7). Quyết định khi làm trang tin/tĩnh (phase 11).
+- `cache-tags.ts` đợi phase 07.
+
 ## Requirements
 
 Functional

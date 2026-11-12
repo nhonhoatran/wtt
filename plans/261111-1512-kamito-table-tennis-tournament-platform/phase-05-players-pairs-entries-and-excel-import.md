@@ -31,6 +31,12 @@
 - Phase 03 đã có: `@RequireStepUp()` + StepUpGuard (chưa gắn route nào), `POST /api/v1/auth/step-up`, `apps/admin/src/components/step-up-modal.tsx`, `AppSettingsService` (đọc setting), resource `players` trong ma trận quyền (`packages/shared/src/permissions.ts`; RESULTS_OPERATOR chỉ `list`, `read`).
 - Gộp VĐV: phải gắn `@RequireStepUp()` trên route gộp (phase 05 làm). Ma trận hiện cho phép ADMIN mọi action trên `players`.
 
+<!-- Phase 04 sync — 2026-11-12 -->
+- Phase 04 đã có helper upload: không có `presigned-upload.service.ts` (plan ghi vậy, không tạo). Dùng `apps/api/src/modules/media/media-upload-stream.ts` (stream có trần cứng) và `apps/api/src/modules/storage/object-storage.provider.ts` (`OBJECT_STORAGE`, driver `local`/`s3`). Prefix `private/imports/` cần chốt riêng với `incoming/` của media trước khi làm.
+- Dùng lại: `apps/api/src/common/crud/prisma-list-query.ts` (list), `apps/admin/src/pages/event-hub/event-hub-page.tsx` + `hub-tab-context.ts` (thêm tab), `apps/admin/src/components/confirm-action-button.tsx` (xác nhận), `apps/admin/src/components/media-upload-field.tsx` (ô file/ảnh có trạng thái).
+- `@RequireStepUp` vẫn chưa gắn route nào (phase 04 cũng chưa gắn). Gộp VĐV gắn ở phase này.
+- Đăng ký `cache-tags.ts` (bước 10): đợi phase 07 tạo file; điểm nối có sẵn ở `apps/api/src/modules/events/events.service.ts:15`.
+
 ## Requirements
 
 Functional
