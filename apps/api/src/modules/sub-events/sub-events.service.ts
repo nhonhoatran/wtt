@@ -116,10 +116,13 @@ export class SubEventsService {
     });
   }
 
-  // Phase 05+ will refuse deletion once entries or matches exist.
+  // Phase 06+ will also refuse deletion once draws or matches exist.
   async remove(eventId: string, id: string): Promise<{ id: string }> {
     const current = await this.requireSubEvent(eventId, id);
     await this.prisma.$transaction(async (tx) => {
+      if ((await tx.entry.count({ where: { subEventId: id } })) > 0) {
+        throw new ConflictException({ code: 'SUB_EVENT_HAS_ENTRIES', message: 'Nội dung đã có đăng ký, không xóa được' });
+      }
       const { count } = await tx.subEvent.deleteMany({ where: { id, event: { publishStatus: 'DRAFT' } } });
       if (count === 0) {
         throw new ConflictException({ code: 'EVENT_PUBLISHED', message: 'Giải đã công bố, hãy hủy công bố trước khi xóa nội dung thi đấu' });

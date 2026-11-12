@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import type { Response } from 'express';
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; fields?: Record<string, string>; dependants?: Record<string, number>; suggestion?: string };
+  error: { code: string; message: string; fields?: Record<string, string>; dependants?: Record<string, number>; suggestion?: string; issues?: unknown[] };
 }
 
 const STATUS_CODES: Record<number, string> = {
@@ -28,9 +28,10 @@ export function toErrorBody(exception: unknown): { status: number; body: ApiErro
   const dependants =
     custom.dependants && typeof custom.dependants === 'object' ? (custom.dependants as Record<string, number>) : undefined;
   const suggestion = typeof custom.suggestion === 'string' ? custom.suggestion : undefined;
+  const issues = Array.isArray(custom.issues) ? custom.issues : undefined;
   return {
     status,
-    body: { error: { code, message, ...(fields && { fields }), ...(dependants && { dependants }), ...(suggestion && { suggestion }) } },
+    body: { error: { code, message, ...(fields && { fields }), ...(dependants && { dependants }), ...(suggestion && { suggestion }), ...(issues && { issues }) } },
   };
 }
 
