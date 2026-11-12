@@ -2,6 +2,7 @@
 export const QueueName = {
   Maintenance: 'maintenance',
   Media: 'media',
+  Import: 'import',
 } as const;
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName];

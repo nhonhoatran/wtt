@@ -20,6 +20,12 @@ export interface TimezoneSettingEditor {
   kind: 'timezone';
 }
 
+/** One value from a fixed list of options. */
+export interface ChoiceSettingEditor {
+  kind: 'choice';
+  options: { value: string; label: string }[];
+}
+
 /** Picks one tournament (or none) from /admin/events. */
 export interface EventSettingEditor {
   kind: 'event';
@@ -30,12 +36,15 @@ export type AppSettingEditor =
   | TextSettingEditor
   | BooleanSettingEditor
   | TimezoneSettingEditor
-  | EventSettingEditor;
+  | EventSettingEditor
+  | ChoiceSettingEditor;
 
 export const APP_SETTING_GROUPS = [
   { key: 'event', label: 'Giải đấu' },
   { key: 'display', label: 'Hiển thị site công khai' },
   { key: 'media', label: 'Ảnh tải lên' },
+  { key: 'players', label: 'Vận động viên' },
+  { key: 'imports', label: 'Import Excel' },
   { key: 'auth', label: 'Đăng nhập & phiên' },
   { key: 'list', label: 'Danh sách' },
 ] as const;

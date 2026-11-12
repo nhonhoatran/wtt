@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { defineAppSetting, type AppSettingDefinition } from './app-setting-definition.js';
 import { authSettings } from './auth-settings.js';
 import { listSettings } from './list-settings.js';
+import { importOperationalSettings } from './import-operational-settings.js';
+import { importSettings, playerSettings } from './player-settings.js';
 import { tournamentSettings } from './tournament-settings.js';
 
 export * from './app-setting-definition.js';
@@ -20,6 +22,9 @@ export const appSettingRegistry = {
   ...authSettings,
   ...tournamentSettings,
   ...listSettings,
+  ...playerSettings,
+  ...importSettings,
+  ...importOperationalSettings,
 } as const;
 
 export type AppSettingKey = (typeof appSettingRegistry)[keyof typeof appSettingRegistry]['key'];

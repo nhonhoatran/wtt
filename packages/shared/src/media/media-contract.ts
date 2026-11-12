@@ -4,6 +4,7 @@ export const MEDIA_PURPOSES = [
   'event-type-logo',
   'event-type-background',
   'event-banner',
+  'player-photo',
 ] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];
 
