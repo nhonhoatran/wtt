@@ -1,0 +1,73 @@
+// Shape required by Better Auth (user/session/account/verification) plus our own columns.
+// Better Auth generates the ids; role/isActive/mustChangePassword are read from here on every request.
+enum UserRole {
+  ADMIN
+  RESULTS_OPERATOR
+}
+
+model User {
+  id                    String    @id
+  email                 String    @unique
+  name                  String
+  emailVerified         Boolean   @default(false)
+  image                 String?
+  role                  UserRole  @default(RESULTS_OPERATOR)
+  isActive              Boolean   @default(true)
+  mustChangePassword    Boolean   @default(false)
+  tempPasswordExpiresAt DateTime?
+  lastLoginAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+
+  @@index([role, isActive])
+}
+
+model Session {
+  id         String    @id
+  token      String    @unique
+  expiresAt  DateTime
+  ipAddress  String?
+  userAgent  String?
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Idle timeout and step-up are enforced by the API guard, not by Better Auth.
+  lastSeenAt DateTime  @default(now())
+  stepUpAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  // scrypt hash written by Better Auth; never returned by the API.
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
