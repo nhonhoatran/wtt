@@ -4,4 +4,14 @@ packages:
 allowBuilds:
   '@prisma/engines': true
   '@swc/core': true
+  msgpackr-extract: false
   prisma: true
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.7.21'
+  - '@better-auth/drizzle-adapter@1.7.21'
+  - '@better-auth/kysely-adapter@1.7.21'
+  - '@better-auth/memory-adapter@1.7.21'
+  - '@better-auth/mongo-adapter@1.7.21'
+  - '@better-auth/prisma-adapter@1.7.21'
+  - '@better-auth/telemetry@1.7.21'
+  - better-auth@1.7.21

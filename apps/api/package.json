@@ -9,15 +9,20 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src test",
-    "test": "vitest run"
+    "test": "vitest run",
+    "create-admin": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/cli/create-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1159.0",
+    "@bull-board/api": "9.10.5",
+    "@bull-board/express": "9.10.5",
     "@kamito/db": "workspace:*",
     "@kamito/shared": "workspace:*",
     "@nestjs/common": "12.3.2",
     "@nestjs/core": "12.3.2",
     "@nestjs/platform-express": "12.3.2",
+    "better-auth": "1.7.21",
+    "bullmq": "6.5.1",
     "express": "5.3.0",
     "ioredis": "6.0.0",
     "nestjs-pino": "5.3.1",
@@ -30,8 +35,8 @@
   "devDependencies": {
     "@kamito/config": "workspace:*",
     "@nestjs/testing": "12.3.2",
-    "@swc/core": "1.16.20",
     "@swc-node/register": "1.12.1",
+    "@swc/core": "1.16.20",
     "@types/express": "5.0.6",
     "@types/node": "24.19.2",
     "@types/supertest": "7.2.1",
