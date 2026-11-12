@@ -6,6 +6,7 @@ export class ApiError extends Error {
     message: string,
     readonly errors?: Record<string, string>,
     readonly retryAfterSeconds?: number,
+    readonly dependants?: Record<string, number>,
   ) {
     super(message);
   }
@@ -18,7 +19,7 @@ export function setApiBase(base: string): void {
 }
 
 interface ErrorBody {
-  error?: { code?: string; message?: string; fields?: Record<string, string> };
+  error?: { code?: string; message?: string; fields?: Record<string, string>; dependants?: Record<string, number> };
   code?: string;
   message?: string;
 }
@@ -41,5 +42,5 @@ export async function apiFetch<T>(path: string, init: { method?: string; body?: 
   // Our API nests errors under `error`; Better Auth's raw routes return { code, message }.
   const error = body.error ?? { code: body.code, message: body.message };
   const retryAfter = Number(res.headers.get('retry-after')) || undefined;
-  throw new ApiError(res.status, error.code ?? `HTTP_${res.status}`, error.message ?? res.statusText, error.fields, retryAfter);
+  throw new ApiError(res.status, error.code ?? `HTTP_${res.status}`, error.message ?? res.statusText, error.fields, retryAfter, error.dependants);
 }

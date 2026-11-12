@@ -20,7 +20,14 @@ export interface MenuGroupDef {
  * A group shows only when the role can list at least one of its items.
  */
 export const MENU_GROUPS: MenuGroupDef[] = [
-  { key: 'tournaments', label: 'Giải đấu', items: [] },
+  {
+    key: 'tournaments',
+    label: 'Giải đấu',
+    items: [
+      { key: 'events', label: 'Danh sách giải', path: '/events', resource: 'tournaments' },
+      { key: 'venues', label: 'Địa điểm & bàn', path: '/venues', resource: 'tournaments' },
+    ],
+  },
   { key: 'players', label: 'Vận động viên', items: [] },
   { key: 'rankings', label: 'Xếp hạng', items: [] },
   { key: 'content', label: 'Nội dung', items: [] },
@@ -29,6 +36,12 @@ export const MENU_GROUPS: MenuGroupDef[] = [
     key: 'config',
     label: 'Cấu hình',
     items: [
+      { key: 'tiers', label: 'Nhóm giải', path: '/tiers', resource: 'tournaments' },
+      { key: 'event-types', label: 'Hạng giải', path: '/event-types', resource: 'tournaments' },
+      { key: 'disciplines', label: 'Nội dung chuẩn', path: '/disciplines', resource: 'tournaments' },
+      { key: 'categories', label: 'Nhóm tuổi / trình độ', path: '/categories', resource: 'tournaments' },
+      { key: 'match-formats', label: 'Thể thức trận', path: '/match-formats', resource: 'tournaments' },
+      { key: 'group-scoring-rules', label: 'Luật vòng bảng', path: '/group-scoring-rules', resource: 'tournaments' },
       { key: 'settings', label: 'Cài đặt hệ thống', path: '/settings', resource: 'settings' },
       { key: 'queues', label: 'Hàng đợi xử lý', path: '/api/v1/admin/queues', resource: 'queues', external: true },
     ],

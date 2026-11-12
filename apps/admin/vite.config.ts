@@ -13,6 +13,7 @@ export default defineConfig({
     proxy: {
       '/api/v1/admin': 'http://localhost:3000',
       '/api/v1/auth': 'http://localhost:3000',
+      '/api/v1/media': 'http://localhost:3000',
     },
   },
 });

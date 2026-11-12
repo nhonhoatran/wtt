@@ -2,12 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Flex, Form, Result, Skeleton, Typography } from 'antd';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../api/http-client';
-import { SettingField, type SettingView } from './settings-field';
+import { SettingField, type SettingValue, type SettingView } from './settings-field';
 
 interface SettingsResponse {
   data: SettingView[];
   groups: { key: string; label: string }[];
 }
+
+type SettingValues = Record<string, SettingValue>;
 
 const SETTINGS_KEY = ['admin-settings'];
 
@@ -25,7 +27,7 @@ export function SettingsPage() {
     return <Result status="error" title="Không tải được cài đặt" extra={<Button onClick={() => refetch()}>Thử lại</Button>} />;
   }
 
-  const saveGroup = async (items: SettingView[], values: Record<string, number>) => {
+  const saveGroup = async (items: SettingView[], values: SettingValues) => {
     const changed = items.filter((item) => values[item.key] !== item.value);
     if (changed.length === 0) {
       message.info('Không có thay đổi nào');
@@ -68,7 +70,7 @@ export function SettingsPage() {
 interface GroupProps {
   title: string;
   items: SettingView[];
-  onSave: (items: SettingView[], values: Record<string, number>) => Promise<void>;
+  onSave: (items: SettingView[], values: SettingValues) => Promise<void>;
   onReset: (item: SettingView) => Promise<void>;
 }
 
@@ -82,12 +84,12 @@ class SettingSaveError extends Error {
 }
 
 function SettingsGroupCard({ title, items, onSave, onReset }: GroupProps) {
-  const [form] = Form.useForm<Record<string, number>>();
+  const [form] = Form.useForm<SettingValues>();
   const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const initialValues = Object.fromEntries(items.map((item) => [item.key, item.value]));
 
-  const submit = async (values: Record<string, number>) => {
+  const submit = async (values: SettingValues) => {
     setSaving(true);
     try {
       await onSave(items, values);
