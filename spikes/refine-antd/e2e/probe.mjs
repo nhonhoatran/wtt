@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH });
+const p = await b.newPage();
+p.on('request', (r) => r.url().includes('/api/players') && console.log('REQ', decodeURIComponent(r.url())));
+await p.goto('http://localhost:5190/players'); await p.waitForLoadState('networkidle');
+await p.locator('th:has-text("Trang thai") .ant-table-filter-trigger').click();
+await p.locator('.ant-table-filter-dropdown .ant-select').click();
+await p.locator('.ant-select-item-option:has-text("banned")').click();
+console.log(await p.locator('.ant-table-filter-dropdown button').allInnerTexts());
+await p.locator('.ant-table-filter-dropdown').click({ position: { x: 3, y: 3 } }); await p.screenshot({ path: 'e2e/shots/probe.png' }); await p.locator('.ant-table-filter-dropdown button.ant-btn-primary').click();
+await p.waitForTimeout(1000);
+console.log(decodeURIComponent(p.url()));
+await p.screenshot({ path: 'e2e/shots/probe.png' });
+await b.close();

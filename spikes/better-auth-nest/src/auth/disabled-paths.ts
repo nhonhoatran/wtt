@@ -1,0 +1,27 @@
+// Second layer behind the Express allowlist. Better Auth matches these exactly (no wildcards, no
+// parametrized paths), so this list alone is not a safe default-deny.
+export const DISABLED_PATHS: string[] = [
+  '/sign-up/email',
+  '/sign-in/social',
+  '/link-social',
+  '/unlink-account',
+  '/admin/impersonate-user',
+  '/admin/stop-impersonating',
+  '/admin/remove-user',
+  '/delete-user',
+  '/delete-user/callback',
+  '/change-email',
+  '/request-password-reset',
+  '/reset-password',
+  '/send-verification-email',
+  '/verify-email',
+  '/refresh-token',
+  '/get-access-token',
+  '/account-info',
+  '/list-accounts',
+  '/verify-password',
+  '/update-user',
+  '/update-session',
+  '/ok',
+  '/error',
+];

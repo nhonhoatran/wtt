@@ -1,0 +1,1 @@
+__Secure-better-auth.session_token=<redacted>; Max-Age=28800; Path=/; HttpOnly; Secure; SameSite=Lax

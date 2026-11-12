@@ -1,0 +1,10 @@
+{
+  "open": [
+    "GET /get-session -> 200",
+    "POST /sign-out -> 200"
+  ],
+  "redirects": [
+    "GET /callback/:id -> 302",
+    "POST /callback/:id -> 302"
+  ]
+}

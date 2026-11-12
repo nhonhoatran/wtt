@@ -1,0 +1,237 @@
+[
+  {
+    "method": "GET",
+    "path": "/account-info",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ban-user",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/create-user",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/admin/get-user",
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/admin/has-permission",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/admin/impersonate-user",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/admin/list-user-sessions",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/admin/list-users",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/remove-user",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/admin/revoke-user-session",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/revoke-user-sessions",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/set-role",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/set-user-password",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/stop-impersonating",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/admin/unban-user",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/admin/update-user",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/callback/:id",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/callback/:id",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/change-email",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/change-password",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/delete-user",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/delete-user/callback",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/error",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/get-access-token",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/get-session",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/get-session",
+    "status": 405
+  },
+  {
+    "method": "POST",
+    "path": "/link-social",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/list-accounts",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/list-sessions",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/ok",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/refresh-token",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/request-password-reset",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/reset-password",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/reset-password/:token",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/revoke-other-sessions",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/revoke-session",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/revoke-sessions",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/send-verification-email",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/sign-in/email",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/sign-in/social",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/sign-out",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/sign-up/email",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/unlink-account",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/update-session",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/update-user",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/verify-email",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/verify-password",
+    "status": 404
+  }
+]

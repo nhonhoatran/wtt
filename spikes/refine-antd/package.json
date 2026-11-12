@@ -1,0 +1,38 @@
+{
+  "name": "spike-refine-antd",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "api": "node --env-file=../../.env server/server.mjs",
+    "dev": "vite --port 5190",
+    "build": "tsc --noEmit && vite build",
+    "e2e": "node e2e/check.mjs"
+  },
+  "dependencies": {
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@aws-sdk/client-s3": "^3.1166.0",
+    "@aws-sdk/s3-request-presigner": "^3.1166.0",
+    "@refinedev/antd": "6.0.3",
+    "@refinedev/core": "5.0.12",
+    "@refinedev/react-router": "^2.0.4",
+    "@tanstack/react-query": "^5.107.1",
+    "antd": "5.29.3",
+    "dayjs": "^1.11.23",
+    "express": "^5.3.0",
+    "pg": "^8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "^7.18.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "playwright": "1.65.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.5"
+  }
+}
