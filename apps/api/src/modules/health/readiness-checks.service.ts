@@ -1,13 +1,11 @@
-import { HeadBucketCommand, type S3Client } from '@aws-sdk/client-s3';
 import { Inject, Injectable } from '@nestjs/common';
 import { findPendingMigrations } from '@kamito/db';
+import type { ObjectStorage } from '@kamito/shared/object-storage';
 import type { Redis } from 'ioredis';
-import { API_ENV } from '../../common/config/app-config.module.js';
-import type { ApiEnv } from '../../common/config/env-schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { REDIS_CONNECTION } from '../queue/redis-connection.provider.js';
 import { RedisEvictionPolicyCheck } from '../queue/redis-eviction-policy-check.js';
-import { S3_CLIENT } from '../storage/s3-client.provider.js';
+import { OBJECT_STORAGE } from '../storage/object-storage.provider.js';
 
 export type CheckStatus = 'up' | 'down' | 'degraded';
 export interface CheckResult {
@@ -42,8 +40,7 @@ export class ReadinessChecksService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(REDIS_CONNECTION) private readonly redis: Redis,
-    @Inject(S3_CLIENT) private readonly s3: S3Client,
-    @Inject(API_ENV) private readonly env: ApiEnv,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorage,
     private readonly eviction: RedisEvictionPolicyCheck,
   ) {}
 
@@ -60,7 +57,7 @@ export class ReadinessChecksService {
         if (!verdict || verdict.status === 'ok') return undefined;
         return { status: verdict.status === 'fatal' ? 'down' : 'degraded', detail: verdict.message };
       }),
-      probe(async () => void (await this.s3.send(new HeadBucketCommand({ Bucket: this.env.S3_BUCKET })))),
+      probe(() => this.storage.ping()),
     ]);
     return { database, migrations, redis, storage };
   }

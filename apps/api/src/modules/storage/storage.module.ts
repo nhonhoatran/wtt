@@ -1,16 +1,16 @@
 import { Global, Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import type { S3Client } from '@aws-sdk/client-s3';
-import { S3_CLIENT, s3ClientProvider } from './s3-client.provider.js';
+import { S3ObjectStorage, type ObjectStorage } from '@kamito/shared/object-storage';
+import { OBJECT_STORAGE, objectStorageProvider } from './object-storage.provider.js';
 
 @Global()
 @Module({
-  providers: [s3ClientProvider],
-  exports: [S3_CLIENT],
+  providers: [objectStorageProvider],
+  exports: [OBJECT_STORAGE],
 })
 export class StorageModule implements OnModuleDestroy {
-  constructor(@Inject(S3_CLIENT) private readonly s3: S3Client) {}
+  constructor(@Inject(OBJECT_STORAGE) private readonly storage: ObjectStorage) {}
 
   onModuleDestroy(): void {
-    this.s3.destroy();
+    if (this.storage instanceof S3ObjectStorage) this.storage.destroy();
   }
 }

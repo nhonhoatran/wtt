@@ -1,7 +1,7 @@
 import { appEnvSchema, csvList, isQueuePrefixValid, requiredString, secretString } from '@kamito/shared';
+import { refineStorageEnv, storageEnvShape } from '@kamito/shared/media';
 import { z } from 'zod';
 
-const booleanString = z.enum(['true', 'false']).transform((value) => value === 'true');
 const positiveInt = z.coerce.number().int().positive();
 
 export const apiEnvSchema = z
@@ -15,12 +15,7 @@ export const apiEnvSchema = z
     REDIS_URL: requiredString,
     QUEUE_PREFIX: requiredString,
     REDIS_EVICTION_CHECK_OVERRIDE: z.string().optional(),
-    S3_ENDPOINT: requiredString,
-    S3_REGION: requiredString,
-    S3_ACCESS_KEY_ID: requiredString,
-    S3_SECRET_ACCESS_KEY: requiredString,
-    S3_BUCKET: requiredString,
-    S3_FORCE_PATH_STYLE: booleanString.default(true),
+    ...storageEnvShape,
     S3_PRESIGN_ENDPOINT: z.string().url().optional(),
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
     AUTH_SECRET: secretString,
@@ -34,6 +29,8 @@ export const apiEnvSchema = z
     UPLOAD_MAX_IMAGE_BYTES: positiveInt,
     UPLOAD_ALLOWED_IMAGE_TYPES: csvList,
     MEDIA_IMAGE_VARIANT_WIDTHS: csvList,
+    // Base URL of the public/ prefix (bucket/CDN); unset = served by the API route /media/public.
+    MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
     IMPORT_MAX_FILE_BYTES: positiveInt,
     IMPORT_MAX_UNZIPPED_BYTES: positiveInt,
     IMPORT_MAX_ROWS: positiveInt,
@@ -42,6 +39,7 @@ export const apiEnvSchema = z
     QUERY_MAX_LENGTH: positiveInt.default(100),
   })
   .superRefine((env, ctx) => {
+    refineStorageEnv(env, ctx);
     if (!isQueuePrefixValid(env.QUEUE_PREFIX, env.APP_ENV)) {
       ctx.addIssue({ code: 'custom', path: ['QUEUE_PREFIX'], message: 'must be "kamito-tt:<APP_ENV>"' });
     }
