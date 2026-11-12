@@ -1,0 +1,7 @@
+// Business values only; keys, zod schema and defaults live in @kamito/shared.
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}

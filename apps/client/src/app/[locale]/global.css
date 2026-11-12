@@ -1,0 +1,23 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+.container {
+  max-width: var(--layout-container-max);
+  margin: 0 auto;
+  padding: var(--space-section-mobile) var(--layout-gutter-mobile);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: var(--space-section-desktop) var(--layout-gutter-desktop);
+  }
+}

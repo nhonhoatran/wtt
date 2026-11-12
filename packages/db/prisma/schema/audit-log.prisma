@@ -1,0 +1,27 @@
+enum AuditActorType {
+  USER
+  SYSTEM
+}
+
+model AuditLog {
+  id        String         @id @default(uuid())
+  actorType AuditActorType
+  // User id, or "system" for jobs/CLI.
+  actorId   String
+  // e.g. match.result.confirm
+  action    String
+  entity    String
+  entityId  String
+  // PII is masked before write.
+  before    Json?
+  after     Json?
+  reason    String?
+  ip        String?
+  userAgent String?
+  sessionId String?
+  requestId String?
+  createdAt DateTime       @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+}
