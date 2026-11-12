@@ -1,0 +1,66 @@
+enum ImportStatus {
+  AWAITING_UPLOAD
+  UPLOADED
+  VALIDATING
+  VALIDATED
+  COMMITTING
+  DONE
+  FAILED
+}
+
+// Validation is only a preview: commit re-matches every row against current data and requires
+// the stored file to still hash to fileSha256.
+model ImportJob {
+  id               String       @id @default(uuid())
+  eventId          String
+  event            Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fileKey          String       @unique
+  fileName         String?
+  fileSize         Int?
+  fileSha256       String?
+  status           ImportStatus @default(AWAITING_UPLOAD)
+  failureReason    String?
+  totalRows        Int?
+  validRows        Int?
+  errorRows        Int?
+  needsConfirmRows Int?
+  committedRows    Int?
+  // ADMIN-only: allow commit into sub-events whose draw is no longer DRAFT.
+  overrideReason   String?
+  // Bumped on every validate/commit click; part of the BullMQ job id.
+  attemptNo        Int          @default(0)
+  createdById      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  finishedAt       DateTime?
+  fileDeletedAt    DateTime?
+  rows             ImportRow[]
+
+  @@index([eventId, createdAt])
+  @@index([status, createdAt])
+}
+
+enum ImportRowStatus {
+  VALID
+  ERROR
+  NEEDS_CONFIRM
+  COMMITTED
+}
+
+model ImportRow {
+  importJobId        String
+  importJob          ImportJob       @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  rowNo              Int
+  status             ImportRowStatus
+  // CREATE_ENTRY | UPDATE_ENTRY (with per-player CREATE_PLAYER | LINK_PLAYER inside data).
+  plannedAction      String
+  data               Json
+  messages           Json?
+  candidatePlayerIds Json?
+  // Operator decisions for NEEDS_CONFIRM, per player slot: { "1": "<playerId>" | "NEW", "2": ... }.
+  decisions          Json?
+  createdEntityIds   Json?
+
+  @@id([importJobId, rowNo])
+  @@index([importJobId, status])
+}

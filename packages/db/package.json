@@ -26,6 +26,7 @@
     "seed:config": "node --env-file-if-exists=../../.env prisma/seed/seed-config-defaults.ts"
   },
   "dependencies": {
+    "@kamito/shared": "workspace:*",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "dotenv": "17.2.3"

@@ -32,6 +32,7 @@ model MediaAsset {
   eventTypeLogos       EventType[] @relation("EventTypeLogo")
   eventTypeBackgrounds EventType[] @relation("EventTypeBackground")
   eventBanners         Event[]     @relation("EventBanner")
+  playerPhotos         Player[]    @relation("PlayerPhoto")
 
   @@index([status, expiresAt])
 }

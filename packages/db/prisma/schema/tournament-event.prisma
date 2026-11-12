@@ -36,6 +36,7 @@ model Event {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   subEvents     SubEvent[]
+  importJobs    ImportJob[]
 
   @@index([startDate])
   @@index([eventTypeId])
@@ -64,6 +65,7 @@ model SubEvent {
   matchFormat        MatchFormat       @relation(fields: [matchFormatId], references: [id], onDelete: Restrict)
   groupScoringRuleId String?
   groupScoringRule   GroupScoringRule? @relation(fields: [groupScoringRuleId], references: [id], onDelete: Restrict)
+  entries            Entry[]
   maxEntries         Int?
   order              Int               @default(0)
   createdAt          DateTime          @default(now())

@@ -1,0 +1,131 @@
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Handedness {
+  LEFT
+  RIGHT
+}
+
+model Player {
+  id                String      @id @default(uuid())
+  // Prefix (AppSetting player.codePrefix) + number from Postgres sequence player_code_seq.
+  code              String      @unique
+  slug              String      @unique
+  fullName          String
+  fullNameEn        String?
+  publicDisplayName String?
+  gender            Gender
+  birthDate         DateTime?   @db.Date
+  birthYear         Int?
+  countryCode       String
+  club              String?
+  city              String?
+  handedness        Handedness?
+  gripStyle         String?
+  playStyle         String?
+  photoMediaId      String?
+  photoMedia        MediaAsset? @relation("PlayerPhoto", fields: [photoMediaId], references: [id], onDelete: SetNull)
+  bio               String?
+  bioEn             String?
+  // Private: never exposed by public APIs.
+  phone             String?
+  email             String?
+  // Lowercase, no diacritics, single spaces; used for matching and search.
+  normalizedName    String
+  isPublicProfile   Boolean     @default(true)
+  // On until the public-consent question is answered.
+  noindex           Boolean     @default(true)
+  isActive          Boolean     @default(true)
+  // Set when this profile was merged into another; its slug then redirects (301) to the target.
+  mergedIntoId      String?
+  mergedInto        Player?     @relation("PlayerMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
+  mergedFrom        Player[]    @relation("PlayerMerge")
+  mergedAt          DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  competitor        Competitor?
+  pairsAsA          Pair[]      @relation("PairPlayerA")
+  pairsAsB          Pair[]      @relation("PairPlayerB")
+
+  @@index([normalizedName])
+  @@index([club])
+  @@index([mergedIntoId])
+}
+
+// One unordered set of two players: playerAId < playerBId (CHECK in SQL).
+model Pair {
+  id         String      @id @default(uuid())
+  playerAId  String
+  playerA    Player      @relation("PairPlayerA", fields: [playerAId], references: [id], onDelete: Restrict)
+  playerBId  String
+  playerB    Player      @relation("PairPlayerB", fields: [playerBId], references: [id], onDelete: Restrict)
+  createdAt  DateTime    @default(now())
+  competitor Competitor?
+
+  @@unique([playerAId, playerBId])
+  @@index([playerBId])
+}
+
+enum CompetitorType {
+  PLAYER
+  PAIR
+}
+
+// Entries and match sides point here, never at Player/Pair directly; TEAM is added later.
+// CHECK in SQL: exactly the column matching `type` is set.
+model Competitor {
+  id          String         @id @default(uuid())
+  type        CompetitorType
+  playerId    String?        @unique
+  player      Player?        @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  pairId      String?        @unique
+  pair        Pair?          @relation(fields: [pairId], references: [id], onDelete: Restrict)
+  // Refreshed in the same transaction when a player is renamed or merged.
+  displayName String
+  createdAt   DateTime       @default(now())
+  entries     Entry[]
+}
+
+enum EntryStatus {
+  CONFIRMED
+  WITHDRAWN
+}
+
+enum EntryStage {
+  MAIN
+  QUALIFYING
+}
+
+enum QuotaType {
+  DIRECT
+  WILDCARD
+  QUALIFIER
+}
+
+model Entry {
+  id                        String      @id @default(uuid())
+  subEventId                String
+  subEvent                  SubEvent    @relation(fields: [subEventId], references: [id], onDelete: Restrict)
+  competitorId              String
+  competitor                Competitor  @relation(fields: [competitorId], references: [id], onDelete: Restrict)
+  status                    EntryStatus @default(CONFIRMED)
+  stage                     EntryStage  @default(MAIN)
+  quotaType                 QuotaType   @default(DIRECT)
+  // Postgres allows many NULLs under the unique below, so unseeded entries never clash.
+  seed                      Int?
+  // Filled by the ranking phase; null for pairs.
+  rankingAtEntry            Int?
+  // Pairs: sum of both players' points.
+  pointsAtEntry             Int?
+  eligibilityOverrideReason String?
+  notes                     String?
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  @@unique([subEventId, competitorId])
+  @@unique([subEventId, stage, seed])
+  @@index([subEventId, status])
+  @@index([competitorId])
+}
