@@ -25,6 +25,8 @@
 - Prisma 7 bỏ Rust engine, cần driver adapter (`@prisma/adapter-pg`) và `prisma.config.ts`; npm tag `latest` đang là 8.0.0-rc → pin `7.10.x` tường minh.
 <!-- Red Team: Revalidate Next.js chưa kiểm chứng — 2026-11-11 -->
 - Next.js: API cache theo tag đổi qua các bản gần đây; cách dùng chốt ở Spike E (phase 02) trên đúng bản đã ghim, không suy từ trí nhớ.
+<!-- Spike E results — 2026-11-12 -->
+- `docker/client.Dockerfile` entrypoint phải xóa `.next/cache` mỗi lần container start (trước khi chạy server). Lý do: fetch cache nằm trên đĩa, không hết hạn qua restart → trả HTML cũ. Chưa thử trên Docker thật (chờ staging).
 <!-- Red Team: Hạ tầng dùng chung không cách ly — 2026-11-11 -->
 - PostgreSQL/Redis/MinIO "có sẵn" có thể dùng chung với dự án khác → mọi khóa Redis/queue có tiền tố `QUEUE_PREFIX` theo môi trường; worker nạp lại trạng thái từ DB, không tin payload job.
 <!-- Red Team: Tô-pô mạng, IP thật, rate limit, health — 2026-11-11 -->

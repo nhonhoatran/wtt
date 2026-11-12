@@ -24,6 +24,16 @@
 - Role đọc từ DB mỗi request (không tin role lưu trong phiên) → đổi vai trò có hiệu lực ngay.
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
 - Chỉ 2 vai trò (`ADMIN`, `RESULTS_OPERATOR`) cho nhóm nhân viên nhỏ; thêm vai trò khi có người thật cần (thêm giá trị enum + cột ma trận, không đổi kiến trúc).
+<!-- Spike B/C results — 2026-11-12 -->
+- Auth: chọn **Better Auth** (không cần Passport). Đã thử `better-auth` 1.7.21 (phát hành 2026-11-11, rất mới) → ghim bản patch; cân nhắc bản cũ hơn 1.7.21 rồi chạy lại 32 test e2e của spike. Báo cáo: `plans/reports/spike-c-261112-1007-better-auth-nest-results.md`.
+- Bốn việc bắt buộc khi làm phase này:
+  1. Allowlist default-deny ở Express theo `req.path` chính xác (`disabledPaths` không phủ path có tham số).
+  2. Ghi đè `X-Forwarded-For` bằng `req.ip` trước handler (rate limit đọc thẳng XFF; nhiều giá trị dồn chung bucket); số hop qua `TRUST_PROXY_HOPS`.
+  3. Đặt tường minh `disableOriginCheck: false`, `disableCSRFCheck: false` (BA tự tắt khi `NODE_ENV=test`).
+  4. Ngưỡng rate limit đăng nhập đưa ra env (mặc định 3 lần/10 s/IP quá chặt cho mạng chung tại sân).
+- Allowlist chưa đăng nhập (dưới `/api/v1`): `POST /auth/sign-in/email`, `POST /auth/sign-out`, `GET /auth/get-session`, `GET /health`. Danh sách endpoint đầy đủ lấy từ `auth.api` (45 endpoint); duyệt router Express không cho ra danh sách này.
+- Refine: chọn **Refine 5 + @refinedev/antd 6.0.3 + antd 5.29.3** (không cần ProComponents). Việc bắt buộc: import `antd/es/locale/vi_VN`; patch React 19; `i18nProvider` cho nhãn Refine; `getPopupContainer` cho Select trong `FilterDropdown`; `title` list tường minh; `ThemedSider` bỏ qua `Layout.siderBg` (tự dựng sider tối); ghim `react-router@7`. Báo cáo: `plans/reports/spike-b-261112-1007-refine-antd-results.md`.
+- Chưa kiểm: chặn truy cập thẳng route theo role (cần `CanAccess` + API tự kiểm role); XFF qua nginx/Traefik thật (chờ staging, spike D).
 
 ## Requirements
 

@@ -22,6 +22,9 @@
 - Hồ sơ VĐV tổng hợp từ dữ liệu có sẵn (trận, đăng ký, snapshot) — không có trường thống kê nhập tay.
 <!-- Red Team: Audit, phạm vi công khai, VĐV nhỏ tuổi, song ngữ — 2026-11-11 -->
 - Đồng ý công khai thông tin VĐV (nhất là VĐV nhỏ tuổi) chưa có câu trả lời → tôn trọng `isPublicProfile`, `noindex`, `publicDisplayName`; tắt JSON-LD `Person` và sitemap VĐV cho tới khi có trả lời.
+<!-- Spike E results — 2026-11-12 -->
+- Revalidate bảng xếp hạng dùng `revalidateTag(tag, { expire: 0 })` như phase 07; tag khai báo trước khi fetch. Cache dài vẫn giữ trần TTL (phòng mất lệnh revalidate).
+- Sitemap bảng xếp hạng: `dynamic = 'force-dynamic'` như phase 08. Client restart → entrypoint đã xóa `.next/cache` (phase 01).
 
 ## Requirements
 

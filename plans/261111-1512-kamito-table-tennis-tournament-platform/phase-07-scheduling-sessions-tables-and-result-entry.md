@@ -27,6 +27,11 @@
 - Ngữ nghĩa revalidate theo tag (hết hạn ngay hay stale-while-revalidate) phụ thuộc bản Next.js → dùng đúng kết luận của Spike E; không suy đoán.
 <!-- Red Team: Job ID cố định làm rơi lần tính lại xếp hạng — 2026-11-11 -->
 - Job id cố định làm debounce có thể làm BullMQ bỏ qua job mới khi job cũ cùng id còn được giữ lại (theo reviewer; kiểm trên bản cài) → job revalidate dùng id duy nhất; revalidate là thao tác idempotent nên chạy trùng vô hại.
+<!-- Spike E results — 2026-11-12 -->
+- Client dùng `revalidateTag(tag, { expire: 0 })` trong route handler (Next 16.4.3 đã ghim). Không dùng `'max'` (request đầu vẫn HTML cũ), không dùng dạng 1 tham số (deprecated). Đo cục bộ: request đầu sau revalidate có HTML mới.
+- Tag dựng từ id/mã trong URL (vd `match-{id}`), khai báo trước khi fetch. Trang công khai fetch với tag + `next.revalidate: MATCHDAY_REVALIDATE_SECONDS` làm trần TTL, phòng khi lệnh revalidate bị mất. Revalidate chỉ là tăng tốc.
+- Worker gọi `POST {CLIENT_INTERNAL_URL}/api/revalidate` (header secret, body `{ tags: [...] }`); lô nhiều tag, kiểm độ dài ≤ 256.
+- Chưa kiểm: nhiều replica client (cache theo instance, lệnh chỉ trúng 1 instance); `'use cache'`/`cacheTag`; hành vi trên Docker thật.
 
 ## Requirements
 

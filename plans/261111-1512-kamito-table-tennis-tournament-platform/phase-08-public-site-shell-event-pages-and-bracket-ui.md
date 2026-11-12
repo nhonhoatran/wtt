@@ -28,6 +28,11 @@
 - Tên file chuyển hướng locale (`middleware.ts` hay `proxy.ts`), API vô hiệu tag và cách làm `sitemap` sinh lúc chạy theo kết luận Spike E trên bản Next.js đã ghim. Build Docker không gọi được API → sitemap không được sinh lúc build.
 <!-- Red Team: Tô-pô mạng, IP thật, rate limit, health — 2026-11-11 -->
 - API chỉ thấy IP container → rate limit công khai đặt ở Traefik hoặc Next, không ở API.
+<!-- Spike E results — 2026-11-12 -->
+- Đã chốt: `revalidateTag(tag, { expire: 0 })` trong `app/api/revalidate/route.ts`; tên file chuyển hướng locale là `proxy.ts` (`middleware.*` còn chạy nhưng cảnh báo; có cả hai → build lỗi).
+- Chặn `/api/revalidate` trên domain công khai bằng 3 lớp: rule Traefik theo path (chờ staging); kiểm `Host` nội bộ + secret; luật trong `proxy.ts`. Đã kiểm cục bộ: Host công khai → 404, sai secret → 403, giả `X-Forwarded-Host` → 404.
+- Sitemap: `app/sitemap.ts` + `dynamic = 'force-dynamic'` (build Docker không gọi được API nên không sinh lúc build).
+- Chưa kiểm: rule Traefik/`passHostHeader` thật; nhiều replica client.
 
 ## Requirements
 

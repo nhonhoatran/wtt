@@ -10,7 +10,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. Tuần 1–2 (≈3,5 ngày công, xen phase 01).
+- Priority: P1. Status: In progress (B, C, E đạt cục bộ; D chờ staging). Tuần 1–2 (≈3,5 ngày công, xen phase 01).
 - Bốn spike có tiêu chí đạt/trượt rõ và phương án dự phòng chốt sẵn: **B** Refine 5 + antd 5, **C** Better Auth trên NestJS, **D** quy trình phát hành + rollback trên Dokploy compose, **E** revalidate theo tag của Next.js.
 - Engine nhánh đấu tự viết ở phase 06 (đã chốt), không có spike thư viện nhánh đấu.
 - Mọi điều sau đây là **chưa kiểm chứng** cho tới khi spike chạy: Refine 5 với antd 5, mặc định và cách mount Better Auth, cách Dokploy xử lý `depends_on`/rollback, ngữ nghĩa API cache của bản Next.js đã ghim.
@@ -104,11 +104,11 @@ Tiêu chí đạt: request đầu tiên sau revalidate có HTML mới; chịu đ
 
 ## Todo List
 
-- [ ] Spike B: data provider + bảng server-side + locale + theme + RBAC UI + upload + build → đạt/trượt
-- [ ] Spike C: mount, plugin admin, schema qua migrate, guard đọc role từ DB, cookie qua proxy, sign-up/impersonation/rate limit/mật khẩu tạm/thu hồi phiên, thử bọc controller → đạt/trượt
-- [ ] Spike D: migrate trước start, pg_dump, migration lỗi chặn bản mới, `migrate resolve`, downtime, rollback, env → quy trình phát hành
-- [ ] Spike E: tag → revalidate → HTML mới ở request đầu, restart, chặn route công khai → đạt/trượt
-- [ ] Ghi "Kết quả spike", xóa `spikes/`, cập nhật Key Insights của phase 03, 07, 08 nếu đổi hướng
+- [x] Spike B: data provider + bảng server-side + locale + theme + RBAC UI + upload + build → ĐẠT (2026-11-12)
+- [x] Spike C: mount, plugin admin, schema qua migrate, guard đọc role từ DB, cookie qua proxy, sign-up/impersonation/rate limit/mật khẩu tạm/thu hồi phiên, thử bọc controller → ĐẠT có điều kiện (2026-11-12)
+- [ ] Spike D: migrate trước start, pg_dump, migration lỗi chặn bản mới, `migrate resolve`, downtime, rollback, env → quy trình phát hành (chờ staging Dokploy)
+- [x] Spike E: tag → revalidate → HTML mới ở request đầu, restart, chặn route công khai → ĐẠT cục bộ (2026-11-12); rule Traefik chờ staging
+- [ ] Ghi "Kết quả spike", xóa `spikes/`, cập nhật Key Insights của phase 03, 07, 08 nếu đổi hướng — đã ghi kết quả và cập nhật Key Insights phase 01, 03, 07, 08, 10; còn lại xóa `spikes/` và schema `spike_refine`, `spike_auth`, giữ tới khi chủ repo duyệt
 
 ## Success Criteria
 
@@ -141,4 +141,43 @@ Rollback: spike không vào code chính → không có gì để revert ngoài x
 
 ## Kết quả spike
 
-(Điền sau khi chạy — mỗi spike: phiên bản đã cài, đạt/trượt từng tiêu chí, bằng chứng, quyết định, ngày.)
+Chạy 2026-11-12 trên máy dev (Postgres/Redis/S3 local). Staging Dokploy chưa có → Spike D và phần Traefik của Spike E chưa chạy. Thư mục `spikes/` giữ lại tới khi chủ repo duyệt, không commit.
+
+### Spike B — ĐẠT → dùng Refine
+
+Báo cáo: [spike-b-261112-1007-refine-antd-results.md](../reports/spike-b-261112-1007-refine-antd-results.md)
+
+- Phiên bản: `@refinedev/core` 5.0.12, `@refinedev/antd` 6.0.3, `antd` 5.29.3, `react-router` 7.18.5 (ghim 7, bản 8 lệch peer `@refinedev/react-router@2.0.4`).
+- 18/18 kiểm tra Playwright + Chromium PASS: bảng phân trang/sắp xếp/lọc phía server (vd `GET /api/players?page=1&pageSize=10&sort=-full_name&filter[status]=banned`), data provider 54 dòng; locale vi; theme token (primary `#EC1E24`); `accessControlProvider` ẩn menu theo role; map lỗi 422 vào field; `Upload customRequest` PUT 200 lên URL ký sẵn (qua proxy cùng origin).
+- `pnpm build` sạch; bundle 1.589 kB (501 kB gzip), 1 chunk.
+- Việc phase 03–05 phải làm: import `antd/es/locale/vi_VN` (bản `antd/locale/vi_VN` không áp trong Vite); `@ant-design/v5-patch-for-react-19`; `i18nProvider` cho nhãn Refine; `getPopupContainer` cho Select trong `FilterDropdown`; đặt `title` list tường minh; `ThemedSider` bỏ qua `Layout.siderBg`.
+- Chưa kiểm: chặn truy cập thẳng route theo role; hiệu lực patch React 19; PUT thẳng từ trình duyệt lên S3 (local RustFS không trả CORS → điều kiện hạ tầng cho upload (a)). `@refinedev/antd` không có bản mới từ 2025-10-23.
+
+### Spike C — ĐẠT có điều kiện → dùng Better Auth, không cần Passport
+
+Báo cáo: [spike-c-261112-1007-better-auth-nest-results.md](../reports/spike-c-261112-1007-better-auth-nest-results.md)
+
+- Phiên bản: `better-auth` 1.7.21 (MIT, phát hành 2026-11-11); NestJS/Prisma ghim như `apps/api`.
+- 32/32 test e2e xanh. Schema qua `prisma migrate` (schema `spike_auth`). Handler `/api/v1/auth/*splat` mount sau `NestFactory.create`, trước `init()`, không xung đột body parser/global prefix. Guard nạp `User` từ DB mỗi request.
+- Đạt: login/logout/hết hạn/ban/sai mật khẩu nhiều lần (429); sign-up 404 (7 biến thể path); endpoint admin 401/403/200 theo role; impersonate chặn; mật khẩu tạm buộc đổi; thu hồi toàn bộ phiên; lỗi login không lộ email; cookie `__Secure-…; HttpOnly; Secure; SameSite=Lax`; hash mặc định scrypt.
+- Allowlist chưa đăng nhập: `POST /auth/sign-in/email`, `POST /auth/sign-out`, `GET /auth/get-session`, `GET /health`. Danh sách endpoint phải lấy từ `auth.api` (45 endpoint), duyệt router Express không thấy gì.
+- Bọc controller Nest khả thi, nhưng mất rate limit/kiểm Origin/`disabledPaths` → phải tự thêm.
+- Bắt buộc ở phase 03: (1) allowlist default-deny ở Express (`disabledPaths` không phủ path có tham số); (2) ghi đè `x-forwarded-for = req.ip` trước handler (rate limit đọc thẳng XFF, XFF nhiều giá trị dồn chung bucket); (3) đặt tường minh `disableOriginCheck:false`, `disableCSRFCheck:false` (tự tắt khi `NODE_ENV=test`); (4) ngưỡng rate limit đăng nhập ra env (mặc định 3 lần/10 s/IP quá chặt cho mạng chung tại sân).
+- Sai lệch quy trình: `migrate dev --create-only` lần 2 đã áp migration trước khi review SQL; review sau: chỉ enum + 5 bảng + index + FK trong `spike_auth`.
+- Chưa kiểm: nginx/Traefik thật (mới mô phỏng proxy Node); tăng tham số hash. Bản 1.7.21 mới < 1 ngày → phase 03 cân nhắc ghim bản cũ hơn và chạy lại bộ test.
+
+### Spike D — CHƯA CHẠY (chờ staging Dokploy)
+
+Toàn bộ 7 bước chờ phase 01 dựng staging. `docs/deployment-guide.md` chưa cập nhật.
+
+### Spike E — ĐẠT (cục bộ) → `revalidateTag(tag, { expire: 0 })`
+
+Báo cáo: [spike-e-261112-1007-next-revalidate-results.md](../reports/spike-e-261112-1007-next-revalidate-results.md)
+
+- `next` 16.4.3, build standalone production.
+- `revalidateTag(tag, { expire: 0 })`: request đầu có HTML mới (2/2 lần, ~14–16 ms local). `'max'`: request đầu vẫn cũ → không dùng. Dạng 1 tham số: deprecated. `updateTag`: chỉ Server Action, lỗi trong route handler.
+- Restart: trạng thái hết hạn tag không giữ qua restart, fetch cache nằm trên đĩa `.next/cache` → trả HTML cũ. Xóa `.next/cache` lúc client khởi động → đúng. Phải thêm vào entrypoint image client (chưa thử trên Docker thật).
+- Tag dựng từ id/mã trong URL (`match-{id}`), khai báo trước khi fetch.
+- Chặn `/api/revalidate`: kiểm Host nội bộ + secret và luật trong `proxy.ts` đều chạy local (Host công khai 404, sai secret 403, giả `X-Forwarded-Host` 404). Rule Traefik/Dokploy: chờ staging.
+- `proxy.ts` là tên chuẩn (`middleware.*` còn chạy nhưng cảnh báo; có cả hai → build lỗi). Sitemap: `app/sitemap.ts` + `dynamic = 'force-dynamic'` + fetch có tag.
+- Giữ `MATCHDAY_REVALIDATE_SECONDS` làm trần TTL phòng mất lời gọi revalidate. Nhiều replica client: chưa kiểm (cache theo instance).
