@@ -20,6 +20,11 @@ import { GroupScoringRulesModule } from './modules/group-scoring-rules/group-sco
 import { MatchFormatsModule } from './modules/match-formats/match-formats.module.js';
 import { TiersModule } from './modules/tiers/tiers.module.js';
 import { VenuesModule } from './modules/venues/venues.module.js';
+import { EntriesModule } from './modules/entries/entries.module.js';
+import { PairsModule } from './modules/pairs/pairs.module.js';
+import { PlayersModule } from './modules/players/players.module.js';
+import { ImportsModule } from './modules/imports/imports.module.js';
+import { ExportsModule } from './modules/exports/exports.module.js';
 
 @Module({
   imports: [
@@ -44,6 +49,11 @@ import { VenuesModule } from './modules/venues/venues.module.js';
     MatchFormatsModule,
     GroupScoringRulesModule,
     VenuesModule,
+    PlayersModule,
+    PairsModule,
+    EntriesModule,
+    ImportsModule,
+    ExportsModule,
   ],
 })
 export class AppModule {}

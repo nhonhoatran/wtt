@@ -34,7 +34,6 @@ export const apiEnvSchema = z
     IMPORT_MAX_FILE_BYTES: positiveInt,
     IMPORT_MAX_UNZIPPED_BYTES: positiveInt,
     IMPORT_MAX_ROWS: positiveInt,
-    IMPORT_RETENTION_DAYS: positiveInt,
     PAGINATION_MAX_PAGE_SIZE: positiveInt.default(100),
     QUERY_MAX_LENGTH: positiveInt.default(100),
   })
