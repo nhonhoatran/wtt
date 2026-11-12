@@ -22,6 +22,7 @@ export const PERMISSION_RESOURCES = [
   'rankings',
   'content',
   'sponsors',
+  'media',
   'settings',
   'users',
   'audit-logs',

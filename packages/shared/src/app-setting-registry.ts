@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { defineAppSetting, type AppSettingDefinition } from './app-setting-definition.js';
 import { authSettings } from './auth-settings.js';
 import { listSettings } from './list-settings.js';
+import { tournamentSettings } from './tournament-settings.js';
 
 export * from './app-setting-definition.js';
 
@@ -17,6 +18,7 @@ export const appSettingRegistry = {
     description: 'Tên site hiển thị ở header, tiêu đề trang',
   }),
   ...authSettings,
+  ...tournamentSettings,
   ...listSettings,
 } as const;
 

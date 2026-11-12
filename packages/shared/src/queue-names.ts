@@ -1,6 +1,7 @@
 /** Queue names; the Redis key prefix (QUEUE_PREFIX) is applied separately per environment. */
 export const QueueName = {
   Maintenance: 'maintenance',
+  Media: 'media',
 } as const;
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName];

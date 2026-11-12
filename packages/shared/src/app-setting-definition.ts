@@ -7,7 +7,35 @@ export interface NumberSettingEditor {
   unit: string;
 }
 
+export interface TextSettingEditor {
+  kind: 'text';
+  maxLength: number;
+}
+
+export interface BooleanSettingEditor {
+  kind: 'boolean';
+}
+
+export interface TimezoneSettingEditor {
+  kind: 'timezone';
+}
+
+/** Picks one tournament (or none) from /admin/events. */
+export interface EventSettingEditor {
+  kind: 'event';
+}
+
+export type AppSettingEditor =
+  | NumberSettingEditor
+  | TextSettingEditor
+  | BooleanSettingEditor
+  | TimezoneSettingEditor
+  | EventSettingEditor;
+
 export const APP_SETTING_GROUPS = [
+  { key: 'event', label: 'Giải đấu' },
+  { key: 'display', label: 'Hiển thị site công khai' },
+  { key: 'media', label: 'Ảnh tải lên' },
   { key: 'auth', label: 'Đăng nhập & phiên' },
   { key: 'list', label: 'Danh sách' },
 ] as const;
@@ -21,7 +49,7 @@ export interface AppSettingDefinition<T extends z.ZodType = z.ZodType> {
   /** Present only for settings shown on the admin /settings page. */
   group?: AppSettingGroupKey;
   label?: string;
-  editor?: NumberSettingEditor;
+  editor?: AppSettingEditor;
 }
 
 export function defineAppSetting<T extends z.ZodType>(def: AppSettingDefinition<T>): AppSettingDefinition<T> {
@@ -38,7 +66,7 @@ export function defineNumberSetting(def: {
   min: number;
   max: number;
   defaultValue: number;
-}): AppSettingDefinition<z.ZodNumber> {
+}): AppSettingDefinition<z.ZodNumber> & { editor: NumberSettingEditor } {
   const { min, max, unit, ...rest } = def;
-  return { ...rest, schema: z.number().int().min(min).max(max), editor: { kind: 'number', min, max, unit } };
+  return { ...rest, schema: z.number().int().min(min).max(max), editor: { kind: 'number' as const, min, max, unit } };
 }
