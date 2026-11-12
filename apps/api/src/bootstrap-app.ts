@@ -5,6 +5,7 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { API_ENV } from './common/config/app-config.module.js';
 import type { ApiEnv } from './common/config/env-schema.js';
+import { JSON_BODY_LIMIT } from './common/http/json-body-limit.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { AUTH_INSTANCE, type Auth } from './modules/auth/auth-instance.js';
 import { mountAuthRawHandler } from './modules/auth/auth-raw-handler.js';
@@ -23,6 +24,7 @@ export async function createApiApp(): Promise<INestApplication> {
   app.set('trust proxy', env.TRUST_PROXY_HOPS);
   app.disable('x-powered-by');
   app.setGlobalPrefix(API_GLOBAL_PREFIX);
+  app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableShutdownHooks();
 
