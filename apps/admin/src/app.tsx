@@ -23,6 +23,12 @@ import { EventHubPage } from './pages/event-hub/event-hub-page';
 import { catalogResources, catalogRoutes } from './resources/catalog-routes';
 import { EventCreate } from './resources/events/event-create';
 import { EventList } from './resources/events/event-list';
+import { ImportDetailPage } from './resources/imports/import-detail-page';
+import { ImportList } from './resources/imports/import-list';
+import { PairList } from './resources/pairs/pair-list';
+import { PlayerCreate } from './resources/players/player-create';
+import { PlayerEdit } from './resources/players/player-edit';
+import { PlayerList } from './resources/players/player-list';
 import { UserCreate } from './resources/users/user-create';
 import { UserEdit } from './resources/users/user-edit';
 import { UserList } from './resources/users/user-list';
@@ -33,6 +39,9 @@ const resources = [
   { name: 'users', list: '/users', create: '/users/create', edit: '/users/:id/edit', meta: { label: 'Tài khoản nhân viên' } },
   { name: 'events', list: '/events', create: '/events/create', show: '/events/:id', meta: { label: 'Danh sách giải' } },
   ...catalogResources,
+  { name: 'players', list: '/players', create: '/players/create', edit: '/players/:id/edit', meta: { label: 'Danh sách VĐV' } },
+  { name: 'pairs', list: '/pairs', meta: { label: 'Cặp đôi' } },
+  { name: 'imports', list: '/imports', show: '/imports/:id', meta: { label: 'Lịch sử import' } },
   { name: 'audit-logs', list: '/audit-logs', meta: { label: 'Nhật ký thao tác' } },
 ];
 
@@ -71,6 +80,12 @@ export function App() {
                     <Route path="/events/create" element={<RequireAccess resource="tournaments" action="create"><EventCreate /></RequireAccess>} />
                     <Route path="/events/:id/:tab?" element={<RequireAccess resource="tournaments" action="read"><EventHubPage /></RequireAccess>} />
                     {catalogRoutes}
+                    <Route path="/players" element={<RequireAccess resource="players" action="list"><PlayerList /></RequireAccess>} />
+                    <Route path="/players/create" element={<RequireAccess resource="players" action="create"><PlayerCreate /></RequireAccess>} />
+                    <Route path="/players/:id/edit" element={<RequireAccess resource="players" action="read"><PlayerEdit /></RequireAccess>} />
+                    <Route path="/pairs" element={<RequireAccess resource="players" action="list"><PairList /></RequireAccess>} />
+                    <Route path="/imports" element={<RequireAccess resource="tournaments" action="list"><ImportList /></RequireAccess>} />
+                    <Route path="/imports/:id" element={<RequireAccess resource="tournaments" action="read"><ImportDetailPage /></RequireAccess>} />
                     <Route path="/audit-logs"element={<RequireAccess resource="audit-logs" action="list"><AuditLogList /></RequireAccess>} />
                     <Route path="/settings" element={<RequireAccess resource="settings" action="list"><SettingsPage /></RequireAccess>} />
                     <Route path="*" element={<Navigate to="/" replace />} />

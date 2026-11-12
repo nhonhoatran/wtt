@@ -23,6 +23,10 @@ export function NumberSettingEditor({ value, onChange, min, max, unit }: Control
   return <InputNumber value={value} onChange={(next) => onChange?.(next as number)} min={min} max={max} precision={0} addonAfter={unit} style={{ width: NUMBER_WIDTH }} />;
 }
 
+export function ChoiceSettingEditor({ value, onChange, options }: ControlProps<string> & { options: { value: string; label: string }[] }) {
+  return <Select value={value} options={options} onChange={onChange} style={{ width: CONTROL_WIDTH }} />;
+}
+
 export function TimezoneSettingEditor({ value, onChange }: ControlProps<string>) {
   const options = useMemo(() => Intl.supportedValuesOf('timeZone').map((zone) => ({ value: zone, label: zone })), []);
   return <Select showSearch value={value} options={options} onChange={onChange} style={{ width: CONTROL_WIDTH }} placeholder="Chọn múi giờ" />;

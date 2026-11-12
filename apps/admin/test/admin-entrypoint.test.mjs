@@ -11,11 +11,12 @@ const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..
 function runEntrypointFiles(extraEnv) {
   const outDir = mkdtempSync(path.join(tmpdir(), 'admin-config-'));
   try {
-    const env = { PATH: process.env.PATH, ADMIN_CONFIG_OUTPUT_DIR: outDir, UPLOAD_MAX_IMAGE_BYTES: '5242880', ...extraEnv };
+    const env = { PATH: process.env.PATH, ADMIN_CONFIG_OUTPUT_DIR: outDir, UPLOAD_MAX_IMAGE_BYTES: '5242880', IMPORT_MAX_FILE_BYTES: '5242880', ...extraEnv };
     execFileSync('sh', [script], { env, stdio: 'pipe' });
     return {
       config: JSON.parse(readFileSync(path.join(outDir, 'config.json'), 'utf8')),
       uploadLimit: readFileSync(path.join(outDir, 'upload-limit.conf'), 'utf8'),
+      importLimit: readFileSync(path.join(outDir, 'import-limit.conf'), 'utf8'),
     };
   } finally {
     rmSync(outDir, { recursive: true, force: true });
@@ -51,4 +52,10 @@ test('nginx upload limit follows UPLOAD_MAX_IMAGE_BYTES', () => {
 test('a missing or non-numeric UPLOAD_MAX_IMAGE_BYTES stops the container instead of writing config', () => {
   assert.throws(() => runEntrypointFiles({ UPLOAD_MAX_IMAGE_BYTES: '5m; evil' }));
   assert.throws(() => runEntrypointFiles({ UPLOAD_MAX_IMAGE_BYTES: '' }));
+});
+
+test('nginx import limit follows IMPORT_MAX_FILE_BYTES and rejects bad values', () => {
+  assert.equal(runEntrypointFiles({ IMPORT_MAX_FILE_BYTES: '10485760' }).importLimit, 'client_max_body_size 10485760;\n');
+  assert.throws(() => runEntrypointFiles({ IMPORT_MAX_FILE_BYTES: '5m; evil' }));
+  assert.throws(() => runEntrypointFiles({ IMPORT_MAX_FILE_BYTES: '' }));
 });

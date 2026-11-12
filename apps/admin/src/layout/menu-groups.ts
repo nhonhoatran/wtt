@@ -28,7 +28,15 @@ export const MENU_GROUPS: MenuGroupDef[] = [
       { key: 'venues', label: 'Địa điểm & bàn', path: '/venues', resource: 'tournaments' },
     ],
   },
-  { key: 'players', label: 'Vận động viên', items: [] },
+  {
+    key: 'players',
+    label: 'Vận động viên',
+    items: [
+      { key: 'players', label: 'Danh sách VĐV', path: '/players', resource: 'players' },
+      { key: 'pairs', label: 'Cặp đôi', path: '/pairs', resource: 'players' },
+      { key: 'imports', label: 'Lịch sử import', path: '/imports', resource: 'tournaments' },
+    ],
+  },
   { key: 'rankings', label: 'Xếp hạng', items: [] },
   { key: 'content', label: 'Nội dung', items: [] },
   { key: 'sponsors', label: 'Nhà tài trợ', items: [] },

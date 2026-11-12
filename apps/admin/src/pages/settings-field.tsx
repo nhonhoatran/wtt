@@ -3,6 +3,7 @@ import { Button, Form, Space, Tag } from 'antd';
 import type { ReactNode } from 'react';
 import {
   BooleanSettingEditor,
+  ChoiceSettingEditor,
   EventSettingEditor,
   NumberSettingEditor,
   TextSettingEditor,
@@ -35,6 +36,8 @@ function renderEditor(editor: AppSettingEditor): ReactNode {
       return <TimezoneSettingEditor />;
     case 'event':
       return <EventSettingEditor />;
+    case 'choice':
+      return <ChoiceSettingEditor options={editor.options} />;
   }
 }
 
@@ -43,6 +46,7 @@ function describeDefault(item: SettingView): string {
   if (editor.kind === 'boolean') return defaultValue ? 'Bật' : 'Tắt';
   if (editor.kind === 'event') return defaultValue ? String(defaultValue) : 'Tự động chọn';
   if (editor.kind === 'number') return `${defaultValue} ${editor.unit}`;
+  if (editor.kind === 'choice') return editor.options.find((option) => option.value === defaultValue)?.label ?? String(defaultValue);
   return String(defaultValue);
 }
 
@@ -53,7 +57,7 @@ function ruleFor(editor: AppSettingEditor) {
       { type: 'number' as const, min: editor.min, max: editor.max, message: `Trong khoảng ${editor.min}–${editor.max} ${editor.unit}` },
     ];
   }
-  if (editor.kind === 'text' || editor.kind === 'timezone') return [{ required: true, message: 'Nhập giá trị' }];
+  if (editor.kind === 'text' || editor.kind === 'timezone' || editor.kind === 'choice') return [{ required: true, message: 'Nhập giá trị' }];
   return [];
 }
 

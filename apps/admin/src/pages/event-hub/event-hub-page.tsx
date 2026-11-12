@@ -12,6 +12,7 @@ import {
   PUBLISH_LABELS,
   type EventRecord,
 } from '../../resources/events/event-labels';
+import { EntriesTab } from './entries-tab';
 import { EventHubActions } from './event-hub-actions';
 import { EventInfoTab } from './event-info-tab';
 import type { HubTabContext } from './hub-tab-context';
@@ -27,6 +28,7 @@ interface HubTabDef {
 const HUB_TABS: HubTabDef[] = [
   { key: 'info', label: 'Thông tin', render: (context) => <EventInfoTab {...context} /> },
   { key: 'sub-events', label: 'Nội dung thi đấu', render: (context) => <SubEventsTab {...context} /> },
+  { key: 'entries', label: 'Danh sách', render: (context) => <EntriesTab {...context} /> },
 ];
 const DEFAULT_TAB = HUB_TABS[0]!.key;
 
