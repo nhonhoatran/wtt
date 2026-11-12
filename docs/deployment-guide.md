@@ -1,6 +1,6 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: phase 01 và code phase 03 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
+> Cập nhật: 2026-11-12 · Trạng thái: phase 01, code phase 03 và code phase 04 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
@@ -47,7 +47,10 @@ Cả staging và production dùng cùng `docker-compose.yml`. Giá trị khác n
    pnpm db:print-target
    pnpm --filter @kamito/db exec prisma migrate deploy
    ```
-5. Tạo ADMIN đầu tiên để đăng nhập admin. Xem [Tạo admin đầu tiên](#tạo-admin-đầu-tiên).
+5. Seed danh mục mặc định (một lần, không bắt buộc). Xem [Seed danh mục mặc định](#seed-danh-mục-mặc-định).
+6. Tạo ADMIN đầu tiên để đăng nhập admin. Xem [Tạo admin đầu tiên](#tạo-admin-đầu-tiên).
+
+Ảnh khi dev: `.env.example` đặt `STORAGE_DRIVER=local`, file nằm ở `apps/api/uploads/` (đã gitignore). Không cần RustFS để thử upload.
 
 Cổng dev:
 
@@ -84,12 +87,15 @@ Quy tắc:
 | `REDIS_URL` | api, worker | có | Redis riêng cho BullMQ, `noeviction` |
 | `QUEUE_PREFIX` | api, worker | có | Dạng `kamito-tt:<APP_ENV>` |
 | `REDIS_EVICTION_CHECK_OVERRIDE` | api, worker | không | Mặc định trống. Chỉ đặt khi policy không đọc được và đã xác nhận thủ công |
-| `S3_ENDPOINT` | api | có | URL S3 API |
-| `S3_REGION` | api | có | |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | api | có | Service account chỉ có quyền trên một bucket (mục tiêu) |
-| `S3_BUCKET` | api | có | |
-| `S3_FORCE_PATH_STYLE` | api | không | Mặc định `true` |
-| `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | api | không | Chỉ dùng cho thiết kế upload (a), chưa chốt |
+| `STORAGE_DRIVER` | api, worker | không | `s3` (mặc định) hoặc `local` (dev). Xem [Upload ảnh](./system-architecture.md#upload-ảnh-phase-04) |
+| `UPLOAD_LOCAL_DIR` | api, worker | không | Chỉ khi `STORAGE_DRIVER=local`. Mặc định `apps/api/uploads`, tính từ thư mục chứa `pnpm-workspace.yaml`. Không dùng trong compose |
+| `S3_ENDPOINT` | api, worker | có khi `STORAGE_DRIVER=s3` | URL S3 API. Compose để trống mặc định; code báo lỗi lúc boot nếu thiếu |
+| `S3_REGION` | api, worker | có khi `STORAGE_DRIVER=s3` | |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | api, worker | có khi `STORAGE_DRIVER=s3` | Service account chỉ có quyền trên bucket mục tiêu (và trên `S3_INCOMING_BUCKET` nếu khai) |
+| `S3_BUCKET` | api, worker | có khi `STORAGE_DRIVER=s3` | Bucket chứa ảnh đã xử lý (`public/`) |
+| `S3_INCOMING_BUCKET` | api, worker | không | Bucket riêng tư cho ảnh gốc mới tải lên (`incoming/`). Trống = `incoming/` nằm chung `S3_BUCKET`. Xem mục "Bucket công khai" bên dưới |
+| `S3_FORCE_PATH_STYLE` | api, worker | không | Mặc định `true` |
+| `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | api | không | Không dùng: thiết kế upload (b) đã chọn (2026-11-12). Còn trong compose và `.env.example`; gỡ ở lần dọn env |
 | `AUTH_SECRET` | api | có | ≥ 32 ký tự, riêng từng môi trường |
 | `REVALIDATE_SECRET` | api, client | có | Khác `AUTH_SECRET` |
 | `SSR_INTERNAL_SECRET` | api, client | có | Định danh request SSR nội bộ |
@@ -101,12 +107,27 @@ Quy tắc:
 | `PAGINATION_MAX_PAGE_SIZE` | api | không | Mặc định 100. Trần cứng của `pageSize`. Page size mặc định sửa ở `/settings` |
 | `QUERY_MAX_LENGTH` | api | không | Mặc định 100. Độ dài tối đa của tham số `q` |
 | `API_PORT` | api | cố định | `3000` |
-| `UPLOAD_MAX_IMAGE_BYTES`, `UPLOAD_ALLOWED_IMAGE_TYPES`, `MEDIA_IMAGE_VARIANT_WIDTHS` | api | có | Tham số kỹ thuật upload |
+| `UPLOAD_MAX_IMAGE_BYTES` | api, worker, admin | có | Trần cứng của setting `media.maxImageMegabytes` (API từ chối giá trị cao hơn). Container admin ghi `client_max_body_size` của route tải ảnh từ biến này lúc start, và thoát nếu thiếu hoặc không phải số nguyên dương. Xem [Giới hạn upload ảnh](#giới-hạn-upload-ảnh) |
+| `UPLOAD_ALLOWED_IMAGE_TYPES`, `MEDIA_IMAGE_VARIANT_WIDTHS` | api, worker | có | Danh sách loại ảnh (ví dụ `image/jpeg,image/png,image/webp`) và bề rộng biến thể WebP (ví dụ `320,640,1280`). Compose bắt buộc khai (`:?`). Giữ env theo [quyết định phase 04](./code-standards.md#settings-hay-env-hằng-số-giữ-trong-code-có-chủ-đích) |
+| `MEDIA_PUBLIC_BASE_URL` | api | không | URL của prefix `public/` (ví dụ `https://<host>/<bucket>/public`). Trống (dev) thì API phục vụ `/api/v1/media/public/*` |
+| `MEDIA_WORKER_CONCURRENCY` | worker | không | Mặc định 2. Số job ảnh chạy song song |
+| `MEDIA_CLEANUP_INTERVAL_MINUTES` | worker | không | Mặc định 15. Chu kỳ job dọn intent hết hạn và ảnh kẹt |
 | `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS`, `IMPORT_RETENTION_DAYS` | api | có | Trần import (phase 05) |
 | `WORKER_HEALTH_PORT` | worker | cố định | `3010` |
 | `API_INTERNAL_URL` | client | không | Mặc định `http://api:3000` |
 | `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có (compose) | TTL cache. Code client chưa đọc (phase 02+) |
 | `API_BASE_PATH` | admin | không | Mặc định `/api/v1`. Ghi vào `/config.json` |
+
+`MEDIA_INTENT_TTL_MINUTES` đã bỏ (2026-11-12): thời gian chờ tải ảnh là setting `media.intentTtlMinutes`, thời gian tối đa xử lý ảnh là `media.processingTimeoutMinutes`, số ngày kết thúc mặc định của giải là `event.defaultDurationDays`, đều sửa ở `/settings`.
+
+### Bucket công khai
+
+Ảnh gốc vừa tải lên nằm ở prefix `incoming/` cho tới khi worker xử lý xong rồi xóa (vài giây; tối đa bằng `media.processingTimeoutMinutes` nếu worker gặp sự cố). Nếu **cả bucket** cho đọc công khai (policy public-read trên toàn bucket), file gốc chưa xử lý đọc được qua URL trong khoảng đó. Chọn một trong hai:
+
+- Đặt `S3_INCOMING_BUCKET` trỏ tới một bucket riêng tư. Driver S3 tự chuyển mọi key `incoming/` sang bucket này (tạo, đọc, xóa); `public/` vẫn ở `S3_BUCKET`. Service account cần quyền trên cả hai bucket. Đây là cách nên dùng.
+- Giữ một bucket, tắt quyền `ListBucket` ẩn danh và chấp nhận cửa sổ phơi bày ngắn nói trên (chỉ lộ nếu đoán được key chứa UUID ngẫu nhiên).
+
+Bucket chỉ cho đọc công khai prefix `public/` thì không cần biến này.
 
 Biến có trong code nhưng **không có trong compose và `.env.example`**:
 
@@ -115,6 +136,16 @@ Biến có trong code nhưng **không có trong compose và `.env.example`**:
 | `SHADOW_DATABASE_URL` | `packages/db/prisma.config.ts` | — | Chỉ cho `migrate dev` trên server dev dùng chung (phase 01 bước 15). Chưa có trong `.env.example` |
 
 `PAGINATION_DEFAULT_PAGE_SIZE` đã bỏ khỏi code (2026-11-12). Page size mặc định nằm ở `/settings` (`list.defaultPageSize`). Hai biến trần còn lại đã có trong compose và `.env.example`.
+
+### Giới hạn upload ảnh
+
+| Lớp | Giá trị | Nơi áp dụng |
+|---|---|---|
+| Trần cứng | `UPLOAD_MAX_IMAGE_BYTES` | api, worker, `client_max_body_size` của nginx admin ở route `/api/v1/admin/media/<id>/content` |
+| Tham số admin | `media.maxImageMegabytes` (mặc định 5 MB, khoảng 1–50) | Sửa ở `/settings`. Không vượt trần cứng |
+
+- Đổi trần: đổi `UPLOAD_MAX_IMAGE_BYTES` cho cả api, worker và admin, rồi restart. Không cần build lại admin.
+- Nginx admin giới hạn body JSON thường ở `2m`, lớn hơn `JSON_BODY_LIMIT` của api (khoảng 1,2 MB). Đừng hạ thấp mức này.
 
 ## Dokploy: compose và domain
 
@@ -206,6 +237,30 @@ Lưu ý:
 - Tự động hóa: CLI nhận stdin khi không có TTY (`printf` các dòng theo đúng thứ tự trên). Không ghi mật khẩu vào lệnh, file, hay lịch sử shell.
 - **Staging và production: chưa kiểm chứng.** Image `api` chỉ chứa `dist/` và dependency production, không có `.env` ở root và không có `devDependencies` (`@swc-node/register`). `dist/cli/create-admin.js` có trong build, nhưng chưa thử chạy trong container. Thử trên staging trước khi dựa vào đường này. Trước khi chạy, đối chiếu dòng `DB target` với `MIGRATE_CONFIRM_TARGET` của môi trường đó.
 
+## Seed danh mục mặc định
+
+Chạy sau migration khi cần dữ liệu mẫu: nhóm giải `KAMITO` và hạng giải `KAMITO_CHAMPIONSHIP`, `KAMITO_OPEN`, năm nội dung chuẩn (MS, WS, MD, WD, XD), một thể thức mặc định (5 ván, 11 điểm, cách 2), một luật vòng bảng mặc định. Nguồn: `packages/db/prisma/seed/seed-config-defaults.ts`.
+
+```bash
+pnpm db:print-target                      # đọc host:port/database cần xác nhận
+pnpm build                                # seed import từ dist/ của @kamito/db
+MIGRATE_CONFIRM_TARGET=<host:port/database in ra> pnpm --filter @kamito/db seed:config
+```
+
+Lệnh đọc `DATABASE_URL` từ `.env` ở root. Không truyền `DATABASE_URL` bằng tay.
+
+| Điều kiện | Kết quả |
+|---|---|
+| `DATABASE_URL` trống | Báo `DATABASE_URL is not set`, thoát lỗi, không ghi gì |
+| `MIGRATE_CONFIRM_TARGET` không khớp target | Báo `Set MIGRATE_CONFIRM_TARGET=... to confirm this target`, không ghi gì |
+| Khớp | In `Catalog defaults seeded` |
+
+Hành vi:
+- Idempotent: dòng đã có (theo `code`, hoặc `name` với thể thức và luật vòng bảng) được giữ nguyên, kể cả khi admin đã sửa.
+- Mặc định (`isDefault`) chỉ được đặt khi chưa có mặc định nào.
+- Luật vòng bảng seed với `withdrawalPolicy` để trống: rút lui giữa bảng bị chặn cho tới khi BTC chọn chính sách.
+- Staging và production: chỉ chạy sau khi đã đối chiếu `MIGRATE_CONFIRM_TARGET` của môi trường đó, cùng quy tắc với migrate.
+
 ## Runbook: migration lỗi
 
 Lệnh `prisma migrate resolve` đọc `DATABASE_URL` qua `prisma.config.ts` (từ biến môi trường hoặc `.env` ở root). Trước khi chạy, luôn xác nhận target:
@@ -248,6 +303,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/public/x 
 curl -fsS https://<admin-domain>/config.json             # chỉ 3 khóa: API_BASE_PATH, ADMIN_PUBLIC_URL, PUBLIC_SITE_URL
 curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/auth/me          # 401 (chưa đăng nhập)
 curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/admin/queues     # 401 (bull-board, chưa đăng nhập)
+curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/admin/media/config  # 401 (chưa đăng nhập)
+curl -s -o /dev/null -w '%{http_code}\n' https://<admin-domain>/api/v1/media/public/x    # 404 (không có file)
 ```
 
 Kiểm nội bộ, trong container api (cùng lệnh với healthcheck của compose):
@@ -282,6 +339,13 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 409 `LAST_ACTIVE_ADMIN` | Thao tác sẽ làm hệ thống không còn ADMIN đang hoạt động | Cấp ADMIN khác trước, rồi mới hạ hoặc khóa |
 | Đổi setting, replica khác chưa thấy | Cache 10 giây trong từng replica | Chờ tối đa 10 giây |
 | Log `login rate limit unavailable` hoặc `lockout ... unavailable` | Redis lỗi. Đăng nhập đang fail-open (không đếm, không khóa) | Khôi phục Redis. Đây là cửa mở, xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
+| `complete` ảnh trả 503 `QUEUE_UNAVAILABLE` | api không đưa được job vào Redis | Ảnh trở về `AWAITING_UPLOAD`. Khôi phục Redis rồi bấm lại |
+| Ảnh `FAILED` với `PROCESSING_TIMEOUT` | Worker chết hoặc không chạy, hoặc Redis mất job | Xem worker health và log. Tải lại ảnh. Ngưỡng ở `/settings` (`media.processingTimeoutMinutes`) |
+| Ảnh `FAILED` với `PROCESSING_ERROR` | Hết 3 lần thử, thường do storage hoặc DB lỗi kéo dài | Kiểm `/api/v1/health/ready`, mục `storage` và `database`. Tải lại ảnh |
+| Ảnh `FAILED` với `NOT_AN_IMAGE` hoặc `TOO_LARGE` | Định dạng ngoài `UPLOAD_ALLOWED_IMAGE_TYPES`, hoặc quá 40 triệu điểm ảnh | Dùng ảnh khác |
+| Tải ảnh 413 `PAYLOAD_TOO_LARGE` hoặc 415 `CONTENT_TYPE_MISMATCH` | Vượt `media.maxImageMegabytes`, hoặc `Content-Type` không khớp loại đã khai lúc tạo intent | Giảm ảnh. Không vượt `UPLOAD_MAX_IMAGE_BYTES` |
+| Tải ảnh bị 413 từ nginx, api không nhận được | `UPLOAD_MAX_IMAGE_BYTES` của container admin khác với api | Đặt cùng một giá trị cho cả hai service, restart |
+| Ảnh dev không hiện (`STORAGE_DRIVER=local`) | api không chạy, hoặc thư mục `UPLOAD_LOCAL_DIR` không nằm cùng repo root với worker | Kiểm `apps/api/uploads/public/` có file không. Api và worker đều tính đường dẫn từ repo root |
 
 ## Việc còn mở
 
@@ -292,12 +356,14 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 3 | Tên DNS `api` có đụng service khác trên `dokploy-network` không | Review H3 | Alias riêng, hoặc Isolated Deployment |
 | 4 | Build image trên Dokploy hay ở CI kèm registry | Phase 01 rủi ro | Chưa chốt |
 | 5 | Chủ sở hữu, RPO, lịch, nơi lưu sao lưu | Phase 01 bước 15 | Chưa chốt |
-| 6 | Thiết kế upload (a) hoặc (b) | Phase 01 bước 15 | Chưa chốt |
+| 6 | Thiết kế upload | Phase 04 (2026-11-12) | Đã chốt (b): ảnh đi qua API. Không còn việc mở |
 | 7 | Hạ tầng PostgreSQL, Redis, MinIO có dùng chung không; role và quyền | Phase 01 bước 15 | Chưa có câu trả lời |
 | 8 | Client chưa truyền `ADMIN_PUBLIC_URL` trong compose (phase 01 bảng biến có ghi) | So sánh compose với bảng phase | Thêm nếu client cần đọc |
 | 9 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo chưa có remote | Quyết định 2026-11-12 | Push cuối dự án |
 | 10 | Tạo admin đầu tiên trong container `api` chưa kiểm chứng | [Tạo admin đầu tiên](#tạo-admin-đầu-tiên) | Thử trên staging |
-| 11 | Deploy staging và migration `20261112042429_add_users_and_auth_sessions` chưa chạy | Phase 03 bước 13; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md) |
+| 11 | Deploy staging và migration `20261112042429_add_users_and_auth_sessions` chưa chạy. Phase 04 thêm 3 migration: `20261112061544_add_tournament_master_data`, `20261112061630_add_media_assets`, `20261112070130_add_single_default_partial_indexes` | Phase 03 bước 13; phase 04; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md). Sau migrate chạy seed danh mục |
+| 12 | Sharp trên image Alpine (`node:24.22.3-alpine3.23`) chưa kiểm chứng | Phase 04 | Build image rồi xử lý một ảnh thật trong container api và worker trước khi dựa vào upload |
+| 13 | `STORAGE_DRIVER=s3` với bucket thật chưa thử: tải, xử lý, xóa `incoming/`, đọc `public/` | Phase 04 | Thử trên staging. Nên dùng `S3_INCOMING_BUCKET` riêng để đóng cửa sổ phơi bày (xem [Bucket công khai](#bucket-công-khai)) |
 
 ## Liên quan
 

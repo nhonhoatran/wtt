@@ -3,6 +3,46 @@
 > Cập nhật: 2026-11-12. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
+## 2026-11-12 — Phase 04: dữ liệu gốc giải đấu, cấu hình, upload ảnh (chưa commit)
+
+### Thêm
+- Ba migration: `20261112061544_add_tournament_master_data` (8 danh mục, `Event`, `SubEvent`, `Venue`, `VenueTable`), `20261112061630_add_media_assets` (`MediaAsset`), `20261112070130_add_single_default_partial_indexes` (partial unique index cho `MatchFormat` và `GroupScoringRule`). Chỉ thêm bảng và index.
+- Danh mục CRUD: nhóm giải, hạng giải, nội dung chuẩn, nhóm tuổi/trình độ, thể thức trận, luật vòng bảng, địa điểm (kèm bàn, tạo nhanh nhiều bàn). Xóa khi đang dùng trả 409 `IN_USE` kèm số phụ thuộc. Ẩn bằng `isActive`.
+- Giải: `/api/v1/admin/events` gồm CRUD, slug (gợi ý khi trùng), publish, unpublish, cancel, uncancel, lọc theo lifecycle, năm, loại giải, trạng thái công bố. Lifecycle suy ra từ ngày, không lưu cột.
+- Nội dung thi đấu: `/api/v1/admin/events/:eventId/sub-events` gồm CRUD và tạo hàng loạt tối đa 50 mục.
+- Ảnh: `/api/v1/admin/media` (intent, nội dung, complete, GET, PATCH alt text) và `/api/v1/media/public/*`. Worker xử lý queue `media` (sharp, WebP) và job dọn định kỳ. Chi tiết: [system-architecture](./system-architecture.md#upload-ảnh-phase-04).
+- Rich text: sanitizer `sanitize-html` với allowlist cho `infoBody`/`infoBodyEn`. URL: `httpsUrlSchema` cho `mapUrl` và `ticketUrl`.
+- Tám setting mới trên `/settings`: `event.defaultTimezone`, `event.defaultDurationDays`, `venue.tablePrefix`, `header.resultsStrip.enabled`, `home.featuredEventId`, `media.maxImageMegabytes`, `media.intentTtlMinutes`, `media.processingTimeoutMinutes`.
+- Quyền `media` (chỉ ADMIN). Quyền `tournaments` cho danh mục, địa điểm và giải.
+- Seed danh mục mặc định: `pnpm --filter @kamito/db seed:config`, idempotent.
+- `@kamito/shared`: `slugify-vietnamese`, `lifecycle-from-dates`, `tiebreak-criteria`, `https-url` (có test).
+- Nền dùng chung cho api: `common/crud/prisma-list-query.ts`, `catalog-crud.ts`, `delete-guard.ts`.
+- Admin: menu Giải đấu và Cấu hình (danh mục), hub giải với tab **Thông tin** và **Nội dung thi đấu**, ô tải ảnh, ô rich text (TipTap), ô slug, hộp xác nhận hành động nguy hiểm.
+
+### Thay đổi
+- Worker: từ "chưa có processor" sang media worker dùng BullMQ (queue `media`). Worker vẫn chưa kiểm migration lúc boot.
+- Admin nginx: route `/api/v1/admin/media/<id>/content` có `client_max_body_size` lấy từ `UPLOAD_MAX_IMAGE_BYTES`. Route `/api/v1/media/*` được proxy tới api. Body JSON thường giới hạn `2m`.
+- Container admin yêu cầu `UPLOAD_MAX_IMAGE_BYTES`. Thiếu thì thoát khi start.
+- Body JSON của api giới hạn theo `MAX_INFO_BODY` (`json-body-limit.ts`), thay vì 100 kB mặc định của Express.
+- `S3_*` bắt buộc khi `STORAGE_DRIVER=s3` (mặc định). `STORAGE_DRIVER=local` dùng cho dev. `S3_INCOMING_BUCKET` là tùy chọn cho ảnh gốc.
+
+### Breaking và lưu ý cấu hình
+- `MEDIA_INTENT_TTL_MINUTES` đã bỏ. Thay bằng setting `media.intentTtlMinutes` (mặc định 15 phút).
+- `S3_PRESIGN_ENDPOINT` và `S3_PUBLIC_BASE_URL` không còn được code dùng. Vẫn còn trong env schema, compose và `.env.example`.
+- Slug trùng trả 422 `SLUG_TAKEN` (không phải 409), kèm `suggestion`. URL không phải https trả 422 `VALIDATION_FAILED`. Tài liệu theo quy ước 422 cho dữ liệu sai. Báo cáo tester F2 ghi spec gốc là 400; đây là quyết định cần chủ repo xác nhận.
+- Migration không xóa hay đổi cột cũ. Chưa áp dụng lên staging.
+
+### Kiểm chứng
+- Theo báo cáo tester 13:29 (`plans/reports/tester-261112-1329-phase-04-test-report.md`): typecheck 10/10, lint 7/7, build 7/7. `prisma migrate status` trên DB dev: up to date. Drift check: rỗng. Unit: shared 50, worker 18, ui-tokens 3, admin 2. API: 169/169 ở hai lần chạy, một lần crash native (F1).
+- Code đã đổi sau báo cáo 13:29 (nhánh sửa lỗi review). Cần chạy lại kiểm tra trước khi commit.
+- Review 13:29 (`plans/reports/code-reviewer-261112-1329-phase-04-review.md`), điểm 7.5/10, không có mục Critical. Đối chiếu lại trong code (`plans/reports/project-manager-261112-1347-phase-04-sync.md`): H1, H2, M1 đến M5 đã có bằng chứng trong code. M6 còn một phần. Mục L chưa đối chiếu.
+
+### Chưa xong
+- Chưa commit. Chưa deploy staging.
+- Chưa kiểm sharp trên image Alpine. Chưa thử `STORAGE_DRIVER=s3` với bucket thật.
+- Chưa có `cache-tags.ts` (phase 07).
+- Các việc tiếp theo: xem [development-roadmap](./development-roadmap.md).
+
 ## 2026-11-12 — Phase 03: đăng nhập admin, RBAC, users, /settings, nhật ký, khung admin (chưa commit)
 
 ### Thêm

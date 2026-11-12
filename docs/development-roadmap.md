@@ -7,13 +7,13 @@
 
 | Phase | Nội dung | Trạng thái (2026-11-12) | Ghi chú |
 |---|---|---|---|
-| 01 | Nền móng: monorepo, compose, Dokploy, design token | Code xong, cổng ra chưa đạt | Plan: không sang phase 03 cho tới khi đủ 4 điều kiện: staging chạy; Redis riêng `noeviction`; chọn thiết kế upload; chủ sở hữu sao lưu và RPO |
+| 01 | Nền móng: monorepo, compose, Dokploy, design token | Code xong, cổng ra chưa đạt | Plan: không sang phase 03 cho tới khi đủ 4 điều kiện: staging chạy; Redis riêng `noeviction`; chọn thiết kế upload (đã chọn (b), 2026-11-12); chủ sở hữu sao lưu và RPO |
 | 02 | Spike: Refine, Better Auth, Dokploy, revalidate Next.js | B, C, E đạt cục bộ. D chờ staging | Kết quả trong `plans/reports/spike-*` |
-| 03 | Đăng nhập admin, RBAC, người dùng, khung admin | Code xong (chưa commit). Chờ deploy staging | Test API 87/87 (gồm e2e). Phase 01 chưa qua cổng ra — cần chủ repo chốt. Xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
-| 04 | Dữ liệu gốc giải đấu, cấu hình, upload ảnh | Pending | |
+| 03 | Đăng nhập admin, RBAC, người dùng, khung admin | Code xong. Chờ deploy staging | Test API 87/87 (gồm e2e) tại thời điểm phase 03. Xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
+| 04 | Dữ liệu gốc giải đấu, cấu hình, upload ảnh | Xong (code, chưa commit). Chờ deploy staging | 3 migration, seed danh mục, upload ảnh qua API. Tester và review 13:29 không có lỗi Critical. Còn nợ ghi ở [Việc kế tiếp](#việc-kế-tiếp). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-04-dữ-liệu-gốc-giải-đấu-cấu-hình-upload-ảnh-chưa-commit) |
 | 05 | VĐV, cặp đôi, đăng ký, import Excel | Pending | |
 | 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Pending | Chờ G1a, G1b |
-| 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Pending | |
+| 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Pending | Có `cache-tags.ts` (tag cache theo giải và ảnh), dời từ phase 04 |
 | 08 | Site công khai: khung, trang giải, nhánh đấu | Pending | |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng | Pending | Chờ G2 |
 | 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Pending | |
@@ -24,7 +24,7 @@
 
 | Mốc / cổng | Hạn (tuần) | Điều kiện |
 |---|---|---|
-| Cổng ra phase 01 | cuối tuần 2 | Staging chạy; Redis riêng `noeviction`; thiết kế upload; chủ sở hữu sao lưu và RPO |
+| Cổng ra phase 01 | cuối tuần 2 | Staging chạy; Redis riêng `noeviction`; thiết kế upload (đã chốt); chủ sở hữu sao lưu và RPO |
 | G1a (cứng) | cuối tuần 3 | BTC xác nhận mẫu hạt giống loại trực tiếp |
 | M1: lát cắt dọc | cuối tuần 6 | Trên staging: 1 giải, 1 nội dung loại trực tiếp, nhập tay, bốc thăm, nhập tỷ số, 1 trang nhánh công khai |
 | Diễn tập khôi phục sao lưu | trước tuần 9 | Trước lần nạp dữ liệu thật đầu tiên |
@@ -34,10 +34,20 @@
 | G2 (cứng) | trước tuần 14 | BTC trả lời quy chế điểm |
 | Ra mắt | cuối tuần 19 (mục tiêu) | |
 
-## Việc kế tiếp cho phase 03
+## Việc kế tiếp
 
-1. Chốt cổng phase 01 (staging, Redis riêng, thiết kế upload, chủ sao lưu) trước khi deploy phase 03.
-2. Xử lý các mục review còn mở ưu tiên cao: phần còn lại của M3 (burst đăng nhập song song), L2 (đổi mật khẩu không nguyên tử), L7 (lỗi `lastLoginAt` làm sign-in 500).
-3. Commit phase 03 (theo quy tắc commit tiếng Anh, conventional commit).
-4. Deploy và migrate staging. Thử `create-admin` trong container api.
-5. Chốt lại trạng thái trong plan file (hiện vẫn `Pending`).
+1. **Chủ repo quyết định** (không tự làm):
+   - Cổng phase 01: staging, Redis riêng, chủ sở hữu sao lưu và RPO còn mở.
+   - Lỗi URL và slug trùng: giữ 422 (theo quy ước của code và tài liệu) hay đổi thành 400 theo spec gốc (báo cáo tester F2).
+2. **Commit phase 04** khi chủ repo yêu cầu. Trước đó chạy lại tester và code-reviewer trên code hiện tại, vì code đã đổi sau báo cáo 13:29.
+3. **Deploy staging** (phase 04 bước 13):
+   - Migrate 5 migration (3 của phase 04). Chạy `seed:config`.
+   - Thử `create-admin` trong container api (chưa kiểm chứng).
+   - Kiểm sharp trên image Alpine, và upload một ảnh thật với `STORAGE_DRIVER=s3`.
+4. **Nợ kỹ thuật phase 04** (theo báo cáo tester và review 13:29, chưa đối chiếu lại hết):
+   - Test api crash native trong một lần chạy đầy đủ (F1). Chưa tìm được nguyên nhân.
+   - Test crash làm sót user test trong DB dev (F3). Cần dọn.
+   - Mặc định duy nhất: advisory lock lấy sau khi đọc dữ liệu cũ, chưa đối chiếu lại phần lock (M2). Partial unique index đã có (migration `20261112070130`).
+   - Giá trị viết cứng còn lại, theo luật `/settings` (M6, còn một phần).
+   - Các mục L của review chưa đối chiếu.
+5. **Phase 05**: VĐV, cặp đôi, đăng ký, import Excel. Theo plan phase 05.

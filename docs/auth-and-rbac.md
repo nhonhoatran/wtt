@@ -100,7 +100,7 @@ Route Nest không có decorator nào → bị từ chối (deny-by-default).
 
 Nguồn duy nhất: `packages/shared/src/permissions.ts` (`PERMISSION_MATRIX`). API guard và admin UI dùng chung hàm `can(role, resource, action)`.
 
-**Resource:** `tournaments`, `matches`, `players`, `rankings`, `content`, `sponsors`, `settings`, `users`, `audit-logs`, `queues`.
+**Resource:** `tournaments`, `matches`, `players`, `rankings`, `content`, `sponsors`, `media`, `settings`, `users`, `audit-logs`, `queues`.
 
 **Action:** `list`, `read`, `create`, `update`, `delete`, `confirm`, `amend`, `reopen`, `publish`, `manage`.
 
@@ -110,7 +110,7 @@ Nguồn duy nhất: `packages/shared/src/permissions.ts` (`PERMISSION_MATRIX`). 
 | `players` | tất cả | `list`, `read` |
 | `matches` | tất cả | `list`, `read`, `update`, `confirm`, `amend` |
 | `settings`, `users`, `audit-logs`, `queues` | tất cả | không |
-| `rankings`, `content`, `sponsors` | tất cả | không |
+| `rankings`, `content`, `sponsors`, `media` | tất cả | không |
 
 - `reopen` và `publish` chỉ có ở ADMIN (ghi chú trong ma trận: thao tác mở lại kết quả là đặc quyền ADMIN).
 - Thêm resource ở phase sau: thêm vào `PERMISSION_RESOURCES`, không thêm vai trò mới.
@@ -163,7 +163,7 @@ Hai API:
 - Key không có hoặc không cho sửa → 404 `SETTING_NOT_FOUND`.
 - Cache trong từng replica 10 giây. Replica ghi thấy thay đổi ngay, replica khác thấy sau tối đa 10 giây.
 
-**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`):
+**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`):
 
 | Key | Nhóm | Mặc định | Khoảng | Đơn vị |
 |---|---|---|---|---|
@@ -178,6 +178,14 @@ Hai API:
 | `auth.stepUp.ttlMinutes` | auth | 5 | 1–60 | phút |
 | `auth.password.minLength` | auth | 10 | 8–64 | ký tự |
 | `list.defaultPageSize` | list | 20 | 5–100 | dòng |
+| `event.defaultTimezone` | event | `Asia/Ho_Chi_Minh` | múi giờ IANA hợp lệ | — |
+| `event.defaultDurationDays` | event | 2 | 0–30 | ngày |
+| `venue.tablePrefix` | event | `T` | 1–8 ký tự: chữ, số, gạch ngang | — |
+| `header.resultsStrip.enabled` | display | false | bật/tắt | — |
+| `home.featuredEventId` | display | trống | UUID của giải, hoặc trống (trang chủ tự chọn) | — |
+| `media.maxImageMegabytes` | media | 5 | 1–50 | MB (không vượt `UPLOAD_MAX_IMAGE_BYTES`) |
+| `media.intentTtlMinutes` | media | 15 | 1–240 | phút |
+| `media.processingTimeoutMinutes` | media | 10 | 1–240 | phút |
 
 Khoảng min/max là rào an toàn để validate, không phải giá trị nghiệp vụ. Ví dụ: không cho đặt ngưỡng khóa làm khóa tất cả mọi người.
 

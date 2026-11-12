@@ -1,6 +1,6 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: phase 01 (khung) và phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin). Chưa có nghiệp vụ thi đấu.
+> Cập nhật: 2026-11-12 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh). Chưa có VĐV, bốc thăm, thi đấu, bảng điểm (phase 05 trở đi).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
 
@@ -11,9 +11,11 @@
 - [Luồng khởi động](#luồng-khởi-động)
 - [Health endpoints](#health-endpoints)
 - [Dữ liệu](#dữ-liệu)
+- [Upload ảnh (phase 04)](#upload-ảnh-phase-04)
 - [Xác thực và phân quyền (phase 03)](#xác-thực-và-phân-quyền-phase-03)
 - [Dịch vụ dùng chung trong api](#dịch-vụ-dùng-chung-trong-api)
 - [Packages dùng chung](#packages-dùng-chung)
+- [Admin: menu và module](#admin-menu-và-module)
 - [Chưa xây dựng](#chưa-xây-dựng)
 - [Quyết định kiến trúc](#quyết-định-kiến-trúc)
 
@@ -24,20 +26,21 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 Đường đi chính:
 - Người xem: trình duyệt → client (Next.js, SSR) → api (nội bộ).
 - Quản trị: trình duyệt → admin (nginx phục vụ SPA, proxy vào api) → api. Đăng nhập bằng session cookie (Better Auth), phân quyền ở api.
-- Nền: api và worker dùng chung PostgreSQL, Redis (`noeviction`, dành cho queue và khóa đăng nhập), S3-compatible storage. BullMQ hiện chỉ api dùng (bull-board); worker chưa có processor.
+- Ảnh: admin tải lên qua api → worker xử lý (WebP) → `public/` trên object storage hoặc thư mục local (dev).
+- Nền: api và worker dùng chung PostgreSQL, Redis (`noeviction`, dành cho queue BullMQ và khóa đăng nhập), object storage (S3 API, hoặc driver `local` khi dev). api đưa job vào queue `media` và chạy bull-board; worker chạy processor cho queue `media`.
 
 ## Thành phần
 
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
-| `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Khung: layout `[locale]`, trang trống, route health |
-| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký thao tác, `/settings`, menu theo quyền, đổi mật khẩu |
-| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1 (cho bull-board) | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, CLI `create-admin`, kiểm migration và Redis lúc boot |
-| `apps/worker` | Node + ioredis | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP. **Chưa có processor. Chưa dùng BullMQ** (BullMQ hiện chỉ api dùng, để bull-board đọc queue) |
+| `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Khung: layout `[locale]`, trang trống, route health. Chưa đọc dữ liệu giải từ api |
+| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text |
+| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin` |
+| `apps/worker` | Node, ioredis, BullMQ 6.5.1, sharp 0.35.5 | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP, media worker: job `process-image` và job dọn định kỳ `cleanup-expired-intents` |
 | `migrate` (target của `api.Dockerfile`) | Prisma CLI | — (chạy một lần) | `internal` | Xác nhận target, `prisma migrate deploy` |
 | PostgreSQL | 17.11 (dev) | 5433 (dev) | ngoài compose prod | Dữ liệu nghiệp vụ, `_prisma_migrations` |
-| Redis | 8.2.11, `noeviction`, AOF (dev) | 6380 (dev) | ngoài compose prod | Queue BullMQ (từ phase sau) |
-| Object storage | S3 API; dev dùng RustFS 1.0.4 | 9010 API, 9011 console (dev) | ngoài compose prod | Chưa có upload |
+| Redis | 8.2.11, `noeviction`, AOF (dev) | 6380 (dev) | ngoài compose prod | Queue BullMQ (`media`, `maintenance`), khóa đăng nhập, bull-board |
+| Object storage | S3 API; dev dùng RustFS 1.0.4, hoặc driver `local` | 9010 API, 9011 console (dev) | ngoài compose prod | Ảnh: `incoming/` (riêng tư), `public/` (đã xử lý). Xem [Upload ảnh](#upload-ảnh-phase-04) |
 
 Packages: `@kamito/db`, `@kamito/shared`, `@kamito/ui-tokens`, `@kamito/config`. Chi tiết ở [Packages dùng chung](#packages-dùng-chung).
 
@@ -49,6 +52,7 @@ Browser ─TLS─> Traefik (Dokploy) ─> client (Next.js, domain công khai)
 Browser ─TLS─> Traefik ─> admin (nginx: SPA tĩnh + proxy)
                             ├─ /api/v1/admin/*  ──> api:3000
                             ├─ /api/v1/auth/*   ──> api:3000
+                            ├─ /api/v1/media/*  ──> api:3000   (ảnh public/, không cần đăng nhập)
                             └─ /api/*  khác     ──> 404
 api ──> PostgreSQL / Redis / S3 (URL ngoài, qua env)
 worker ──> PostgreSQL / Redis / S3 (kế hoạch: client:3000/api/revalidate)
@@ -63,10 +67,14 @@ Quy tắc:
   |---|---|
   | `/healthz` | 200 `{"status":"ok"}` (nginx tự trả) |
   | `/api/v1/admin/*`, `/api/v1/auth/*` | proxy tới api (`docker/admin-api-proxy.conf`) |
+  | `/api/v1/admin/media/<id>/content` | proxy tới api, `client_max_body_size` lấy từ `UPLOAD_MAX_IMAGE_BYTES` |
+  | `/api/v1/media/*` | proxy tới api (chỉ route `media/public`) |
   | `/api/*` khác (kể cả `/api/v1/public/*`, `/api/v1/health/*`) | 404 |
   | `/config.json` | file sinh lúc start (xem dưới) |
   | `/assets/*` | `Cache-Control` 1 năm, immutable |
   | `/*` | SPA fallback về `index.html`, `no-cache` |
+
+  Body JSON của các route khác giới hạn `client_max_body_size 2m`, phải lớn hơn `JSON_BODY_LIMIT` của api (khoảng 1,2 MB, `apps/api/src/common/http/json-body-limit.ts`).
 
 - **Resolve tên `api` lúc request:** `resolver 127.0.0.11` + biến `$api_upstream`. Nginx khởi động được khi api chưa sẵn sàng, và theo IP mới khi api tạo lại.
 - **Rủi ro đã ghi nhận:** tên DNS `api` có thể đụng service khác trên `dokploy-network` dùng chung (review H3, `plans/reports/code-reviewer-261112-0907-phase-01-foundation-review.md`). Hoãn sang Spike D: alias riêng hoặc Isolated Deployment.
@@ -83,27 +91,29 @@ Quy tắc:
 
 `docker/admin-entrypoint.sh` chạy khi container start. Ghi `/tmp/admin-config/config.json` từ **allowlist** ba khóa: `API_BASE_PATH`, `ADMIN_PUBLIC_URL`, `PUBLIC_SITE_URL`. Không khóa nào khác được ghi. `apps/admin/test/admin-entrypoint.test.mjs` kiểm việc này bằng biến chứa chuỗi `must-not-leak`.
 
-Vì vậy đổi URL không cần build lại admin image. File `/config.json` có `Cache-Control: no-store`.
+Cùng lúc đó, entrypoint đọc `UPLOAD_MAX_IMAGE_BYTES` (bắt buộc, phải là số nguyên dương; thiếu hoặc sai thì container thoát lỗi) và ghi `client_max_body_size` vào `/tmp/admin-config/upload-limit.conf`. Nginx include file này ở route tải ảnh.
+
+Vì vậy đổi URL và trần upload không cần build lại admin image. File `/config.json` có `Cache-Control: no-store`.
 
 ## Luồng khởi động
 
 **API** (`apps/api/src/main.ts`):
 1. `loadApiEnv()` parse env bằng zod. Lỗi → in tên biến, thoát.
-2. `createApiApp()` (`bootstrap-app.ts`): Nest + pino, `trust proxy`, prefix `api/v1`, `HttpExceptionFilter`, shutdown hooks. Trước `app.init()` gắn trên Express: handler raw của Better Auth (`/api/v1/auth/sign-in/email`, `/sign-out`) và bull-board (`/api/v1/admin/queues`). Các guard toàn cục (session, mật khẩu tạm, quyền, step-up) đăng ký trong `AuthModule`. Chi tiết xem [auth-and-rbac.md](./auth-and-rbac.md#chuỗi-guard).
+2. `createApiApp()` (`bootstrap-app.ts`): Nest + pino, `trust proxy`, prefix `api/v1`, `HttpExceptionFilter`, shutdown hooks, `useBodyParser('json', { limit: JSON_BODY_LIMIT })`. Trước `app.init()` gắn trên Express: handler raw của Better Auth (`/api/v1/auth/sign-in/email`, `/sign-out`) và bull-board (`/api/v1/admin/queues`). Các guard toàn cục (session, mật khẩu tạm, quyền, step-up) đăng ký trong `AuthModule`. Chi tiết xem [auth-and-rbac.md](./auth-and-rbac.md#chuỗi-guard).
 3. `RedisEvictionPolicyCheck` kiểm `maxmemory-policy` lúc bootstrap, cache kết quả cho `/health/ready`.
 4. `findPendingMigrations(prisma)`: nếu còn migration đi kèm image chưa áp dụng → log và `exit(1)`.
 5. `listen(API_PORT, '0.0.0.0')`.
 
 **Worker** (`apps/worker/src/main.ts`):
-1. `loadWorkerEnv()` parse env. Kiểm `QUEUE_PREFIX` đúng dạng `kamito-tt:<APP_ENV>`.
+1. `loadWorkerEnv()` parse env. Kiểm `QUEUE_PREFIX` đúng dạng `kamito-tt:<APP_ENV>`. Kiểm storage: `STORAGE_DRIVER=s3` thì bắt buộc đủ `S3_*`.
 2. `checkRedisEvictionPolicy(env)`:
    - Không kết nối được Redis → `fatal` → thoát `1`.
    - Policy khác `noeviction`: `production` → `fatal` → thoát `1`; môi trường khác → `degraded` (log lỗi, health báo `degraded`).
    - Không đọc được policy: nếu `REDIS_EVICTION_CHECK_OVERRIDE` có giá trị → `overridden` (log cảnh báo, vẫn chạy). Nếu không → như trên.
-3. Mở health server trên `WORKER_HEALTH_PORT`, tạo kết nối Redis cho BullMQ (chưa dùng).
-4. `SIGTERM` / `SIGINT`: đóng health server, `redis.quit()`, thoát `0`.
+3. Mở health server trên `WORKER_HEALTH_PORT`. Gọi `startMediaWorker` (`media-worker.ts`): mở Prisma client, upsert job scheduler `media-intent-cleanup` (chu kỳ `MEDIA_CLEANUP_INTERVAL_MINUTES`), tạo `Worker` cho queue `media` với `concurrency` = `MEDIA_WORKER_CONCURRENCY`.
+4. `SIGTERM` / `SIGINT`: đóng health server, đóng media worker và scheduler, ngắt Prisma, `redis.quit()`, thoát `0`.
 
-**Worker không kiểm migration và không kiểm DB** (khác với api). Đây là khoảng trống có chủ ý ở phase 01; xem lại khi có processor đầu tiên.
+**Worker không kiểm migration lúc boot** (khác với api). Prisma client được mở khi media worker khởi động, nhưng `findPendingMigrations` không được gọi. Đây là khoảng trống đã ghi nhận ở phase 01; cần xem lại trước khi triển khai worker có thêm queue.
 
 **Migrate** (`docker/migrate-entrypoint.sh`):
 1. `node scripts/print-db-target.mjs --confirm`: in `host:port/database` (ẩn mật khẩu). Nếu `MIGRATE_CONFIRM_TARGET` không khớp đúng `host:port/database` → thoát `3`.
@@ -112,7 +122,7 @@ Vì vậy đổi URL không cần build lại admin image. File `/config.json` c
 
 `DATABASE_URL` thiếu → `print-db-target.mjs` thoát `2`.
 
-**Admin:** entrypoint ghi `config.json` → nginx chạy.
+**Admin:** entrypoint ghi `config.json` và `upload-limit.conf` → nginx chạy.
 
 **Client:** Next standalone (`node apps/client/server.js`).
 
@@ -132,7 +142,7 @@ Chi tiết `/health/ready`:
 - `database`: `SELECT 1`.
 - `migrations`: `down` nếu còn migration chờ (`pending: ...`).
 - `redis`: `PING`, rồi xem verdict eviction. `fatal` → `down`; `degraded` → `degraded`.
-- `storage`: `HeadBucket` trên `S3_BUCKET`.
+- `storage`: `ping()` của driver đang chọn. S3: `HeadBucket` trên `S3_BUCKET`. Local: tạo thư mục gốc nếu thiếu.
 - Tổng hợp: có `down` → `not_ready`; có `degraded` → `degraded`; còn lại `ready`.
 
 Health không được ghi log (`autoLogging.ignore`). Admin và client không chuyển tiếp `/health/*` ra ngoài; nginx admin trả 404.
@@ -142,8 +152,11 @@ Health không được ghi log (`autoLogging.ignore`). Admin và client không c
 Migration theo thứ tự:
 1. `packages/db/prisma/migrations/20261112015704_init_app_settings_audit_log` (phase 01)
 2. `packages/db/prisma/migrations/20261112042429_add_users_and_auth_sessions` (phase 03)
+3. `packages/db/prisma/migrations/20261112061544_add_tournament_master_data` (phase 04: danh mục, giải, nội dung thi đấu)
+4. `packages/db/prisma/migrations/20261112061630_add_media_assets` (phase 04: ảnh)
+5. `packages/db/prisma/migrations/20261112070130_add_single_default_partial_indexes` (phase 04: một mặc định duy nhất)
 
-Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`.
+Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`.
 
 **`AppSetting`** — chỉ giá trị nghiệp vụ và tham số vận hành. Key, zod schema và default nằm trong `@kamito/shared` (`app-setting-registry.ts`).
 
@@ -154,23 +167,12 @@ Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `aut
 | `updatedById` | TEXT, nullable | |
 | `updatedAt` | TIMESTAMP(3) | `@updatedAt` |
 
-Registry hiện có 12 key:
+Registry hiện có 20 key:
 - `site.name` (`siteName`, mặc định `vi` và `en`). Chưa có editor, không sửa được trên `/settings`.
-- 10 key `auth.*` và `list.defaultPageSize`. Đều sửa được trên `/settings`. Bảng đầy đủ xem [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
+- 10 key `auth.*` và `list.defaultPageSize`. Sửa được trên `/settings`. Bảng đầy đủ xem [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
+- 8 key phase 04 (`tournament-settings.ts`): `event.defaultTimezone`, `event.defaultDurationDays`, `venue.tablePrefix`, `header.resultsStrip.enabled`, `home.featuredEventId`, `media.maxImageMegabytes`, `media.intentTtlMinutes`, `media.processingTimeoutMinutes`. Sửa được trên `/settings`.
 
 **`AuditLog`** — ghi mọi thay đổi nghiệp vụ (xem bảng bên dưới).
-
-**Bảng auth (migration phase 03)** — shape Better Auth yêu cầu, cộng cột riêng của dự án:
-
-| Bảng | Cột riêng của dự án | Ghi chú |
-|---|---|---|
-| `User` | `role` (enum `UserRole`: `ADMIN`, `RESULTS_OPERATOR`, mặc định `RESULTS_OPERATOR`), `isActive` (mặc định true), `mustChangePassword`, `tempPasswordExpiresAt`, `lastLoginAt` | Index `(role, isActive)`. Sign-up tắt, không có tài khoản mặc định trong code |
-| `Session` | `lastSeenAt`, `stepUpAt` | Index `userId`. Hết hạn tuyệt đối và idle do api kiểm, không do Better Auth |
-| `Account` | `password` (scrypt, không bao giờ trả ra API) | Provider `credential`. Index `userId` |
-| `Verification` | — | Shape bắt buộc của Better Auth, dự án chưa dùng |
-
-
-**`AuditLog`** — ghi mọi thay đổi nghiệp vụ.
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
@@ -186,7 +188,130 @@ Registry hiện có 12 key:
 
 Index: `(entity, entityId)` và `(actorId, createdAt)`.
 
-Schema tách file: `base.prisma` (generator, datasource), `app-setting.prisma`, `audit-log.prisma`.
+**Bảng auth (migration phase 03)** — shape Better Auth yêu cầu, cộng cột riêng của dự án:
+
+| Bảng | Cột riêng của dự án | Ghi chú |
+|---|---|---|
+| `User` | `role` (enum `UserRole`: `ADMIN`, `RESULTS_OPERATOR`, mặc định `RESULTS_OPERATOR`), `isActive` (mặc định true), `mustChangePassword`, `tempPasswordExpiresAt`, `lastLoginAt` | Index `(role, isActive)`. Sign-up tắt, không có tài khoản mặc định trong code |
+| `Session` | `lastSeenAt`, `stepUpAt` | Index `userId`. Hết hạn tuyệt đối và idle do api kiểm, không do Better Auth |
+| `Account` | `password` (scrypt, không bao giờ trả ra API) | Provider `credential`. Index `userId` |
+| `Verification` | — | Shape bắt buộc của Better Auth, dự án chưa dùng |
+
+### Danh mục cấu hình (phase 04)
+
+Các bảng danh mục do admin quản lý. Quy ước chung:
+- Mã (`code`) là khóa duy nhất, kiểu chữ in hoa. Tên có `name` (tiếng Việt, bắt buộc) và `nameEn` (tùy chọn). Trang công khai đọc `nameEn ?? name`.
+- Ẩn bằng `isActive = false`. Không xóa khi đang được dùng (xem [code-standards.md](./code-standards.md#danh-mục-danh-sách-và-xóa-phase-04)).
+- Liên kết tới danh mục dùng `onDelete: Restrict`.
+
+| Model | Khóa và ràng buộc | Liên kết và cột chính |
+|---|---|---|
+| `Tier` | `code` unique | `logoMediaId`, `backgroundMediaId` → `MediaAsset` (SetNull). `colorHex`, `order` |
+| `EventType` | `code` unique; index `tierId` | `tierId` → `Tier` (Restrict). Logo và nền → `MediaAsset` (SetNull) |
+| `Category` | `code` unique | `kind` (`AGE`, `SKILL`, `OPEN`), `minAge`, `maxAge` |
+| `Discipline` | `code` unique | `competitorKind` (`SINGLES`, `DOUBLES`), `genderRule` (`MEN`, `WOMEN`, `MIXED`, `OPEN`) |
+| `MatchFormat` | Partial unique index `MatchFormat_single_default` trên `isDefault` (chỉ một dòng `true`) | `bestOf`, `pointsPerGame`, `winBy`, `estimatedMinutes` |
+| `GroupScoringRule` | Partial unique index `GroupScoringRule_single_default` trên `isDefault` | Điểm thắng, thua, thua walkover, thua chưa đấu xong. `unfinishedMatchScoring`, `awardedGamePoints`. `withdrawalPolicy` nullable (`null` = chưa chốt). `tiebreakers` JSON (danh sách `TiebreakCriterion`) |
+| `Venue` | — | `address`, `city`, `mapUrl` (https) |
+| `VenueTable` | `(venueId, code)` unique | `venueId` → `Venue` (Cascade). `displayName`, `order` |
+
+Partial unique index không biểu diễn được trong Prisma schema, nên nằm trong SQL migration. Migration sau này không được sinh `DROP INDEX` cho hai index này (kiểm SQL trước khi `migrate deploy`).
+
+### Giải và nội dung thi đấu (phase 04)
+
+| Model | Khóa và ràng buộc | Ghi chú |
+|---|---|---|
+| `Event` | `slug` unique; index `startDate`, `eventTypeId`, `venueId` | `eventTypeId`, `venueId` → Restrict. `startDate`, `endDate` kiểu DATE. `timezone` (IANA). `publishStatus` (`DRAFT`, `PUBLISHED`), `publishedAt`, `isCancelled`, `isFeatured`. `ticketUrl` và `showTicket`. `bannerMediaId` → `MediaAsset` (SetNull). `summary`, `summaryEn`, `infoBody`, `infoBodyEn` (HTML đã sanitize), `showInfoTab` |
+| `SubEvent` | `(eventId, code)` unique | `eventId` → `Event` (Cascade, nhưng API chặn xóa giải đang có nội dung thi đấu). `disciplineId`, `categoryId`, `matchFormatId`, `groupScoringRuleId` → Restrict. `format` (`KNOCKOUT`, `GROUP_KNOCKOUT`), `hasQualifying`, `maxEntries`, `order` |
+
+Lifecycle của giải (sắp diễn ra, đang diễn ra, đã kết thúc, đã hủy) **không lưu cột**. Suy ra từ `startDate`, `endDate`, `timezone` của giải và `isCancelled`. Lọc danh sách theo lifecycle tính "hôm nay" theo múi giờ của từng giải (`lifecycle-filter.ts`).
+
+### Ảnh (phase 04)
+
+**`MediaAsset`**
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `purpose` | TEXT | Một trong `MEDIA_PURPOSES`: `tier-logo`, `tier-background`, `event-type-logo`, `event-type-background`, `event-banner` (kiểm bằng zod) |
+| `incomingKey` | TEXT, unique | `incoming/<purpose>/<uuid>`. Không bao giờ được phục vụ |
+| `publicKey` | TEXT, unique, nullable | Khóa của biến lớn nhất khi `READY` |
+| `declaredMime`, `declaredSize` | TEXT, INT | Khai báo lúc tạo intent |
+| `mime`, `size`, `width`, `height` | | Thông số của file WebP đã xử lý |
+| `status` | enum `MediaStatus`: `AWAITING_UPLOAD`, `PROCESSING`, `READY`, `FAILED` | Index `(status, expiresAt)` |
+| `failureReason` | TEXT, nullable | Xem [bảng lý do lỗi](#lỗi-và-mã-trả-về) |
+| `variants` | JSONB, nullable | `[{ width, height, key }]`, các file WebP đã xử lý |
+| `altText`, `altTextEn` | TEXT, nullable | |
+| `createdById` | TEXT | Người tạo intent |
+| `expiresAt` | TIMESTAMP | Hạn tải lên, lấy từ `media.intentTtlMinutes` |
+
+Các cột `*MediaId` trên `Tier`, `EventType`, `Event` là FK tới `MediaAsset` với `onDelete: SetNull`. API kiểm trước khi ghi rằng ảnh đã `READY` (`assertReadyMedia`).
+
+## Upload ảnh (phase 04)
+
+Thiết kế đã chọn: **(b) ảnh đi qua API**. Trình duyệt không nhận URL ký và không ghi thẳng vào bucket. Chốt 2026-11-12 (xem [quyết định 18](#quyết-định-kiến-trúc)).
+
+### Luồng
+
+Chỉ vai trò có `media.create` (ADMIN) được tải lên. `RESULTS_OPERATOR` không có quyền `media`.
+
+| Bước | Gọi | Việc làm | Trạng thái sau bước |
+|---|---|---|---|
+| 1 | `POST /api/v1/admin/media/intents` với `{ purpose, contentType, size }` | Kiểm `contentType` thuộc `UPLOAD_ALLOWED_IMAGE_TYPES` (422 `UNSUPPORTED_IMAGE_TYPE`), `size` ≤ trần hiệu lực (422 `IMAGE_TOO_LARGE`). Tạo bản ghi, ghi audit `media.create`. Trả `mediaId`, `uploadUrl`, `maxBytes`, `expiresAt` | `AWAITING_UPLOAD` |
+| 2 | `PUT /api/v1/admin/media/:id/content` (body là byte ảnh) | `Content-Type` phải khớp `contentType` đã khai (415). Stream vào storage, đếm byte, dừng khi vượt trần (413). Hết hạn → 409 `INTENT_EXPIRED` | vẫn `AWAITING_UPLOAD` |
+| 3 | `POST /api/v1/admin/media/:id/complete` | Kiểm file đã có trong storage (409 `UPLOAD_MISSING`). Chuyển `AWAITING_UPLOAD` → `PROCESSING` (chỉ một lần, lần hai 409). Đưa job `process-image` vào queue `media`. Ghi audit `media.complete`. Queue lỗi → trả về `AWAITING_UPLOAD`, 503 `QUEUE_UNAVAILABLE` | `PROCESSING` |
+| 4 | Worker, job `process-image` | Đọc file gốc. Kiểm định dạng bằng sharp: phải thuộc allowlist và không quá 40 triệu điểm ảnh. Xoay theo EXIF, encode WebP (chất lượng 82, bỏ metadata). Ghi `public/<purpose>/<năm>/<uuid>-<width>.webp` cho mỗi bề rộng trong `MEDIA_IMAGE_VARIANT_WIDTHS`, không phóng to. Xóa file gốc | `READY` (kèm `variants`, `publicKey`) hoặc `FAILED` (`failureReason`) |
+| 5 | `GET /api/v1/admin/media/:id` | Admin UI hỏi lại tới khi `READY` hoặc `FAILED`. Không có push | — |
+
+Response của `GET` và `complete` có `status`, `failureReason`, `url` (biến lớn nhất), `variants[]` (mỗi phần tử có `url`).
+
+### Retry và dọn dẹp
+
+- Job `process-image`: tối đa 3 lần, backoff exponential bắt đầu 5 giây. Lỗi tạm thời (storage, DB) giữ file gốc để lần sau thử lại.
+- Hết lượt thử → `failProcessing`: `FAILED` (`PROCESSING_ERROR`), xóa file gốc.
+- Job lặp `cleanup-expired-intents` (scheduler `media-intent-cleanup`, chu kỳ `MEDIA_CLEANUP_INTERVAL_MINUTES`, mặc định 15 phút), mỗi lần quét tối đa 200 dòng:
+  - `AWAITING_UPLOAD` đã quá `expiresAt` → `FAILED` (`INTENT_EXPIRED`), xóa file gốc.
+  - `PROCESSING` quá `media.processingTimeoutMinutes` (mặc định 10 phút) → `FAILED` (`PROCESSING_TIMEOUT`), xóa file gốc. Bắt trường hợp job bị mất (worker crash, Redis bị xóa key).
+
+### Storage và phục vụ ảnh
+
+| `STORAGE_DRIVER` | Nơi lưu | Dùng cho | Ghi chú |
+|---|---|---|---|
+| `s3` (mặc định) | `public/` ở `S3_BUCKET`. `incoming/` ở `S3_INCOMING_BUCKET` nếu khai, nếu không thì chung `S3_BUCKET` | staging, production | Bắt buộc đủ `S3_*`. Xem [bucket công khai](./deployment-guide.md#bucket-công-khai) |
+| `local` | Thư mục `UPLOAD_LOCAL_DIR` (mặc định `apps/api/uploads`, tính từ thư mục chứa `pnpm-workspace.yaml`) | dev | Không có trong compose. `apps/api/uploads/` đã nằm trong `.gitignore` |
+
+Phục vụ ảnh công khai:
+- `MEDIA_PUBLIC_BASE_URL` có giá trị: URL trỏ tới prefix `public/` (ví dụ `https://<host-bucket>/<bucket>/public`). API ghép khóa sau `public/` vào base này.
+- `MEDIA_PUBLIC_BASE_URL` trống (dev): API phục vụ `GET /api/v1/media/public/*` không cần đăng nhập. Chỉ nhận đúng mẫu `<purpose>/<năm>/<uuid>-<width>.webp`, trả `Cache-Control: public, max-age=31536000, immutable`. Không bao giờ đọc `incoming/`.
+
+Trần upload, ba lớp (hiệu lực = giá trị nhỏ hơn):
+
+| Lớp | Nguồn | Mặc định | Vai trò |
+|---|---|---|---|
+| Trần cứng | env `UPLOAD_MAX_IMAGE_BYTES` | — (bắt buộc) | Dùng cho api, worker và `client_max_body_size` của nginx admin |
+| Tham số vận hành | setting `media.maxImageMegabytes` | 5 MB (1–50) | Admin đổi trên `/settings`, không vượt trần |
+| Kiểm khi nhận | `Content-Length` và đếm byte khi stream | — | Vượt → 413 `PAYLOAD_TOO_LARGE` |
+
+### Lỗi và mã trả về
+
+| Mã | HTTP | Ở bước |
+|---|---|---|
+| `UNSUPPORTED_IMAGE_TYPE`, `IMAGE_TOO_LARGE` | 422 | 1 (intent) |
+| `CONTENT_TYPE_MISMATCH` | 415 | 2 (nội dung) |
+| `PAYLOAD_TOO_LARGE` | 413 | 2 |
+| `EMPTY_UPLOAD` | 422 | 2 (body rỗng) |
+| `NOT_AWAITING_UPLOAD`, `INTENT_EXPIRED`, `UPLOAD_MISSING` | 409 | 2, 3 |
+| `QUEUE_UNAVAILABLE` | 503 | 3 |
+
+Lý do `failureReason` (`MEDIA_FAILURE` trong `packages/shared/src/media/media-contract.ts`):
+
+| Giá trị | Nguyên nhân |
+|---|---|
+| `NOT_AN_IMAGE` | Không đọc được hoặc không thuộc allowlist |
+| `TOO_LARGE` | Vượt trần lúc xử lý, hoặc quá 40 triệu điểm ảnh |
+| `MISSING_UPLOAD` | Không còn file gốc khi worker chạy |
+| `INTENT_EXPIRED` | Hết hạn trước khi hoàn tất tải lên |
+| `PROCESSING_ERROR` | Hết lượt thử |
+| `PROCESSING_TIMEOUT` | Quá `media.processingTimeoutMinutes` |
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -205,24 +330,31 @@ Nest guard toàn cục (theo thứ tự)
   3. PermissionGuard           deny-by-default; @RequirePermission ↔ PERMISSION_MATRIX
   4. StepUpGuard               @RequireStepUp (chưa gắn route)
   ▼
-Controller: /auth/*, /admin/users, /admin/audit-logs, /admin/settings
+Controller: /auth/*, /admin/users, /admin/audit-logs, /admin/settings,
+            /admin/tiers, /admin/event-types, /admin/categories, /admin/disciplines,
+            /admin/match-formats, /admin/group-scoring-rules, /admin/venues,
+            /admin/events, /admin/media
+            (@Public: /media/public/*)
 Express (ngoài guard Nest): /api/v1/admin/queues (bull-board, kiểm lại các bước trên)
 ```
 
 Quy tắc chung:
 - Ma trận quyền ở `@kamito/shared` dùng chung cho api và admin UI. Admin UI chỉ ẩn, api là nơi chặn.
+- Resource phase 04: `tournaments` (danh mục, địa điểm, giải, nội dung thi đấu) và `media`. `RESULTS_OPERATOR` chỉ có `tournaments` ở mức `list`, `read`. `media` chỉ ADMIN.
 - Vai trò, `isActive`, `mustChangePassword` đọc từ DB mỗi request. Đổi quyền có hiệu lực ngay, và thu hồi phiên khi đổi vai trò hoặc khóa.
-- Ngưỡng đăng nhập, khóa, phiên, mật khẩu nằm ở `/settings` (`AppSetting`). Env chỉ giữ secret (`AUTH_SECRET`), URL (`ADMIN_PUBLIC_URL` cho Origin), và `TRUST_PROXY_HOPS`.
-- Ghi audit cho mọi thay đổi user, setting, mật khẩu, và phiên. Xem danh sách action trong [auth-and-rbac.md](./auth-and-rbac.md#api-quản-trị).
+- Ngưỡng đăng nhập, khóa, phiên, mật khẩu, và các setting phase 04 nằm ở `/settings` (`AppSetting`). Env chỉ giữ secret (`AUTH_SECRET`), URL (`ADMIN_PUBLIC_URL` cho Origin), `TRUST_PROXY_HOPS`, và trần kỹ thuật (`UPLOAD_MAX_IMAGE_BYTES`).
+- Ghi audit cho mọi thay đổi user, setting, mật khẩu, phiên, danh mục, giải, nội dung thi đấu, và ảnh.
 
 ## Dịch vụ dùng chung trong api
 
 | Dịch vụ | File | Hành vi |
 |---|---|---|
-| Config | `common/config/env-schema.ts`, `app-config.module.ts` | Symbol `API_ENV`. Schema zod toàn cục, global module |
+| Config | `common/config/env-schema.ts`, `app-config.module.ts` | Symbol `API_ENV`. Schema zod toàn cục, global module. Bao gồm `storageEnvShape` dùng chung với worker |
 | Logger | `common/logger/logger.module.ts` | pino JSON. Request ID, redact theo danh sách trong `LOG_REDACT_PATHS` |
 | Error filter | `common/filters/http-exception.filter.ts` | Mọi lỗi trả `{error:{code,message,fields?}}`. Lỗi không phải HttpException → 500 `INTERNAL_ERROR` |
 | Pagination | `common/pagination/pagination-query.ts`, `pagination-limits.ts` | Whitelist sort/filter. `pageSize` mặc định lấy từ `list.defaultPageSize` (`/settings`), trần từ env `PAGINATION_MAX_PAGE_SIZE`. `page` tối đa 10 000. Xem [code-standards.md](./code-standards.md#quy-ước-api) |
+| Danh mục CRUD | `common/crud/catalog-crud.ts`, `prisma-list-query.ts`, `delete-guard.ts`, `default-flag.ts`, `catalog-fields.ts`, `ready-media.ts` | Base class cho 7 danh mục. List một đường (`prismaListQuery`), delete có kiểm phụ thuộc (409 `IN_USE`), một mặc định duy nhất. Xem [code-standards.md](./code-standards.md#danh-mục-danh-sách-và-xóa-phase-04) |
+| Sanitizer | `common/html/sanitize-rich-html.ts` | `sanitize-html` với allowlist. Dùng khi ghi `infoBody`/`infoBodyEn` của giải |
 | Request context | `common/audit/request-context.ts` | Middleware trên mọi route. `AsyncLocalStorage` giữ `requestId`, `ip`, `userAgent`. `SessionGuard` điền `userId`, `sessionId` |
 | AuditService | `common/audit/audit.service.ts` | `record(entry, tx?)`. Actor = `USER` nếu có userId, ngược lại `SYSTEM`. Ghi `before`/`after` sau khi mask |
 | PII mask | `common/audit/mask-pii.ts` | Khớp chuỗi con trên khóa, không phân biệt hoa thường. Đệ quy, tối đa 20 cấp. Không sửa object gốc |
@@ -233,12 +365,17 @@ Quy tắc chung:
 | Users | `modules/users/` | CRUD user (không xóa), reset mật khẩu, thu hồi phiên, ràng buộc ADMIN cuối |
 | Settings | `modules/settings/` | `AppSettingsService`: đọc (cache 10 giây), sửa, reset, audit |
 | Audit log (đọc) | `modules/audit-logs/` | Chỉ GET. Lọc theo actor, entity, action (tiền tố), khoảng thời gian |
+| Danh mục và địa điểm | `modules/tiers/`, `event-types/`, `categories/`, `disciplines/`, `match-formats/`, `group-scoring-rules/`, `venues/` | Mỗi module: controller + service kế thừa `CatalogCrudService`. Venue có thêm `admin/venues/:id/tables` (tạo nhanh nhiều bàn) |
+| Giải và nội dung thi đấu | `modules/events/`, `modules/sub-events/` | Slug (`event-slug.ts`), publish/unpublish, cancel/uncancel, delete có chặn, lọc `lifecycle`/`year`/`eventTypeId`/`publishStatus`. Sub-event đơn và bulk (tối đa 50 mục mỗi lần) |
+| Media (admin) | `modules/media/admin-media.controller.ts`, `media.service.ts`, `media-upload-stream.ts` | Intent, nhận nội dung, complete, GET, PATCH alt text, `config` (trần và loại ảnh) |
+| Media (public) | `modules/media/media-public-files.controller.ts` | `GET /api/v1/media/public/*`, chỉ khi `MEDIA_PUBLIC_BASE_URL` trống (dev) |
+| MediaQueue | `modules/media/media-queue.ts` | Producer cho queue `media` (BullMQ). `jobId = media-<id>`, 3 lần thử, backoff 5 giây |
+| Storage | `modules/storage/object-storage.provider.ts`, `storage.module.ts`; `createObjectStorage` trong `@kamito/shared/object-storage` | Chọn driver theo `STORAGE_DRIVER`. Symbol `OBJECT_STORAGE` |
 | Bull-board | `modules/queue/bull-board-mount.ts` | UI hàng đợi trên Express, guard theo phiên và quyền `queues` |
 | CLI | `cli/create-admin.ts` | Tạo hoặc khôi phục ADMIN đầu tiên, xác nhận DB target trước khi ghi |
 | Prisma | `modules/prisma/prisma.service.ts` | `PrismaClient` + `@prisma/adapter-pg`. Đóng kết nối khi tắt |
 | Redis | `modules/queue/redis-connection.provider.ts` | `enableOfflineQueue: false`: lệnh lỗi ngay khi Redis mất. Chờ ready tối đa 5 giây lúc boot. Dùng chung cho queue, bull-board, và khóa đăng nhập |
 | Eviction check | `modules/queue/redis-eviction-policy-check.ts` | Kết nối riêng ngắn hạn (`redis-probe`) để đọc `CONFIG GET maxmemory-policy` |
-| S3 | `modules/storage/s3-client.provider.ts` | `@aws-sdk/client-s3`, `forcePathStyle` theo `S3_FORCE_PATH_STYLE` |
 
 Kiểm tra prefix queue: `isQueuePrefixValid` trong `@kamito/shared`. Dạng hợp lệ là `kamito-tt:<APP_ENV>` (có thể thêm đoạn sau). `APP_ENV` gồm `development`, `test`, `staging`, `production`.
 
@@ -246,12 +383,35 @@ Kiểm tra prefix queue: `isQueuePrefixValid` trong `@kamito/shared`. Dạng h�
 
 | Package | Export chính | Ghi chú |
 |---|---|---|
-| `@kamito/db` | `PrismaClient` (generated), `buildPrismaClientOptions`, `createPrismaClient`, `findPendingMigrations`, `listBundledMigrations`, `bundledMigrationsDir` | Build chạy `prisma generate` trước `tsc` |
-| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `authSettings`, `listSettings`, `APP_SETTING_GROUPS`, `judgeEvictionPolicy`, `PERMISSION_MATRIX`, `can`, `permissionsFor`, `USER_ROLES`, `isUserRole` | `redis-probe` là subpath riêng vì dùng ioredis. Ma trận quyền dùng cho cả api và admin |
+| `@kamito/db` | `PrismaClient` (generated), `MediaStatus`, `Prisma`, `buildPrismaClientOptions`, `createPrismaClient`, `findPendingMigrations`, `listBundledMigrations`, `bundledMigrationsDir` | Build chạy `prisma generate` trước `tsc`. Seed `seed:config` import từ `dist/`, nên phải build trước |
+| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `authSettings`, `listSettings`, `tournamentSettings`, `isValidTimezone`, `APP_SETTING_GROUPS`, `judgeEvictionPolicy`, `PERMISSION_MATRIX`, `can`, `permissionsFor`, `USER_ROLES`, `isUserRole`, `isHttpsUrl`, `httpsUrlSchema`, `optionalHttpsUrlSchema`, `todayInTimezone`, `isEventLifecycle`, `EVENT_LIFECYCLES`, `isValidSlug`, `slugifyVietnamese` | `redis-probe` là subpath riêng vì dùng ioredis. Ma trận quyền dùng cho cả api và admin |
+| `@kamito/shared/media` | `MEDIA_PURPOSES`, `MEDIA_PROCESS_JOB`, `MEDIA_CLEANUP_JOB`, `MEDIA_FAILURE`, `incomingKeyFor`, `publicKeyFor`, `effectiveMaxImageBytes`, `parseVariantWidths`, `publicUrlFor`, `storageEnvShape`, `refineStorageEnv` | Hợp đồng media và cấu hình storage dùng chung cho api và worker |
+| `@kamito/shared/object-storage` | `ObjectStorage`, `createObjectStorage`, `LocalObjectStorage`, `S3ObjectStorage`, `PayloadTooLargeError`, `assertSafeKey` | `assertSafeKey` chặn khóa có `..` hoặc ký tự lạ |
 | `@kamito/ui-tokens` | `tokens`, `buildCssVariables`, `buildCssText` (root); `buildAntdTheme`, `antdTheme` (subpath `./antd-theme`) | `tokens.ts` là nguồn duy nhất. Build sinh `dist/tokens.css` |
 | `@kamito/config` | `tsconfig.base.json`, `tsconfig.node.json`, `eslint.config.mjs`, `vitest-preset` | Preset Vitest: `src/**/*.test.ts`, `test/**/*.spec.ts` |
 
-Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đang chờ brand guideline. Đổi màu = sửa một file.
+Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đang chờ brand guideline. Đổi màu = sửa một file. Màu theo hạng giải hoặc loại giải là dữ liệu động (cột `colorHex`), không phải token.
+
+## Admin: menu và module
+
+Menu lấy từ `apps/admin/src/layout/menu-groups.ts`. Một nhóm chỉ hiện khi vai trò có quyền `list` với ít nhất một mục.
+
+| Nhóm | Mục | Đường dẫn | Resource |
+|---|---|---|---|
+| Giải đấu | Danh sách giải | `/events` | `tournaments` |
+| Giải đấu | Địa điểm & bàn | `/venues` | `tournaments` |
+| Vận động viên, Xếp hạng, Nội dung, Nhà tài trợ | (trống, phase sau) | — | — |
+| Cấu hình | Nhóm giải, Hạng giải, Nội dung chuẩn, Nhóm tuổi / trình độ, Thể thức trận, Luật vòng bảng | `/tiers`, `/event-types`, `/disciplines`, `/categories`, `/match-formats`, `/group-scoring-rules` | `tournaments` |
+| Cấu hình | Cài đặt hệ thống | `/settings` | `settings` |
+| Cấu hình | Hàng đợi xử lý | `/api/v1/admin/queues` (bull-board, ngoài SPA) | `queues` |
+| Người dùng | Tài khoản nhân viên, Nhật ký thao tác | `/users`, `/audit-logs` | `users`, `audit-logs` |
+
+Code phía admin (`apps/admin/src`):
+- `components/`: `confirm-action-button` (xác nhận hành động nguy hiểm), `media-upload-field` và `media-upload-support` (ô tải ảnh có trạng thái), `rich-text-field` (TipTap), `slug-input` (gợi ý slug trùng).
+- `resources/catalog-common/` và `resources/catalog-routes.tsx`: khung chung cho 7 danh mục (bảng, form, hành động dòng, màu hex).
+- `resources/events/`, `resources/venues/`: danh sách và form giải, địa điểm và bàn (modal tạo nhanh).
+- `pages/event-hub/`: hub một giải với tab **Thông tin** và **Nội dung thi đấu** (antd `Tabs`). Modal tạo nội dung hàng loạt nằm trong tab này.
+- `pages/settings-field.tsx` và `pages/settings-editors/`: editor theo `editor.kind` của setting (`number`, `text`, `boolean`, `timezone`, `event`).
 
 ## Chưa xây dựng
 
@@ -259,24 +419,25 @@ Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đ
 |---|---|---|
 | `packages/competition-engine` (bracket, seeding, round robin) | 06–07 | Chưa có |
 | `packages/ranking-engine` (điểm, snapshot) | 09 | Chưa có |
-| BullMQ processor và đăng ký queue | Phase sau | Chưa có processor. `bullmq` chỉ api dùng (bull-board). Worker chưa dùng BullMQ |
-| Queue nghiệp vụ | Phase sau | Chỉ có `maintenance` trong `QueueName`, chưa có job |
-| Auth và RBAC | 03 | Đã có (xem [Xác thực và phân quyền](#xác-thực-và-phân-quyền-phase-03)). Còn việc mở, liệt kê trong [auth-and-rbac.md](./auth-and-rbac.md#giới-hạn-đã-biết) |
-| Upload: thiết kế (a) trình duyệt upload trực tiếp qua URL ký, hoặc (b) upload qua API | 01 bước 15 | Chưa chọn. Hai biến `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` chỉ dùng cho (a) |
+| Đăng ký VĐV, cặp đôi, import Excel | 05 | Chưa có. Queue `media` đã có processor (phase 04) |
+| Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job) và `media` (đang dùng) |
+| `cache-tags.ts` (tag cache theo giải và ảnh) | 07 | Chưa có. Phase 04 dời sang phase 07; điểm nối được ghi chú trong service |
 | Revalidate Next.js từ worker | 02 (Spike E) | Chưa có. Worker chưa có `CLIENT_INTERNAL_URL`, `REVALIDATE_SECRET` |
-| Thi đấu, bảng điểm, site công khai | 04–12 | Chưa có |
+| Thi đấu, bảng điểm, site công khai | 05–12 | Chưa có |
+| Sửa `site.name` trên `/settings` | — | Key có trong registry, chưa có editor |
+| `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | — | Không còn dùng (đã chọn thiết kế (b)). Vẫn nằm trong `env-schema.ts`, compose và `.env.example`. Gỡ ở lần dọn env |
 
 ## Quyết định kiến trúc
 
-| # | Quyết định | Lý do (theo phase 01 và code) |
+| # | Quyết định | Lý do (theo phase 01, phase 04 và code) |
 |---|---|---|
 | 1 | Monorepo pnpm + Turborepo | Chia sẻ schema, token, env validation giữa 4 app |
 | 2 | NestJS 12 cho api | Module và DI; ESM-only nên toàn repo dùng ESM |
 | 3 | Prisma 7 với driver adapter `@prisma/adapter-pg` | Prisma 7 bỏ Rust engine; adapter là cách kết nối chính |
 | 4 | Migration là nguồn sự thật, cấm `db push` | Schema trên DB không lệch khỏi lịch sử git |
 | 5 | Redis riêng cho BullMQ, bắt buộc `noeviction` | Eviction làm mất job; production từ chối chạy nếu không đúng |
-| 6 | Job payload chỉ chứa id, processor nạp lại từ DB | Dữ liệu queue có thể cũ hoặc bị đụng khi Redis dùng chung |
-| 7 | Chỉ truy cập object storage qua S3 API | MinIO community đã archive (theo phase 01, 2026-04-25). Đổi nhà cung cấp chỉ cần đổi env |
+| 6 | Job payload chỉ chứa id, processor nạp lại từ DB | Dữ liệu queue có thể cũ hoặc bị đụng khi Redis dùng chung. Job `process-image` chỉ mang `{ mediaId }` |
+| 7 | Chỉ truy cập object storage qua S3 API (hoặc driver `local` cho dev) | MinIO community đã archive (theo phase 01, 2026-04-25). Đổi nhà cung cấp chỉ cần đổi env |
 | 8 | Dev dùng RustFS 1.0.4 thay MinIO | Image MinIO không còn trên Docker Hub (ghi nhận 2026-11-12). API chỉ nói S3 nên prod có thể giữ MinIO |
 | 9 | Vitest cho api, không Jest | SWC giữ được decorator metadata của Nest (`unplugin-swc`) |
 | 10 | Admin đọc `/config.json` lúc chạy | Không cần build lại khi đổi URL |
@@ -285,14 +446,20 @@ Token mặc định (màu đỏ logo `#EC1E24`, navy `#0F285D`, font Archivo) đ
 | 13 | Better Auth không dùng plugin admin. Chỉ 2 route (`sign-in/email`, `sign-out`) đi qua handler raw, phần còn lại qua Nest | Allowlist chính xác, route mới mặc định bị chặn. Plugin admin không cần cho mô hình 2 vai trò |
 | 14 | Phân quyền deny-by-default ở guard toàn cục; ma trận quyền một nguồn cho api và admin UI | Route quên khai báo quyền vẫn bị chặn. UI không phải lớp bảo vệ |
 | 15 | Vai trò, `isActive`, `mustChangePassword` đọc từ DB mỗi request | Đổi quyền và khóa tài khoản có hiệu lực ngay, không chờ hết phiên |
-| 16 | Tham số đăng nhập, phiên, mật khẩu, phân trang nằm ở `/settings` (`AppSetting`) | Theo luật dự án: đổi được trên giao diện, không cần redeploy. Env chỉ còn secret, URL, và trần an toàn |
+| 16 | Tham số đăng nhập, phiên, mật khẩu, phân trang, và tham số phase 04 nằm ở `/settings` (`AppSetting`) | Theo luật dự án: đổi được trên giao diện, không cần redeploy. Env chỉ còn secret, URL, và trần an toàn |
 | 17 | Admin dùng Refine + antd, phân quyền UI qua `accessControlProvider` cùng ma trận của api | Refine cho list, form, và router. Quyền vẫn do api quyết định |
+| 18 | Upload ảnh qua API (thiết kế b), trần cứng byte, stream vào storage; không dùng URL ký | Một luồng cho mọi môi trường (dev không cần S3). Không lộ bucket cho trình duyệt. Kiểm định dạng ở worker, không tin Content-Type |
+| 19 | Ảnh gốc ở `incoming/` không bao giờ được phục vụ; worker encode lại sang WebP `public/` | File gốc có thể chứa EXIF, payload lạ, hoặc ảnh quá lớn. Encode lại loại bỏ metadata và chặn ảnh giả định dạng |
+| 20 | Rich text: sanitize ở server khi ghi và sẽ sanitize lại khi render. Allowlist thẻ và thuộc tính; link chỉ `https:` và `mailto:`; ảnh chỉ `https:` | TipTap xuất HTML, nên server không tin input. Sanitize hai lần giữ an toàn khi allowlist đổi |
+| 21 | Lifecycle giải suy ra từ ngày và `isCancelled`, không lưu cột | Không lệch khi đổi ngày, múi giờ, hoặc hủy giải. Lọc theo múi giờ của từng giải |
+| 22 | Danh mục ẩn bằng `isActive=false`, không xóa khi đang dùng (409 `IN_USE`) | Giữ lịch sử và FK `Restrict`. Admin vẫn thấy mục cũ trong dữ liệu đã có |
+| 23 | Một mặc định duy nhất bằng partial unique index, cộng advisory lock trong transaction | Index là ràng buộc cuối cùng trong DB. Lock giúp báo lỗi rõ thay vì 500 khi đua nhau |
 
 Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của chủ repo. Chưa đối chiếu lại trong lần viết này.
 
 ## Liên quan
 
-- [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API.
-- [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành.
+- [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API, danh mục và upload.
+- [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành, seed.
 - [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.
 - [project-changelog.md](./project-changelog.md) và [development-roadmap.md](./development-roadmap.md): lịch sử và trạng thái phase.
