@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { isStructureLocked } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { alreadyPublished, conflict, notDraft, structureLocked } from './draw-errors.js';
 import { bumpVersion, loadDrawLocked } from './draw-lock.js';
 import { assertNoStaleEntries } from './draw-stale-entries.js';
@@ -13,11 +15,11 @@ export class DrawPublishService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
-  // No public cache revalidation yet: there is no revalidation module (cache-tags) in the API.
   async publish(drawId: string, expectedVersion: number) {
-    return this.prisma.$transaction(async (tx) => {
+    const { result, context } = await this.prisma.$transaction(async (tx) => {
       const draw = await loadDrawLocked(tx, drawId, expectedVersion);
       if (draw.status === 'PUBLISHED') throw alreadyPublished();
       const structure = await tx.round.count({ where: { drawId } });
@@ -29,8 +31,12 @@ export class DrawPublishService {
         { action: 'draw.publish', entity: 'Draw', entityId: drawId, before: drawAuditFields(draw), after: { status: 'PUBLISHED', version: updated.version } },
         tx,
       );
-      return { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) };
+      const subEvent = await tx.subEvent.findUniqueOrThrow({ where: { id: draw.subEventId }, select: { code: true, event: { select: { slug: true } } } });
+      const context = { eventSlug: subEvent.event.slug, subEventCode: subEvent.code, hasGroups: draw.kind === 'GROUP' };
+      return { result: { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) }, context };
     });
+    const warnings = await this.revalidation.enqueue(() => CACHE_TAGS['draw.publish'](context));
+    return { ...result, ...(warnings.length > 0 && { warnings }) };
   }
 
   async remove(drawId: string, expectedVersion: number) {

@@ -28,6 +28,8 @@ import { ExportsModule } from './modules/exports/exports.module.js';
 import { DrawsModule } from './modules/draws/draws.module.js';
 import { GroupsModule } from './modules/groups/groups.module.js';
 import { MatchesModule } from './modules/matches/matches.module.js';
+import { MatchResultsModule } from './modules/match-results/match-results.module.js';
+import { RevalidationModule } from './modules/revalidation/revalidation.module.js';
 
 @Module({
   imports: [
@@ -35,6 +37,7 @@ import { MatchesModule } from './modules/matches/matches.module.js';
     LoggerModule,
     PrismaModule,
     QueueModule,
+    RevalidationModule,
     StorageModule,
     AuditModule,
     AppSettingsModule,
@@ -60,6 +63,7 @@ import { MatchesModule } from './modules/matches/matches.module.js';
     MatchesModule,
     DrawsModule,
     GroupsModule,
+    MatchResultsModule,
   ],
 })
 export class AppModule {}
