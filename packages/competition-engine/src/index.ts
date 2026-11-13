@@ -17,3 +17,4 @@ export * from './tiebreak-resolvers.js';
 export * from './group-standings-calculator.js';
 export * from './group-withdrawal-plan.js';
 export * from './draw-preview.js';
+export * from './match-score-validator.js';
