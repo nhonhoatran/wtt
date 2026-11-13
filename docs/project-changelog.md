@@ -1,7 +1,62 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-12. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
+> Cập nhật: 2026-11-13. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-13 — Phase 06: bốc thăm, hạt giống, vòng bảng, sinh nhánh (chưa commit)
+
+### Thêm
+- Package `@kamito/competition-engine`: hàm thuần, RNG có hạt. Sinh loại trực tiếp, vòng loại, vòng bảng (chia pot, lịch vòng tròn), BXH và phá hòa, xếp nhất/nhì bảng vào nhánh chính, kế hoạch rút lui. Chi tiết: [draws-and-groups](./draws-and-groups.md#engine-kamitocompetition-engine).
+- Migration: `20261113030544_add_draws_rounds_matches_games` (`Draw`, `BracketPosition`, `Round`, `Match`, `Game`, `EventMatchCounter`), `20261113030600_add_groups_and_standings` (`Group`, `GroupMember`, `GroupStanding`). Chỉ thêm bảng, cột nullable và FK.
+- API `/api/v1/admin`: xem trước và sinh nháp, bracket và groups, swap, publish, xóa nháp, xếp vòng loại và bảng vào MAIN, unpublish, thay và rút VĐV (có `dryRun`), sửa thể thức vòng, nhập hạng tay và tính lại BXH bảng. `suggest-seeds` trả rỗng tới phase 09. Bảng API: [draws-and-groups](./draws-and-groups.md#api).
+- Admin: tab **Bốc thăm** trong hub giải (wizard sinh nhánh, bảng sơ đồ, vòng bảng, modal thao tác sau công bố có xem trước).
+- Bốn setting trong nhóm `draw` trên `/settings`: `draw.defaultSeedPercent` (25 %), `draw.defaultGroupSize` (4), `draw.defaultAdvancePerGroup` (2), `draw.defaultQualifierCount` (4).
+- `@kamito/shared`: `DRAW_REASON_MIN_LENGTH` (3), `DRAW_REASON_MAX_LENGTH` (500) cho lý do thao tác sau công bố.
+- Chặn đổi stage hoặc rút VĐV đang nằm trong nhánh đã công bố (409 `ENTRY_IN_PUBLISHED_DRAW`), cả đơn lẻ và hàng loạt.
+- Chặn import khi nội dung đã có bốc thăm (`subEventsWithLockedDraw`). Import có `override` vẫn chạy.
+- Gộp VĐV: xem trước đếm số trận (trước đây trả 0).
+
+### Thay đổi
+- Mã 409 phiên bản: `DRAW_VERSION_CONFLICT` kèm `currentVersion`. Filter lỗi giữ các khóa chi tiết trong whitelist `DETAIL_KEYS`.
+- `matchNo` theo giải không lùi khi sinh lại nháp, nên có khoảng trống. Đây là chủ ý.
+- Trận chỉ chuyển `OFFICIAL` do BYE hoặc walkover. Nhập tỷ số là phase 07.
+- Số suất vòng loại mặc định lấy từ setting `draw.defaultQualifierCount`, không còn hằng số `1` trong code.
+- Không có breaking change với phase 05. Migration chỉ thêm.
+
+### Sửa theo review
+Review `plans/reports/code-reviewer-261113-phase-06-draws.md` (7/10 trước khi sửa, không có Critical). Các mục đã sửa, đối chiếu lại trong code:
+
+| Mục | Vấn đề | Cách sửa |
+|---|---|---|
+| H1 | Rút VĐV vòng loại sau khi đã thắng hoặc đã vào MAIN làm đối thủ kẹt | Rút ở QUALIFYING cascade walkover sang MAIN trong cùng transaction (`cascadeToMain`). Người thắng đã rút vẫn được xếp, trận đầu thành walkover |
+| H2 | Công bố nháp có VĐV đã rút hoặc thiếu VĐV mới | `assertNoStaleEntries`: 409 `DRAW_STALE_ENTRIES` kèm `withdrawnEntryIds`, `missingEntryIds` |
+| H3 | BXH vẫn đánh dấu `qualified` cho VĐV đã rút | Calculator bỏ qua VĐV đã rút khi gán suất đi tiếp. Suất dồn người kế tiếp |
+| H4 | `ROUND_STARTED` bỏ lọt trận LIVE có `resultType` NULL | Điều kiện đổi thành `OR [resultType null, resultType not BYE]` |
+| M1 | Đổi stage VĐV đã nằm trong nhánh công bố | `guardStageChange` cho cả đơn lẻ và `setStage` hàng loạt |
+| M2 | Sinh lại nháp không gửi `expectedVersion` thì ghi đè nháp của người khác | Thiếu version khi đã có nháp → 409 `DRAW_VERSION_CONFLICT` |
+| M3 | Nhập hạng tay sau khi bảng đã xếp vào MAIN | `assertGroupsNotPlaced` → 409 `GROUPS_ALREADY_PLACED` |
+| M4 | `randomSeed` lộ cho role chỉ đọc | `randomSeed` chỉ trả khi caller có `tournaments.update` (`canSeeSeed`) |
+| M5 | Walkover treo còn sót sau bỏ công bố và đổi chỗ | Đồng bộ lại nhánh reset walkover chưa `OFFICIAL`, walkover treo theo đúng VĐV đã rút (`draw-derived-sync.ts`) |
+| L1 | Số suất vòng loại mặc định bị cứng | Chuyển thành setting `draw.defaultQualifierCount` |
+| L3 | Comment `matchNo` ghi "liên tục" là sai | Sửa comment theo hành vi thật (bộ đếm không lùi) |
+| L9 | Giới hạn độ dài lý do lặp ở UI và server | Dùng chung `@kamito/shared` |
+
+Chưa sửa hoặc chưa đối chiếu lại trong lần ghi tài liệu này:
+- L2: `seedCount` hiển thị với nhánh MAIN lấy từ bảng bị chặn ở `size/2`. Chỉ lệch dữ liệu hiển thị và audit. Chưa đối chiếu lại.
+- L4: `byStrength` chưa xáo trộn thứ tự VĐV cùng seed NULL và cùng điểm. Thứ tự đang theo id từ DB, không theo RNG. Mở.
+- L6: `assertNoLockedDraw` của import đọc ngoài transaction commit (TOCTOU). Mở.
+- L5, L7: chấp nhận và ghi nợ (chi phí đọc theo bảng; chưa có cache công khai để revalidate).
+
+### Chưa xong
+- Chưa commit. Chưa deploy staging. Chưa chạy migration phase 06 trên staging.
+- Gate G1a (vị trí hạt giống) và G1b (chia bảng, phá hòa, rút lui giữa bảng) chưa được BTC xác nhận.
+- Mở, cần chủ giải chốt: khi người thắng vòng loại đã rút, hiện tự walkover ở MAIN. Có dùng lucky loser (người thua chung kết section thay vào) hay không.
+
+### Kiểm chứng
+- Tester `plans/reports/tester-261113-phase-06-full-suite.md`: `typecheck`, `lint`, `build` đều pass. `prisma migrate status` báo khớp (11 migration). `pnpm test`: 601/601 pass (engine 178, api 298). Bốn spec phase 06 (41 test) pass khi chạy riêng. Độ phủ dòng engine 99.57%.
+- Cảnh báo không chặn: chunk `@kamito/admin` trên 500 kB. Một lần `imports-worker.e2e-spec.ts` không tái hiện được lỗi (chạy một lần, không có bằng chứng flake).
+
+---
 
 ## 2026-11-12 — Phase 05: VĐV, đăng ký, import Excel (chưa commit)
 

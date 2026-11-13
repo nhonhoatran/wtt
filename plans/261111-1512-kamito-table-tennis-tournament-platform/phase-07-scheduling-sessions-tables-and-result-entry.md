@@ -45,6 +45,14 @@
 - Cần ánh xạ trong `cache-tags.ts`: entry (tạo, sửa, rút, hàng loạt — `apps/api/src/modules/entries/`), VĐV (tạo, sửa; đổi tên làm mới `displayName` của Competitor), cặp (tạo ngầm cùng entry), gộp VĐV (`players/player-merge.service.ts`).
 - Import commit chạy trong worker (`apps/worker/src/processors/import-commit-processor.ts`) và ghi entry/VĐV → phải enqueue revalidate từ worker, không chỉ từ API. Chưa có cơ chế này.
 - Route chỉ ghi bảng import (tạo job, validate, sửa dòng) → `NO_PUBLIC_EFFECT` trong test phủ.
+
+<!-- Phase 06 sync — 2026-11-13 -->
+- Walkover treo (`apps/api/src/modules/draws/knockout-walkover.ts`): `settleDeferredWalkover(tx, matchId)` phải được gọi sau mọi thao tác đưa VĐV vào ô trận, kể cả khi đẩy người thắng lên vòng sau. `settlePendingWalkovers(tx, drawId)` đã dùng khi công bố.
+- Marker walkover treo = `resultType = WALKOVER` + `status = SCHEDULED` + `winnerSide` trỏ tới ô đang trống. Trận như vậy không tính là đã đấu và không nhận kết quả nhập.
+- Khóa bảng: `GroupStandingsService.lockForWrite(tx, groupId)` rồi `recompute(tx, groupId)` trong cùng transaction (`apps/api/src/modules/groups/group-standings.service.ts`). Chốt trận vòng bảng dùng đúng cặp này. Test đồng thời đã có: `apps/api/test/group-standings-concurrency.e2e-spec.ts`.
+- `matchNo` do `allocateMatchNumbers` (`packages/db/src/domain/draw-locks.ts`) cấp, không cấp số khác.
+- Đã có trong schema `Match`: `sessionId`, `scheduleVersion` (`packages/db/prisma/schema/draws-and-matches.prisma`). Bảng `sessions` vẫn cần migration phase này.
+- `cache-tags.ts` vẫn chưa có. Publish và thao tác sau công bố chưa revalidate (ghi nợ: `apps/api/src/modules/draws/draw-publish.service.ts:18`). Khi tạo `cache-tags.ts`, đăng ký mutation draw/trận/bảng và việc revalidate khi công bố.
 - Revalidate tag cho VĐV đã gộp: cả hồ sơ A và B.
 - Mẫu chặn thao tác khi đã công bố có sẵn: `EVENT_PUBLISHED` 409 ở `sub-events.service.ts:125`. Dùng cùng mẫu cho sửa/xóa sau công bố.
 - Lọc vòng đời theo múi giờ từng giải: `apps/api/src/modules/events/event-lifecycle-filter.ts`, `packages/shared/src/lifecycle-from-dates.ts`.

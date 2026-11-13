@@ -21,7 +21,7 @@ created: 2026-11-11
 
 ## Phases
 
-Phase 04 và 05 đã làm trọn 2026-11-12 (không tách lát cắt; chưa deploy staging). Phase 06–08 vẫn làm 2 đợt: lát cắt dọc (tuần 4–6) rồi phần còn lại. Sync phase 03–05: 2026-11-12.
+Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lát cắt; chưa deploy staging. Phase 06 làm trước khi G1a/G1b được BTC trả lời (sai lệch so với cổng, xem phase 06). Phase 07–08 vẫn làm 2 đợt: lát cắt dọc (tuần 4–6) rồi phần còn lại. Sync phase 03–06: 2026-11-13.
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -29,8 +29,8 @@ Phase 04 và 05 đã làm trọn 2026-11-12 (không tách lát cắt; chưa depl
 | 2 | [Spike: Refine + antd 5, Better Auth, phát hành Dokploy, revalidate Next.js](./phase-02-spikes-refine-antd-better-auth-dokploy-nextjs-revalidation.md) | 1–2 | 3,5 | In progress (B/C/E đạt; D chờ staging) |
 | 3 | [Đăng nhập admin, RBAC, người dùng, khung admin](./phase-03-admin-auth-rbac-users-and-admin-shell.md) | 2–3 | 5,5 | Hoàn thành (chưa deploy staging) |
 | 4 | [Dữ liệu gốc giải đấu + cấu hình + upload ảnh + sanitizer](./phase-04-tournament-master-data-config-and-media-upload.md) | 4 · 7–8 | 2 + 6 | Hoàn thành (chưa deploy staging; làm trọn 2026-11-12) |
-| 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: chặn draw chờ phase 06, tag chờ phase 07, file Excel thật) |
-| 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Pending |
+| 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: test chặn import theo draw, tag chờ phase 07, file Excel thật) |
+| 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; còn mở: revalidate, màn admin chưa chạy trên trình duyệt) |
 | 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Pending |
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | Pending |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | Pending |
@@ -47,11 +47,11 @@ Phase 04 và 05 đã làm trọn 2026-11-12 (không tách lát cắt; chưa depl
 |---|---|---|
 | Gửi câu hỏi quy chế cho BTC | tuần 1 | Câu hỏi G1a, G1b, G2 ở cuối phase 12 |
 | Cổng ra phase 01 | cuối tuần 2 | Staging chạy; Redis riêng `noeviction`; thiết kế upload; chủ sở hữu sao lưu + RPO. Phase 03 đã code trước cổng (sai lệch, xem phase 03) |
-| **G1a** (cứng) | cuối tuần 3 | BTC xác nhận mẫu hạt giống loại trực tiếp; chưa có → lát cắt chỉ chạy dữ liệu thử |
+| **G1a** (cứng) | cuối tuần 3 | BTC xác nhận mẫu hạt giống loại trực tiếp; chưa có → lát cắt chỉ chạy dữ liệu thử. **2026-11-13: chưa xác nhận** — phase 06 dùng mẫu chuẩn, chỉ dùng dữ liệu thử đến khi BTC xác nhận |
 | **M1 — lát cắt dọc** | cuối tuần 6 | Trên staging: 1 giải, 1 nội dung loại trực tiếp, entry nhập tay, bốc thăm, nhập tỷ số, 1 trang nhánh công khai |
 | Diễn tập khôi phục sao lưu | trước tuần 9 | Trước lần nạp dữ liệu thật đầu tiên |
 | **Pilot BTC** | tuần 9 | Nạp giải cũ bằng import, bốc thăm, nhập tỷ số, xem trang công khai; thu phản hồi |
-| **G1b** (cứng) | trước tuần 10 | BTC trả lời chia bảng, phá hòa, rút lui giữa bảng → mới làm phần còn lại phase 06 |
+| **G1b** (cứng) | trước tuần 10 | BTC trả lời chia bảng, phá hòa, rút lui giữa bảng → mới làm phần còn lại phase 06. **2026-11-13: chưa trả lời** — phần còn lại phase 06 đã làm theo mặc định, 5 cách hiểu chờ xác nhận (phase 12, câu 19–23) |
 | M2 — lõi giải đấu đủ | cuối tuần 13 | Phase 04–08 xong trên staging |
 | **G2** (cứng) | trước tuần 14 | BTC trả lời quy chế điểm → mới làm phase 09 |
 | Ra mắt | cuối tuần 19 (mục tiêu) | Sớm hơn nếu không dùng hết dự phòng |
@@ -60,7 +60,7 @@ Phase 04 và 05 đã làm trọn 2026-11-12 (không tách lát cắt; chưa depl
 
 - Chuỗi (1 người): 1 ∥ 2 → 3 → 4 (xong) → lát cắt (5 → 6 → 7 → 8) → M1 → 5 → pilot → [G1b] 6 → 7 → 8 → M2 → [G2] 9 → 10 → 11 → 12. Spike E quyết định revalidate ở 7, 8, 10.
 - Phase 03 code trước khi cổng phase 01 đạt: chờ chủ repo chốt tiếp tục hay dừng deploy (xem phase 03).
-- **Blocker (2026-11-12):** phase 02–05 đều chưa deploy staging vì cổng phase 01 chưa đạt (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
+- **Blocker (2026-11-13):** phase 02–06 đều chưa deploy staging vì cổng phase 01 chưa đạt (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
 - Điều kiện ngoài: chủ repo chốt tài khoản GitHub, email, tên repo; chủ hạ tầng trả lời preflight; tên miền; brand + logo vector; BTC trả lời G1a/G1b/G2; ngày bắt đầu + lịch Tết.
 
 ## Ràng buộc cứng (áp dụng mọi phase)

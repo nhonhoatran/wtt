@@ -1,6 +1,7 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh), phase 05 (VĐV, cặp đôi, đăng ký, import và export Excel, gộp VĐV). Chưa có bốc thăm, thi đấu, bảng điểm (phase 06 trở đi).
+> Cập nhật: 2026-11-13 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh), phase 05 (VĐV, cặp đôi, đăng ký, import và export Excel, gộp VĐV), phase 06 (bốc thăm, hạt giống, vòng bảng, sinh nhánh; chưa commit). Chưa có nhập tỷ số, lịch thi đấu, bảng điểm (phase 07 trở đi).
+> Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
 
@@ -13,6 +14,7 @@
 - [Dữ liệu](#dữ-liệu)
 - [Upload ảnh (phase 04)](#upload-ảnh-phase-04)
 - [Vận động viên và đăng ký (phase 05)](#vận-động-viên-và-đăng-ký-phase-05)
+- [Bốc thăm và vòng bảng (phase 06)](#bốc-thăm-và-vòng-bảng-phase-06)
 - [Xác thực và phân quyền (phase 03)](#xác-thực-và-phân-quyền-phase-03)
 - [Dịch vụ dùng chung trong api](#dịch-vụ-dùng-chung-trong-api)
 - [Packages dùng chung](#packages-dùng-chung)
@@ -22,7 +24,7 @@
 
 ## Tổng quan
 
-Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiếng Anh), trang quản trị giải đấu, API, và worker xử lý nền. Monorepo pnpm + Turborepo gồm 4 app và 4 package.
+Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiếng Anh), trang quản trị giải đấu, API, và worker xử lý nền. Monorepo pnpm + Turborepo gồm 4 app và 5 package.
 
 Đường đi chính:
 - Người xem: trình duyệt → client (Next.js, SSR) → api (nội bộ).
@@ -35,15 +37,15 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
 | `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Khung: layout `[locale]`, trang trống, route health. Chưa đọc dữ liệu giải từ api |
-| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text, VĐV, cặp đôi, tab Danh sách đăng ký, wizard import, gộp VĐV |
-| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05) |
+| `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text, VĐV, cặp đôi, tab Danh sách đăng ký, wizard import, gộp VĐV, tab Bốc thăm (wizard sinh nhánh, bảng sơ đồ, vòng bảng, thao tác sau công bố) |
+| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05), bốc thăm, nhánh, vòng bảng, trận, đọc (phase 06) |
 | `apps/worker` | Node, ioredis, BullMQ 6.5.1, sharp 0.35.5 | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP, media worker: job `process-image` và job dọn định kỳ `cleanup-expired-intents`. Import worker (queue `import`): `validate-import`, `commit-import`, dọn file import định kỳ |
 | `migrate` (target của `api.Dockerfile`) | Prisma CLI | — (chạy một lần) | `internal` | Xác nhận target, `prisma migrate deploy` |
 | PostgreSQL | 17.11 (dev) | 5433 (dev) | ngoài compose prod | Dữ liệu nghiệp vụ, `_prisma_migrations` |
 | Redis | 8.2.11, `noeviction`, AOF (dev) | 6380 (dev) | ngoài compose prod | Queue BullMQ (`media`, `maintenance`), khóa đăng nhập, bull-board |
 | Object storage | S3 API; dev dùng RustFS 1.0.4, hoặc driver `local` | 9010 API, 9011 console (dev) | ngoài compose prod | Ảnh: `incoming/` (riêng tư), `public/` (đã xử lý). Xem [Upload ảnh](#upload-ảnh-phase-04) |
 
-Packages: `@kamito/db`, `@kamito/shared`, `@kamito/ui-tokens`, `@kamito/config`. Chi tiết ở [Packages dùng chung](#packages-dùng-chung).
+Packages: `@kamito/db`, `@kamito/shared`, `@kamito/ui-tokens`, `@kamito/config`, `@kamito/competition-engine` (phase 06, hàm thuần). Chi tiết ở [Packages dùng chung](#packages-dùng-chung).
 
 ## Luồng mạng (staging và production)
 
@@ -161,8 +163,10 @@ Migration theo thứ tự:
 7. `packages/db/prisma/migrations/20261112074503_add_entries` (phase 05: `Entry`)
 8. `packages/db/prisma/migrations/20261112074532_add_import_jobs` (phase 05: `ImportJob`, `ImportRow`)
 9. `packages/db/prisma/migrations/20261112074553_add_player_merge` (phase 05: `Player.mergedAt`, gộp VĐV)
+10. `packages/db/prisma/migrations/20261113030544_add_draws_rounds_matches_games` (phase 06: `Draw`, `BracketPosition`, `Round`, `Match`, `Game`, `EventMatchCounter`)
+11. `packages/db/prisma/migrations/20261113030600_add_groups_and_standings` (phase 06: `Group`, `GroupMember`, `GroupStanding`)
 
-Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`, `players-and-entries.prisma`, `imports.prisma`.
+Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`, `players-and-entries.prisma`, `imports.prisma`, `draws-and-matches.prisma`, `groups-and-standings.prisma`.
 
 **`AppSetting`** — chỉ giá trị nghiệp vụ và tham số vận hành. Key, zod schema và default nằm trong `@kamito/shared` (`app-setting-registry.ts`).
 
@@ -173,11 +177,12 @@ Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `aut
 | `updatedById` | TEXT, nullable | |
 | `updatedAt` | TIMESTAMP(3) | `@updatedAt` |
 
-Registry hiện có 30 key:
+Registry hiện có 34 key:
 - `site.name` (`siteName`, mặc định `vi` và `en`). Chưa có editor, không sửa được trên `/settings`.
 - 10 key `auth.*` và `list.defaultPageSize`. Sửa được trên `/settings`. Bảng đầy đủ xem [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
 - 8 key phase 04 (`tournament-settings.ts`): `event.defaultTimezone`, `event.defaultDurationDays`, `venue.tablePrefix`, `header.resultsStrip.enabled`, `home.featuredEventId`, `media.maxImageMegabytes`, `media.intentTtlMinutes`, `media.processingTimeoutMinutes`. Sửa được trên `/settings`.
 - 10 key phase 05 (`player-settings.ts`, `import-operational-settings.ts`): `player.codePrefix`, `player.codeDigits`, `player.defaultCountryCode`, `player.showAge`, `entry.maxBulkItems`, `category.ageCalculation`, `import.maxFileMegabytes`, `import.maxRows`, `import.retentionDays`, `import.uploadTtlHours`. Sửa được trên `/settings`. Bảng mặc định và khoảng xem [auth-and-rbac.md](./auth-and-rbac.md#cài-đặt-vận-hành-settings).
+- 4 key phase 06 (`tournament-settings.ts`, nhóm `draw`): `draw.defaultSeedPercent` (25 %), `draw.defaultGroupSize` (4), `draw.defaultAdvancePerGroup` (2), `draw.defaultQualifierCount` (4). Đây là giá trị điền sẵn khi sinh nhánh; từng nội dung vẫn sửa được. Sửa được trên `/settings`.
 
 **`AuditLog`** — ghi mọi thay đổi nghiệp vụ (xem bảng bên dưới).
 
@@ -322,7 +327,7 @@ Lý do `failureReason` (`MEDIA_FAILURE` trong `packages/shared/src/media/media-c
 
 ## Vận động viên và đăng ký (phase 05)
 
-Phạm vi: hồ sơ VĐV, cặp đôi, đăng ký vào nội dung thi đấu (`Entry`), import và export Excel, gộp hồ sơ trùng. Chưa có bốc thăm (phase 06), bảng điểm (phase 09) và trang công khai VĐV (phase 10).
+Phạm vi: hồ sơ VĐV, cặp đôi, đăng ký vào nội dung thi đấu (`Entry`), import và export Excel, gộp hồ sơ trùng. Bốc thăm đã có ở phase 06 (xem [mục riêng](#bốc-thăm-và-vòng-bảng-phase-06)). Chưa có bảng điểm (phase 09) và trang công khai VĐV (phase 10).
 
 ### Mô hình dữ liệu
 
@@ -447,6 +452,8 @@ Mọi nơi ghi entry và gộp VĐV lấy khóa theo cùng thứ tự, nên khô
 
 Gộp VĐV sau khi khóa đọc lại tập nội dung bị ảnh hưởng. Nếu tập đã đổi, trả 409 `MERGE_RETRY`.
 
+Phase 06 chèn `Draw` và `Group` sau `SubEvent`, trước `Player`. Xem [Bốc thăm và vòng bảng](#bốc-thăm-và-vòng-bảng-phase-06).
+
 ### Gộp VĐV
 
 1. **Xem trước.** `GET /admin/players/merge/preview?targetId&sourceId` (`players.manage`). Trả phân tích xung đột.
@@ -469,6 +476,43 @@ Gộp VĐV sau khi khóa đọc lại tập nội dung bị ảnh hưởng. Nế
 - Năm sinh, CLB và mã VĐV vẫn hiện cho cả hai vai trò.
 - Dữ liệu dòng import và file export không chứa ngày sinh, SĐT hay email.
 - `GET /public/*` chưa có (phase 08). Quy định trường công khai và `player.showAge` (hiện chưa có nơi đọc) sẽ làm ở phase 08 và 10.
+
+## Bốc thăm và vòng bảng (phase 06)
+
+Phạm vi: sinh nhánh `MAIN`, `QUALIFYING`, `GROUP` cho một nội dung, hạt giống, BYE, công bố, thao tác sau công bố có xem trước (`dryRun`). Chi tiết API, engine, walkover treo và mã lỗi: [draws-and-groups.md](./draws-and-groups.md).
+
+### Mô hình dữ liệu
+
+Nguồn: `draws-and-matches.prisma`, `groups-and-standings.prisma`.
+
+| Model | Vai trò | Ràng buộc chính |
+|---|---|---|
+| `Draw` | Nhánh của một nội dung | unique `(subEventId, kind)`; `status` DRAFT/PUBLISHED; `version` cho khóa lạc quan; `randomSeed` để tái lập |
+| `BracketPosition` | Ô trong nhánh | unique `(drawId, section, position)`; `source` ENTRY/BYE/QUALIFIER/GROUP_PLACE |
+| `Round` | Vòng | unique `(drawId, scopeKey, number)`; `scopeKey` là `S1..Sk` hoặc `G-<mã bảng>` |
+| `Match` | Trận | unique `(eventId, matchNo)`; nguồn hai phía lưu JSON; cột lịch để trống tới phase 07 |
+| `Game` | Ván | Có trong schema, phase 06 chưa ghi |
+| `EventMatchCounter` | Cấp `matchNo` theo giải | Upsert dưới khóa dòng; không lùi khi sinh lại nháp (số có thể hở) |
+| `Group`, `GroupMember`, `GroupStanding` | Bảng vòng tròn | BXH tính lại toàn bộ, không sửa tăng dần |
+
+Trạng thái khóa cấu trúc không lưu cột. `isStructureLocked` trả true khi có trận LIVE hoặc OFFICIAL không phải BYE (`packages/db/src/domain/draw-locks.ts`).
+
+### Module API
+
+| Module (`apps/api/src/modules/`) | Việc làm | Quyền |
+|---|---|---|
+| `draws` | Preview, sinh nháp, swap, publish, xóa nháp, xếp vòng loại và bảng vào MAIN, unpublish, thay và rút VĐV, sửa thể thức vòng | `tournaments.*` |
+| `groups` | Nhập hạng tay, tính lại BXH | `tournaments.update` |
+| `matches` | Không có route. `MatchQueryService` và `match-view.ts` dựng trận trong phản hồi bracket và groups | — |
+
+Dịch vụ chính: `draws` có `DrawParamsService`, `DrawGenerationService`, `DrawEditService`, `DrawPublishService`, `DrawPostPublishService`, `GroupWithdrawalService`, `GroupQualifierService`, `RoundFormatService`. `groups` có `GroupStandingsService`, `GroupAdminService`, `GroupViewService`.
+
+### Khóa và thao tác ghi
+
+- Mọi thao tác ghi nhánh mở bằng `loadDrawLocked` (`apps/api/src/modules/draws/draw-lock.ts`): khóa `SubEvent`, khóa `Draw`, rồi mới kiểm `expectedVersion` trên dòng vừa khóa.
+- Thứ tự: `SubEvent` → `Draw` → `Group` (theo `id`) → `Player` → `EventMatchCounter`. Draw không lấy khóa Player. Không có khóa dòng `Match` riêng.
+- `dryRun` chạy đúng code thật trong transaction rồi rollback. Chi tiết: [draws-and-groups.md](./draws-and-groups.md#xem-trước-và-thao-tác-sau-công-bố-dryrun).
+- Quy ước `expectedVersion` và mã 409 `DRAW_VERSION_CONFLICT`: [code-standards.md](./code-standards.md#bốc-thăm-và-vòng-bảng-phase-06).
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -540,10 +584,11 @@ Kiểm tra prefix queue: `isQueuePrefixValid` trong `@kamito/shared`. Dạng h�
 
 | Package | Export chính | Ghi chú |
 |---|---|---|
-| `@kamito/db` | `PrismaClient` (generated), `MediaStatus`, `Prisma`, `buildPrismaClientOptions`, `createPrismaClient`, `findPendingMigrations`, `listBundledMigrations`, `bundledMigrationsDir`. Domain (phase 05, `src/domain/`): `allocatePlayerIdentity`, `nextPlayerCode`, `uniquePlayerSlug`, `findOrCreateCompetitor`, `refreshCompetitorNames`, `lockSubEvent`, `lockSubEventsInOrder`, `lockPlayersForShare`, `lockPlayersForUpdate`, `advisoryLock`, `playersAlreadyEntered`, `confirmedEntryCount` | Build chạy `prisma generate` trước `tsc`. Seed `seed:config` import từ `dist/`, nên phải build trước. Domain dùng chung api và worker, nên luật khóa và định danh VĐV chỉ viết một chỗ |
-| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `authSettings`, `listSettings`, `tournamentSettings`, `isValidTimezone`, `APP_SETTING_GROUPS`, `judgeEvictionPolicy`, `PERMISSION_MATRIX`, `can`, `permissionsFor`, `USER_ROLES`, `isUserRole`, `isHttpsUrl`, `httpsUrlSchema`, `optionalHttpsUrlSchema`, `todayInTimezone`, `isEventLifecycle`, `EVENT_LIFECYCLES`, `isValidSlug`, `slugifyVietnamese`. Phase 05: `normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`, `playerSettings`, `importSettings`, `importOperationalSettings` | `redis-probe` là subpath riêng vì dùng ioredis. Ma trận quyền dùng cho cả api và admin |
+| `@kamito/db` | `PrismaClient` (generated), `MediaStatus`, `Prisma`, `buildPrismaClientOptions`, `createPrismaClient`, `findPendingMigrations`, `listBundledMigrations`, `bundledMigrationsDir`. Domain (phase 05, `src/domain/`): `allocatePlayerIdentity`, `nextPlayerCode`, `uniquePlayerSlug`, `findOrCreateCompetitor`, `refreshCompetitorNames`, `lockSubEvent`, `lockSubEventsInOrder`, `lockPlayersForShare`, `lockPlayersForUpdate`, `advisoryLock`, `playersAlreadyEntered`, `confirmedEntryCount`, `entriesInLockedDraw`, `subEventsWithLockedDraw`, `lockDraw`, `lockGroups`, `isStructureLocked`, `allocateMatchNumbers` (phase 06) | Build chạy `prisma generate` trước `tsc`. Seed `seed:config` import từ `dist/`, nên phải build trước. Domain dùng chung api và worker, nên luật khóa và định danh VĐV chỉ viết một chỗ |
+| `@kamito/shared` | `parseEnv`, `appEnvSchema`, `requiredString`, `secretString`, `csvList`, `PaginatedResult`, `QueueName`, `isQueuePrefixValid`, `appSettingRegistry`, `authSettings`, `listSettings`, `tournamentSettings`, `isValidTimezone`, `APP_SETTING_GROUPS`, `DRAW_REASON_MIN_LENGTH`, `DRAW_REASON_MAX_LENGTH` (phase 06), `judgeEvictionPolicy`, `PERMISSION_MATRIX`, `can`, `permissionsFor`, `USER_ROLES`, `isUserRole`, `isHttpsUrl`, `httpsUrlSchema`, `optionalHttpsUrlSchema`, `todayInTimezone`, `isEventLifecycle`, `EVENT_LIFECYCLES`, `isValidSlug`, `slugifyVietnamese`. Phase 05: `normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`, `playerSettings`, `importSettings`, `importOperationalSettings` | `redis-probe` là subpath riêng vì dùng ioredis. Ma trận quyền dùng cho cả api và admin |
 | `@kamito/shared/media` | `MEDIA_PURPOSES`, `MEDIA_PROCESS_JOB`, `MEDIA_CLEANUP_JOB`, `MEDIA_FAILURE`, `incomingKeyFor`, `publicKeyFor`, `effectiveMaxImageBytes`, `parseVariantWidths`, `publicUrlFor`, `storageEnvShape`, `refineStorageEnv` | Hợp đồng media và cấu hình storage dùng chung cho api và worker |
 | `@kamito/shared/object-storage` | `ObjectStorage`, `createObjectStorage`, `LocalObjectStorage`, `S3ObjectStorage`, `PayloadTooLargeError`, `assertSafeKey` | `assertSafeKey` chặn khóa có `..` hoặc ký tự lạ |
+| `@kamito/competition-engine` | `previewDraw`, `generateKnockout`, `deriveMatches`, `seedPositions`, `generateQualifying`, `allocateGroups`, `generateRoundRobin`, `calculateGroupStandings`, `planGroupWithdrawal`, `placeGroupsInKnockout`, `fillQualifierSlots`, `fillGroupPlaces`, `createRng`, `DrawParamsError` (phase 06) | Hàm thuần, không I/O, không Prisma. Phụ thuộc duy nhất là `@kamito/shared`. RNG có hạt (cyrb128 + sfc32): cùng seed cho cùng kết quả |
 | `@kamito/ui-tokens` | `tokens`, `buildCssVariables`, `buildCssText` (root); `buildAntdTheme`, `antdTheme` (subpath `./antd-theme`) | `tokens.ts` là nguồn duy nhất. Build sinh `dist/tokens.css` |
 | `@kamito/config` | `tsconfig.base.json`, `tsconfig.node.json`, `eslint.config.mjs`, `vitest-preset` | Preset Vitest: `src/**/*.test.ts`, `test/**/*.spec.ts` |
 
@@ -568,7 +613,7 @@ Code phía admin (`apps/admin/src`):
 - `components/`: `confirm-action-button` (xác nhận hành động nguy hiểm), `media-upload-field` và `media-upload-support` (ô tải ảnh có trạng thái), `rich-text-field` (TipTap), `slug-input` (gợi ý slug trùng).
 - `resources/catalog-common/` và `resources/catalog-routes.tsx`: khung chung cho 7 danh mục (bảng, form, hành động dòng, màu hex).
 - `resources/events/`, `resources/venues/`: danh sách và form giải, địa điểm và bàn (modal tạo nhanh).
-- `pages/event-hub/`: hub một giải với tab **Thông tin**, **Nội dung thi đấu** và **Danh sách** (đăng ký, antd `Tabs`). Tab Danh sách có menu dọc chọn nội dung, bảng đăng ký, form thêm đơn/đôi, thao tác hàng loạt và nút "Import Excel". Modal tạo nội dung hàng loạt nằm trong tab Nội dung thi đấu.
+- `pages/event-hub/`: hub một giải với tab **Thông tin**, **Nội dung thi đấu**, **Danh sách** (đăng ký) và **Bốc thăm** (antd `Tabs`). Tab Bốc thăm có wizard sinh nhánh, bảng sơ đồ (`admin-bracket-view.tsx`), vòng bảng (`group-card.tsx`) và modal thao tác sau công bố có xem trước. Tab Danh sách có menu dọc chọn nội dung, bảng đăng ký, form thêm đơn/đôi, thao tác hàng loạt và nút "Import Excel". Modal tạo nội dung hàng loạt nằm trong tab Nội dung thi đấu.
 - `resources/players/`, `resources/pairs/`, `resources/imports/`: danh sách, sửa, tạo VĐV, modal gộp VĐV, danh sách và chi tiết lượt import.
 - `components/import-wizard.tsx`, `import-preview-table.tsx`, `player-lookup-select.tsx`: wizard import (tải mẫu, tải file, kiểm tra và nhập), bảng xem trước, ô tìm VĐV dùng lại được.
 - `pages/settings-field.tsx` và `pages/settings-editors/`: editor theo `editor.kind` của setting (`number`, `text`, `boolean`, `timezone`, `event`).
@@ -577,17 +622,14 @@ Code phía admin (`apps/admin/src`):
 
 | Hạng mục | Phase | Trạng thái |
 |---|---|---|
-| `packages/competition-engine` (bracket, seeding, round robin) | 06–07 | Chưa có |
 | `packages/ranking-engine` (điểm, snapshot) | 09 | Chưa có |
-| Chặn rút entry và import khi nội dung có draw đã công bố | 06 | Hook `entriesInLockedDraw` và `subEventsWithLockedDraw` (`packages/db/src/domain/entry-guards.ts`) đang trả rỗng. Lỗi 409 `ENTRY_IN_PUBLISHED_DRAW` có trong code nhưng chưa được ném |
-| Số trận trong xem trước gộp VĐV | 06–07 | Hiện trả 0 |
 | Chuyển hướng 301 slug VĐV đã gộp | 10 | Mới lưu `mergedIntoId`, chưa có route công khai |
 | Hiện năm sinh hoặc tuổi trên site công khai (`player.showAge`) | 08, 10 | Setting đã khai báo, chưa có nơi đọc |
-| Đăng ký mutation VĐV, entry và gộp vào cache tag | 07 | `cache-tags.ts` chưa có |
+| Đăng ký mutation VĐV, entry, bốc thăm và gộp vào cache tag | 07 | `cache-tags.ts` chưa có. Phase 06 công bố nhánh chưa revalidate |
 | Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job), `media` và `import` (đang dùng) |
 | `cache-tags.ts` (tag cache theo giải và ảnh) | 07 | Chưa có. Phase 04 dời sang phase 07; điểm nối được ghi chú trong service |
 | Revalidate Next.js từ worker | 02 (Spike E) | Chưa có. Worker chưa có `CLIENT_INTERNAL_URL`, `REVALIDATE_SECRET` |
-| Thi đấu, bảng điểm, site công khai | 06–12 | Chưa có |
+| Nhập tỷ số, lịch thi đấu, site công khai | 07–12 | Chưa có. Trận chỉ OFFICIAL do BYE hoặc walkover (phase 06) |
 | Sửa `site.name` trên `/settings` | — | Key có trong registry, chưa có editor |
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | — | Không còn dùng (đã chọn thiết kế (b)). Vẫn nằm trong `env-schema.ts`, compose và `.env.example`. Gỡ ở lần dọn env |
 
@@ -622,11 +664,15 @@ Code phía admin (`apps/admin/src`):
 | 25 | Định danh VĐV, khớp và luật khóa nằm trong `@kamito/db` và `@kamito/shared`, api và worker cùng dùng | Hai nơi ghi (đăng ký tay và import) không lệch luật. Thứ tự khóa cố định: advisory, SubEvent, Player |
 | 26 | Import là hai bước: validate ghi kết quả xem trước, commit đọc lại dữ liệu và khớp lại dưới khóa | Dữ liệu có thể đổi giữa hai bước. Xem trước không được coi là lệnh nhập. Hash file phải khớp khi commit |
 | 27 | Quyền xem SĐT, email, ngày sinh theo `players.update` | Một nguồn quyền. `RESULTS_OPERATOR` không sửa được hồ sơ nên không thấy dữ liệu riêng tư |
+| 28 | Bốc thăm và xếp nhánh là hàm thuần trong `@kamito/competition-engine`; api chỉ nạp dữ liệu và ghi | Test không cần DB. Cùng `randomSeed` cho cùng kết quả, nên tranh chấp tra lại được |
+| 29 | Xem trước (`dryRun`) chạy đúng luồng thật rồi rollback | Không có hai bản logic có thể lệch nhau |
+| 30 | `expectedVersion` cho nhánh và bảng, cộng khóa `SubEvent` → `Draw` → `Group` | Hai admin cùng sửa không ghi đè nhau. Dữ liệu đổi giữa lúc xem và lúc ghi bị phát hiện |
 
 Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của chủ repo. Chưa đối chiếu lại trong lần viết này.
 
 ## Liên quan
 
+- [draws-and-groups.md](./draws-and-groups.md): bốc thăm, hạt giống, vòng bảng, walkover treo, mã lỗi (phase 06).
 - [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API, danh mục và upload.
 - [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành, seed.
 - [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.

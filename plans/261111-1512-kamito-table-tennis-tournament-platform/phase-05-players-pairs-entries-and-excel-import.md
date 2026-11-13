@@ -174,7 +174,7 @@ Hợp đồng đã chốt khi code (2026-11-12)
 - `ImportRow.chosenPlayerId` → `decisions Json` (`{"1": playerId | "NEW", "2": …}`) vì dòng đôi có 2 VĐV cần xác nhận. `ImportJob` thêm `fileName`, `fileSize`, `failureReason`, `committedRows`, `overrideReason`, `attemptNo`, `fileDeletedAt`. `Entry` thêm `updatedAt`. `Player` thêm `mergedAt`.
 - Mã VĐV: sequence Postgres `player_code_seq` (SQL tay trong migration 1) + CHECK `Pair_ordered_distinct_players`, `Competitor_type_matches_reference`.
 - Helper dùng chung API + worker: `@kamito/shared` (`normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`, `playerSettings`, `importSettings`) và `@kamito/db` (`allocatePlayerIdentity`, `findOrCreateCompetitor`, `refreshCompetitorNames`, `lockSubEvent`, `advisoryLock`, `playersAlreadyEntered`, `confirmedEntryCount`, `entriesInLockedDraw`, `subEventsWithLockedDraw` — 2 hàm cuối trả rỗng tới phase 06).
-- Draw chưa có (phase 06): chặn rút/import theo draw đi qua 2 hook trên; số trận trong xem trước gộp = 0 tới phase 06/07. Chuyển hướng 301 slug VĐV đã gộp làm ở trang công khai (phase 10); ở đây chỉ lưu `mergedIntoId`.
+- Draw (phase 06, 2026-11-13): chặn rút/import theo draw đi qua 2 hook trên (đã nối); số trận trong xem trước gộp đã đếm trận thật, loại BYE (`player-merge-preview.ts:86`). Chuyển hướng 301 slug VĐV đã gộp làm ở trang công khai (phase 10); ở đây chỉ lưu `mergedIntoId`.
 - Lỗi hợp lệ trả 422 `{ code: 'ENTRY_INELIGIBLE', message, issues: [{code, message, playerId?, overridable}] }`; `overrideReason` (ADMIN) bỏ qua các issue `overridable` + vượt `maxEntries`.
 
 <!-- Phase 05 sync — 2026-11-12: bổ sung hợp đồng khi code -->
@@ -240,9 +240,9 @@ Phần còn lại (tuần 8–9)
 - [x] Kiểm chứng thư viện xlsx — `exceljs` 4.4.0 + `fflate` 0.8.3 (xem "Hợp đồng đã chốt")
 - [x] ui-consistency: finding-patterns → planning — `ui/phase-05-ui-checklists.md`, `ui/phase-05-ui-plan.md`
 - [x] Pair/Entry + eligibility + bulk + override có lý do + audit seed/stage/quota/status
-- [ ] Chặn rút entry và import khi draw đã công bố — chờ phase 06: hook `entriesInLockedDraw`, `subEventsWithLockedDraw` (`packages/db/src/domain/entry-guards.ts`) đang trả rỗng
+- [x] Chặn rút entry khi draw đã công bố — phase 06 (2026-11-13): hook `entriesInLockedDraw` (`packages/db/src/domain/entry-guards.ts`) gọi ở `entries.service.ts`, 409 `ENTRY_IN_PUBLISHED_DRAW` có test (`draws.e2e-spec.ts`, `draw-review-guards.e2e-spec.ts`)
 - [x] Import ENTRIES: trần, SHA-256, khớp lại khi commit, NEEDS_CONFIRM, trạng thái theo dòng, audit, resume khi commit dở
-- [ ] Import: chặn draw khác DRAFT (cùng hook trên, chờ phase 06)
+- [ ] Import: chặn draw khác DRAFT — hook `subEventsWithLockedDraw` đã nối ở worker (`apps/worker/src/processors/import-commit-processor.ts`) từ phase 06; còn mở: chưa có test cấp import, kiểm tra đọc ngoài tx (review phase 06 L6)
 - [x] Export stream đồng bộ (`exports` module; test xuất > 1 trang 1000 dòng)
 - [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug chuyển phase 10
 - [x] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp — `apps/admin` (tests 4/4, build OK)
@@ -287,11 +287,11 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 ## Next Steps
 
 - Lát cắt tiếp tục ở phase 06 (bốc thăm loại trực tiếp). Phase 06 dùng `Entry` `CONFIRMED` + `seed`; phase 09 điền `rankingAtEntry/pointsAtEntry` và nối gộp VĐV vào sổ điểm.
-- Phase 06: implement 2 hook `entry-guards.ts`; phase 07: đăng ký mutation vào `cache-tags.ts`; phase 09/10: xem ghi chú "Phase 05 sync" trong các file đó.
+- Phase 06 (đã xong 2026-11-13): 2 hook `entry-guards.ts` đã implement; phase 07: đăng ký mutation vào `cache-tags.ts`; phase 09/10: xem ghi chú "Phase 05 sync" trong các file đó.
 
 ## Kết quả thực hiện
 
-**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: chặn draw (chờ phase 06), tag revalidate (chờ phase 07), staging + pilot (chờ cổng phase 01).
+**Trạng thái (2026-11-12, sync 2026-11-13):** Hoàn thành (chưa deploy staging). Còn mở: test chặn import theo draw và L6 (phase 06), tag revalidate (chờ phase 07), staging + pilot (chờ cổng phase 01).
 
 **Cách làm:** làm trọn phase trong một đợt. Hai vòng review: 7/10 → 8/10, đã sửa N1–N3.
 
@@ -314,8 +314,8 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 | Commit dở → thử lại chỉ chạy dòng còn lại | Đạt | `imports-worker.e2e-spec.ts:225` |
 | Trùng seed cùng nội dung/giai đoạn bị DB chặn | Đạt | `apps/api/test/entries.e2e-spec.ts:113` |
 | Gộp: xung đột chặn; cặp trùng gộp, entry chuyển | Đạt một phần | `player-merge.e2e-spec.ts:129, 141`; 301 chờ phase 10 |
-| Rút entry trong draw đã công bố → 409 | Chưa | chờ phase 06 |
-| Import vào draw PUBLISHED bị từ chối | Chưa | chờ phase 06 (không có test) |
+| Rút entry trong draw đã công bố → 409 | Đạt (sync 2026-11-13) | `draws.e2e-spec.ts:217`, `draw-review-guards.e2e-spec.ts:68, 70` |
+| Import vào draw PUBLISHED bị từ chối | Chưa test | hook đã nối (`import-commit-processor.ts`), chưa có test cấp import |
 | Thêm VĐV đơn: 2 click + gõ tên | Chưa đo | cần kiểm tay trên staging |
 | `GET /public/*` không trả phone/email/birthDate | Chưa | phase 08 |
 
@@ -336,7 +336,7 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 **Sai lệch so với plan:** đã ghi trong "Hợp đồng đã chốt khi code" ở trên. Tóm tắt: `decisions` thay `chosenPlayerId`; setting thay env `IMPORT_RETENTION_DAYS`; thêm route `validate`; thứ tự khóa SubEvent → Player; xlsx đọc bằng exceljs stream.
 
 **Việc còn mở:**
-1. Chặn draw đã công bố (hook `entry-guards.ts`) — phase 06.
+1. Chặn import theo draw: test cấp import và kiểm tra lại trong tx (review phase 06 L6). Hook đã nối từ phase 06.
 2. Tag revalidate cho entry/VĐV/gộp/import — phase 07 (`cache-tags.ts`).
 3. 301 slug VĐV đã gộp — phase 10.
 4. Deploy staging + migrate + pilot — chờ cổng phase 01 (chủ hạ tầng).

@@ -44,6 +44,11 @@
 - Allowlist sanitizer cho phép `img`/`table` mà editor (`apps/admin/src/components/rich-text-field.tsx`) không tạo được (L7). Quyết định khi làm trang tin/tĩnh (phase 11).
 - `cache-tags.ts` đợi phase 07.
 
+<!-- Phase 06 sync — 2026-11-13 -->
+- Predicate dùng chung đã có: `packages/shared/src/match-predicates.ts` (`isRealMatch`, `isPlayedMatch`), có test. Mọi số liệu và danh sách công khai dùng hai hàm này.
+- Nhánh công khai chỉ đọc draw `PUBLISHED`. Phase 06 chưa có route công khai nào, nên DRAFT không lộ ra (review phase 06 xác nhận: `plans/reports/code-reviewer-261113-phase-06-draws.md`).
+- Mã vòng (`Round.code`, gồm `QF-n` cho vòng loại) và nhãn ô chờ có cấu trúc (`{type: WINNER_OF | QUALIFIER | GROUP_PLACE, ...}`) đã lưu sẵn; render qua từ điển vi/en.
+
 ## Requirements
 
 Functional

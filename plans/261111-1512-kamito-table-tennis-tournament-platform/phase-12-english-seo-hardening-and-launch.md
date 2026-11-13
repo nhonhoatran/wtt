@@ -161,3 +161,8 @@ Ký hiệu: **[G1a]**, **[G1b]**, **[G2]** = câu hỏi thuộc cổng cứng (x
 16. Pilot tuần 8–9: dùng dữ liệu giải cũ nào, file có sẵn ở dạng gì, BTC tham gia được buổi nào?
 17. Form liên hệ có cần gửi email thông báo cho BTC không (bản đầu chỉ có hộp thư admin)?
 18. Điều khoản sử dụng của worldtabletennis.com chưa đọc được — giữ ở mức tham khảo cấu trúc/chức năng.
+19. **[G1b]** Vòng bảng: nếu nhiều VĐV hòa mà tiêu chí phá hòa không tách được, có cho họ chung một hạng (vd 1, 1, 3) rồi BTC bốc thăm/xếp tay không? (Đang làm như vậy trong phase 06.)
+20. **[G1b]** Xếp tay khi phá hòa: hạng nhập tay là hạng tuyệt đối trong bảng (vd 1, 2, 3, 4), không phải thứ tự trong nhóm hòa? (Đang làm như vậy.)
+21. **[G1a]** Vòng loại: hạt giống 1..k có được xếp mỗi nhánh con một người không (hạt giống tốt nhất vào mỗi nhánh con một người)? (Đang làm như vậy.)
+22. **[G1b]** VĐV rút lui khi đang đấu một trận bảng: trận đang dở tính cho người đang dẫn, còn lại tính walkover? (Đang làm như vậy.)
+23. **[G1b]** Người đi tiếp của một bảng rút lui trước khi xếp vào nhánh chính: suất có chuyển cho người kế tiếp trong bảng không (người rút vẫn giữ hạng để hiển thị)? (Đang làm như vậy.)

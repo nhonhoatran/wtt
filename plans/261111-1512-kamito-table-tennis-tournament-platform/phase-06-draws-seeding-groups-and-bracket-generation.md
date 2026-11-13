@@ -10,11 +10,12 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. ≈10 ngày công (gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: hoàn thành 2026-11-13 (làm trọn một lượt; chưa commit, chưa deploy staging; G1a/G1b chưa xác nhận). ≈10 ngày công (gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 4–5, ≈4 ngày):** engine loại trực tiếp (kích thước nhánh, hạt giống, BYE, sinh trận), model draw/round/match/game, sinh → đổi chỗ → công bố 1 draw `MAIN`, màn admin tối thiểu.
   - **Phần còn lại (tuần 10–11, ≈6 ngày):** vòng loại, vòng bảng (chia bảng, vòng tròn, BXH bảng với luật walkover/bỏ cuộc/rút lui), bảng → nhánh, thao tác sau công bố, khóa mức Draw/Group, tính lại BXH, phá hòa thủ công, ghi đè thể thức theo vòng.
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
 - **Cổng G1 (cứng):** (a) BTC xác nhận mẫu đặt hạt giống loại trực tiếp trước khi lát cắt bốc thăm (hạn cuối tuần 3) — chưa có thì lát cắt chỉ chạy trên dữ liệu thử, không dùng cho giải thật; (b) BTC trả lời về chia bảng, tiêu chí phá hòa, xử lý rút lui giữa bảng trước khi bắt đầu phần còn lại (tuần 10). Câu hỏi gửi từ tuần 1.
+- **Trạng thái 2026-11-13:** (a) và (b) chưa được BTC trả lời. Phần còn lại đã làm trước theo mặc định plan, cách hiểu chờ xác nhận ở [phase 12, câu 19–23](./phase-12-english-seo-hardening-and-launch.md#câu-hỏi-chưa-giải-quyết). Chi tiết: mục "Kết quả triển khai".
 - Logic thuần **tự viết** trong `packages/competition-engine`; bảng domain là nguồn dữ liệu duy nhất.
 
 ## Key Insights
@@ -36,7 +37,7 @@
 - Phase 04 đã có model `MatchFormat` và `GroupScoringRule` (`packages/db/prisma/schema/tournament-catalog.prisma`); `withdrawalPolicy` để trống (API trả `withdrawalPolicyMissing`), seed không tự chọn (`packages/db/prisma/seed/seed-config-defaults.ts`).
 - Bộ tiêu chí phá hòa đã có: `packages/shared/src/tiebreak-criteria.ts`. Dùng lại, không tạo danh sách mới.
 - "Đúng một mục mặc định" có partial unique index (`MatchFormat_single_default`, `GroupScoringRule_single_default`, migration `add_single_default_partial_indexes`); helper dùng chung `apps/api/src/common/crud/default-flag.ts`.
-- `draw.defaultGroupSize`, `draw.defaultAdvancePerGroup` chưa có trong `packages/shared/src/tournament-settings.ts`; thêm khi làm phase này.
+- Đã thêm 4 setting vào `packages/shared/src/tournament-settings.ts` (2026-11-13): `draw.defaultSeedPercent`, `draw.defaultGroupSize`, `draw.defaultAdvancePerGroup`, `draw.defaultQualifierCount`.
 - Đăng ký `cache-tags.ts` đợi phase 07.
 
 <!-- Phase 05 sync — 2026-11-12 -->
@@ -44,14 +45,14 @@
 - Thao tác `withdraw-from-draw` (tab Bốc thăm) là phần của phase này; thông báo 409 phase 05 đã trỏ tới tên thao tác này.
 - Rút entry đã xóa `seed` (chốt 2026-11-12): đọc hạt giống draw phải chấp nhận `seed = null` với entry `WITHDRAWN`.
 - Khóa: luôn lấy SubEvent trước, Player sau (`lockSubEvent` trong `@kamito/db`).
-- Xem trước gộp VĐV (`/admin/players/merge/preview`) đang đếm trận = 0; điền số trận khi có bảng trận.
+- Xem trước gộp VĐV (`/admin/players/merge/preview`) đã đếm trận thật, loại BYE (từ 2026-11-13, `player-merge-preview.ts:86`). Test hiện chỉ khẳng định `matches: 0` (`player-merge.e2e-spec.ts:49`), chưa có ca có trận thật.
 
 ## Requirements
 
 Functional
 - Mỗi nội dung: tối đa 1 draw `QUALIFYING` (nếu `hasQualifying`), 1 `GROUP` (nếu `GROUP_KNOCKOUT`), 1 `MAIN`.
 - Xem trước thông số trước khi bốc: số đăng ký, kích thước nhánh, số BYE, số hạt giống, số suất vòng loại/số bảng.
-- Hạt giống: lấy từ `Entry.seed`; nút "Gợi ý theo BXH" (có tác dụng sau phase 09); mặc định số hạt giống = AppSetting `draw.defaultSeedRatio` × kích thước nhánh (mặc định ví dụ 1/4), sửa được.
+- Hạt giống: lấy từ `Entry.seed`; nút "Gợi ý theo BXH" (có tác dụng sau phase 09); mặc định số hạt giống = AppSetting `draw.defaultSeedPercent` (mặc định 25 %) × kích thước nhánh, sửa được.
 <!-- Red Team: Xếp hạng không tái lập được — 2026-11-11 -->
 - Vòng loại: k phân nhánh độc lập (`section` 1..k, mã vòng đếm ngược từ trận cuối section: `QF-1`, `QF-2`… để phase 09 tính điểm như nhau dù section lệch kích thước), người thắng mỗi phân nhánh là 1 suất; nhánh chính có k ô `Q1..Qk` (không đặt đối diện BYE); khi vòng loại xong → "Bốc suất vòng loại vào nhánh chính" (1 click).
 <!-- Red Team: Sửa draw sau công bố — 2026-11-11 -->
@@ -274,18 +275,18 @@ Ma trận test engine
 
 ## Todo List
 
-- [ ] (Lát cắt) Engine loại trực tiếp + test (kích thước, hạt giống, BYE, đổi chỗ sinh lại dẫn xuất)
-- [ ] (Lát cắt) Migration draws/rounds/matches/games; cấp `matchNo` theo khóa mức event
-- [ ] (Lát cắt) Sinh/lưu/công bố draw MAIN + khóa Draw + audit; predicate trận đã đấu
-- [ ] (Lát cắt) Màn admin tối thiểu: wizard, nháp, đổi chỗ, công bố
-- [ ] Cổng G1b: câu trả lời BTC về chia bảng, phá hòa, rút lui giữa bảng
-- [ ] ui-consistency: finding-patterns → planning
-- [ ] Engine vòng loại, vòng bảng, BXH (walkover/bỏ cuộc/rút lui, mẫu 0), bảng → nhánh + test
-- [ ] Migration groups/standings; recompute idempotent dưới khóa
-- [ ] Unpublish, replace-entry, withdraw-entry + audit + revalidate
-- [ ] API admin draws/groups/rounds đầy đủ
-- [ ] Màn admin đầy đủ + xem trước ảnh hưởng
-- [ ] ui-consistency: verifying; deploy staging
+- [x] (Lát cắt) Engine loại trực tiếp + test (kích thước, hạt giống, BYE, đổi chỗ sinh lại dẫn xuất)
+- [x] (Lát cắt) Migration draws/rounds/matches/games; cấp `matchNo` theo khóa mức event
+- [x] (Lát cắt) Sinh/lưu/công bố draw MAIN + khóa Draw + audit; predicate trận đã đấu
+- [x] (Lát cắt) Màn admin tối thiểu: wizard, nháp, đổi chỗ, công bố (code xong; chưa chạy trên trình duyệt)
+- [ ] Cổng G1b: câu trả lời BTC về chia bảng, phá hòa, rút lui giữa bảng — **chưa trả lời** (2026-11-13); phần còn lại đã làm trước theo mặc định
+- [x] ui-consistency: finding-patterns → planning (`ui/phase-06-ui-plan.md`, `ui/phase-06-ui-checklists.md`)
+- [x] Engine vòng loại, vòng bảng, BXH (walkover/bỏ cuộc/rút lui, mẫu 0), bảng → nhánh + test (theo mặc định, chờ G1b)
+- [x] Migration groups/standings; recompute idempotent dưới khóa
+- [ ] Unpublish, replace-entry, withdraw-entry + audit + revalidate — **còn revalidate** (ghi nợ; chờ `cache-tags.ts` phase 07)
+- [x] API admin draws/groups/rounds đầy đủ (hợp đồng: `plans/reports/api-contract-261113-1047-phase-06-draws.md`)
+- [ ] Màn admin đầy đủ + xem trước ảnh hưởng — code xong; checker ui-consistency (task 0) parked; chưa chạy trên trình duyệt
+- [ ] ui-consistency: verifying; deploy staging — chưa
 
 ## Success Criteria
 
@@ -299,13 +300,16 @@ Ma trận test engine
 
 ## Risk Assessment
 
-| Rủi ro | Khả năng × Tác động | Xử lý |
+| Rủi ro | Khả năng × Tác động | Xử lý / trạng thái 2026-11-13 |
 |---|---|---|
-| Quy tắc đặt hạt giống/chia bảng của Kamito khác chuẩn | Trung bình × Trung bình | Cổng G1; đổi chỗ thủ công trong nháp |
-| Engine tự viết thiếu ca biên | Trung bình × Cao | Ma trận test viết trước; coverage ≥ 90 %; dự phòng tuần 13 |
-| Sai sót phát hiện sau công bố | Trung bình × Cao | Unpublish / replace / withdraw có audit |
-| Chốt đồng thời cùng bảng ghi đè BXH | Trung bình × Cao | Khóa Draw/Group + tính từ đầu + test đồng thời |
+| Quy tắc đặt hạt giống/chia bảng của Kamito khác chuẩn | Trung bình × Trung bình (đang mở) | G1a chưa xác nhận: dùng mẫu chuẩn, chỉ dữ liệu thử; đổi chỗ thủ công trong nháp. Nếu BTC khác → sửa engine + test |
+| **Làm trước G1b** — phá hòa, rút lui giữa bảng có thể khác luật BTC | Trung bình × Cao (mới) | 5 cách hiểu ghi rõ (phase 12, câu 19–23); tiêu chí phá hòa đổi qua `GroupScoringRule`; luật khác vẫn sửa engine. Trước tuần 10 phải có câu trả lời |
+| Engine tự viết thiếu ca biên | Trung bình × Cao | Ma trận test; coverage dòng 99.57 %. Review bắt 4 lỗi cao (H1–H4), đã sửa kèm test hồi quy |
+| Sai sót phát hiện sau công bố | Trung bình × Cao | Unpublish / replace / withdraw có audit và xem trước `dryRun`. Còn thiếu revalidate cache công khai |
+| Chốt đồng thời cùng bảng ghi đè BXH | Trung bình × Cao | Đã xử lý: khóa SubEvent → Draw → Group, tính BXH từ đầu, test đồng thời |
 | Sửa kết quả sau khi bảng đã đưa người vào nhánh | Thấp × Cao | Reopen có xem trước + đường cưỡng chế (phase 07) |
+| UI chưa chạy trên trình duyệt; checker ui-consistency (task 0) parked | Cao × Trung bình (mới) | Giao checker hiệu chỉnh trước khi đóng plan UI |
+| Chưa deploy staging: M1 (cuối tuần 6) trễ | Cao × Cao | Phụ thuộc cổng phase 01 (xem plan.md, Blocker) |
 
 Rollback: bảng mới; revert app; draw nháp xóa được, không ảnh hưởng dữ liệu đăng ký.
 
@@ -316,4 +320,63 @@ Rollback: bảng mới; revert app; draw nháp xóa được, không ảnh hư�
 
 ## Next Steps
 
-- Lát cắt tiếp tục ở phase 07 (nhập/chốt tỷ số, đẩy nhánh). Phase 08 hiển thị nhánh công khai; phase 09 dùng mã vòng (gồm `QF-n`) và `GroupStanding.rank`.
+- Phase 07 nối tiếp: dùng hook walkover treo và khóa bảng (xem "Phase 06 sync" trong phase 07). Phase 08 hiển thị nhánh công khai (predicate `match-predicates.ts` đã có). Phase 09 dùng mã vòng (gồm `QF-n`) và `GroupStanding.rank`; cần thêm trigger tính lại khi rút khỏi nhánh (xem phase 09).
+- Đang chờ: BTC trả lời G1a/G1b (phase 12, câu 9–10, 19–23); deploy staging (cổng phase 01); revalidate khi có `cache-tags.ts`.
+
+## Kết quả triển khai (2026-11-13)
+
+Làm trọn một lượt, không tách lát cắt (như phase 04–05). Chưa commit, chưa deploy staging.
+
+### Đã xong (bằng chứng)
+- Engine: đủ file theo plan trong `packages/competition-engine/src`, 180 test pass (trước sửa review: 178); coverage dòng 99.57 % (`plans/reports/tester-261113-phase-06-full-suite.md`).
+- Shared: `packages/shared/src/match-predicates.ts` + test (`isRealMatch`, `isPlayedMatch`).
+- DB: migration `20261113030544_add_draws_rounds_matches_games`, `20261113030600_add_groups_and_standings`. Khóa và cấp `matchNo` ở `packages/db/src/domain/draw-locks.ts` (`lockDraw`, `lockGroups`, `isStructureLocked`, `allocateMatchNumbers`).
+- Hook phase 05: `entriesInLockedDraw` (`packages/db/src/domain/entry-guards.ts`) gọi ở `apps/api/src/modules/entries/entries.service.ts` (đơn và bulk, 409 `ENTRY_IN_PUBLISHED_DRAW`). `subEventsWithLockedDraw` gọi ở `apps/worker/src/processors/import-commit-processor.ts`.
+- Gộp VĐV: `apps/api/src/modules/players/player-merge-preview.ts:86` đếm trận thật, loại BYE.
+- API: `apps/api/src/modules/{draws,groups,matches}`. Hợp đồng: `plans/reports/api-contract-261113-1047-phase-06-draws.md`.
+- UI: `apps/admin/src/pages/event-hub/` (tab Bốc thăm, wizard, nhánh, vòng bảng, hộp thoại).
+- Review (`plans/reports/code-reviewer-261113-phase-06-draws.md`, 7/10 trước sửa): đã sửa H1–H4, M1–M5, L1–L3, L9, có test hồi quy (`apps/api/test/draw-review-guards.e2e-spec.ts`, `apps/api/test/draw-withdrawn-entries.e2e-spec.ts`).
+- Test: full suite trước sửa review 601/601 (tester). Sau sửa review: api 307/307 (43 file), engine 180, shared 83. typecheck, lint, build pass. Migrate status 11/11 áp dụng trên DB dev cục bộ (tester, trước sửa).
+- Cảnh báo: một lần api vitest crash native (exit 0xC0000409), không có assertion fail; chạy lại pass. Cùng mã lỗi đã ghi ở phase 04–05 (phase 05, việc còn mở 6). Theo dõi, chưa rõ nguyên nhân.
+
+### Quyết định 2026-11-13 (chủ repo)
+- Đổi chỗ có hiệu lực ở click thứ 2 (A rồi B), có thông báo thành công.
+- Side menu hiện trạng thái draw: Chưa bốc / Nháp / Đã công bố.
+- Nhãn nút: "Bỏ công bố".
+- Thao tác sau công bố không yêu cầu nhập lại mật khẩu; lý do bắt buộc + audit. `@RequireStepUp` vẫn chưa gắn route nào (phase 03).
+- Người thắng vòng loại đã rút sau khi vào nhánh chính: đối thủ thắng walkover ở trận đầu MAIN; không dùng người thua (lucky loser).
+- `dryRun`: lý do không bắt buộc.
+- `randomSeed` chỉ trả cho role có `tournaments.update`.
+- Setting (`packages/shared/src/tournament-settings.ts`): `draw.defaultSeedPercent` = 25 (5–50 %), `draw.defaultGroupSize` = 4 (3–16), `draw.defaultAdvancePerGroup` = 2 (1–2), `draw.defaultQualifierCount` = 4 (1–64).
+
+### Sai lệch so với plan
+1. **Gate chưa đạt:** G1a và G1b chưa được BTC trả lời, nhưng phần còn lại (vòng loại, vòng bảng, BXH, rút lui) đã làm. Plan ghi phải chờ G1b. Chủ repo chốt làm trọn một lượt. Cách hiểu đang dùng, chờ xác nhận (phase 12):
+   - Hòa chưa phá được: các VĐV hòa chung hạng tốt nhất (vd 1, 1, 3) và đánh dấu `needsManualTiebreak` (câu 19).
+   - Hạng nhập tay là hạng tuyệt đối trong bảng (câu 20).
+   - Hạt giống vòng loại: hạt giống 1..k, mỗi nhánh con một người (câu 21, G1a).
+   - Rút lui giữa trận bảng: trận đang dở tính cho người đang dẫn (câu 22).
+   - Người đi tiếp của bảng rút sau khi đã vào nhánh chính: giữ hạng để hiển thị, không đi tiếp; suất dồn cho người kế tiếp (câu 23).
+   - Khi BTC trả lời khác: sửa engine + test, không chỉ đổi cấu hình.
+2. **Tên setting:** plan ghi `draw.defaultSeedRatio`; code dùng `draw.defaultSeedPercent`. Comment `packages/competition-engine/src/draw-preview.ts:11` còn tên cũ, cần sửa.
+3. **Vị trí file:** `allocateMatchNumbers` nằm ở `packages/db/src/domain/draw-locks.ts`, không ở `apps/api/src/modules/matches/match-number-allocator.ts` như plan.
+4. **Revalidate chưa làm:** không có `apps/api/src/modules/revalidation/cache-tags.ts` (đợi phase 07). Publish có comment ghi nợ (`apps/api/src/modules/draws/draw-publish.service.ts:18`). Spec "→ PUBLISHED, revalidate" chưa đủ.
+
+### Còn mở (ghi nợ)
+- Review L4: entry cùng seed null và cùng điểm vào pot theo UUID, chưa shuffle bằng RNG (`group-allocation.ts`).
+- Review L6: kiểm tra import lock đọc ngoài tx (`import-commit-processor.ts:22-29`), override có thể đưa VĐV vào nội dung đã công bố. Chặn import draw chưa có test ở cấp import.
+- Review L7 và revalidate: xem sai lệch 4.
+- Review L5 (chấp nhận): mỗi bảng `compute` một lần trong tx 30 s.
+- Standings bỏ qua override thể thức theo vòng (`Round.matchFormatId`).
+- Rút người đi tiếp bảng sau khi đã vào MAIN: xử lý qua MAIN, chưa có test riêng (theo ghi nhận chủ phiên).
+- UI: chưa chạy trên trình duyệt. Checker ui-consistency (task 0) parked. Màn admin chưa đạt bước verifying (`ui/phase-06-ui-plan.md`).
+- Bundle `@kamito/admin` > 500 kB (cảnh báo build, không lỗi).
+- Gộp VĐV: `apps/api/test/player-merge.e2e-spec.ts:49` chỉ khẳng định `matches: 0`. Chưa có ca có trận thật.
+- Phase 09: rút entry khỏi nhánh chưa đặt `rankingDirtyAt` (không có trong `apps/api/src/modules/draws`).
+- Deploy staging: chờ cổng phase 01.
+
+### Phase khác đã sync
+- Phase 05: hai tiêu chí chặn draw (rút entry: xong; import: đã nối hook, chưa test), số trận gộp VĐV.
+- Phase 07: hook walkover treo, khóa bảng, `GroupStanding`.
+- Phase 08: predicate trận đã đấu.
+- Phase 09: suggest-seeds (`available: false`), trigger rút khỏi nhánh.
+- Phase 12: câu hỏi 19–23 (G1a/G1b).

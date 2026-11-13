@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-12 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer).
+> Cập nhật: 2026-11-13 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine).
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`, `apps/api/src/common/*`, `apps/worker/src/*`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -17,6 +17,7 @@
 - [URL và rich text (phase 04)](#url-và-rich-text-phase-04)
 - [Worker và queue](#worker-và-queue)
 - [Nghiệp vụ VĐV và import (phase 05)](#nghiệp-vụ-vđv-và-import-phase-05)
+- [Bốc thăm và vòng bảng (phase 06)](#bốc-thăm-và-vòng-bảng-phase-06)
 - [Frontend](#frontend)
 - [Kiểm thử](#kiểm-thử)
 - [Git và commit](#git-và-commit)
@@ -68,6 +69,8 @@ apps/
               modules/{auth,access-control,users,settings,audit-logs}/   (phase 03)
               modules/{tiers,event-types,categories,disciplines,match-formats,group-scoring-rules,venues}/   (phase 04: danh mục)
               modules/{events,sub-events,media}/   (phase 04)
+              modules/{players,pairs,entries,imports,exports}/   (phase 05)
+              modules/{draws,groups,matches}/   (phase 06: nhánh, vòng bảng, đọc trận)
               cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
     test/     *.e2e-spec.ts (dùng dependency thật), support/
   worker/     Node + ioredis + BullMQ. Health HTTP nội bộ. Media worker (queue `media`).
@@ -91,6 +94,7 @@ packages/
               tournament-settings, permissions, user-role, env-validation, redis-eviction-policy, redis-probe,
               slugify-vietnamese, lifecycle-from-dates, tiebreak-criteria, https-url,
               media/ (contract, storage-env), object-storage/ (local, s3, create-object-storage)
+  competition-engine/  hàm thuần cho nhánh, vòng loại, vòng bảng, BXH (phase 06). Chỉ phụ thuộc `@kamito/shared`
   ui-tokens/  tokens.ts -> tokens.css, antd-theme.ts
 docker/       Dockerfile x4, admin-nginx.conf, admin-api-proxy.conf, admin-security-headers.conf,
               admin-entrypoint.sh, migrate-entrypoint.sh
@@ -98,7 +102,7 @@ scripts/      print-db-target.mjs (+ test)
 docs/         tài liệu dự án
 ```
 
-Chưa có: `packages/competition-engine`, `packages/ranking-engine` (phase 06–09).
+Chưa có: `packages/ranking-engine` (phase 09).
 
 ## Module và TypeScript
 
@@ -212,6 +216,7 @@ Giữ dạng env (chốt trong plan phase 04):
   { "error": { "code": "INVALID_QUERY", "message": "Invalid pagination query", "fields": { "page": "..." } } }
   ```
   `fields` chỉ có khi lỗi validate từng trường. Lỗi 500 luôn trả `INTERNAL_ERROR`, không lộ chi tiết.
+  Lỗi 409 có thể kèm khóa chi tiết. Filter chỉ giữ các khóa trong whitelist `DETAIL_KEYS` (`common/filters/http-exception.filter.ts`): `currentVersion`, `pendingSections`, `pendingGroups`, `groups`, `entryIds`, `withdrawnEntryIds`, `missingEntryIds`. Khóa mới phải thêm vào whitelist, nếu không sẽ bị bỏ khỏi phản hồi.
 - **Mã HTTP theo loại lỗi:**
 
   | Loại | HTTP | Ví dụ `code` |
@@ -221,6 +226,7 @@ Giữ dạng env (chốt trong plan phase 04):
   | Đăng ký không hợp lệ theo luật (có `issues`) | 422 | `ENTRY_INELIGIBLE` |
   | Xung đột trạng thái: đang được dùng, mặc định, đã công bố, phiên tải ảnh, đã đăng ký, đã gộp | 409 | `IN_USE`, `IS_DEFAULT`, `EVENT_PUBLISHED`, `DEFAULT_CHANGED`, `INTENT_EXPIRED`, `ALREADY_ENTERED`, `SEED_TAKEN`, `PLAYER_MERGED`, `MERGE_RETRY`, `MERGE_CONFLICT`, `NOT_COMMITTABLE` |
   | Có quyền vào màn hình nhưng không đủ quyền cho một tham số (ghi đè chỉ ADMIN) | 403 | `OVERRIDE_FORBIDDEN`, `OVERRIDE_ADMIN_ONLY` |
+  | Phiên bản nhánh hoặc bảng lệch (`expectedVersion`) | 409 | `DRAW_VERSION_CONFLICT`, `GROUP_VERSION_CONFLICT` (kèm `currentVersion`) |
   | File import: quá lớn, sai loại, rỗng | 413, 415, 422 | `PAYLOAD_TOO_LARGE`, `CONTENT_TYPE_MISMATCH`, `EMPTY_UPLOAD` |
   | Không tìm thấy | 404 | `EVENT_NOT_FOUND`, `TIER_NOT_FOUND` |
 
@@ -373,6 +379,18 @@ Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó 
 - **Dữ liệu riêng tư** (SĐT, email, ngày sinh): API chỉ trả khi có `players.update` (`canSeePlayerPii`) ở danh sách và chi tiết VĐV. Lookup, export và dòng import không đưa các trường này vào select. Phần công khai (`GET /public/*`) sẽ có test serializer ở phase 08.
 - **Đọc file Excel:** chỉ đọc qua stream và đếm byte thật. Không tin kích thước khai trong header zip. Mọi file từ người dùng đều được coi là không tin cậy. Chi tiết và giới hạn: [system-architecture](./system-architecture.md#giới-hạn-và-bảo-vệ-file-import).
 - **Commit import idempotent.** Dòng `COMMITTED` không được xử lý lại. Lô được commit trong một transaction. Chạy lại sau lỗi không được tạo bản ghi trùng.
+
+## Bốc thăm và vòng bảng (phase 06)
+
+- **Engine là hàm thuần.** `packages/competition-engine/src/` không import Prisma, Nest hay Node I/O, và không gọi `Date` hay `Math.random`. Ngẫu nhiên chỉ đi qua `createRng(seed)`. Seed được truyền vào từ api: `randomBytes(16)` khi sinh nháp và khi xếp suất vòng loại. Test viết cạnh file nguồn (`*.test.ts`), chạy bằng Vitest, không cần DB.
+- **Ngoại lệ có chủ đích:** `placementSeed` của `place-qualifiers` được sinh mới mỗi lần và ghi audit, không dùng `randomSeed` của nhánh. Lý do ghi trong [draws-and-groups](./draws-and-groups.md#vòng-loại-và-nhánh-chính).
+- **`expectedVersion` là bắt buộc trên mọi thao tác ghi nhánh** (swap, publish, delete, place-qualifiers, unpublish, replace-entry, withdraw-entry, sửa thể thức vòng). Lệch → 409 `DRAW_VERSION_CONFLICT` kèm `currentVersion`. Sinh nháp mới khi đã có nháp cùng loại cũng bắt buộc `expectedVersion`. Nếu thiếu, trả cùng mã lỗi (không ghi đè lặng lẽ). Ngoại lệ không có version: `POST /groups/:id/recompute` (idempotent). Nhập hạng tay dùng `Group.version` với `GROUP_VERSION_CONFLICT`.
+- **Khóa trước khi đọc.** Mọi thao tác ghi nhánh mở bằng `loadDrawLocked` (SubEvent, Draw, rồi mới kiểm version). Thao tác bảng dùng `lockForWrite` (Draw, rồi `lockGroups` theo `id`). Không lấy khóa Draw trước SubEvent. Thứ tự đầy đủ: [system-architecture](./system-architecture.md#bốc-thăm-và-vòng-bảng-phase-06).
+- **Thao tác có xem trước dùng `executeOperation`** (`apps/api/src/modules/draws/draw-impact.ts`). Logic nằm trong một hàm chạy trong transaction, `dryRun` ném `DryRunAbort` để rollback. Không viết nhánh logic riêng cho dry run. Lỗi nghiệp vụ có `code` trả `allowed: false` với `blockedCode`. `DRAW_VERSION_CONFLICT` và `VALIDATION_FAILED` không bị nuốt.
+- **Lý do thao tác sau công bố** dùng hằng số trong `@kamito/shared` (`DRAW_REASON_MIN_LENGTH`, `DRAW_REASON_MAX_LENGTH`). UI import cùng hằng số, không tự khai báo lại.
+- **Đưa VĐV vào một phía trận** phải gọi `settleDeferredWalkover` sau khi ghi (xem [walkover treo](./draws-and-groups.md#walkover-treo)). Quên gọi làm walkover treo không được hoàn tất.
+- **Mã trận** lấy từ `allocateMatchNumbers` dưới khóa dòng `EventMatchCounter`. Không tự đếm `matchNo` từ `max + 1`.
+- **Lỗi engine** là `DrawParamsError(code)`, đổi thành 422 bằng `runEngine` với cùng `code`. Không ném lỗi engine ra thẳng.
 
 ## Frontend
 

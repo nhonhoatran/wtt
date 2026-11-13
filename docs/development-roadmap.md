@@ -1,6 +1,6 @@
 # Development Roadmap — Kamito
 
-> Cập nhật: 2026-11-12. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase.
+> Cập nhật: 2026-11-13. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase.
 > Lịch sử thay đổi: [project-changelog.md](./project-changelog.md).
 
 ## Trạng thái phase
@@ -11,8 +11,8 @@
 | 02 | Spike: Refine, Better Auth, Dokploy, revalidate Next.js | B, C, E đạt cục bộ. D chờ staging | Kết quả trong `plans/reports/spike-*` |
 | 03 | Đăng nhập admin, RBAC, người dùng, khung admin | Code xong. Chờ deploy staging | Test API 87/87 (gồm e2e) tại thời điểm phase 03. Xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
 | 04 | Dữ liệu gốc giải đấu, cấu hình, upload ảnh | Xong (code, chưa commit). Chờ deploy staging | 3 migration, seed danh mục, upload ảnh qua API. Tester và review 13:29 không có lỗi Critical. Còn nợ ghi ở [Việc kế tiếp](#việc-kế-tiếp). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-04-dữ-liệu-gốc-giải-đấu-cấu-hình-upload-ảnh-chưa-commit) |
-| 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong (code, chưa commit). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ), mỗi sửa có test riêng. Chưa làm: cache tag (phase 07), hook chặn draw (phase 06), 301 (phase 10). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-chưa-commit) |
-| 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Pending | Chờ G1a, G1b |
+| 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong (code, chưa commit). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ), mỗi sửa có test riêng. Chưa làm: cache tag (phase 07), 301 (phase 10). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-chưa-commit) |
+| 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Xong (code, chưa commit). Chưa deploy staging | Gate G1a và G1b chưa được BTC xác nhận. Chi tiết: [draws-and-groups](./draws-and-groups.md). Changelog: [phase 06](./project-changelog.md#2026-11-13--phase-06-bốc-thăm-hạt-giống-vòng-bảng-sinh-nhánh-chưa-commit) |
 | 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Pending | Có `cache-tags.ts` (tag cache theo giải và ảnh), dời từ phase 04 |
 | 08 | Site công khai: khung, trang giải, nhánh đấu | Pending | |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng | Pending | Chờ G2 |
@@ -39,7 +39,7 @@
 1. **Chủ repo quyết định** (không tự làm):
    - Cổng phase 01: staging, Redis riêng, chủ sở hữu sao lưu và RPO còn mở.
    - Lỗi URL và slug trùng: giữ 422 (theo quy ước của code và tài liệu) hay đổi thành 400 theo spec gốc (báo cáo tester F2).
-2. **Commit phase 04 và 05** khi chủ repo yêu cầu. Trước đó chạy lại tester và code-reviewer trên code hiện tại, vì code đã đổi sau báo cáo 13:29 (phase 04) và sau báo cáo 14:36 (phase 05).
+2. **Commit phase 04, 05 và 06** khi chủ repo yêu cầu. Trước đó chạy lại tester và code-reviewer trên code hiện tại, vì code đã đổi sau báo cáo 13:29 (phase 04) và sau báo cáo 14:36 (phase 05). Phase 06: báo cáo review là bản trước khi sửa, chưa có review sau sửa.
 3. **Deploy staging** (phase 04 bước 13, phase 05 bước 11):
    - Migrate 9 migration: 5 của phase 01 đến 04, 4 của phase 05 (xem [system-architecture](./system-architecture.md#dữ-liệu)). Chạy `seed:config`. Chạy `pnpm db:print-target` trước khi migrate và xác nhận host và tên DB.
    - Thử `create-admin` trong container api (chưa kiểm chứng).
@@ -53,9 +53,7 @@
    - Các mục L của review chưa đối chiếu.
 5. **Phase 05, nợ còn lại** (theo đối chiếu code ngày 2026-11-12):
    - Nginx admin giới hạn 2m cho route upload import (xem mục 3).
-   - Hook chặn rút và import khi có draw đã công bố còn trả rỗng. Thuộc phase 06.
    - `cache-tags.ts` chưa có. Đăng ký tag cache thuộc phase 07.
-   - Số trận trong xem trước gộp VĐV còn hard-code 0. Thuộc phase 06 và 07.
    - Chuyển hướng 301 slug VĐV đã gộp. Thuộc phase 10.
    - Chưa thử file xlsx do Excel thật tạo.
-   - Phase 06 (bốc thăm) chờ G1a và G1b, như bảng trên.
+   - Phase 06: gate G1a và G1b chưa được BTC xác nhận. Quyết định chờ chủ giải: người thắng vòng loại đã rút có dùng lucky loser không (hiện tự walkover). Chi tiết: [draws-and-groups](./draws-and-groups.md#chưa-làm).

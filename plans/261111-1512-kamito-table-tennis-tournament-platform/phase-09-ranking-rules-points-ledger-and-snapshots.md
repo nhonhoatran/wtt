@@ -35,6 +35,11 @@
 - Gộp VĐV (`apps/api/src/modules/players/player-merge.service.ts`) hiện chỉ trỏ lại Competitor/Pair/Entry. Phase này thêm: trỏ lại dòng sổ điểm về VĐV đích, đánh dấu `rankingDirtyAt` cho nội dung bị ảnh hưởng. Trường `rankingDirtyAt` chưa có trong schema — thêm trong migration của phase này.
 - `POST /admin/players/merge` đã có `@RequireStepUp()` (`admin-players.controller.ts:45`); không cần gắn lại.
 
+<!-- Phase 06 sync — 2026-11-13 -->
+- Rút entry khỏi nhánh: phase 06 KHÔNG đặt `rankingDirtyAt` (không có trong `apps/api/src/modules/draws`). Trigger "rút khỏi nhánh" trong danh sách trên phải thêm khi làm phase này.
+- `GroupStanding.rank` và `qualified` đã có (`packages/db/prisma/schema/groups-and-standings.prisma`); hạng bảng chưa có quy tắc điểm (chờ G2).
+- `POST /sub-events/:id/entries/suggest-seeds` đã có và trả `{available: false, suggestions: []}` cho tới khi phase này nối dữ liệu BXH.
+
 ## Requirements
 
 Functional
