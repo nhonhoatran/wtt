@@ -48,7 +48,7 @@ describe('permission coverage', () => {
     expect(routes.length).toBeGreaterThan(10);
     expect(routes.filter((route) => route.rule === 'none')).toEqual([]);
     const publicRoutes = routes.filter((route) => route.rule === 'public').map((route) => route.route);
-    expect(publicRoutes.every((route) => route.includes('(health/') || route.includes('(media/public/'))).toBe(true);
+    expect(publicRoutes.filter((route) => !['(health/', '(media/public/', '(public/'].some((prefix) => route.includes(prefix)))).toEqual([]);
   });
 
   it('RESULTS_OPERATOR gets 403 on every ADMIN-only group that has endpoints', async () => {

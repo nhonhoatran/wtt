@@ -30,6 +30,7 @@ import { GroupsModule } from './modules/groups/groups.module.js';
 import { MatchesModule } from './modules/matches/matches.module.js';
 import { MatchResultsModule } from './modules/match-results/match-results.module.js';
 import { RevalidationModule } from './modules/revalidation/revalidation.module.js';
+import { PublicCompetitionModule } from './modules/public-competition/public-competition.module.js';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { RevalidationModule } from './modules/revalidation/revalidation.module.j
     DrawsModule,
     GroupsModule,
     MatchResultsModule,
+    PublicCompetitionModule,
   ],
 })
 export class AppModule {}

@@ -22,3 +22,5 @@ export * from './import-operational-settings.js';
 export * from './match-predicates.js';
 export * from './public-cache-tags.js';
 export * from './draw-limits.js';
+export * from './public-bracket-contract.js';
+export * from './public-api.js';

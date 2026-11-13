@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { API_GLOBAL_PREFIX } from '@kamito/shared';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { API_ENV } from './common/config/app-config.module.js';
@@ -13,7 +14,7 @@ import { LoginIpRateLimiter } from './modules/auth/login-ip-rate-limiter.service
 import { SessionResolver } from './modules/auth/session-resolver.service.js';
 import { BullBoardQueues, mountBullBoard } from './modules/queue/bull-board-mount.js';
 
-export const API_GLOBAL_PREFIX = 'api/v1';
+export { API_GLOBAL_PREFIX };
 
 /** Builds a fully configured app without listening, shared by main.ts and e2e tests. */
 export async function createApiApp(): Promise<INestApplication> {

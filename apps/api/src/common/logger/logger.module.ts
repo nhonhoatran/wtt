@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { Module } from '@nestjs/common';
+import { SSR_SECRET_HEADER } from '@kamito/shared';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { API_ENV } from '../config/app-config.module.js';
 import type { ApiEnv } from '../config/env-schema.js';
@@ -15,7 +16,7 @@ export function resolveRequestId(req: IncomingMessage): string {
 export const LOG_REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
-  'req.headers["x-internal-secret"]',
+  `req.headers["${SSR_SECRET_HEADER}"]`,
   'res.headers["set-cookie"]',
   '*.password',
   '*.secret',
