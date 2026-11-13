@@ -254,7 +254,7 @@ Rollback: migrations chỉ thêm bảng; revert app về phase 03; MediaAsset/�
 
 ## Kết quả thực hiện
 
-**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy staging) và đăng ký tag revalidate (chờ phase 07).
+**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy staging) và đăng ký tag revalidate cho mutation giải/sub-event/AppSetting (`cache-tags.ts` đã có từ lát cắt phase 07, chưa đăng ký mục này).
 
 **Cách làm:** làm trọn phase trong một đợt, không tách lát cắt. Kế hoạch và quyết định kèm theo: `./reports/implementation-plan-261112-1304-phase-04-task-breakdown.md`.
 
@@ -282,7 +282,7 @@ Rollback: migrations chỉ thêm bảng; revert app về phase 03; MediaAsset/�
 
 **Việc còn mở:**
 1. Deploy staging + migrate (bước 13). Cổng ra phase 01 chưa đạt (xem phase 03), chưa làm.
-2. Đăng ký tag revalidate cho mutation giải, sub-event, AppSetting: chờ `cache-tags.ts` ở phase 07.
+2. Đăng ký tag revalidate cho mutation giải, sub-event, AppSetting: `cache-tags.ts` đã có từ lát cắt phase 07; mục này còn mở.
 3. Driver `s3` chưa test với MinIO thật. Chưa xác nhận `content-length-range` và `HeadObject` trên đường S3 (`s3-object-storage.ts` chưa có test tích hợp).
 4. Native crash `0xC0000409` (exit 3221226505) xảy ra 1 trên 3 lần chạy full api, ở `must-change-password.e2e-spec.ts`. Chưa tái hiện; nghi `sharp` (chưa xác minh). Lần crash đó để lại 2 user `@test.kamito.local` trong DB dev; chưa dọn, cần chủ repo xác nhận trước khi xóa.
 5. Review Low chưa làm: L1, L2, L3, L4, L5, L6, L8, L9, L10, L11, L13. L7 (sanitizer cho phép `img`/`table` mà editor không tạo được) cần quyết định khi phase 11.

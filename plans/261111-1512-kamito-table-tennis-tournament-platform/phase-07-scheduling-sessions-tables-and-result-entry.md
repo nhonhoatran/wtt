@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: In progress (lát cắt xong, chưa deploy staging). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 5–6, ≈3,5 ngày):** validator tỷ số, `start` + `confirm` có `expectedVersion`, đẩy nhánh (gồm BYE), màn nhập tỷ số tối thiểu, module revalidation (enqueue + `cache-tags.ts` + processor) theo kết quả Spike E.
   - **Phần còn lại (tuần 11–12, ≈5,5 ngày):** session + xếp lịch tay trên lưới + cảnh báo trùng, `save-progress`, `un-start`, `amend-scores`, `reopen` có xem trước ảnh hưởng + đường cưỡng chế, tính lại BXH bảng dưới khóa, test đồng thời, nút "Làm mới trang công khai", in phiếu trận, export đồng bộ.
 - Phạm vi xếp lịch: chỉ xếp tay trên lưới, đủ cho quy mô giải hiện tại; các mục dời xem "Để giai đoạn sau" trong [plan.md](./plan.md#để-giai-đoạn-sau-ngoài-phạm-vi).
@@ -56,6 +56,24 @@
 - Revalidate tag cho VĐV đã gộp: cả hồ sơ A và B.
 - Mẫu chặn thao tác khi đã công bố có sẵn: `EVENT_PUBLISHED` 409 ở `sub-events.service.ts:125`. Dùng cùng mẫu cho sửa/xóa sau công bố.
 - Lọc vòng đời theo múi giờ từng giải: `apps/api/src/modules/events/event-lifecycle-filter.ts`, `packages/shared/src/lifecycle-from-dates.ts`.
+
+<!-- Phase 07 slice sync — 2026-11-13 -->
+- Đã xong (lát cắt): validator tỷ số; `start` + `confirm` có `expectedVersion`, khóa Draw → Group → Match, đẩy nhánh + BYE, BXH bảng tính lại trong transaction, audit; module revalidation (`cache-tags.ts` cho `match.start`, `match.confirm`, `draw.publish`; job id duy nhất; lỗi enqueue → 200 + `PUBLIC_REFRESH_DELAYED`); worker `revalidate-processor.ts`; màn "Nhập tỷ số" tối thiểu; trang chủ RESULTS_OPERATOR.
+- Kiểm: typecheck, lint, build pass. Test: api 320/320 (e2e trên Postgres local), competition-engine 209/209, shared 86/86, worker 34/34, admin 5/5. Sau sửa review: `match-results.e2e-spec.ts` 11/11, revalidation unit 3/3.
+- Chưa kiểm: màn nhập tỷ số chưa test trên trình duyệt, chưa thử 1024 px; chưa chạy `ui-consistency:finding-patterns` / `verifying`; chưa deploy staging.
+- Ghi nợ:
+  - Client chưa có route `/api/revalidate` (phase 08). Tới lúc đó job nhận 404, retry 5 lần rồi fail; trang công khai chỉ cập nhật theo TTL.
+  - Thao tác draw sau công bố (place/group qualifiers, unpublish, withdraw) chưa revalidate. `draw.publish` chưa có tag `match-*`.
+  - Tag còn thiếu: entry, VĐV, gộp VĐV, sub-event, AppSetting (chờ phase 04/05); `match.start` chưa có tag VĐV; VĐV thua walkover trong cascade chưa có tag.
+  - Chưa có test phủ `cache-tags` (`cache-tags-coverage.e2e-spec.ts`).
+  - Thể thức: `confirm` lấy `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua round (L8).
+  - `settleDeferredWalkover` không tăng `version` trận được điền (L10, từ phase 06).
+  - `new URL('/api/revalidate', base)` bỏ path con của `CLIENT_INTERNAL_URL` (L11).
+  - Hằng vận hành đang fix cứng: timeout enqueue 2 s, attempts 5 / backoff 2 s, page size 100, debounce tìm kiếm. Cần chuyển sang `/settings` hoặc nêu lý do fix cứng (L12).
+  - Picker giải lấy tối đa 100 giải rồi lọc phía client, trái luật lọc phía server (L13).
+  - E2e còn thiếu: chốt đồng thời 2 trận cùng bảng; cascade walkover khi đẩy nhánh; RETIRED có ván dở; RESULTS_OPERATOR bị 403 khi reopen (reopen chưa làm).
+  - Lỗi có sẵn, không do lát cắt: `apps/api/test/draws.e2e-spec.ts:325` đậu/rớt ngẫu nhiên (test đoán hạt giống; service dùng `randomBytes`, `draw-edit.service.ts:78`).
+- Câu hỏi mở: route `/api/revalidate` giữ ở phase 08 hay kéo vào lát cắt?
 
 ## Requirements
 
@@ -210,10 +228,10 @@ Phần còn lại (tuần 11–12)
 
 ## Todo List
 
-- [ ] (Lát cắt) match-score-validator + test
-- [ ] (Lát cắt) start/confirm + đẩy nhánh + BYE + khóa Draw + expectedVersion + audit
-- [ ] (Lát cắt) Revalidation: enqueue id duy nhất, cache-tags, processor, lỗi enqueue → cảnh báo
-- [ ] (Lát cắt) Màn nhập tỷ số tối thiểu
+- [x] (Lát cắt) match-score-validator + test
+- [x] (Lát cắt) start/confirm + đẩy nhánh + BYE + khóa Draw + expectedVersion + audit
+- [x] (Lát cắt) Revalidation: enqueue id duy nhất, cache-tags, processor, lỗi enqueue → cảnh báo (phía API/worker; route client `/api/revalidate` thuộc phase 08)
+- [x] (Lát cắt) Màn nhập tỷ số tối thiểu (còn mở: test trình duyệt + 1024 px)
 - [ ] ui-consistency: finding-patterns → planning
 - [ ] Migration sessions + scheduling
 - [ ] Sessions, xếp lịch tay (scheduleVersion), cảnh báo trùng, audit lịch

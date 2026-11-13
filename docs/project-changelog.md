@@ -3,6 +3,58 @@
 > Cập nhật: 2026-11-13. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
+## 2026-11-13 — Phase 07 lát cắt: nhập tỷ số và revalidate cache (chưa commit)
+
+### Thêm
+- `@kamito/competition-engine`: `validateMatchScore`, `checkGame`, `gamesToWin` (`match-score-validator.ts`). Hàm thuần, có test.
+- `@kamito/shared`: `publicCacheTags`, `isValidCacheTag`, `CACHE_TAG_MAX_LENGTH`, `REVALIDATE_TAGS_JOB` (`public-cache-tags.ts`). Thêm `QueueName.Revalidate`.
+- API `/api/v1/admin`: `GET /events/:eventId/matches`, `GET /matches/:id`, `POST /matches/:id/start`, `POST /matches/:id/confirm`. Chi tiết: [match-results](./match-results.md#api).
+- Module `match-results` (chốt trận, khóa `Match`, đẩy người thắng vào nhánh) và module `revalidation` (`RevalidationEnqueueService` dạng global, `cache-tags.ts`).
+- Worker: queue `revalidate`, `revalidate-worker.ts`, `processors/revalidate-processor.ts`. Biến mới: `CLIENT_INTERNAL_URL` và `REVALIDATE_SECRET` (bắt buộc), `REVALIDATE_TIMEOUT_MS` (mặc định 5000), `REVALIDATE_WORKER_CONCURRENCY` (mặc định 2). Compose khai hai biến bắt buộc cho worker.
+- Admin: trang **Nhập tỷ số** `/results` (mục menu, quyền `matches.list`). RESULTS_OPERATOR vào thẳng trang này. Drawer nhập ván, modal "Không đến / Bỏ cuộc".
+- `POST /draws/:id/publish` đưa tag `draw.publish` vào queue sau commit, có thể trả `warnings`.
+- Không có migration mới. Dùng cột `Match` và bảng `Game` có từ phase 06.
+
+### Thay đổi
+- Trận chuyển sang `OFFICIAL` không còn chỉ do BYE hoặc walkover: chốt kết quả nhập tay cũng được (phase 06 ghi khác).
+- Trận BYE và trận đã hủy (`isVoided`) không nhập được (409 `MATCH_STATE_INVALID`). Walkover treo chờ đối thủ không nhập được (409 `MATCH_NOT_READY`).
+
+### Sửa theo review
+Review `plans/reports/code-review-and-test-261113-phase-07-slice.md` (7,5/10, không có Critical). Đã sửa:
+
+| Mục | Vấn đề | Cách sửa |
+|---|---|---|
+| H2 | Trận vòng bảng đã `isVoided` vẫn bắt đầu và chốt được | Chặn trong `assertReady` và `isReadyForResult`, bỏ khỏi danh sách nhập. Có e2e |
+| M3 | Comment `cache-tags.ts` nhắc test phủ chưa có | Sửa comment; test phủ để lại cho phần còn lại của phase 07 |
+| M4 | Drawer mất tỷ số đang gõ sau "Bắt đầu" | Key drawer theo `match.id`, không theo `version` |
+| M5 | Lỗi từ modal "Không đến / Bỏ cuộc" bị che | Đóng modal khi gửi, lỗi hiện ở drawer. Modal mount lại nên state được reset (L14) |
+| M6 | Một tag sai làm rớt cả lô | Lọc từng tag, vẫn gửi phần còn lại, trả `PUBLIC_REFRESH_DELAYED` |
+| L7 | `winBy = 1` nhận tỷ số 22–21 | Chặn. Có test |
+
+Chưa sửa (ghi nợ):
+- H1: route `/api/revalidate` của client chưa có. Chờ chủ repo quyết định giữ phase 08 hay kéo lên.
+- Thao tác nhánh sau công bố (xếp suất vòng loại, nhất và nhì bảng, bỏ công bố, thay và rút VĐV) chưa revalidate.
+- L8: `confirm` lấy thể thức theo `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua `round`.
+- L10: `settleDeferredWalkover` không tăng `version` của trận được điền (có từ phase 06).
+- L11: `new URL('/api/revalidate', ...)` bỏ path con của `CLIENT_INTERNAL_URL`.
+- L12: hằng vận hành viết cứng (timeout enqueue 2 giây, 5 lần thử, backoff 2 giây, page size 100). Theo luật `/settings`, cần chuyển thành setting hoặc nêu lý do.
+- L13: picker giải lấy 100 giải rồi lọc ở client.
+- L15: thiếu tag cho `match.start` (VĐV), cho VĐV thua walkover trong cascade, và `draw.publish` không có tag `match-*`. Chưa có test phủ `cache-tags`.
+- Thiếu e2e: chốt đồng thời hai trận cùng bảng, cascade walkover khi đẩy nhánh, RETIRED có ván dở.
+
+### Chưa xong
+- Lịch thi đấu, session, bàn; lưu tiến độ ván dở (`save-progress`); hủy bắt đầu (`un-start`); sửa, mở lại và cưỡng chế tỷ số. Các mục này chưa có endpoint.
+- Chưa commit. Chưa deploy staging.
+- Màn nhập tỷ số chưa thử trên trình duyệt, chưa thử ở 1024 px. Chưa chạy `ui-consistency:finding-patterns` và `verifying`.
+
+### Kiểm chứng
+- Số liệu lấy từ báo cáo tester trong `plans/reports/code-review-and-test-261113-phase-07-slice.md`, agent tài liệu không chạy lại test: typecheck, lint, build pass (chunk admin trên 500 kB chỉ là cảnh báo). ui-tokens 3/3, shared 86/86, competition-engine 209/209, api 320/320 (e2e trên Postgres local), admin 5/5, scripts 4/4.
+- Worker: lần đầu rớt 2 test `media-worker.test.ts` (fixture thiếu hai biến mới), đã sửa fixture, 34/34.
+- Sau sửa review: `match-results.e2e-spec.ts` 11/11, revalidation unit 3/3.
+- Lỗi có sẵn, không do lát cắt: `apps/api/test/draws.e2e-spec.ts:325` đậu rớt ngẫu nhiên (test đoán hạt giống, còn service dùng `randomBytes`, `draw-edit.service.ts:78`). Chưa sửa.
+
+---
+
 ## 2026-11-13 — Phase 06: bốc thăm, hạt giống, vòng bảng, sinh nhánh (chưa commit)
 
 ### Thêm

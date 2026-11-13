@@ -38,7 +38,7 @@
 - Bộ tiêu chí phá hòa đã có: `packages/shared/src/tiebreak-criteria.ts`. Dùng lại, không tạo danh sách mới.
 - "Đúng một mục mặc định" có partial unique index (`MatchFormat_single_default`, `GroupScoringRule_single_default`, migration `add_single_default_partial_indexes`); helper dùng chung `apps/api/src/common/crud/default-flag.ts`.
 - Đã thêm 4 setting vào `packages/shared/src/tournament-settings.ts` (2026-11-13): `draw.defaultSeedPercent`, `draw.defaultGroupSize`, `draw.defaultAdvancePerGroup`, `draw.defaultQualifierCount`.
-- Đăng ký `cache-tags.ts` đợi phase 07.
+- Đăng ký `cache-tags.ts`: file đã có từ lát cắt phase 07 (2026-11-13); mục này chưa đăng ký (xem "Revalidate một phần" ở phần kết quả).
 
 <!-- Phase 05 sync — 2026-11-12 -->
 - Phase 05 để sẵn 2 hook trả rỗng trong `packages/db/src/domain/entry-guards.ts`: `entriesInLockedDraw`, `subEventsWithLockedDraw`. Phase này phải implement (draw khác `DRAFT` → rút entry 409 kèm hướng dẫn "Rút khỏi nhánh"; import vào draw khác `DRAFT` bị từ chối). Hai tiêu chí tương ứng chưa có test.
@@ -283,7 +283,7 @@ Ma trận test engine
 - [x] ui-consistency: finding-patterns → planning (`ui/phase-06-ui-plan.md`, `ui/phase-06-ui-checklists.md`)
 - [x] Engine vòng loại, vòng bảng, BXH (walkover/bỏ cuộc/rút lui, mẫu 0), bảng → nhánh + test (theo mặc định, chờ G1b)
 - [x] Migration groups/standings; recompute idempotent dưới khóa
-- [ ] Unpublish, replace-entry, withdraw-entry + audit + revalidate — **còn revalidate** (ghi nợ; chờ `cache-tags.ts` phase 07)
+- [ ] Unpublish, replace-entry, withdraw-entry + audit + revalidate — **còn revalidate** (ghi nợ; `cache-tags.ts` đã có, chưa đăng ký các mutation này)
 - [x] API admin draws/groups/rounds đầy đủ (hợp đồng: `plans/reports/api-contract-261113-1047-phase-06-draws.md`)
 - [ ] Màn admin đầy đủ + xem trước ảnh hưởng — code xong; checker ui-consistency (task 0) parked; chưa chạy trên trình duyệt
 - [ ] ui-consistency: verifying; deploy staging — chưa
@@ -359,7 +359,7 @@ Làm trọn một lượt, không tách lát cắt (như phase 04–05). Chưa c
    - Khi BTC trả lời khác: sửa engine + test, không chỉ đổi cấu hình.
 2. **Tên setting:** plan ghi `draw.defaultSeedRatio`; code dùng `draw.defaultSeedPercent`. Comment `packages/competition-engine/src/draw-preview.ts:11` còn tên cũ, cần sửa.
 3. **Vị trí file:** `allocateMatchNumbers` nằm ở `packages/db/src/domain/draw-locks.ts`, không ở `apps/api/src/modules/matches/match-number-allocator.ts` như plan.
-4. **Revalidate chưa làm:** không có `apps/api/src/modules/revalidation/cache-tags.ts` (đợi phase 07). Publish có comment ghi nợ (`apps/api/src/modules/draws/draw-publish.service.ts:18`). Spec "→ PUBLISHED, revalidate" chưa đủ.
+4. **Revalidate một phần:** `apps/api/src/modules/revalidation/cache-tags.ts` đã có từ lát cắt phase 07 (2026-11-13), nhưng chưa ánh xạ draw publish/unpublish/replace/withdraw. Publish có comment ghi nợ (`apps/api/src/modules/draws/draw-publish.service.ts:18`). Spec "→ PUBLISHED, revalidate" chưa đủ.
 
 ### Còn mở (ghi nợ)
 - Review L4: entry cùng seed null và cùng điểm vào pot theo UUID, chưa shuffle bằng RNG (`group-allocation.ts`).

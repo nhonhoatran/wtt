@@ -279,4 +279,4 @@ Rollback: migration chỉ thêm bảng; revert app về bản phase 02.
 3. Chưa có test tự động cho admin UI (`apps/admin` chưa có runner).
 4. Review Low chưa làm: L2, L3, L4, L5, L7, L8, L9, L10, L11. L1 còn thông báo "Mật khẩu không đúng" khi đang khóa, nên đổi sang mã `ACCOUNT_LOCKED`.
 5. `@RequireStepUp` chưa gắn route nào. Dự kiến gắn ở phase 05, 07, 09. Review đề xuất gắn sớm cho `PUT/DELETE /admin/settings/:key` và `POST /admin/users/:id/reset-password`; chờ chủ repo quyết.
-6. Trang chủ `RESULTS_OPERATOR` chưa có lối tắt nhập tỷ số (phase 07).
+6. Trang chủ `RESULTS_OPERATOR` có lối tắt nhập tỷ số từ lát cắt phase 07 (2026-11-13); chưa test trên trình duyệt.

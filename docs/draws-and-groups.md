@@ -24,7 +24,7 @@ Một nội dung (`SubEvent`) có tối đa một nhánh mỗi loại (`MAIN`, `
 - Xếp hạt giống, BYE, đổi chỗ (swap) khi còn là nháp.
 - Công bố. Sau công bố: bỏ công bố, thay VĐV, rút VĐV, phá hòa tay, xếp suất vòng loại và nhất/nhì bảng vào nhánh chính.
 
-Chưa có (phase sau): nhập tỷ số và lịch thi đấu (phase 07), bảng xếp hạng và điểm đầy đủ (phase 09). Trận chuyển sang `OFFICIAL` chỉ do BYE hoặc walkover. `POST /sub-events/:id/entries/suggest-seeds` trả `{available: false, suggestions: []}` tới phase 09.
+Nhập và chốt tỷ số có từ lát cắt phase 07, xem [match-results](./match-results.md). Chưa có (phase sau): lịch thi đấu và sửa tỷ số (phase 07, đợt 2), bảng xếp hạng và điểm đầy đủ (phase 09). `POST /sub-events/:id/entries/suggest-seeds` trả `{available: false, suggestions: []}` tới phase 09.
 
 ## Engine: `@kamito/competition-engine`
 
@@ -147,7 +147,7 @@ Trận có `resultType = WALKOVER`, `status = SCHEDULED`, và `winnerSide` trỏ
 - Khi đối thủ được đẩy vào, `settleDeferredWalkover` chuyển trận sang `OFFICIAL` (có `officialAt`), đẩy người thắng lên trận kế, và lặp lại nếu trận kế cũng treo.
 - Walkover treo chưa tính là đã đấu. `publish` hoàn tất các walkover còn treo (`settlePendingWalkovers`).
 - Bỏ công bố rồi đổi chỗ: walkover treo đi theo VĐV đã rút, không ở lại ô cũ (`draw-derived-sync.ts`).
-- **Cho phase 07.** Mọi đoạn code đưa VĐV vào một phía trận phải gọi `settleDeferredWalkover`. Trận treo không nhận kết quả nhập tay.
+- **Phase 07.** `advanceWinner` (chốt tỷ số) gọi `settleDeferredWalkover` khi đẩy người thắng vào trận kế. Trận treo không nhận kết quả nhập tay (409 `MATCH_NOT_READY`). Đoạn code mới nào đưa VĐV vào một phía trận cũng phải gọi hàm này.
 
 ## Khóa và đồng thời
 
@@ -162,7 +162,7 @@ Thứ tự khóa cố định, mọi đường ghi phải đi theo:
 | 5 | Dòng `Player` (phase 05) | Entry và merge. Draw không lấy khóa Player |
 | 6 | `EventMatchCounter` (upsert, khóa dòng) | Cấp `matchNo`. Lấy sau cùng, không tạo vòng chờ |
 
-- **Không có khóa dòng `Match` riêng** trong phase 06. Trận chỉ được ghi trong lúc đang giữ khóa `Draw` (hoặc `Group` với trận bảng).
+- **Phase 06 không khóa dòng `Match`.** Trận chỉ được ghi trong lúc đang giữ khóa `Draw` (hoặc `Group` với trận bảng). Phase 07 khóa `Match` sau `Group`, xem [match-results](./match-results.md#khóa-và-đồng-thời).
 - Rút VĐV ở QUALIFYING có thể khóa thêm nhánh MAIN (`cascadeToMain`). Lấy sau khóa SubEvent và Draw của nhánh gốc, nên không tạo chu trình.
 - Lỗi xung đột phiên bản: 409 `DRAW_VERSION_CONFLICT` kèm `currentVersion` (xem [code-standards](./code-standards.md#bốc-thăm-và-vòng-bảng-phase-06)).
 
@@ -209,9 +209,9 @@ Lỗi 409 mang thêm khóa chi tiết (whitelist trong `common/filters/http-exce
 
 | Hạng mục | Phase | Ghi chú |
 |---|---|---|
-| Nhập tỷ số, xác nhận kết quả, lịch thi đấu | 07 | Phải gọi `settleDeferredWalkover` khi đưa VĐV vào trận |
+| Lịch thi đấu, sửa và mở lại tỷ số | 07 (đợt 2) | Nhập và chốt đã có, xem [match-results](./match-results.md#chưa-làm) |
 | Lucky loser khi người thắng vòng loại đã rút | Chờ chủ giải quyết | Hiện: walkover ở MAIN |
 | Quy tắc đặt hạt giống | Chờ G1a | Hạt 1 và 2 ở hai đầu. Hạt 3–4 bốc ngẫu nhiên vào ô `S/2` hoặc `S/2+1`. Hạt 5–8 vào ô biên phần tư, tương tự cho các tầng sau (`seed-positions.ts`). BTC chưa xác nhận mẫu |
 | Chia bảng, phá hòa, rút lui giữa bảng theo quy chế BTC | Chờ G1b | Engine làm theo quy ước hiện tại |
 | Gợi ý hạt giống từ bảng xếp hạng | 09 | `suggest-seeds` trả rỗng |
-| Revalidate cache công khai sau công bố | 07 (`cache-tags.ts`) | Chưa có module công khai |
+| Revalidate sau thao tác nhánh khác công bố (xếp suất, nhất/nhì bảng, bỏ công bố, thay và rút VĐV) | 07 (đợt 2) | `draw.publish` đã enqueue. Route `/api/revalidate` của client: phase 08 |

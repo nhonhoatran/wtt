@@ -35,7 +35,7 @@
 - Phase 04 đã có helper upload: không có `presigned-upload.service.ts` (plan ghi vậy, không tạo). Dùng `apps/api/src/modules/media/media-upload-stream.ts` (stream có trần cứng) và `apps/api/src/modules/storage/object-storage.provider.ts` (`OBJECT_STORAGE`, driver `local`/`s3`). Prefix `private/imports/` cần chốt riêng với `incoming/` của media trước khi làm.
 - Dùng lại: `apps/api/src/common/crud/prisma-list-query.ts` (list), `apps/admin/src/pages/event-hub/event-hub-page.tsx` + `hub-tab-context.ts` (thêm tab), `apps/admin/src/components/confirm-action-button.tsx` (xác nhận), `apps/admin/src/components/media-upload-field.tsx` (ô file/ảnh có trạng thái).
 - `@RequireStepUp` vẫn chưa gắn route nào (phase 04 cũng chưa gắn). Gộp VĐV gắn ở phase này.
-- Đăng ký `cache-tags.ts` (bước 10): đợi phase 07 tạo file; điểm nối có sẵn ở `apps/api/src/modules/events/events.service.ts:15`.
+- Đăng ký `cache-tags.ts` (bước 10): file đã có từ lát cắt phase 07 (2026-11-13), chưa đăng ký mutation entry/VĐV/gộp; điểm nối có sẵn ở `apps/api/src/modules/events/events.service.ts:15`.
 
 ## Requirements
 
@@ -246,7 +246,7 @@ Phần còn lại (tuần 8–9)
 - [x] Export stream đồng bộ (`exports` module; test xuất > 1 trang 1000 dòng)
 - [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug chuyển phase 10
 - [x] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp — `apps/admin` (tests 4/4, build OK)
-- [ ] Đăng ký tag revalidate — chờ phase 07 tạo `cache-tags.ts` (xem phase 07, sync 2026-11-12)
+- [ ] Đăng ký tag revalidate cho entry/VĐV/gộp/import — `cache-tags.ts` đã có từ phase 07 (lát cắt 2026-11-13); còn mở (xem phase 07, sync 2026-11-12)
 - [x] ui-consistency: verifying — 2 vòng kiểm độc lập trên UI ban đầu (kết quả trong `plans/reports/ui-261112-1436-phase-05-admin-ui.md`, checklist ở `ui/`); các chỉnh UI sau review (nút "Thử lại"/"Kiểm tra lại" trang import, ẩn thẻ liên hệ riêng tư trên form VĐV, nhãn "Từ vòng loại") chưa qua verifying lại; chưa chạy trên trình duyệt
 - [ ] Deploy + migrate staging — chờ cổng ra phase 01 (chủ hạ tầng)
 - [ ] File import thử cho pilot — chờ staging; cần thử file do Excel thật lưu trước
@@ -291,7 +291,7 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 
 ## Kết quả thực hiện
 
-**Trạng thái (2026-11-12, sync 2026-11-13):** Hoàn thành (chưa deploy staging). Còn mở: test chặn import theo draw và L6 (phase 06), tag revalidate (chờ phase 07), staging + pilot (chờ cổng phase 01).
+**Trạng thái (2026-11-12, sync 2026-11-13):** Hoàn thành (chưa deploy staging). Còn mở: test chặn import theo draw và L6 (phase 06), tag revalidate cho entry/VĐV/gộp/import (`cache-tags.ts` đã có từ lát cắt phase 07, chưa đăng ký mục này), staging + pilot (chờ cổng phase 01).
 
 **Cách làm:** làm trọn phase trong một đợt. Hai vòng review: 7/10 → 8/10, đã sửa N1–N3.
 

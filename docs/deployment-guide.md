@@ -97,10 +97,12 @@ Quy tắc:
 | `S3_FORCE_PATH_STYLE` | api, worker | không | Mặc định `true` |
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | api | không | Không dùng: thiết kế upload (b) đã chọn (2026-11-12). Còn trong compose và `.env.example`; gỡ ở lần dọn env |
 | `AUTH_SECRET` | api | có | ≥ 32 ký tự, riêng từng môi trường |
-| `REVALIDATE_SECRET` | api, client | có | Khác `AUTH_SECRET` |
+| `REVALIDATE_SECRET` | api, client, worker | có | Khác `AUTH_SECRET`. Worker gửi trong header `x-revalidate-secret` khi gọi `/api/revalidate` của client |
 | `SSR_INTERNAL_SECRET` | api, client | có | Định danh request SSR nội bộ |
 | `IP_HASH_SALT` | api | có | Hash IP của form liên hệ (phase 11) |
-| `CLIENT_INTERNAL_URL` | api | không | Mặc định `http://client:3000` |
+| `CLIENT_INTERNAL_URL` | api, worker | có | Origin nội bộ của client, ví dụ `http://client:3000`. Compose đặt mặc định này khi không khai biến; code không có mặc định. Chỉ dùng origin, path con bị bỏ. Api chỉ kiểm định dạng, chưa dùng |
+| `REVALIDATE_TIMEOUT_MS` | worker | không | Mặc định 5000 (ms). Timeout mỗi lần gọi `/api/revalidate`. Compose truyền biến này (mặc định như code) |
+| `REVALIDATE_WORKER_CONCURRENCY` | worker | không | Mặc định 2. Số job revalidate chạy song song. Compose truyền biến này |
 | `PUBLIC_SITE_URL` | api, client, admin | có | Canonical, sitemap, kiểm `Origin` |
 | `ADMIN_PUBLIC_URL` | api, admin | có | |
 | `TRUST_PROXY_HOPS` | api | có (compose) | Mã mặc định trong code là `0`. Số proxy tin cậy trước api. Phải khớp đúng số hop thật, xem [auth-and-rbac.md](./auth-and-rbac.md#chống-dò-mật-khẩu) |
@@ -171,7 +173,7 @@ Biến có trong code nhưng **không có trong compose và `.env.example`**:
   |---|---|---|---|
   | `migrate` | `docker/api.Dockerfile`, target `migrate` | `internal` | `restart: "no"`, chạy một lần |
   | `api` | `docker/api.Dockerfile`, target `runtime` | `internal` | `expose: 3000`, không có domain. Phụ thuộc `migrate` hoàn tất |
-  | `worker` | `docker/worker.Dockerfile` | `internal` | Phụ thuộc `migrate`. Health cổng 3010 |
+  | `worker` | `docker/worker.Dockerfile` | `internal` | Phụ thuộc `migrate`. Health cổng 3010. Gọi `client:3000/api/revalidate` qua mạng `internal` |
   | `client` | `docker/client.Dockerfile` | `internal`, `dokploy-network` | Domain công khai |
   | `admin` | `docker/admin.Dockerfile` | `internal`, `dokploy-network` | Domain quản trị. Port 8080 |
 
@@ -384,6 +386,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 16 | Test API có một lần crash native `0xC0000409` (1/6 lần chạy đầy đủ, Windows), chưa rõ nguyên nhân | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Chạy lặp với reporter verbose để tìm file cuối trước khi crash. Trùng với F1 phase 04 |
 | 17 | Chưa thử file xlsx do Excel thật tạo. Bộ test dùng file viết tay có cấu trúc giống Excel | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Thêm một file mẫu nhỏ, không có dữ liệu thật, vào `apps/api/test/fixtures/` trước pilot |
 | 18 | Worker đọc sheet đầu theo tên `xl/worksheets/sheetN.xml`, không theo thứ tự tab. Nếu người dùng đổi thứ tự tab, kiểm header báo lỗi | `plans/reports/code-reviewer-261112-1436-phase-05-review-2.md` | Ghi rõ trong hướng dẫn cho BTC: sheet đăng ký phải là sheet đầu tiên của file |
+| 19 | Route `/api/revalidate` ở client chưa có (phase 08). Worker gọi và nhận lỗi, retry 5 lần rồi failed | [match-results](./match-results.md#revalidate-cache-công-khai), review phase 07 (H1) | Chủ repo quyết định: giữ ở phase 08, hoặc làm trong lát cắt phase 07 |
 
 ## Liên quan
 

@@ -70,7 +70,7 @@ apps/
               modules/{tiers,event-types,categories,disciplines,match-formats,group-scoring-rules,venues}/   (phase 04: danh mục)
               modules/{events,sub-events,media}/   (phase 04)
               modules/{players,pairs,entries,imports,exports}/   (phase 05)
-              modules/{draws,groups,matches}/   (phase 06: nhánh, vòng bảng, đọc trận)
+              modules/{draws,groups,matches,match-results,revalidation}/   (phase 06: nhánh, vòng bảng, đọc trận; phase 07: nhập tỷ số, revalidate)
               cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
     test/     *.e2e-spec.ts (dùng dependency thật), support/
   worker/     Node + ioredis + BullMQ. Health HTTP nội bộ. Media worker (queue `media`).

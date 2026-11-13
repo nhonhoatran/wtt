@@ -42,7 +42,7 @@
 - Song ngữ: `infoBodyEn` đã có (`apps/api/src/modules/events/event-dtos.ts:58`). Quy ước public đọc `xxxEn ?? xxx` là của plan, chưa có code public.
 - `home.featuredEventId` (AppSetting) chưa kiểm giải đã công bố (L9 chưa làm): public phải bỏ qua giải DRAFT, hoặc sửa ở phase này.
 - Allowlist sanitizer cho phép `img`/`table` mà editor (`apps/admin/src/components/rich-text-field.tsx`) không tạo được (L7). Quyết định khi làm trang tin/tĩnh (phase 11).
-- `cache-tags.ts` đợi phase 07.
+- `cache-tags.ts` đã có từ lát cắt phase 07 (2026-11-13); phase này bổ sung tag public và route `/api/revalidate` phía client.
 
 <!-- Phase 06 sync — 2026-11-13 -->
 - Predicate dùng chung đã có: `packages/shared/src/match-predicates.ts` (`isRealMatch`, `isPlayedMatch`), có test. Mọi số liệu và danh sách công khai dùng hai hàm này.
