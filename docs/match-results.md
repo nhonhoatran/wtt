@@ -1,6 +1,6 @@
 # Nhập và chốt tỷ số (phase 07, lát cắt)
 
-> Cập nhật: 2026-11-13 · Trạng thái: lát cắt xong, code chưa commit, chưa deploy staging. Phần còn lại của phase 07 (lịch, bàn, sửa và mở lại tỷ số) chưa làm.
+> Cập nhật: 2026-11-13 · Trạng thái: lát cắt xong (commit 4d64837..1c4d4fb), chưa deploy staging. Phần còn lại của phase 07 (lịch, bàn, sửa và mở lại tỷ số) chưa làm.
 > Nguồn đối chiếu: `apps/api/src/modules/match-results/`, `apps/api/src/modules/matches/`, `apps/api/src/modules/revalidation/`, `packages/competition-engine/src/match-score-validator.ts`, `packages/shared/src/public-cache-tags.ts`, `apps/admin/src/pages/results/`.
 > Kiến trúc chung (khóa, queue, revalidate): [system-architecture](./system-architecture.md#nhập-tỷ-số-và-revalidate-phase-07). Nhánh và walkover: [draws-and-groups](./draws-and-groups.md).
 
