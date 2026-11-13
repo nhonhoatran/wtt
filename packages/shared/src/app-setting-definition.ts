@@ -47,6 +47,7 @@ export const APP_SETTING_GROUPS = [
   { key: 'imports', label: 'Import Excel' },
   { key: 'auth', label: 'Đăng nhập & phiên' },
   { key: 'list', label: 'Danh sách' },
+  { key: 'draw', label: 'Bốc thăm & nhánh đấu' },
 ] as const;
 export type AppSettingGroupKey = (typeof APP_SETTING_GROUPS)[number]['key'];
 

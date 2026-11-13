@@ -19,3 +19,5 @@ export * from './entry-eligibility.js';
 export * from './player-settings.js';
 export * from './import-columns.js';
 export * from './import-operational-settings.js';
+export * from './match-predicates.js';
+export * from './draw-limits.js';
