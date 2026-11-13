@@ -85,6 +85,7 @@ export class EntriesService {
         const warnings: string[] = [];
         if (body.stage !== undefined && body.stage !== entry.stage) {
           if (body.stage === 'QUALIFYING' && !subEvent.hasQualifying) throw fieldError('stage', 'Nội dung này không có vòng loại');
+          await this.guardStageChange(tx, [id]);
           data.stage = body.stage;
         }
         if (body.quotaType !== undefined && body.quotaType !== entry.quotaType) data.quotaType = body.quotaType;
@@ -144,5 +145,16 @@ export class EntriesService {
       throw new ConflictException({ code: 'ENTRY_IN_PUBLISHED_DRAW', message });
     }
     if (draft.length) warnings.push(DRAFT_DRAW_WARNING);
+  }
+
+  /** The published draw keeps the entry in its old stage's bracket, so the stage cannot change under it. */
+  async guardStageChange(tx: Tx, entryIds: string[]): Promise<void> {
+    const { locked } = await entriesInLockedDraw(tx, entryIds);
+    if (locked.length) {
+      throw new ConflictException({
+        code: 'ENTRY_IN_PUBLISHED_DRAW',
+        message: 'Entry đang trong nhánh đã công bố, không đổi được giai đoạn. Rút khỏi nhánh hoặc bỏ công bố nhánh trước',
+      });
+    }
   }
 }

@@ -46,7 +46,9 @@ export class EntryBulkActionsService {
         } else if (body.action === 'setStage') {
           const stage = body.stage!;
           if (stage === 'QUALIFYING' && !subEvent.hasQualifying) throw fieldError('stage', 'Nội dung này không có vòng loại');
-          changes = rows.filter((row) => row.stage !== stage).map((row) => ({ row, data: { stage } }));
+          const moving = rows.filter((row) => row.stage !== stage);
+          await this.entries.guardStageChange(tx, moving.map((row) => row.id));
+          changes = moving.map((row) => ({ row, data: { stage } }));
         } else {
           const quotaType = body.quotaType!;
           changes = rows.filter((row) => row.quotaType !== quotaType).map((row) => ({ row, data: { quotaType } }));

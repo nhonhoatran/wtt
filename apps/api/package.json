@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "3.1159.0",
     "@bull-board/api": "9.10.5",
     "@bull-board/express": "9.10.5",
+    "@kamito/competition-engine": "workspace:*",
     "@kamito/db": "workspace:*",
     "@kamito/shared": "workspace:*",
     "@nestjs/common": "12.3.2",

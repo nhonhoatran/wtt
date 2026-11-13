@@ -25,6 +25,9 @@ import { PairsModule } from './modules/pairs/pairs.module.js';
 import { PlayersModule } from './modules/players/players.module.js';
 import { ImportsModule } from './modules/imports/imports.module.js';
 import { ExportsModule } from './modules/exports/exports.module.js';
+import { DrawsModule } from './modules/draws/draws.module.js';
+import { GroupsModule } from './modules/groups/groups.module.js';
+import { MatchesModule } from './modules/matches/matches.module.js';
 
 @Module({
   imports: [
@@ -54,6 +57,9 @@ import { ExportsModule } from './modules/exports/exports.module.js';
     EntriesModule,
     ImportsModule,
     ExportsModule,
+    MatchesModule,
+    DrawsModule,
+    GroupsModule,
   ],
 })
 export class AppModule {}

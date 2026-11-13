@@ -2,8 +2,25 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import type { Response } from 'express';
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; fields?: Record<string, string>; dependants?: Record<string, number>; suggestion?: string; issues?: unknown[] };
+  error: {
+    code: string;
+    message: string;
+    fields?: Record<string, string>;
+    dependants?: Record<string, number>;
+    suggestion?: string;
+    issues?: unknown[];
+    currentVersion?: number;
+    pendingSections?: number[];
+    pendingGroups?: string[];
+    groups?: string[];
+    entryIds?: string[];
+    withdrawnEntryIds?: string[];
+    missingEntryIds?: string[];
+  };
 }
+
+/** Machine-readable details some conflicts carry so the admin UI can react without parsing the message. */
+const DETAIL_KEYS = ['currentVersion', 'pendingSections', 'pendingGroups', 'groups', 'entryIds', 'withdrawnEntryIds', 'missingEntryIds'] as const;
 
 const STATUS_CODES: Record<number, string> = {
   400: 'BAD_REQUEST',
@@ -29,9 +46,10 @@ export function toErrorBody(exception: unknown): { status: number; body: ApiErro
     custom.dependants && typeof custom.dependants === 'object' ? (custom.dependants as Record<string, number>) : undefined;
   const suggestion = typeof custom.suggestion === 'string' ? custom.suggestion : undefined;
   const issues = Array.isArray(custom.issues) ? custom.issues : undefined;
+  const details = Object.fromEntries(DETAIL_KEYS.filter((key) => custom[key] !== undefined).map((key) => [key, custom[key]]));
   return {
     status,
-    body: { error: { code, message, ...(fields && { fields }), ...(dependants && { dependants }), ...(suggestion && { suggestion }), ...(issues && { issues }) } },
+    body: { error: { code, message, ...(fields && { fields }), ...(dependants && { dependants }), ...(suggestion && { suggestion }), ...(issues && { issues }), ...details } },
   };
 }
 

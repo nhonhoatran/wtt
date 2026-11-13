@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@kamito/db';
 
-type Db = Pick<Prisma.TransactionClient, 'player' | 'entry' | 'pair'>;
+type Db = Pick<Prisma.TransactionClient, 'player' | 'entry' | 'pair' | 'match'>;
 
 export type MergeConflictCode = 'SAME_SUB_EVENT' | 'PAIR_OF_BOTH' | 'ALREADY_MERGED' | 'SAME_PLAYER';
 
@@ -80,7 +80,17 @@ export async function analyseMerge(db: Db, targetId: string, sourceId: string) {
     }
   }
 
-  return { target, source, counts: { entries: sourceEntries, pairs: pairs.length, matches: 0 }, conflicts, canMerge: conflicts.length === 0 };
+  const sourceCompetitor = {
+    competitor: { OR: [{ playerId: sourceId }, { pair: { OR: [{ playerAId: sourceId }, { playerBId: sourceId }] } }] },
+  };
+  const matches = await db.match.count({
+    where: {
+      OR: [{ side1Entry: sourceCompetitor }, { side2Entry: sourceCompetitor }],
+      AND: [{ OR: [{ resultType: null }, { resultType: { not: 'BYE' } }] }],
+    },
+  });
+
+  return { target, source, counts: { entries: sourceEntries, pairs: pairs.length, matches }, conflicts, canMerge: conflicts.length === 0 };
 }
 
 export function toPreviewView(analysis: Awaited<ReturnType<typeof analyseMerge>>) {
