@@ -3,6 +3,62 @@
 > Cập nhật: 2026-11-13. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
+## 2026-11-13 — Phase 08 lát cắt: site công khai và trang nhánh đấu (chưa commit)
+
+### Thêm
+- API công khai `GET /api/v1/public/events/:slug/draws/:subEventCode?kind=main|qualifying`. Module `public-competition`, guard `SsrInternalGuard` (header `x-internal-secret`), `publicScope` (`modules/public-scope/`), serializer whitelist `toPublicBracket`. Chi tiết: [system-architecture](./system-architecture.md#site-công-khai-phase-08).
+- `@kamito/shared`: `public-api.ts` (`API_GLOBAL_PREFIX`, `PUBLIC_API_SEGMENT`, `SSR_SECRET_HEADER`, `REVALIDATE_SECRET_HEADER`, `REVALIDATE_MAX_TAGS`), `public-bracket-contract.ts` (`PUBLIC_DRAW_KINDS`, kiểu `PublicBracket`).
+- Client: trang `/[locale]/events/[slug]/draws/[subEventCode]` (vi, en), `lib/`, `i18n/` (`vi.json`, `en.json`), `components/bracket/`, `components/layout/`, `error.tsx`, `not-found.tsx`, `proxy.ts`.
+- Client: route `POST /api/revalidate` (kiểm Host, secret, body, gọi `revalidateTag` với `expire: 0`). Route này là phần còn thiếu của phase 07.
+- Env mới cho client: `REVALIDATE_ALLOWED_HOSTS`, `API_FETCH_TIMEOUT_MS`. Đã khai trong compose và `.env.example`.
+- Tag mới trong `CACHE_TAGS`: `draw.unpublish`, `draw.postPublishEdit` (dùng `drawTags`, ngữ cảnh lấy qua `loadDrawTagContext`, dùng chung với `draw.publish`).
+
+### Thay đổi
+- API công khai trả `200 {data: null}` cho nội dung không công khai, thay vì 404. Lý do: Next chỉ cache response 200.
+- Client gọi API bằng header `x-internal-secret` (hằng `SSR_SECRET_HEADER`). Worker gọi client bằng `x-revalidate-secret` (hằng `REVALIDATE_SECRET_HEADER`, trước là chuỗi lặp lại).
+- `API_GLOBAL_PREFIX` chuyển sang `@kamito/shared`. `bootstrap-app.ts` chỉ re-export.
+- Worker: payload vượt `REVALIDATE_MAX_TAGS` (200) là lỗi vĩnh viễn, không retry.
+- Tên site trên header và footer lấy từ `appSettingRegistry` (giá trị mặc định), không còn từ điển cứng.
+
+### Sửa theo review
+Review `plans/reports/code-review-and-test-261113-phase-08-slice.md` (7/10, không có Critical). Đã sửa:
+
+| Mục | Vấn đề | Cách sửa |
+|---|---|---|
+| H1 | Next không cache 404, nên trang đã gỡ vẫn hiện. Bỏ công bố không gửi tag | API trả 200 `{data: null}`. Bỏ công bố, thay VĐV, rút VĐV gửi tag. Có test |
+| M1 | Tên site cứng, lệch AppSetting `site.name` | Lấy từ `appSettingRegistry` |
+| M2 | `/api/v1/public` cứng ở client | `API_GLOBAL_PREFIX` và `PUBLIC_API_SEGMENT` dùng chung |
+| M3 | Fetch không timeout, không có `error.tsx` | `API_FETCH_TIMEOUT_MS`, `error.tsx`, `cache()` của React cho metadata và trang |
+| M4 | Slug rác không cache được | Hết nhờ H1 |
+| L1 | `kind` có thể là mảng | Kiểm `typeof === 'string'`, có test |
+| L4, L5 | Header và giới hạn tag lặp ở nhiều nơi | Đưa vào shared, worker coi vượt giới hạn là lỗi vĩnh viễn |
+| L6 | Test whitelist không phủ QUALIFIER, GROUP_PLACE | Thêm unit test `toPublicSource` |
+| L7 | `availableKinds.sort()` dựa thứ tự chữ cái | Theo thứ tự `PUBLIC_DRAW_KINDS` |
+| L9 | Link MAIN có hai URL | Link MAIN không kèm query |
+| L10 | Đếm tag trùng | Đã sửa |
+
+Ghi chú, chưa đổi code: L2 (kiểm Host chỉ là lớp phụ, ghi rõ trong comment), L3 (`REVALIDATE_ALLOWED_HOSTS` phải khớp `CLIENT_INTERNAL_URL`, ghi trong compose). L8 (màu xám cứng trong `bracket.module.css`) chưa sửa: token chưa có màu chữ phụ, làm cùng đợt `ui-consistency` của site công khai.
+
+### Sửa trong lúc smoke local
+- Secret SSR lọt vào log: log request API in nguyên văn secret. Header SSR trong working tree có tên không nằm trong `LOG_REDACT_PATHS`. Sửa: header đặt là `x-internal-secret` (tên đã có trong danh sách che từ phase 01), đường che lấy từ `SSR_SECRET_HEADER`. Sau sửa, log hiện `***`. Lỗi chỉ có trong working tree, chưa commit.
+- Test chập chờn `draws.e2e-spec.ts` (đặt suất vòng loại, có từ phase 06): test tính kết quả mong đợi bằng `${randomSeed}:qualifiers`, còn service dùng `placementSeed` ngẫu nhiên riêng (`draw-edit.service.ts:78`). Với 2 suất thì đúng 50%. Sửa: test đọc `placementSeed` từ audit. Mục này ghi "chưa sửa" trong changelog phase 07, nay đã sửa.
+
+### Chưa xong
+- Playwright `vertical-slice.spec.ts` chưa có (repo chưa có Playwright). Deploy staging chưa làm, nên mốc M1 chưa đạt.
+- Chưa có trang giải, lịch, bảng xếp hạng, VĐV hay tin công khai.
+- Bỏ công bố hoặc hủy giải (cấp event) chưa gửi tag. Xếp suất vòng loại và nhất/nhì bảng chưa gửi tag. Chưa kiểm `group-qualifier.service` có sửa nhánh MAIN đã công bố mà không gửi tag hay không.
+- Cache Next nằm riêng từng instance client. Cần cache handler dùng chung trước khi scale.
+- `API_BASE_PATH` trong `.env.example` không được API đọc (chỉ admin dùng).
+
+### Kiểm chứng
+- Số liệu lấy từ báo cáo `plans/reports/code-review-and-test-261113-phase-08-slice.md` (tester và code-reviewer chạy). Agent tài liệu không chạy lại test.
+- Bản cuối: shared 86/86; API 330/330 (47 file, exit 0); `public-bracket.e2e-spec.ts` 8/8; `draws.e2e-spec.ts` 6/6 lượt xanh sau sửa; worker 34/34; client typecheck, lint, build sạch.
+- Một lượt chạy chồng (script seed vô tình gộp `include`, chạy song song với tester) rớt 4 test, không ghi tên test. Hai lượt chạy riêng sau đó đều xanh, nên theo báo cáo đây là do hai lượt giẫm DB và Redis của nhau.
+- Smoke local trên DB dev cục bộ (`localhost:5433`, dữ liệu thử đã dọn): trang nhánh MS và `/en` đúng nội dung; URL sai, `..`, `?draw=bad` → 404; API thiếu secret → 403; `/api/revalidate` đúng và sai theo bảng ở [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08); cache: đổi DB chưa revalidate thì còn bản cũ, sau revalidate thì bản mới.
+- Trình duyệt ở 390 px: `scrollWidth` 375, chỉ khung nhánh cuộn ngang. Ảnh: `plans/reports/screenshots-261113-phase-08-slice/`.
+
+---
+
 ## 2026-11-13 — Phase 07 lát cắt: nhập tỷ số và revalidate cache (chưa commit)
 
 ### Thêm

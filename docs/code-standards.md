@@ -71,12 +71,15 @@ apps/
               modules/{events,sub-events,media}/   (phase 04)
               modules/{players,pairs,entries,imports,exports}/   (phase 05)
               modules/{draws,groups,matches,match-results,revalidation}/   (phase 06: nhánh, vòng bảng, đọc trận; phase 07: nhập tỷ số, revalidate)
+              modules/public-competition/, modules/public-scope/, common/guards/   (phase 08: API nhánh đấu công khai, SsrInternalGuard)
               cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
     test/     *.e2e-spec.ts (dùng dependency thật), support/
   worker/     Node + ioredis + BullMQ. Health HTTP nội bộ. Media worker (queue `media`).
     src/      main.ts, worker-env.ts, redis-eviction-guard.ts, worker-health-server.ts
               media-worker.ts (khởi động worker, scheduler dọn), processors/ (process-image, cleanup)
   client/     Next.js App Router. Segment [locale], i18n vi/en.
+    src/      app/[locale]/ (events/[slug]/draws/[subEventCode], phase 08), app/api/revalidate, proxy.ts,
+              lib/ (api-client, server-env, internal-request), i18n/, components/ (bracket, layout)
   admin/      Vite + React + antd + Refine. Runtime config từ /config.json.
     src/      main.tsx, app.tsx, runtime-config.ts
               api/ (http-client), providers/ (auth, access control, data, current-user)
@@ -94,6 +97,7 @@ packages/
               tournament-settings, permissions, user-role, env-validation, redis-eviction-policy, redis-probe,
               slugify-vietnamese, lifecycle-from-dates, tiebreak-criteria, https-url,
               media/ (contract, storage-env), object-storage/ (local, s3, create-object-storage)
+              public-api (prefix và tên header dùng chung), public-bracket-contract (phase 08)
   competition-engine/  hàm thuần cho nhánh, vòng loại, vòng bảng, BXH (phase 06). Chỉ phụ thuộc `@kamito/shared`
   ui-tokens/  tokens.ts -> tokens.css, antd-theme.ts
 docker/       Dockerfile x4, admin-nginx.conf, admin-api-proxy.conf, admin-security-headers.conf,
@@ -210,6 +214,12 @@ Giữ dạng env (chốt trong plan phase 04):
 ## Quy ước API
 
 - Global prefix `api/v1` (`API_GLOBAL_PREFIX`). Route nội bộ nằm dưới `/api/v1/{admin,public,auth,media}`, health dưới `/api/v1/health/*`.
+- **Hằng dùng chung API và client** khai trong `packages/shared/src/public-api.ts`: `API_GLOBAL_PREFIX`, `PUBLIC_API_SEGMENT`, `SSR_SECRET_HEADER`, `REVALIDATE_SECRET_HEADER`, `REVALIDATE_MAX_TAGS`. Client và worker không gõ lại chuỗi. Prefix không đọc từ env: `API_BASE_PATH` chỉ admin dùng.
+- **API công khai (`/public/*`):**
+  - Controller có `@Public()` và `@UseGuards(SsrInternalGuard)`. Test "guards every /public controller" quét metadata và báo lỗi nếu thiếu guard.
+  - Điều kiện công khai lấy từ `publicScope` (`modules/public-scope/public-scope.ts`). Không viết lại `where` trong từng query.
+  - Serializer là whitelist: liệt kê từng trường (`toPublicBracket`), không spread entity. Thêm hoặc bớt trường thì cập nhật `EXPECTED_FIELDS` trong `public-bracket.e2e-spec.ts` (field snapshot).
+  - Nội dung không có, chưa công bố, hoặc query lạ: 200 `{data: null}`, không 404. Lý do: Next chỉ cache 200 ([system-architecture](./system-architecture.md#api-công-khai)).
 - Thư mục: `common/` cho hạ tầng dùng chung, `modules/<feature>/` cho nghiệp vụ.
 - **Lỗi** trả về một dạng duy nhất:
   ```json
@@ -243,7 +253,8 @@ Giữ dạng env (chốt trong plan phase 04):
 - **Proxy:** `app.set('trust proxy', TRUST_PROXY_HOPS)`. Không đọc `X-Forwarded-For` ngoài số hop đã khai.
 - **Ghi audit:** mọi thay đổi dữ liệu nghiệp vụ gọi `AuditService.record(entry, tx)`, truyền transaction client để bản ghi audit cùng commit với thay đổi. Không truyền `tx` thì audit ghi ngoài transaction.
 - **PII trong audit:** `maskPii` thay giá trị bằng `***` cho khóa chứa `phone`, `email`, `birth`, `dob`, `address`, `cccd`, `idnumber`, `password`, `token`, `secret`, `apikey`, `authorization`, `cookie` (so khớp chuỗi con, không phân biệt hoa thường). Giá trị `null` giữ nguyên.
-- **Log:** pino JSON. Redact `req.headers.authorization`, `req.headers.cookie`, `x-internal-secret`, `set-cookie`, `*.password`, `*.secret`, `*.token`. Không log request health.
+- **Log:** pino JSON. Redact `req.headers.authorization`, `req.headers.cookie`, `req.headers["x-internal-secret"]` (tên lấy từ `SSR_SECRET_HEADER`), `res.headers["set-cookie"]`, `*.password`, `*.secret`, `*.token`. Không log request health.
+  - Header chứa secret phải dùng hằng từ `@kamito/shared` và có trong `LOG_REDACT_PATHS`. Tên header lệch danh sách thì secret lọt vào log.
 - **Body JSON:** giới hạn tính từ `JSON_BODY_LIMIT` (`common/http/json-body-limit.ts`), không dùng mặc định 100 kB của Express. Tiếng Việt có dấu làm rich text vượt 100 kB sớm.
 
 ## Danh mục, danh sách và xóa (phase 04)
@@ -352,7 +363,7 @@ Allowlist:
 | Thẻ ngoài allowlist | Bỏ thẻ, giữ chữ bên trong (`disallowedTagsMode: 'discard'`, theo README sanitize-html 2.18.1) |
 | Kết quả rỗng | Chuỗi chỉ có khoảng trắng hoặc thẻ rỗng → `null` |
 
-Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó là lớp thứ hai, để allowlist đổi không làm dữ liệu cũ thành nguy hiểm.
+Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đấu (phase 08) không render rich text. Trang nào render HTML từ DB phải sanitize lại trước khi render. Đó là lớp thứ hai, để allowlist đổi không làm dữ liệu cũ thành nguy hiểm.
 
 ## Worker và queue
 
@@ -376,7 +387,7 @@ Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó 
 - **Kiểm tra trùng và sức chứa phải nằm dưới khóa.** Kiểm trước khi khóa rồi ghi là đua điều kiện. Ràng buộc DB (unique, CHECK) là lớp cuối. Lỗi P2002 được map theo tên index (`entry-errors.ts`), không map theo chuỗi thông báo. P2002 không khớp index đã biết được ném lại nguyên trạng.
 - **Lỗi nghiệp vụ hợp lệ** trả 422 (hoặc 409 khi xung đột trạng thái), có mảng `issues` tùy chọn. Filter lỗi giữ nguyên `issues` và `fields` trong envelope `{ error: { code, message, ... } }`. Admin UI dùng `issues` để hiện lỗi ngay dưới ô liên quan. Mỗi issue có `code`, `message`, `overridable`, và `playerId` nếu có.
 - **Ghi đè** (`overrideReason`) chỉ ADMIN được gửi, và chỉ bỏ qua issue `overridable`. Đăng ký tay lưu lý do vào `Entry.eligibilityOverrideReason`. Import lưu vào `ImportJob.overrideReason` và ghi audit `import.commit.request`.
-- **Dữ liệu riêng tư** (SĐT, email, ngày sinh): API chỉ trả khi có `players.update` (`canSeePlayerPii`) ở danh sách và chi tiết VĐV. Lookup, export và dòng import không đưa các trường này vào select. Phần công khai (`GET /public/*`) sẽ có test serializer ở phase 08.
+- **Dữ liệu riêng tư** (SĐT, email, ngày sinh): API chỉ trả khi có `players.update` (`canSeePlayerPii`) ở danh sách và chi tiết VĐV. Lookup, export và dòng import không đưa các trường này vào select. Phần công khai (`GET /public/*`) dùng serializer whitelist và field snapshot test (phase 08), xem [Quy ước API](#quy-ước-api).
 - **Đọc file Excel:** chỉ đọc qua stream và đếm byte thật. Không tin kích thước khai trong header zip. Mọi file từ người dùng đều được coi là không tin cậy. Chi tiết và giới hạn: [system-architecture](./system-architecture.md#giới-hạn-và-bảo-vệ-file-import).
 - **Commit import idempotent.** Dòng `COMMITTED` không được xử lý lại. Lô được commit trong một transaction. Chạy lại sau lỗi không được tạo bản ghi trùng.
 
@@ -398,6 +409,9 @@ Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó 
   - App Router, mọi trang nằm dưới `src/app/[locale]/`. Locale hợp lệ: `vi`, `en` (`src/i18n/locales.ts`). Mặc định `vi`.
   - Danh sách, tìm kiếm, lọc, phân trang: render ở server (Server Component + `searchParams`). Không tải toàn bộ dữ liệu về trình duyệt rồi lọc bằng JS.
   - `next.config.ts` dùng `output: 'standalone'`, `outputFileTracingRoot` là root monorepo.
+  - Dữ liệu công khai chỉ đọc qua `publicGet()` (`lib/api-client.ts`, chỉ chạy trên server). Tham số đưa vào URL phải qua regex trước khi gọi API, để `..` hay `/` không đi ra khỏi `/public`.
+  - Env client đọc theo request (`lib/server-env.ts`), không lúc build: Docker build không có env runtime.
+  - Route nội bộ (`/api/revalidate`) kiểm Host ở `proxy.ts` và ở route. Secret so bằng `timingSafeEqual` trên SHA-256.
 - **Admin (Vite + React + antd):**
   - Không đọc URL từ biến build-time. Đọc `/config.json` lúc chạy (`runtime-config.ts`). Container sinh file này khi start.
   - Chỉ gọi `/api/v1/admin/*` và `/api/v1/auth/*`. Cùng khớp với proxy trong `vite.config.ts` và nginx.
@@ -413,7 +427,7 @@ Sanitize lại khi render là yêu cầu của site công khai (phase 08). Đó 
 |---|---|---|---|
 | api, worker, shared, ui-tokens | Vitest 5 | `pnpm test` (qua turbo) | Không dùng Jest |
 | api (Nest) | Vitest + `unplugin-swc` | `pnpm --filter @kamito/api test` | SWC để giữ decorator metadata; esbuild không làm được |
-| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (21 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
+| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (35 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |

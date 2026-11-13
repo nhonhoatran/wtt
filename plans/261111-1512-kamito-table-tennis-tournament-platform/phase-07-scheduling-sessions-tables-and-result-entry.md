@@ -62,8 +62,8 @@
 - Kiểm: typecheck, lint, build pass. Test: api 320/320 (e2e trên Postgres local), competition-engine 209/209, shared 86/86, worker 34/34, admin 5/5. Sau sửa review: `match-results.e2e-spec.ts` 11/11, revalidation unit 3/3.
 - Chưa kiểm: màn nhập tỷ số chưa test trên trình duyệt, chưa thử 1024 px; chưa chạy `ui-consistency:finding-patterns` / `verifying`; chưa deploy staging.
 - Ghi nợ:
-  - Client chưa có route `/api/revalidate` (phase 08). Tới lúc đó job nhận 404, retry 5 lần rồi fail; trang công khai chỉ cập nhật theo TTL.
-  - Thao tác draw sau công bố (place/group qualifiers, unpublish, withdraw) chưa revalidate. `draw.publish` chưa có tag `match-*`.
+  - ~~Client chưa có route `/api/revalidate` (phase 08).~~ **Đã đóng 2026-11-13:** route có ở phase 08 (`app/api/revalidate/route.ts`).
+  - Thao tác draw sau công bố: **unpublish, replaceEntry, withdrawEntry đã đóng 2026-11-13** (tag `draw.unpublish`, `draw.postPublishEdit`). Còn mở: place/group qualifiers (`group-qualifier.service` chưa kiểm); `draw.publish` chưa có tag `match-*`.
   - Tag còn thiếu: entry, VĐV, gộp VĐV, sub-event, AppSetting (chờ phase 04/05); `match.start` chưa có tag VĐV; VĐV thua walkover trong cascade chưa có tag.
   - Chưa có test phủ `cache-tags` (`cache-tags-coverage.e2e-spec.ts`).
   - Thể thức: `confirm` lấy `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua round (L8).
@@ -72,8 +72,8 @@
   - Hằng vận hành đang fix cứng: timeout enqueue 2 s, attempts 5 / backoff 2 s, page size 100, debounce tìm kiếm. Cần chuyển sang `/settings` hoặc nêu lý do fix cứng (L12).
   - Picker giải lấy tối đa 100 giải rồi lọc phía client, trái luật lọc phía server (L13).
   - E2e còn thiếu: chốt đồng thời 2 trận cùng bảng; cascade walkover khi đẩy nhánh; RETIRED có ván dở; RESULTS_OPERATOR bị 403 khi reopen (reopen chưa làm).
-  - Lỗi có sẵn, không do lát cắt: `apps/api/test/draws.e2e-spec.ts:325` đậu/rớt ngẫu nhiên (test đoán hạt giống; service dùng `randomBytes`, `draw-edit.service.ts:78`).
-- Câu hỏi mở: route `/api/revalidate` giữ ở phase 08 hay kéo vào lát cắt?
+  - ~~Lỗi có sẵn, không do lát cắt: `apps/api/test/draws.e2e-spec.ts:325` đậu/rớt ngẫu nhiên~~ **Đã sửa 2026-11-13:** test đọc `placementSeed` từ audit thay vì đoán (`draw-edit.service.ts:78`); 6/6 lượt xanh.
+- ~~Câu hỏi mở: route `/api/revalidate` giữ ở phase 08 hay kéo vào lát cắt?~~ **Đã chốt 2026-11-13:** làm trong lát cắt phase 08.
 
 ## Requirements
 
@@ -230,7 +230,7 @@ Phần còn lại (tuần 11–12)
 
 - [x] (Lát cắt) match-score-validator + test
 - [x] (Lát cắt) start/confirm + đẩy nhánh + BYE + khóa Draw + expectedVersion + audit
-- [x] (Lát cắt) Revalidation: enqueue id duy nhất, cache-tags, processor, lỗi enqueue → cảnh báo (phía API/worker; route client `/api/revalidate` thuộc phase 08)
+- [x] (Lát cắt) Revalidation: enqueue id duy nhất, cache-tags, processor, lỗi enqueue → cảnh báo (phía API/worker; route client `/api/revalidate` đã có từ phase 08, 2026-11-13)
 - [x] (Lát cắt) Màn nhập tỷ số tối thiểu (còn mở: test trình duyệt + 1024 px)
 - [ ] ui-consistency: finding-patterns → planning
 - [ ] Migration sessions + scheduling
@@ -274,4 +274,4 @@ Rollback: migration thêm bảng; revert app; kết quả đã chốt nằm tron
 
 ## Next Steps
 
-- Lát cắt tiếp tục ở phase 08 (trang nhánh công khai + deploy staging). Phase 08 hiển thị lịch, kết quả, nhánh, bảng; phase 09 thêm `rankingDirtyAt` và job tính điểm vào `confirm`/`reopen`.
+- Lát cắt phase 08 (trang nhánh công khai + route revalidate) đã làm 2026-11-13; còn Playwright + deploy staging (bước 4 phase 08, M1). Phase 08 hiển thị lịch, kết quả, nhánh, bảng; phase 09 thêm `rankingDirtyAt` và job tính điểm vào `confirm`/`reopen`.

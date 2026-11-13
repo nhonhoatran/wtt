@@ -118,6 +118,7 @@ Tag được tạo bằng `publicCacheTags` (`packages/shared/src/public-cache-t
 | `match.start` | `event-<eventSlug>`, `schedule-<eventSlug>`, `draw-<eventSlug>-<subEventCode>`, `match-<eventSlug>-<matchNo>`; thêm `groups-<eventSlug>-<subEventCode>` nếu là trận bảng |
 | `match.confirm` | Như `match.start`, cộng `results-strip` và `player-<playerSlug>` cho mọi VĐV của hai phía (cả hai người của cặp). Cộng `match-<eventSlug>-<n>` cho các trận được đẩy tiếp |
 | `draw.publish` | `event-<eventSlug>`, `schedule-<eventSlug>`, `draw-<eventSlug>-<subEventCode>`; thêm `groups-...` nếu là nhánh bảng |
+| `draw.unpublish`, `draw.postPublishEdit` (bỏ công bố, thay VĐV, rút VĐV) | Như `draw.publish` (`drawTags`), ngữ cảnh lấy qua `loadDrawTagContext` |
 
 Quy tắc tag: bắt đầu bằng chữ thường, chỉ gồm `A-Z a-z 0-9 _ . -`, tối đa 256 ký tự (`isValidCacheTag`). Tag sai bị bỏ khi enqueue, các tag còn lại vẫn gửi.
 
@@ -127,7 +128,7 @@ Luồng:
 API (sau commit) ──> queue `revalidate`, job `revalidate-tags` {tags}, jobId duy nhất
 Worker           ──> POST {CLIENT_INTERNAL_URL}/api/revalidate
                      header x-revalidate-secret, body {"tags": [...]}, timeout REVALIDATE_TIMEOUT_MS
-Client           ──> route /api/revalidate: CHƯA CÓ (phase 08)
+Client           ──> route /api/revalidate: có từ phase 08 lát cắt (xem system-architecture)
 ```
 
 Quy tắc:
@@ -136,9 +137,9 @@ Quy tắc:
 - Job thử tối đa 5 lần, backoff mũ, khởi đầu 2 giây. Giữ 100 job hoàn thành và 500 job lỗi.
 - Worker: payload sai hoặc tên job lạ thì lỗi ngay, không retry. Non-2xx, lỗi mạng hoặc timeout thì retry.
 - URL gọi là `new URL('/api/revalidate', CLIENT_INTERNAL_URL)`. Path con trong `CLIENT_INTERNAL_URL` bị bỏ, nên chỉ dùng origin, ví dụ `http://client:3000`.
-- Client chưa có trang đọc dữ liệu giải, nên hiện chưa có trang công khai nào bị ảnh hưởng. Khi route chưa có, job nhận lỗi và retry; sau 5 lần thì job failed.
+- Client có route `/api/revalidate` (phase 08 lát cắt). Route chỉ nhận Host trong `REVALIDATE_ALLOWED_HOSTS` và secret đúng. Chi tiết ở [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08). Sai cấu hình thì job nhận non-2xx, retry, rồi failed.
 
-Chưa revalidate: entry, VĐV, gộp VĐV, sub-event, cấu hình; các thao tác nhánh sau công bố (xếp suất vòng loại, xếp nhất/nhì bảng, bỏ công bố, thay và rút VĐV). `draw.publish` chưa có tag `match-*`.
+Chưa revalidate: entry, VĐV, gộp VĐV, sub-event, cấu hình; xếp suất vòng loại, xếp nhất/nhì bảng; công bố và hủy giải. `draw.publish` chưa có tag `match-*`.
 
 ## Màn hình nhập tỷ số
 
@@ -172,8 +173,7 @@ Nguồn: `match-result-errors.ts`, `draw-errors.ts` (`notPublished`, `conflict`)
 | Lịch thi đấu, session, bàn, xếp lịch tay | 07 (đợt 2) | Chưa có endpoint và cột lịch dùng |
 | Lưu tiến độ ván dở (`save-progress`), hủy bắt đầu (`un-start`) | 07 (đợt 2) | Chưa có endpoint |
 | Sửa tỷ số đã chốt (`amend`), mở lại (`reopen`), cưỡng chế | 07 (đợt 2) | Quyền có trong ma trận (`reopen` chỉ ADMIN). Chưa có endpoint |
-| Route `/api/revalidate` của client | 08 | Chủ repo chọn giữ ở phase 08 hay kéo lên lát cắt |
-| Tag cho entry, VĐV, gộp VĐV, nhánh sau công bố; test phủ `cache-tags` | 07 (đợt 2) | Xem [Revalidate cache công khai](#revalidate-cache-công-khai) |
+| Tag cho entry, VĐV, gộp VĐV, xếp suất và nhất/nhì bảng sau công bố; test phủ `cache-tags` | 07 (đợt 2) | Xem [Revalidate cache công khai](#revalidate-cache-công-khai) |
 | Chốt đồng thời hai trận cùng bảng; cascade walkover khi đẩy nhánh; ván dở của RETIRED | 07 (đợt 2) | Thiếu e2e |
 | Thể thức: `confirm` lấy `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua `round` | 07 | Ghi nợ L8 |
 | `settleDeferredWalkover` không tăng `version` của trận được điền | 07 | Ghi nợ L10, có từ phase 06 |

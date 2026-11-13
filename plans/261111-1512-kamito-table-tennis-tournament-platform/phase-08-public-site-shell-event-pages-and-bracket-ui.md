@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: in progress (lát cắt bước 1–3 xong 2026-11-13, chưa deploy staging; bước 4 + M1 chưa đạt). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 6, ≈4 ngày):** khung client tối thiểu (layout, wordmark, tiếng Việt), API public nhánh đấu theo slug/mã + predicate phạm vi công khai + serializer whitelist, 1 trang nhánh đấu (CSS grid tự làm), route `/api/revalidate`, deploy staging + kiểm luồng lát cắt. → **Mốc M1 cuối tuần 6.**
   - **Phần còn lại (tuần 12–13, ≈5 ngày):** i18n vi/en đầy đủ, danh sách + lịch giải, trang giải đủ tab, trang trận, dải kết quả, metadata + sitemap sinh lúc chạy, stylesheet in (nhánh, lịch theo session/bàn), CSP report-only, rate limit công khai, e2e.
 - Toàn bộ Server Components + `searchParams`, slug, metadata, làm mới theo tag. Chỉ học cấu trúc/bố cục; không dùng ảnh, chữ, logo, dữ liệu của site tham chiếu.
@@ -48,6 +48,29 @@
 - Predicate dùng chung đã có: `packages/shared/src/match-predicates.ts` (`isRealMatch`, `isPlayedMatch`), có test. Mọi số liệu và danh sách công khai dùng hai hàm này.
 - Nhánh công khai chỉ đọc draw `PUBLISHED`. Phase 06 chưa có route công khai nào, nên DRAFT không lộ ra (review phase 06 xác nhận: `plans/reports/code-reviewer-261113-phase-06-draws.md`).
 - Mã vòng (`Round.code`, gồm `QF-n` cho vòng loại) và nhãn ô chờ có cấu trúc (`{type: WINNER_OF | QUALIFIER | GROUP_PLACE, ...}`) đã lưu sẵn; render qua từ điển vi/en.
+
+<!-- Phase 08 slice sync — 2026-11-13 -->
+- Đã làm (lát cắt bước 1–3): khung client (wordmark, footer, skip link, `error.tsx`, `not-found`), `lib/{api-client,cache-policy,server-env,format-date-time}.ts`, `vi.json`/`en.json` (nhãn nhánh + ô chờ), `get-dictionary.ts`, `pick-localized.ts`, `render-bracket-labels.ts`; API `GET /public/events/:slug/draws/:subEventCode?kind=main|qualifying` (2 query) + `public-scope.ts` + serializer whitelist + test snapshot trường; trang nhánh CSS grid; `app/api/revalidate/route.ts`; `proxy.ts`.
+- Quyết định:
+  - API public trả `200 {data: null}` thay vì 404 khi giải/draw không có hoặc chưa công bố. Lý do: Next chỉ cache response 200 (chủ repo xác nhận 2026-11-13). Test phạm vi kiểm `data: null`, không kiểm 404.
+  - Phạm vi bản lát cắt: giải `PUBLISHED` và không hủy; draw `PUBLISHED`. Chưa lọc entry: VĐV rút vẫn hiện trong nhánh như lịch sử walkover.
+  - Tên site lấy từ AppSetting `site.name`; hiện dùng giá trị mặc định của registry tới khi có API settings công khai.
+  - Bỏ công bố / thay VĐV / rút VĐV trên draw đã công bố gửi tag `draw.unpublish`, `draw.postPublishEdit` (`cache-tags.ts`).
+  - Route `/api/revalidate`: `revalidateTag(tag, {expire: 0})`; chặn 3 lớp (Host nội bộ, secret, `proxy.ts`); số tag tối đa `REVALIDATE_MAX_TAGS`.
+  - Header nội bộ đổi sang `x-internal-secret`; log redaction dùng hằng `SSR_SECRET_HEADER` (smoke phát hiện log in nguyên secret, đã sửa).
+  - Hằng dùng chung trong `@kamito/shared`: `API_GLOBAL_PREFIX`, `PUBLIC_API_SEGMENT`, `SSR_SECRET_HEADER`, `REVALIDATE_SECRET_HEADER`, `REVALIDATE_MAX_TAGS`. API không đọc `API_BASE_PATH` (chỉ admin dùng).
+  - Env mới: `REVALIDATE_ALLOWED_HOSTS` (phải khớp host của `CLIENT_INTERNAL_URL`), `API_FETCH_TIMEOUT_MS`.
+  - Lệch file list: chưa có `public-scope.module.ts` và module `public-events` (YAGNI, chưa cần). `modules/public-competition/` gồm `public-bracket.query.ts`, `public-bracket.serializer.ts`, `public-competition.module.ts`.
+- Kiểm chứng: shared 86/86; API 47 file 330/330 (exit 0); worker 34/34; client typecheck/lint/build sạch; `public-bracket.e2e-spec.ts` 8/8; smoke local (nhánh MS, URL sai → 404, revalidate theo host/secret, cache, 390 px `scrollWidth` 375). Ảnh: `plans/reports/screenshots-261113-phase-08-slice/`. Chưa có Playwright.
+- Review (code-reviewer 7/10): đã sửa H1, M1–M4, L1–L7, L9, L10. Còn L8 (màu xám fix cứng trong `bracket.module.css`), làm cùng `ui-consistency` phần còn lại. Báo cáo: `plans/reports/code-review-and-test-261113-phase-08-slice.md`.
+- Câu hỏi chưa giải quyết:
+  1. Bỏ công bố / hủy giải chưa gửi tag; chờ phase 07 (tag `events`, `event-{slug}`). Tạm dựa vào `200 {data: null}` + TTL.
+  2. `group-qualifier.service` sửa draw MAIN đã công bố: chưa kiểm có gửi tag không.
+  3. Nhiều replica client: cache theo instance, cần cache handler dùng chung trước khi scale.
+  4. `API_FETCH_TIMEOUT_MS` là tham số vận hành đang để env; theo quy tắc `/settings` phải chuyển sang setting hoặc nêu lý do. Chủ repo quyết.
+  5. Rule Traefik theo path và `passHostHeader` chưa kiểm trên staging.
+  6. Cách render `infoBody` công khai (sanitize lại ở Next hay API trả HTML đã sanitize) vẫn chưa chốt (phase 04).
+  7. Bước 4 (Playwright + staging, M1) chưa làm.
 
 ## Requirements
 
@@ -113,7 +136,7 @@ API public (`/api/v1/public/*`, chỉ đọc, `@Public()`, serializer whitelist)
 | `GET /public/events/:slug/schedule` | session → bàn → trận |
 | `GET /public/results/strip` | trận `LIVE` + `OFFICIAL` gần nhất (không BYE) của giải đang diễn ra |
 
-- **Một predicate phạm vi công khai dùng chung** (`public-scope.ts`): giải `PUBLISHED` và không hủy; draw `PUBLISHED`; entry `CONFIRMED`; trận thuộc draw đã công bố. Mọi query public đi qua predicate; test cho **từng endpoint** (giải nháp, giải hủy, draw nháp, entry rút → 404/không xuất hiện).
+- **Một predicate phạm vi công khai dùng chung** (`public-scope.ts`): giải `PUBLISHED` và không hủy; draw `PUBLISHED`; entry `CONFIRMED`; trận thuộc draw đã công bố. Mọi query public đi qua predicate; test cho **từng endpoint** (giải nháp, giải hủy, draw nháp, entry rút → `200 {data: null}` hoặc không xuất hiện; xem sync 2026-11-13).
 - Tra cứu theo slug/mã dưới giải, không nhận id thô từ URL công khai.
 - Test whitelist: snapshot **toàn bộ tên trường** serialize của mỗi endpoint; thêm trường mới phải sửa snapshot có chủ ý.
 <!-- Red Team: Sửa draw sau công bố — 2026-11-11 -->
@@ -166,10 +189,10 @@ Phần còn lại (tuần 12–13)
 
 ## Todo List
 
-- [ ] (Lát cắt) Khung client + api-client + cache-policy
-- [ ] (Lát cắt) public-scope + API nhánh theo slug + serializer + test
-- [ ] (Lát cắt) Trang nhánh CSS grid + route revalidate
-- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1
+- [x] (Lát cắt) Khung client + api-client + cache-policy
+- [x] (Lát cắt) public-scope + API nhánh theo slug + serializer + test
+- [x] (Lát cắt) Trang nhánh CSS grid + route revalidate
+- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1 (chưa làm: repo chưa có Playwright, staging chưa có)
 - [ ] ui-consistency: finding-patterns → planning (site công khai)
 - [ ] i18n vi/en + chuyển hướng locale + fallback vi + nhãn ô chờ qua từ điển
 - [ ] API public events/matches/draws/groups/entries/schedule/strip + test phạm vi từng endpoint + snapshot trường

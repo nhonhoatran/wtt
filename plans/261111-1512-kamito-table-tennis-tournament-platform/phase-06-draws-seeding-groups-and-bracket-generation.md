@@ -283,7 +283,7 @@ Ma trận test engine
 - [x] ui-consistency: finding-patterns → planning (`ui/phase-06-ui-plan.md`, `ui/phase-06-ui-checklists.md`)
 - [x] Engine vòng loại, vòng bảng, BXH (walkover/bỏ cuộc/rút lui, mẫu 0), bảng → nhánh + test (theo mặc định, chờ G1b)
 - [x] Migration groups/standings; recompute idempotent dưới khóa
-- [ ] Unpublish, replace-entry, withdraw-entry + audit + revalidate — **còn revalidate** (ghi nợ; `cache-tags.ts` đã có, chưa đăng ký các mutation này)
+- [x] Unpublish, replace-entry, withdraw-entry + audit + revalidate (revalidate thêm 2026-11-13 ở lát cắt phase 08: tag `draw.unpublish`, `draw.postPublishEdit`)
 - [x] API admin draws/groups/rounds đầy đủ (hợp đồng: `plans/reports/api-contract-261113-1047-phase-06-draws.md`)
 - [ ] Màn admin đầy đủ + xem trước ảnh hưởng — code xong; checker ui-consistency (task 0) parked; chưa chạy trên trình duyệt
 - [ ] ui-consistency: verifying; deploy staging — chưa
@@ -305,7 +305,7 @@ Ma trận test engine
 | Quy tắc đặt hạt giống/chia bảng của Kamito khác chuẩn | Trung bình × Trung bình (đang mở) | G1a chưa xác nhận: dùng mẫu chuẩn, chỉ dữ liệu thử; đổi chỗ thủ công trong nháp. Nếu BTC khác → sửa engine + test |
 | **Làm trước G1b** — phá hòa, rút lui giữa bảng có thể khác luật BTC | Trung bình × Cao (mới) | 5 cách hiểu ghi rõ (phase 12, câu 19–23); tiêu chí phá hòa đổi qua `GroupScoringRule`; luật khác vẫn sửa engine. Trước tuần 10 phải có câu trả lời |
 | Engine tự viết thiếu ca biên | Trung bình × Cao | Ma trận test; coverage dòng 99.57 %. Review bắt 4 lỗi cao (H1–H4), đã sửa kèm test hồi quy |
-| Sai sót phát hiện sau công bố | Trung bình × Cao | Unpublish / replace / withdraw có audit và xem trước `dryRun`. Còn thiếu revalidate cache công khai |
+| Sai sót phát hiện sau công bố | Trung bình × Cao | Unpublish / replace / withdraw có audit, xem trước `dryRun` và revalidate cache công khai (từ 2026-11-13) |
 | Chốt đồng thời cùng bảng ghi đè BXH | Trung bình × Cao | Đã xử lý: khóa SubEvent → Draw → Group, tính BXH từ đầu, test đồng thời |
 | Sửa kết quả sau khi bảng đã đưa người vào nhánh | Thấp × Cao | Reopen có xem trước + đường cưỡng chế (phase 07) |
 | UI chưa chạy trên trình duyệt; checker ui-consistency (task 0) parked | Cao × Trung bình (mới) | Giao checker hiệu chỉnh trước khi đóng plan UI |
@@ -359,7 +359,7 @@ Làm trọn một lượt, không tách lát cắt (như phase 04–05). Chưa c
    - Khi BTC trả lời khác: sửa engine + test, không chỉ đổi cấu hình.
 2. **Tên setting:** plan ghi `draw.defaultSeedRatio`; code dùng `draw.defaultSeedPercent`. Comment `packages/competition-engine/src/draw-preview.ts:11` còn tên cũ, cần sửa.
 3. **Vị trí file:** `allocateMatchNumbers` nằm ở `packages/db/src/domain/draw-locks.ts`, không ở `apps/api/src/modules/matches/match-number-allocator.ts` như plan.
-4. **Revalidate một phần:** `apps/api/src/modules/revalidation/cache-tags.ts` đã có từ lát cắt phase 07 (2026-11-13), nhưng chưa ánh xạ draw publish/unpublish/replace/withdraw. Publish có comment ghi nợ (`apps/api/src/modules/draws/draw-publish.service.ts:18`). Spec "→ PUBLISHED, revalidate" chưa đủ.
+4. **Revalidate một phần:** `apps/api/src/modules/revalidation/cache-tags.ts` đã có từ lát cắt phase 07 (2026-11-13), publish/unpublish/replace/withdraw đã ánh xạ (2026-11-13, lát cắt phase 08). Còn mở: đặt suất vòng loại / người đi tiếp từ bảng vào nhánh chính đã công bố chưa gửi tag.
 
 ### Còn mở (ghi nợ)
 - Review L4: entry cùng seed null và cùng điểm vào pot theo UUID, chưa shuffle bằng RNG (`group-allocation.ts`).

@@ -13,8 +13,8 @@
 | 04 | Dữ liệu gốc giải đấu, cấu hình, upload ảnh | Xong (code, chưa commit). Chờ deploy staging | 3 migration, seed danh mục, upload ảnh qua API. Tester và review 13:29 không có lỗi Critical. Còn nợ ghi ở [Việc kế tiếp](#việc-kế-tiếp). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-04-dữ-liệu-gốc-giải-đấu-cấu-hình-upload-ảnh-chưa-commit) |
 | 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong (code, chưa commit). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ), mỗi sửa có test riêng. Chưa làm: tag cache cho VĐV và đăng ký (phase 07), 301 (phase 10). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-chưa-commit) |
 | 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Xong (code, chưa commit). Chưa deploy staging | Gate G1a và G1b chưa được BTC xác nhận. Chi tiết: [draws-and-groups](./draws-and-groups.md). Changelog: [phase 06](./project-changelog.md#2026-11-13--phase-06-bốc-thăm-hạt-giống-vòng-bảng-sinh-nhánh-chưa-commit) |
-| 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Lát cắt xong (đã commit). Phần còn lại chưa làm | Đã có: validator tỷ số, bắt đầu và chốt trận có `expectedVersion`, đẩy nhánh, BXH bảng tính lại, revalidate cho trận và công bố nhánh, màn `/results`. Chưa có: lịch, bàn, sửa và mở lại tỷ số, route `/api/revalidate` của client. Chi tiết: [match-results](./match-results.md), [changelog](./project-changelog.md#2026-11-13--phase-07-lát-cắt-nhập-tỷ-số-và-revalidate-cache-chưa-commit) |
-| 08 | Site công khai: khung, trang giải, nhánh đấu | Pending | |
+| 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Lát cắt xong (đã commit). Phần còn lại chưa làm | Đã có: validator tỷ số, bắt đầu và chốt trận có `expectedVersion`, đẩy nhánh, BXH bảng tính lại, revalidate cho trận và công bố nhánh, màn `/results`. Chưa có: lịch, bàn, sửa và mở lại tỷ số. Chi tiết: [match-results](./match-results.md), [changelog](./project-changelog.md#2026-11-13--phase-07-lát-cắt-nhập-tỷ-số-và-revalidate-cache-chưa-commit) |
+| 08 | Site công khai: khung, trang giải, nhánh đấu | Lát cắt xong (chưa commit, chưa lên staging). Phần còn lại chưa làm | Đã có: API `GET /api/v1/public/events/:slug/draws/:subEventCode` (secret nội bộ), trang nhánh đấu vi và en, route `/api/revalidate` của client. Chưa có: trang giải, lịch, bảng xếp hạng, VĐV, Playwright slice spec. Chi tiết: [system-architecture](./system-architecture.md#site-công-khai-phase-08), [changelog](./project-changelog.md#2026-11-13--phase-08-lát-cắt-site-công-khai-và-trang-nhánh-đấu-chưa-commit) |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng | Pending | Chờ G2 |
 | 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Pending | |
 | 11 | CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ | Pending | |
@@ -39,7 +39,6 @@
 1. **Chủ repo quyết định** (không tự làm):
    - Cổng phase 01: staging, Redis riêng, chủ sở hữu sao lưu và RPO còn mở.
    - Lỗi URL và slug trùng: giữ 422 (theo quy ước của code và tài liệu) hay đổi thành 400 theo spec gốc (báo cáo tester F2).
-   - Route `/api/revalidate` ở client: giữ ở phase 08, hay làm ngay trong lát cắt phase 07. Giữ ở phase 08 thì job revalidate nhận 404 tới khi đó (không sai dữ liệu, chỉ có job failed). Làm sớm thì thêm route nhỏ ở client, kiểm secret và chặn truy cập từ domain công khai (theo Spike E, phase 02).
 2. **Commit phase 04, 05, 06 và lát cắt phase 07** khi chủ repo yêu cầu. Lát cắt phase 07 đã có review sau sửa: `plans/reports/code-review-and-test-261113-phase-07-slice.md`. Trước đó chạy lại tester và code-reviewer trên code hiện tại, vì code đã đổi sau báo cáo 13:29 (phase 04) và sau báo cáo 14:36 (phase 05). Phase 06: báo cáo review là bản trước khi sửa, chưa có review sau sửa.
 3. **Deploy staging** (phase 04 bước 13, phase 05 bước 11):
    - Migrate 9 migration: 5 của phase 01 đến 04, 4 của phase 05 (xem [system-architecture](./system-architecture.md#dữ-liệu)). Chạy `seed:config`. Chạy `pnpm db:print-target` trước khi migrate và xác nhận host và tên DB.
@@ -47,6 +46,7 @@
    - Kiểm sharp trên image Alpine, và upload một ảnh thật với `STORAGE_DRIVER=s3`.
    - Phase 05: upload một file import thật (lưu từ Excel), kiểm tra, nhập, thử gộp VĐV trên staging.
    - Phase 07 (lát cắt): worker cần `CLIENT_INTERNAL_URL` và `REVALIDATE_SECRET`. Compose đã khai cho worker. Thử chốt một trận trên staging và xem job trong bull-board (queue `revalidate`).
+   - Phase 08 (lát cắt): client cần `REVALIDATE_ALLOWED_HOSTS` (phải khớp `CLIENT_INTERNAL_URL` của worker), `SSR_INTERNAL_SECRET`, `REVALIDATE_SECRET`. Thử trên staging: mở một nhánh đã công bố, chốt một trận, bỏ công bố, rồi xem trang công khai đổi.
 4. **Nợ kỹ thuật phase 04** (theo báo cáo tester và review 13:29, chưa đối chiếu lại hết):
    - Test api crash native trong một lần chạy đầy đủ (F1). Chưa tìm được nguyên nhân.
    - Test crash làm sót user test trong DB dev (F3). Cần dọn.
@@ -59,3 +59,8 @@
    - Chuyển hướng 301 slug VĐV đã gộp. Thuộc phase 10.
    - Chưa thử file xlsx do Excel thật tạo.
    - Phase 06: gate G1a và G1b chưa được BTC xác nhận. Quyết định chờ chủ giải: người thắng vòng loại đã rút có dùng lucky loser không (hiện tự walkover). Chi tiết: [draws-and-groups](./draws-and-groups.md#chưa-làm).
+6. **Phase 08, nợ còn lại** (theo review 2026-11-13, [báo cáo](../plans/reports/code-review-and-test-261113-phase-08-slice.md)):
+   - Playwright `vertical-slice.spec.ts` chưa có. Mốc M1 cần thêm deploy staging.
+   - L8: màu xám cứng trong `bracket.module.css`. Làm cùng đợt `ui-consistency` của site công khai.
+   - Bỏ công bố và hủy giải cấp event chưa gửi tag. Xếp suất vòng loại và nhất/nhì bảng chưa gửi tag.
+   - Scale nhiều instance client cần cache handler dùng chung.

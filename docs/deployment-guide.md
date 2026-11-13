@@ -98,7 +98,7 @@ Quy tắc:
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | api | không | Không dùng: thiết kế upload (b) đã chọn (2026-11-12). Còn trong compose và `.env.example`; gỡ ở lần dọn env |
 | `AUTH_SECRET` | api | có | ≥ 32 ký tự, riêng từng môi trường |
 | `REVALIDATE_SECRET` | api, client, worker | có | Khác `AUTH_SECRET`. Worker gửi trong header `x-revalidate-secret` khi gọi `/api/revalidate` của client |
-| `SSR_INTERNAL_SECRET` | api, client | có | Định danh request SSR nội bộ |
+| `SSR_INTERNAL_SECRET` | api, client | có | Client gửi trong header `x-internal-secret` khi đọc `/api/v1/public/*`. API kiểm bằng `SsrInternalGuard`. Phải khác các secret còn lại (api kiểm trong `env-schema.ts`) |
 | `IP_HASH_SALT` | api | có | Hash IP của form liên hệ (phase 11) |
 | `CLIENT_INTERNAL_URL` | api, worker | có | Origin nội bộ của client, ví dụ `http://client:3000`. Compose đặt mặc định này khi không khai biến; code không có mặc định. Chỉ dùng origin, path con bị bỏ. Api chỉ kiểm định dạng, chưa dùng |
 | `REVALIDATE_TIMEOUT_MS` | worker | không | Mặc định 5000 (ms). Timeout mỗi lần gọi `/api/revalidate`. Compose truyền biến này (mặc định như code) |
@@ -119,7 +119,9 @@ Quy tắc:
 | `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` | api, worker | có | Trần import (phase 05). Thời hạn giữ file (`import.retentionDays`) và hạn chờ tải file (`import.uploadTtlHours`) chỉnh ở `/settings` |
 | `WORKER_HEALTH_PORT` | worker | cố định | `3010` |
 | `API_INTERNAL_URL` | client | không | Mặc định `http://api:3000` |
-| `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có (compose) | TTL cache. Code client chưa đọc (phase 02+) |
+| `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có (compose) | TTL dự phòng của cache công khai (số nguyên dương). Client đọc theo request (`lib/server-env.ts`). Làm mới chính là revalidate theo tag |
+| `REVALIDATE_ALLOWED_HOSTS` | client | không (compose mặc định `client:3000`) | Danh sách Host (`host:port`, cách nhau bằng dấu phẩy) được gọi `/api/revalidate`. Phải bằng `host:port` của `CLIENT_INTERNAL_URL` của worker. Sai thì mọi lần revalidate nhận 404 và job failed. Domain công khai không đưa vào danh sách |
+| `API_FETCH_TIMEOUT_MS` | client | không | Mặc định 5000 (ms). Timeout khi client gọi API công khai. Hết giờ thì trang báo lỗi và không được cache. Compose truyền biến này |
 | `API_BASE_PATH` | admin | không | Mặc định `/api/v1`. Ghi vào `/config.json` |
 
 `MEDIA_INTENT_TTL_MINUTES` đã bỏ (2026-11-12): thời gian chờ tải ảnh là setting `media.intentTtlMinutes`, thời gian tối đa xử lý ảnh là `media.processingTimeoutMinutes`, số ngày kết thúc mặc định của giải là `event.defaultDurationDays`, đều sửa ở `/settings`.
@@ -386,7 +388,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 16 | Test API có một lần crash native `0xC0000409` (1/6 lần chạy đầy đủ, Windows), chưa rõ nguyên nhân | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Chạy lặp với reporter verbose để tìm file cuối trước khi crash. Trùng với F1 phase 04 |
 | 17 | Chưa thử file xlsx do Excel thật tạo. Bộ test dùng file viết tay có cấu trúc giống Excel | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Thêm một file mẫu nhỏ, không có dữ liệu thật, vào `apps/api/test/fixtures/` trước pilot |
 | 18 | Worker đọc sheet đầu theo tên `xl/worksheets/sheetN.xml`, không theo thứ tự tab. Nếu người dùng đổi thứ tự tab, kiểm header báo lỗi | `plans/reports/code-reviewer-261112-1436-phase-05-review-2.md` | Ghi rõ trong hướng dẫn cho BTC: sheet đăng ký phải là sheet đầu tiên của file |
-| 19 | Route `/api/revalidate` ở client chưa có (phase 08). Worker gọi và nhận lỗi, retry 5 lần rồi failed | [match-results](./match-results.md#revalidate-cache-công-khai), review phase 07 (H1) | Chủ repo quyết định: giữ ở phase 08, hoặc làm trong lát cắt phase 07 |
+| 19 | Route `/api/revalidate` ở client đã có (phase 08 lát cắt, chưa commit). Chưa kiểm trên staging: worker gọi `client` qua mạng `internal` và Host khớp `REVALIDATE_ALLOWED_HOSTS` | [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08), review phase 08 | Deploy staging, chốt một trận hoặc bỏ công bố một nhánh, rồi xem job `revalidate` trong bull-board và trang công khai |
 
 ## Liên quan
 

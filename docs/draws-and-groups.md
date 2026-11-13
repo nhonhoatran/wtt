@@ -214,4 +214,4 @@ Lỗi 409 mang thêm khóa chi tiết (whitelist trong `common/filters/http-exce
 | Quy tắc đặt hạt giống | Chờ G1a | Hạt 1 và 2 ở hai đầu. Hạt 3–4 bốc ngẫu nhiên vào ô `S/2` hoặc `S/2+1`. Hạt 5–8 vào ô biên phần tư, tương tự cho các tầng sau (`seed-positions.ts`). BTC chưa xác nhận mẫu |
 | Chia bảng, phá hòa, rút lui giữa bảng theo quy chế BTC | Chờ G1b | Engine làm theo quy ước hiện tại |
 | Gợi ý hạt giống từ bảng xếp hạng | 09 | `suggest-seeds` trả rỗng |
-| Revalidate sau thao tác nhánh khác công bố (xếp suất, nhất/nhì bảng, bỏ công bố, thay và rút VĐV) | 07 (đợt 2) | `draw.publish` đã enqueue. Route `/api/revalidate` của client: phase 08 |
+| Revalidate sau xếp suất vòng loại và nhất/nhì bảng | 07 (đợt 2) | Bỏ công bố, thay và rút VĐV đã enqueue (phase 08 lát cắt). Route `/api/revalidate` của client có từ phase 08 |
