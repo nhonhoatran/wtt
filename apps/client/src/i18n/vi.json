@@ -1,0 +1,19 @@
+{
+  "site": { "skipToContent": "Bỏ qua tới nội dung" },
+  "error": { "title": "Đã có lỗi khi tải trang", "body": "Vui lòng thử lại sau ít phút.", "retry": "Thử lại" },
+  "notFound": { "title": "Không tìm thấy trang", "body": "Trang này không tồn tại hoặc chưa được công bố.", "home": "Về trang chủ" },
+  "bracket": {
+    "title": "Nhánh đấu",
+    "kind": { "MAIN": "Nhánh chính", "QUALIFYING": "Vòng loại" },
+    "section": "Nhánh {section}",
+    "scrollHint": "Kéo ngang để xem hết nhánh",
+    "empty": "Nhánh đấu chưa có trận nào.",
+    "rounds": { "F": "Chung kết", "SF": "Bán kết", "QF": "Tứ kết", "R": "Vòng {n}", "QUAL_FINAL": "Lượt quyết định", "QUAL": "Lượt {n}" },
+    "source": { "WINNER_OF": "Thắng trận #{matchNo}", "QUALIFIER": "Q{index}", "GROUP_PLACE_1": "Nhất bảng {group}", "GROUP_PLACE_2": "Nhì bảng {group}", "GROUP_PLACE_N": "Hạng {place} bảng {group}", "TBD": "Chờ xác định" },
+    "bye": "BYE",
+    "live": "LIVE",
+    "result": { "WALKOVER": "W/O", "RETIRED": "Bỏ cuộc", "DISQUALIFIED": "Truất quyền" },
+    "quota": { "WILDCARD": "WC", "QUALIFIER": "Q" },
+    "match": "Trận #{matchNo}"
+  }
+}

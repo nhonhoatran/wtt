@@ -1,0 +1,41 @@
+.eyebrow {
+  margin: 0 0 4px;
+  color: #525252;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.kinds {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.kind {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.kind[aria-current='page'] {
+  background: var(--color-data);
+  border-color: var(--color-data);
+  color: var(--color-surface);
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 32px;
+  }
+}

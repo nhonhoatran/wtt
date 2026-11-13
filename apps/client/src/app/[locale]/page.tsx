@@ -6,7 +6,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const siteName = appSettingRegistry.siteName.defaultValue;
   return (
-    <main className="container">
+    <main id="content" className="container">
       <h1>{siteName[isLocale(locale) ? locale : DEFAULT_LOCALE]}</h1>
     </main>
   );

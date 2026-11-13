@@ -1,0 +1,168 @@
+.section + .section {
+  margin-top: 32px;
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #525252;
+}
+
+@media (min-width: 1024px) {
+  .hint {
+    display: none;
+  }
+}
+
+/* Only this frame scrolls sideways; the page itself never overflows. */
+.scroller {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.scroller:focus-visible {
+  outline: 2px solid var(--color-data);
+  outline-offset: 2px;
+}
+
+.rounds {
+  --cell-w: 216px;
+  --gap: 32px;
+  --cell-h: 76px;
+  --row-gap: 12px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--cell-w);
+  column-gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: max-content;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+}
+
+.roundTitle {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  background: var(--color-data);
+  color: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border-radius: var(--radius-button);
+}
+
+.roundBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Two feeders per pair at 25% / 75%, so the next round's match lines up with the pair's middle. */
+.pair {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-height: calc(2 * var(--cell-h) + 2 * var(--row-gap));
+}
+
+.round:not(:last-child) .pair:has(> :nth-child(2))::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  right: calc(var(--gap) / -2);
+  border-right: 1px solid #a3a3a3;
+}
+
+.cell {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  font-size: 13px;
+}
+
+.round:not(:last-child) .cell::after,
+.round:not(:first-child) .cell::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(var(--gap) / 2);
+  border-top: 1px solid #a3a3a3;
+}
+
+.round:not(:last-child) .cell::after {
+  right: calc(var(--gap) / -2 - 1px);
+}
+
+.round:not(:first-child) .cell::before {
+  left: calc(var(--gap) / -2 - 1px);
+}
+
+.cellHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: #525252;
+  font-size: 11px;
+}
+
+.live {
+  padding: 0 6px;
+  background: var(--color-data);
+  color: var(--color-live);
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  min-height: 26px;
+}
+
+.winner {
+  font-weight: 700;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: #737373;
+  font-style: italic;
+}
+
+.mark {
+  color: #525252;
+  font-size: 11px;
+}
+
+.score {
+  min-width: 16px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

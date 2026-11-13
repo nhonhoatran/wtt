@@ -1,0 +1,19 @@
+{
+  "site": { "skipToContent": "Skip to content" },
+  "error": { "title": "Something went wrong", "body": "Please try again in a moment.", "retry": "Try again" },
+  "notFound": { "title": "Page not found", "body": "This page does not exist or has not been published yet.", "home": "Back to home" },
+  "bracket": {
+    "title": "Draw",
+    "kind": { "MAIN": "Main draw", "QUALIFYING": "Qualifying" },
+    "section": "Section {section}",
+    "scrollHint": "Scroll sideways to see the whole draw",
+    "empty": "This draw has no matches yet.",
+    "rounds": { "F": "Final", "SF": "Semifinals", "QF": "Quarterfinals", "R": "Round of {n}", "QUAL_FINAL": "Qualifying final", "QUAL": "Round {n}" },
+    "source": { "WINNER_OF": "Winner of match {matchNo}", "QUALIFIER": "Q{index}", "GROUP_PLACE_1": "Group {group} winner", "GROUP_PLACE_2": "Group {group} runner-up", "GROUP_PLACE_N": "Group {group} #{place}", "TBD": "To be decided" },
+    "bye": "BYE",
+    "live": "LIVE",
+    "result": { "WALKOVER": "W/O", "RETIRED": "Retired", "DISQUALIFIED": "Disqualified" },
+    "quota": { "WILDCARD": "WC", "QUALIFIER": "Q" },
+    "match": "Match {matchNo}"
+  }
+}
