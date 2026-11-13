@@ -1,4 +1,4 @@
-import { isValidCacheTag } from '@kamito/shared';
+import { isValidCacheTag, REVALIDATE_MAX_TAGS, REVALIDATE_SECRET_HEADER } from '@kamito/shared';
 
 export interface RevalidateDeps {
   clientInternalUrl: string;
@@ -15,11 +15,11 @@ export class PermanentRevalidateError extends Error {}
  * retries with backoff; pages still refresh on their own TTL if every attempt fails.
  */
 export async function revalidateTags(deps: RevalidateDeps, tags: unknown): Promise<{ tags: number }> {
-  if (!Array.isArray(tags) || !tags.length || !tags.every(isValidCacheTag)) throw new PermanentRevalidateError('invalid tags payload');
+  if (!Array.isArray(tags) || !tags.length || tags.length > REVALIDATE_MAX_TAGS || !tags.every(isValidCacheTag)) throw new PermanentRevalidateError('invalid tags payload');
   const doFetch = deps.fetch ?? fetch;
   const response = await doFetch(new URL('/api/revalidate', deps.clientInternalUrl), {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-revalidate-secret': deps.secret },
+    headers: { 'content-type': 'application/json', [REVALIDATE_SECRET_HEADER]: deps.secret },
     body: JSON.stringify({ tags }),
     signal: AbortSignal.timeout(deps.timeoutMs),
   });

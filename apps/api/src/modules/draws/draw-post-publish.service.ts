@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { isStructureLocked, lockDraw, type Draw, type Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { ReplaceEntryBody, UnpublishBody, WithdrawEntryBody } from './draw-dtos.js';
 import { conflict, invalid, notPublished, structureLocked } from './draw-errors.js';
 import { executeOperation, type RawImpact } from './draw-impact.js';
 import { bumpVersion, loadDrawLocked } from './draw-lock.js';
 import { replaceEntryAtPosition } from './draw-replace-entry.js';
+import { loadDrawTagContext } from './draw-tag-context.js';
 import { drawAuditFields } from './draw-view.js';
 import { GroupWithdrawalService } from './group-withdrawal.service.js';
 import { withdrawFromKnockout } from './knockout-walkover.js';
@@ -20,7 +23,17 @@ export class DrawPostPublishService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly groupWithdrawal: GroupWithdrawalService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
+
+  /** Runs the operation, then (unless dry run) asks the public site to drop the draw pages it changed. */
+  private async withRefresh<T extends object>(drawId: string, dryRun: boolean | undefined, mutation: 'draw.unpublish' | 'draw.postPublishEdit', run: () => Promise<T>) {
+    const result = await run();
+    if (dryRun) return result;
+    const context = await loadDrawTagContext(this.prisma, drawId);
+    const warnings = await this.revalidation.enqueue(() => CACHE_TAGS[mutation](context));
+    return warnings.length > 0 ? { ...result, warnings } : result;
+  }
 
   private async openPublished(tx: Tx, drawId: string, expectedVersion: number): Promise<Draw> {
     const draw = await loadDrawLocked(tx, drawId, expectedVersion);
@@ -38,7 +51,7 @@ export class DrawPostPublishService {
   }
 
   unpublish(drawId: string, body: UnpublishBody) {
-    return executeOperation(this.prisma, body.dryRun, async (tx) => {
+    return this.withRefresh(drawId, body.dryRun, 'draw.unpublish', () => executeOperation(this.prisma, body.dryRun, async (tx) => {
       const draw = await this.openPublished(tx, drawId, body.expectedVersion);
       if (await isStructureLocked(tx, drawId)) throw structureLocked();
       if (draw.kind === 'GROUP' && (await tx.draw.count({ where: { subEventId: draw.subEventId, kind: 'MAIN' } }))) {
@@ -58,20 +71,20 @@ export class DrawPostPublishService {
         tx,
       );
       return { draw: updated, impacts };
-    });
+    }));
   }
 
   replaceEntry(drawId: string, body: ReplaceEntryBody) {
-    return executeOperation(this.prisma, body.dryRun, async (tx) => {
+    return this.withRefresh(drawId, body.dryRun, 'draw.postPublishEdit', () => executeOperation(this.prisma, body.dryRun, async (tx) => {
       const draw = await this.openPublished(tx, drawId, body.expectedVersion);
       if (draw.kind === 'GROUP') throw invalid('KIND_NOT_ALLOWED', 'Vòng bảng không có vị trí để thay VĐV');
       const impacts = await replaceEntryAtPosition(tx, draw, body.positionId, body.newEntryId);
       return this.finish(tx, draw, 'draw.replaceEntry', body.reason, impacts, { positionId: body.positionId, newEntryId: body.newEntryId });
-    });
+    }));
   }
 
   withdrawEntry(drawId: string, body: WithdrawEntryBody) {
-    return executeOperation(this.prisma, body.dryRun, async (tx) => {
+    return this.withRefresh(drawId, body.dryRun, 'draw.postPublishEdit', () => executeOperation(this.prisma, body.dryRun, async (tx) => {
       const draw = await this.openPublished(tx, drawId, body.expectedVersion);
       const entry = await tx.entry.findUnique({ where: { id: body.entryId }, select: { status: true, subEventId: true } });
       if (!entry || entry.subEventId !== draw.subEventId) throw invalid('ENTRY_NOT_IN_DRAW', 'VĐV không nằm trong nhánh này');
@@ -83,7 +96,7 @@ export class DrawPostPublishService {
       const impacts = await this.withdrawFromDraw(tx, draw, body.entryId);
       if (draw.kind === 'QUALIFYING') impacts.push(...(await this.cascadeToMain(tx, draw, body.entryId)));
       return this.finish(tx, draw, 'draw.withdrawEntry', body.reason, impacts, { entryId: body.entryId });
-    });
+    }));
   }
 
   private withdrawFromDraw(tx: Tx, draw: Draw, entryId: string): Promise<RawImpact[]> {

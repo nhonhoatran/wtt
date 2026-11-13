@@ -4,6 +4,7 @@ import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
+import { loadDrawTagContext } from './draw-tag-context.js';
 import { alreadyPublished, conflict, notDraft, structureLocked } from './draw-errors.js';
 import { bumpVersion, loadDrawLocked } from './draw-lock.js';
 import { assertNoStaleEntries } from './draw-stale-entries.js';
@@ -31,8 +32,7 @@ export class DrawPublishService {
         { action: 'draw.publish', entity: 'Draw', entityId: drawId, before: drawAuditFields(draw), after: { status: 'PUBLISHED', version: updated.version } },
         tx,
       );
-      const subEvent = await tx.subEvent.findUniqueOrThrow({ where: { id: draw.subEventId }, select: { code: true, event: { select: { slug: true } } } });
-      const context = { eventSlug: subEvent.event.slug, subEventCode: subEvent.code, hasGroups: draw.kind === 'GROUP' };
+      const context = await loadDrawTagContext(tx, drawId);
       return { result: { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) }, context };
     });
     const warnings = await this.revalidation.enqueue(() => CACHE_TAGS['draw.publish'](context));

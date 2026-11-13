@@ -38,6 +38,9 @@ export const CACHE_TAGS = {
   'match.start': matchTags,
   'match.confirm': (c: MatchTagContext) => [...matchTags(c), t.resultsStrip(), ...c.playerSlugs.map(t.player)],
   'draw.publish': drawTags,
+  // Unpublish and every edit of a published draw; the draw tag covers both MAIN and QUALIFYING of the sub-event.
+  'draw.unpublish': drawTags,
+  'draw.postPublishEdit': drawTags,
 } as const;
 
 export type CacheTagMutation = keyof typeof CACHE_TAGS;
