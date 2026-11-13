@@ -1,4 +1,5 @@
 import { Badge, Flex, Menu, Typography, theme } from 'antd';
+import type { ReactNode } from 'react';
 import type { EntryCount, EntrySubEvent } from './entry-labels';
 import { subEventTitle } from './sub-event-labels';
 
@@ -7,14 +8,17 @@ const BADGE_OVERFLOW = 9999;
 
 interface SubEventSideMenuProps {
   subEvents: EntrySubEvent[];
-  counts: EntryCount[];
+  /** Entry-count badge per item; omit it (e.g. on the draws tab) to show `renderStatus` instead. */
+  counts?: EntryCount[];
+  /** Optional slot at the right of each item, used by the draws tab for the draw status. */
+  renderStatus?: (subEventId: string) => ReactNode;
   selectedId: string;
   onSelect: (id: string) => void;
 }
 
-export function SubEventSideMenu({ subEvents, counts, selectedId, onSelect }: SubEventSideMenuProps) {
+export function SubEventSideMenu({ subEvents, counts, selectedId, onSelect, renderStatus }: SubEventSideMenuProps) {
   const { token } = theme.useToken();
-  const confirmedOf = (id: string) => counts.find((count) => count.subEventId === id)?.confirmed ?? 0;
+  const confirmedOf = (id: string) => counts?.find((count) => count.subEventId === id)?.confirmed ?? 0;
 
   return (
     <Menu
@@ -31,13 +35,16 @@ export function SubEventSideMenu({ subEvents, counts, selectedId, onSelect }: Su
           label: (
             <Flex justify="space-between" align="center" gap="small">
               <Typography.Text ellipsis>{subEventTitle(subEvent)}</Typography.Text>
-              <Badge
-                showZero
-                overflowCount={BADGE_OVERFLOW}
-                count={subEvent.maxEntries !== null ? `${confirmed}/${subEvent.maxEntries}` : confirmed}
-                color={full ? token.colorWarning : token.colorPrimary}
-                title={full ? 'Đã đủ số lượng tối đa' : 'Số đăng ký đang tham gia'}
-              />
+              {counts && (
+                <Badge
+                  showZero
+                  overflowCount={BADGE_OVERFLOW}
+                  count={subEvent.maxEntries !== null ? `${confirmed}/${subEvent.maxEntries}` : confirmed}
+                  color={full ? token.colorWarning : token.colorPrimary}
+                  title={full ? 'Đã đủ số lượng tối đa' : 'Số đăng ký đang tham gia'}
+                />
+              )}
+              {renderStatus?.(subEvent.id)}
             </Flex>
           ),
         };
