@@ -1,0 +1,48 @@
+model Group {
+  id        String          @id @default(uuid())
+  drawId    String
+  draw      Draw            @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  code      String
+  order     Int
+  version   Int             @default(0)
+  members   GroupMember[]
+  standings GroupStanding[]
+  rounds    Round[]
+  matches   Match[]
+
+  @@unique([drawId, code])
+}
+
+model GroupMember {
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entryId String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  slot    Int
+
+  @@id([groupId, entryId])
+  @@index([entryId])
+}
+
+// Recomputed from scratch from the group's matches; never edited incrementally.
+model GroupStanding {
+  groupId             String
+  group               Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entryId             String
+  entry               Entry   @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  played              Int     @default(0)
+  won                 Int     @default(0)
+  lost                Int     @default(0)
+  matchPoints         Int     @default(0)
+  gamesFor            Int     @default(0)
+  gamesAgainst        Int     @default(0)
+  pointsFor           Int     @default(0)
+  pointsAgainst       Int     @default(0)
+  rank                Int?
+  qualified           Boolean @default(false)
+  needsManualTiebreak Boolean @default(false)
+  manualRank          Int?
+
+  @@id([groupId, entryId])
+  @@index([entryId])
+}

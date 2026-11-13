@@ -5,38 +5,40 @@ enum PublishStatus {
 
 // Lifecycle (upcoming / ongoing / completed) is derived from the dates + isCancelled, never stored.
 model Event {
-  id            String        @id @default(uuid())
-  slug          String        @unique
+  id            String             @id @default(uuid())
+  slug          String             @unique
   name          String
   nameEn        String?
   shortName     String?
   eventTypeId   String
-  eventType     EventType     @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  eventType     EventType          @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
   venueId       String?
-  venue         Venue?        @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  venue         Venue?             @relation(fields: [venueId], references: [id], onDelete: Restrict)
   city          String?
-  startDate     DateTime      @db.Date
-  endDate       DateTime      @db.Date
+  startDate     DateTime           @db.Date
+  endDate       DateTime           @db.Date
   timezone      String
-  publishStatus PublishStatus @default(DRAFT)
+  publishStatus PublishStatus      @default(DRAFT)
   publishedAt   DateTime?
-  isCancelled   Boolean       @default(false)
-  isFeatured    Boolean       @default(false)
+  isCancelled   Boolean            @default(false)
+  isFeatured    Boolean            @default(false)
   ticketUrl     String?
-  showTicket    Boolean       @default(false)
+  showTicket    Boolean            @default(false)
   presentedBy   String?
   bannerMediaId String?
-  bannerMedia   MediaAsset?   @relation("EventBanner", fields: [bannerMediaId], references: [id], onDelete: SetNull)
+  bannerMedia   MediaAsset?        @relation("EventBanner", fields: [bannerMediaId], references: [id], onDelete: SetNull)
   summary       String?
   summaryEn     String?
   // Sanitized rich HTML (sanitized again on render).
   infoBody      String?
   infoBodyEn    String?
-  showInfoTab   Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  showInfoTab   Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   subEvents     SubEvent[]
   importJobs    ImportJob[]
+  matches       Match[]
+  matchCounter  EventMatchCounter?
 
   @@index([startDate])
   @@index([eventTypeId])
@@ -66,6 +68,8 @@ model SubEvent {
   groupScoringRuleId String?
   groupScoringRule   GroupScoringRule? @relation(fields: [groupScoringRuleId], references: [id], onDelete: Restrict)
   entries            Entry[]
+  draws              Draw[]
+  matches            Match[]
   maxEntries         Int?
   order              Int               @default(0)
   createdAt          DateTime          @default(now())

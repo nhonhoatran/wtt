@@ -105,14 +105,14 @@ enum QuotaType {
 }
 
 model Entry {
-  id                        String      @id @default(uuid())
+  id                        String            @id @default(uuid())
   subEventId                String
-  subEvent                  SubEvent    @relation(fields: [subEventId], references: [id], onDelete: Restrict)
+  subEvent                  SubEvent          @relation(fields: [subEventId], references: [id], onDelete: Restrict)
   competitorId              String
-  competitor                Competitor  @relation(fields: [competitorId], references: [id], onDelete: Restrict)
-  status                    EntryStatus @default(CONFIRMED)
-  stage                     EntryStage  @default(MAIN)
-  quotaType                 QuotaType   @default(DIRECT)
+  competitor                Competitor        @relation(fields: [competitorId], references: [id], onDelete: Restrict)
+  status                    EntryStatus       @default(CONFIRMED)
+  stage                     EntryStage        @default(MAIN)
+  quotaType                 QuotaType         @default(DIRECT)
   // Postgres allows many NULLs under the unique below, so unseeded entries never clash.
   seed                      Int?
   // Filled by the ranking phase; null for pairs.
@@ -121,8 +121,13 @@ model Entry {
   pointsAtEntry             Int?
   eligibilityOverrideReason String?
   notes                     String?
-  createdAt                 DateTime    @default(now())
-  updatedAt                 DateTime    @updatedAt
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  bracketPositions          BracketPosition[]
+  matchesAsSide1            Match[]           @relation("MatchSide1")
+  matchesAsSide2            Match[]           @relation("MatchSide2")
+  groupMemberships          GroupMember[]
+  groupStandings            GroupStanding[]
 
   @@unique([subEventId, competitorId])
   @@unique([subEventId, stage, seed])

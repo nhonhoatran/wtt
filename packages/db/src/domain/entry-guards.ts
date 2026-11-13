@@ -50,12 +50,34 @@ export async function confirmedEntryCount(tx: Tx, subEventId: string, excludeEnt
   return tx.entry.count({ where: { subEventId, status: 'CONFIRMED', ...(excludeEntryId && { id: { not: excludeEntryId } }) } });
 }
 
-// Phase 06 hook: draws do not exist yet, so nothing is locked. Once Draw lands, return the entry
-// ids (resp. sub-event ids) whose draw status is not DRAFT, and the ids whose draw is DRAFT.
-export async function entriesInLockedDraw(_tx: Tx, _entryIds: string[]): Promise<{ locked: string[]; draft: string[] }> {
-  return { locked: [], draft: [] };
+/**
+ * Splits entries that occupy a bracket position or group slot by draw status: `locked` when any
+ * such draw is not DRAFT, `draft` when all of them are DRAFT. Entries in no draw appear in neither.
+ */
+export async function entriesInLockedDraw(tx: Tx, entryIds: string[]): Promise<{ locked: string[]; draft: string[] }> {
+  if (!entryIds.length) return { locked: [], draft: [] };
+  const [positions, members] = await Promise.all([
+    tx.bracketPosition.findMany({ where: { entryId: { in: entryIds } }, select: { entryId: true, draw: { select: { status: true } } } }),
+    tx.groupMember.findMany({ where: { entryId: { in: entryIds } }, select: { entryId: true, group: { select: { draw: { select: { status: true } } } } } }),
+  ]);
+  const locked = new Set<string>();
+  const draft = new Set<string>();
+  const mark = (entryId: string | null, status: 'DRAFT' | 'PUBLISHED') => {
+    if (entryId) (status === 'DRAFT' ? draft : locked).add(entryId);
+  };
+  for (const row of positions) mark(row.entryId, row.draw.status);
+  for (const row of members) mark(row.entryId, row.group.draw.status);
+  for (const id of locked) draft.delete(id);
+  return { locked: [...locked], draft: [...draft] };
 }
 
-export async function subEventsWithLockedDraw(_tx: Tx, _subEventIds: string[]): Promise<string[]> {
-  return [];
+/** Sub-events (among `subEventIds`) with at least one draw that is not DRAFT. */
+export async function subEventsWithLockedDraw(tx: Tx, subEventIds: string[]): Promise<string[]> {
+  if (!subEventIds.length) return [];
+  const rows = await tx.draw.findMany({
+    where: { subEventId: { in: subEventIds }, status: { not: 'DRAFT' } },
+    select: { subEventId: true },
+    distinct: ['subEventId'],
+  });
+  return rows.map((row) => row.subEventId);
 }

@@ -1,0 +1,176 @@
+enum DrawKind {
+  QUALIFYING
+  MAIN
+  GROUP
+}
+
+// Structure lock is derived from matches (see isStructureLocked), never stored.
+enum DrawStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Draw {
+  id              String            @id @default(uuid())
+  subEventId      String
+  subEvent        SubEvent          @relation(fields: [subEventId], references: [id], onDelete: Cascade)
+  kind            DrawKind
+  status          DrawStatus        @default(DRAFT)
+  size            Int?
+  seedCount       Int               @default(0)
+  qualifierCount  Int?
+  groupCount      Int?
+  advancePerGroup Int?
+  matchFormatId   String?
+  matchFormat     MatchFormat?      @relation(fields: [matchFormatId], references: [id], onDelete: SetNull)
+  // Seed of the RNG used to generate the draw; makes a draw reproducible for disputes.
+  randomSeed      String
+  publishedAt     DateTime?
+  startDate       DateTime?         @db.Date
+  version         Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  positions       BracketPosition[]
+  rounds          Round[]
+  groups          Group[]
+  matches         Match[]
+
+  @@unique([subEventId, kind])
+  @@index([matchFormatId])
+}
+
+enum PositionSource {
+  ENTRY
+  BYE
+  QUALIFIER
+  GROUP_PLACE
+}
+
+model BracketPosition {
+  id        String         @id @default(uuid())
+  drawId    String
+  draw      Draw           @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  section   Int            @default(1)
+  position  Int
+  source    PositionSource
+  entryId   String?
+  entry     Entry?         @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  // {type: 'QUALIFIER', index} | {type: 'GROUP_PLACE', group, place}
+  sourceRef Json?
+
+  @@unique([drawId, section, position])
+  @@index([entryId])
+}
+
+model Round {
+  id            String       @id @default(uuid())
+  drawId        String
+  draw          Draw         @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  section       Int          @default(1)
+  groupId       String?
+  group         Group?       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // "S1".."Sk" for knockout sections, "G-A" for groups; never null so the unique below holds.
+  scopeKey      String
+  number        Int
+  // R64..F, "QF-1"/"QF-2" counted back from a section final, GR1.. for groups.
+  code          String
+  matchFormatId String?
+  matchFormat   MatchFormat? @relation(fields: [matchFormatId], references: [id], onDelete: SetNull)
+  matches       Match[]
+
+  @@unique([drawId, scopeKey, number])
+  @@index([matchFormatId])
+  @@index([groupId])
+}
+
+// Allocated under a row lock (allocateMatchNumbers) so matchNo is unique per event; regenerating a draft leaves gaps because the counter never rewinds.
+model EventMatchCounter {
+  eventId     String @id
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  lastMatchNo Int    @default(0)
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  OFFICIAL
+}
+
+enum ResultType {
+  NORMAL
+  WALKOVER
+  RETIRED
+  DISQUALIFIED
+  BYE
+}
+
+model Match {
+  id              String      @id @default(uuid())
+  eventId         String
+  event           Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  subEventId      String
+  subEvent        SubEvent    @relation(fields: [subEventId], references: [id], onDelete: Cascade)
+  drawId          String
+  draw            Draw        @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  roundId         String
+  round           Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  groupId         String?
+  group           Group?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  section         Int         @default(1)
+  orderInRound    Int
+  // Per event; part of the public match URL.
+  matchNo         Int
+  side1EntryId    String?
+  side1Entry      Entry?      @relation("MatchSide1", fields: [side1EntryId], references: [id], onDelete: Restrict)
+  side2EntryId    String?
+  side2Entry      Entry?      @relation("MatchSide2", fields: [side2EntryId], references: [id], onDelete: Restrict)
+  // Structured placeholder refs: {type: 'WINNER_OF', matchNo} | {type: 'QUALIFIER', index} | {type: 'GROUP_PLACE', group, place}
+  side1Source     Json?
+  side2Source     Json?
+  nextMatchId     String?
+  nextMatch       Match?      @relation("MatchAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  previousMatches Match[]     @relation("MatchAdvance")
+  nextMatchSide   Int?
+  status          MatchStatus @default(SCHEDULED)
+  resultType      ResultType?
+  winnerSide      Int?
+  games1          Int?
+  games2          Int?
+  // Excluded from group standings (withdrawal with VOID_ALL_RESULTS).
+  isVoided        Boolean     @default(false)
+  // Plain columns until the scheduling phase adds the Session / table models.
+  sessionId       String?
+  tableId         String?
+  scheduledAt     DateTime?
+  orderInSession  Int?
+  scheduleVersion Int         @default(0)
+  startedAt       DateTime?
+  officialAt      DateTime?
+  // User id of the official; plain column so deleting a user never touches results.
+  officialById    String?
+  version         Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  games           Game[]
+
+  @@unique([eventId, matchNo])
+  @@index([drawId, roundId])
+  @@index([eventId, status])
+  @@index([subEventId])
+  @@index([roundId])
+  @@index([groupId])
+  @@index([side1EntryId])
+  @@index([side2EntryId])
+  @@index([nextMatchId])
+}
+
+model Game {
+  id      String @id @default(uuid())
+  matchId String
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  number  Int
+  score1  Int
+  score2  Int
+
+  @@unique([matchId, number])
+}
