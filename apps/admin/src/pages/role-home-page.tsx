@@ -1,14 +1,17 @@
+import { can } from '@kamito/shared';
 import { useGetIdentity } from '@refinedev/core';
 import { Card, Col, Empty, Row, theme, Typography } from 'antd';
 import { Link } from 'react-router';
 import { visibleMenuGroups } from '../layout/menu-groups';
 import type { CurrentUser } from '../providers/current-user';
+import { ResultsEntryPage } from './results/results-entry-page';
 
-/** Shortcuts to what this role can open. Tournament and score-entry shortcuts arrive with phases 04–07. */
+/** Result operators land straight on score entry; other roles get shortcuts to what they can open. */
 export function RoleHomePage() {
   const { data: user } = useGetIdentity<CurrentUser>();
   const { token } = theme.useToken();
   if (!user) return null;
+  if (user.role === 'RESULTS_OPERATOR' && can(user.role, 'matches', 'list')) return <ResultsEntryPage />;
   const items = visibleMenuGroups(user.role).flatMap((group) => group.items.filter((item) => !item.external));
 
   return (

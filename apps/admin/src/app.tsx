@@ -13,6 +13,7 @@ import { i18nProvider } from './i18n/vi';
 import { AdminLayout } from './layout/admin-layout';
 import { ChangePasswordPage } from './pages/change-password-page';
 import { LoginPage } from './pages/login-page';
+import { ResultsEntryPage } from './pages/results/results-entry-page';
 import { RoleHomePage } from './pages/role-home-page';
 import { SettingsPage } from './pages/settings-page';
 import { accessControlProvider } from './providers/access-control-provider';
@@ -79,6 +80,7 @@ export function App() {
                     <Route path="/events" element={<RequireAccess resource="tournaments" action="list"><EventList /></RequireAccess>} />
                     <Route path="/events/create" element={<RequireAccess resource="tournaments" action="create"><EventCreate /></RequireAccess>} />
                     <Route path="/events/:id/:tab?" element={<RequireAccess resource="tournaments" action="read"><EventHubPage /></RequireAccess>} />
+                    <Route path="/results" element={<RequireAccess resource="matches" action="list"><ResultsEntryPage /></RequireAccess>} />
                     {catalogRoutes}
                     <Route path="/players" element={<RequireAccess resource="players" action="list"><PlayerList /></RequireAccess>} />
                     <Route path="/players/create" element={<RequireAccess resource="players" action="create"><PlayerCreate /></RequireAccess>} />

@@ -26,6 +26,7 @@ export const MENU_GROUPS: MenuGroupDef[] = [
     items: [
       { key: 'events', label: 'Danh sách giải', path: '/events', resource: 'tournaments' },
       { key: 'venues', label: 'Địa điểm & bàn', path: '/venues', resource: 'tournaments' },
+      { key: 'results', label: 'Nhập tỷ số', path: '/results', resource: 'matches' },
     ],
   },
   {
