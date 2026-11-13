@@ -315,11 +315,12 @@ describe('draws and matches (real Postgres)', () => {
         ...(p.entryId && { entryId: p.entryId }),
         ...(p.sourceRef && { sourceRef: p.sourceRef as BracketPositionData['sourceRef'] }),
       }));
-      const draw = await kit.prisma.draw.findUniqueOrThrow({ where: { id: mainId } });
-      const expected = fillQualifierSlots(asData, winners, createRng(`${draw.randomSeed}:qualifiers`));
 
       const res = await post(`/draws/${mainId}/place-qualifiers`, { expectedVersion: 0 }).expect(200);
       expect(res.body.data.version).toBe(1);
+      // Placement uses its own random seed, kept in the audit row so a dispute can replay it.
+      const { placementSeed } = (await audits(mainId, 'draw.placeQualifiers'))[0]!.after as { placementSeed: string };
+      const expected = fillQualifierSlots(asData, winners, createRng(placementSeed));
       const after = await dbPositions(mainId);
       expect(after.some((p) => p.source === 'QUALIFIER')).toBe(false);
       expect(after.map((p) => p.entryId)).toEqual(expected.map((p) => p.entryId));
