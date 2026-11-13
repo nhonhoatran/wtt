@@ -1,4 +1,4 @@
-import { appEnvSchema, csvList, isQueuePrefixValid, parseEnv, requiredString } from '@kamito/shared';
+import { appEnvSchema, csvList, isQueuePrefixValid, parseEnv, requiredString, secretString } from '@kamito/shared';
 import { parseVariantWidths, refineStorageEnv, storageEnvShape } from '@kamito/shared/media';
 import { z } from 'zod';
 
@@ -25,6 +25,10 @@ export const workerEnvSchema = z
     IMPORT_MAX_ROWS: positiveInt,
     IMPORT_WORKER_CONCURRENCY: positiveInt.default(1),
     IMPORT_CLEANUP_INTERVAL_MINUTES: positiveInt.default(60),
+    CLIENT_INTERNAL_URL: z.string().url(),
+    REVALIDATE_SECRET: secretString,
+    REVALIDATE_TIMEOUT_MS: positiveInt.default(5_000),
+    REVALIDATE_WORKER_CONCURRENCY: positiveInt.default(2),
   })
   .superRefine((env, ctx) => {
     if (!isQueuePrefixValid(env.QUEUE_PREFIX, env.APP_ENV)) {

@@ -16,6 +16,8 @@ const base = {
   IMPORT_MAX_FILE_BYTES: '5242880',
   IMPORT_MAX_UNZIPPED_BYTES: '52428800',
   IMPORT_MAX_ROWS: '5000',
+  CLIENT_INTERNAL_URL: 'http://client:3000',
+  REVALIDATE_SECRET: 'test-revalidate-secret-0123456789abcdef',
 };
 
 // buildMediaDeps only stores the client; the variant-width wiring does not touch the database.
