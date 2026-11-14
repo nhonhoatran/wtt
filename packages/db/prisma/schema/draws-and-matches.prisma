@@ -105,52 +105,53 @@ enum ResultType {
 }
 
 model Match {
-  id              String      @id @default(uuid())
+  id              String        @id @default(uuid())
   eventId         String
-  event           Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   subEventId      String
-  subEvent        SubEvent    @relation(fields: [subEventId], references: [id], onDelete: Cascade)
+  subEvent        SubEvent      @relation(fields: [subEventId], references: [id], onDelete: Cascade)
   drawId          String
-  draw            Draw        @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  draw            Draw          @relation(fields: [drawId], references: [id], onDelete: Cascade)
   roundId         String
-  round           Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  round           Round         @relation(fields: [roundId], references: [id], onDelete: Cascade)
   groupId         String?
-  group           Group?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  section         Int         @default(1)
+  group           Group?        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  section         Int           @default(1)
   orderInRound    Int
   // Per event; part of the public match URL.
   matchNo         Int
   side1EntryId    String?
-  side1Entry      Entry?      @relation("MatchSide1", fields: [side1EntryId], references: [id], onDelete: Restrict)
+  side1Entry      Entry?        @relation("MatchSide1", fields: [side1EntryId], references: [id], onDelete: Restrict)
   side2EntryId    String?
-  side2Entry      Entry?      @relation("MatchSide2", fields: [side2EntryId], references: [id], onDelete: Restrict)
+  side2Entry      Entry?        @relation("MatchSide2", fields: [side2EntryId], references: [id], onDelete: Restrict)
   // Structured placeholder refs: {type: 'WINNER_OF', matchNo} | {type: 'QUALIFIER', index} | {type: 'GROUP_PLACE', group, place}
   side1Source     Json?
   side2Source     Json?
   nextMatchId     String?
-  nextMatch       Match?      @relation("MatchAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
-  previousMatches Match[]     @relation("MatchAdvance")
+  nextMatch       Match?        @relation("MatchAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  previousMatches Match[]       @relation("MatchAdvance")
   nextMatchSide   Int?
-  status          MatchStatus @default(SCHEDULED)
+  status          MatchStatus   @default(SCHEDULED)
   resultType      ResultType?
   winnerSide      Int?
   games1          Int?
   games2          Int?
   // Excluded from group standings (withdrawal with VOID_ALL_RESULTS).
-  isVoided        Boolean     @default(false)
-  // Plain columns until the scheduling phase adds the Session / table models.
+  isVoided        Boolean       @default(false)
   sessionId       String?
+  session         EventSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   tableId         String?
+  table           VenueTable?   @relation(fields: [tableId], references: [id], onDelete: Restrict)
   scheduledAt     DateTime?
   orderInSession  Int?
-  scheduleVersion Int         @default(0)
+  scheduleVersion Int           @default(0)
   startedAt       DateTime?
   officialAt      DateTime?
   // User id of the official; plain column so deleting a user never touches results.
   officialById    String?
-  version         Int         @default(0)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  version         Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   games           Game[]
 
   @@unique([eventId, matchNo])
@@ -162,6 +163,9 @@ model Match {
   @@index([side1EntryId])
   @@index([side2EntryId])
   @@index([nextMatchId])
+  @@index([sessionId, tableId, orderInSession])
+  @@index([tableId])
+  @@index([eventId, scheduledAt])
 }
 
 model Game {

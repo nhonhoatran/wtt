@@ -138,29 +138,32 @@ model GroupScoringRule {
 }
 
 model Venue {
-  id        String       @id @default(uuid())
+  id        String         @id @default(uuid())
   name      String
   nameEn    String?
   address   String?
   city      String?
   mapUrl    String?
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   tables    VenueTable[]
   events    Event[]
+  sessions  EventSession[]
 }
 
 model VenueTable {
-  id          String   @id @default(uuid())
-  venueId     String
-  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  code        String
-  displayName String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String              @id @default(uuid())
+  venueId       String
+  venue         Venue               @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  code          String
+  displayName   String?
+  order         Int                 @default(0)
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  matches       Match[]
+  sessionTables EventSessionTable[]
 
   @@unique([venueId, code])
 }

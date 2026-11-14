@@ -38,6 +38,7 @@ model Event {
   subEvents     SubEvent[]
   importJobs    ImportJob[]
   matches       Match[]
+  sessions      EventSession[]
   matchCounter  EventMatchCounter?
   rankingPoints RankingPointsEarned[]
 

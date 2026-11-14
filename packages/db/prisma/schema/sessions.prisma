@@ -1,0 +1,34 @@
+model EventSession {
+  id        String              @id @default(uuid())
+  eventId   String
+  event     Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  venueId   String?
+  venue     Venue?              @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  date      DateTime            @db.Date
+  // S01; unique per event.
+  code      String
+  name      String?
+  nameEn    String?
+  // Only the time of day is meaningful: a UTC instant, read together with the event timezone.
+  startTime DateTime
+  endTime   DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tables    EventSessionTable[]
+  matches   Match[]
+
+  @@unique([eventId, code])
+  @@index([eventId, date])
+  @@index([venueId])
+}
+
+model EventSessionTable {
+  sessionId String
+  session   EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tableId   String
+  table     VenueTable   @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  order     Int
+
+  @@id([sessionId, tableId])
+  @@index([tableId])
+}
