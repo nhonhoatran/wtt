@@ -16,6 +16,9 @@ export interface ImportDeps {
   now?: () => Date;
   /** Rows per commit transaction; the plan fixes 200. */
   commitBatchSize?: number;
+  /** Queues public cache tags for refresh after a successful commit; absent in tests that do not need it. */
+  enqueueRevalidate?: (tags: string[]) => Promise<void>;
+  logger?: { warn: (fields: object, message: string) => void };
   /** Called after each committed batch (1-based); lets tests interrupt a commit between batches. */
   onBatchCommitted?: (batchNo: number) => void | Promise<void>;
 }

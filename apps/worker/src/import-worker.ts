@@ -1,5 +1,5 @@
 import { createPrismaClient } from '@kamito/db';
-import { QueueName } from '@kamito/shared';
+import { QueueName, revalidateTagsJobs, withTimeout } from '@kamito/shared';
 import { createObjectStorage } from '@kamito/shared/object-storage';
 import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
@@ -15,19 +15,36 @@ export const VALIDATE_IMPORT_JOB = 'validate-import';
 export const COMMIT_IMPORT_JOB = 'commit-import';
 export const IMPORT_CLEANUP_JOB = 'cleanup-import-files';
 const CLEANUP_SCHEDULER_ID = 'import-file-cleanup';
+/** The shared connection retries forever when Redis is down; the import is committed already, so do not hold a worker slot. */
+const REVALIDATE_ENQUEUE_TIMEOUT_MS = 2_000;
 
 /** Starts the import worker (validate, commit, periodic file cleanup); the returned function stops it. */
 export async function startImportWorker(env: WorkerEnv, redis: Redis, logger: Logger): Promise<() => Promise<void>> {
   const prisma = createPrismaClient({ connectionString: env.DATABASE_URL });
-  const deps: ImportDeps = { prisma, storage: createObjectStorage(env), env };
   const queueOptions = { connection: redis, prefix: env.QUEUE_PREFIX };
+  const revalidateQueue = new Queue(QueueName.Revalidate, queueOptions);
+  const deps: ImportDeps = {
+    prisma,
+    storage: createObjectStorage(env),
+    env,
+    logger,
+    enqueueRevalidate: async (tags) => {
+      const jobs = revalidateTagsJobs(tags);
+      await withTimeout(Promise.all(jobs.map((job) => revalidateQueue.add(job.name, job.data, job.opts))), REVALIDATE_ENQUEUE_TIMEOUT_MS);
+    },
+  };
 
   const scheduler = new Queue(QueueName.Import, queueOptions);
-  await scheduler.upsertJobScheduler(
-    CLEANUP_SCHEDULER_ID,
-    { every: env.IMPORT_CLEANUP_INTERVAL_MINUTES * 60_000 },
-    { name: IMPORT_CLEANUP_JOB, opts: { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } } },
-  );
+  try {
+    await scheduler.upsertJobScheduler(
+      CLEANUP_SCHEDULER_ID,
+      { every: env.IMPORT_CLEANUP_INTERVAL_MINUTES * 60_000 },
+      { name: IMPORT_CLEANUP_JOB, opts: { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } } },
+    );
+  } catch (error) {
+    await Promise.allSettled([scheduler.close(), revalidateQueue.close(), prisma.$disconnect()]);
+    throw error;
+  }
 
   const worker = new Worker(
     QueueName.Import,
@@ -54,6 +71,7 @@ export async function startImportWorker(env: WorkerEnv, redis: Redis, logger: Lo
   return async () => {
     await worker.close();
     await scheduler.close();
+    await revalidateQueue.close();
     await prisma.$disconnect();
   };
 }

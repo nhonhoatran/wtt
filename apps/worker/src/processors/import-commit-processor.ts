@@ -4,6 +4,7 @@ import { playerSettings } from '@kamito/shared';
 import { commitBatch, committableWhere } from '../import/commit-batch.js';
 import type { BatchState, CommitSettings, CreatedEntities } from '../import/commit-types.js';
 import type { ImportDeps } from '../import/import-deps.js';
+import { refreshPublicAfterImport } from '../import/import-revalidate-tags.js';
 import { readSetting } from '../read-setting.js';
 import { failImportJob } from '../import/import-job-state.js';
 import { ImportFailure, type RowData } from '../import/import-row-types.js';
@@ -88,7 +89,8 @@ export async function commitImport(deps: ImportDeps, jobId: string, attemptNo?: 
       state.touchedEntries.forEach((id) => touchedEntries.add(id));
       await deps.onBatchCommitted?.(batchNo);
     }
-    await finish(deps, jobId, job.createdById, job.overrideReason);
+    const committed = await finish(deps, jobId, job.createdById, job.overrideReason);
+    await refreshPublicAfterImport(deps, jobId, job.eventId, committed);
     return 'done';
   } catch (error) {
     if (error instanceof ImportFailure) {
@@ -99,11 +101,12 @@ export async function commitImport(deps: ImportDeps, jobId: string, attemptNo?: 
   }
 }
 
-async function finish(deps: ImportDeps, jobId: string, actorId: string, overrideReason: string | null): Promise<void> {
+async function finish(deps: ImportDeps, jobId: string, actorId: string, overrideReason: string | null): Promise<CreatedEntities[]> {
   const committed = await deps.prisma.importRow.findMany({ where: { importJobId: jobId, status: 'COMMITTED' }, select: { createdEntityIds: true } });
   const counts = await deps.prisma.importRow.groupBy({ by: ['status'], where: { importJobId: jobId }, _count: true });
   const countOf = (status: string) => counts.find((item) => item.status === status)?._count ?? 0;
-  const summary = summarize(committed.map((row) => row.createdEntityIds as unknown as CreatedEntities));
+  const entities = committed.map((row) => row.createdEntityIds as unknown as CreatedEntities);
+  const summary = summarize(entities);
   await deps.prisma.$transaction([
     deps.prisma.importJob.update({
       where: { id: jobId },
@@ -129,4 +132,5 @@ async function finish(deps: ImportDeps, jobId: string, actorId: string, override
       },
     }),
   ]);
+  return entities;
 }
