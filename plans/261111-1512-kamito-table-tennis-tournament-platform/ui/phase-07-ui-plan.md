@@ -26,12 +26,12 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
 
 - [ ] **0. Hiệu chỉnh checker (kind hub tab, modal, drawer).** Bản sao `draws-tab.tsx` ngoài checkout (worktree tạm) viết khác một vai trò (vd lỗi tải dùng `Alert` thay `Result … Thử lại`); bản sao `draw-entry-action-modal.tsx` với ô lý do không bắt buộc; bản sao `match-score-drawer.tsx` với 409 chỉ `message.error` (mất nút "Tải lại"). Giao agent `ui-consistency:verifying` kèm mục A, G, F của checklist, chỉ nói "bản sao khác ở đâu đó". Người cài không kiểm. Không bắt được → dừng, ghi checker mù chỗ đó. Lưới (C), panel (D), trang in (E) không có tham chiếu cùng loại → không plant được; ghi là chưa hiệu chỉnh.
 
-- [ ] **1. Tách component dùng chung (nếu Q1 đồng ý).** `parked — waiting on Q1b, Q1c`.
+- [x] **1. Tách component dùng chung.** done phần sortable (`components/sortable-list-field.tsx`, tiebreaker dùng lại) + hook `components/use-debounced-value.ts`; đổi `results-entry-page.tsx` sang hook thuộc agent kết quả.
   - Q1b: `components/sortable-list-field.tsx` từ `resources/group-scoring-rules/tiebreaker-list-field.tsx` (`@dnd-kit/sortable`, kéo + nút mũi tên); sửa tiebreaker-list-field dùng lại nó. Không đồng ý → task 3 tự viết danh sách kéo theo đúng cách của tiebreaker-list-field.
   - Q1c: `useDebouncedValue(value, ms)` từ `useDebounced` riêng trong `pages/results/results-entry-page.tsx`; results-entry-page và task 5 dùng. Không đồng ý → task 5 chép cách của results-entry-page.
   Làm trước task 3 và 5.
 
-- [ ] **2. Tab "Lịch & kết quả" — `schedule-tab.tsx` + sửa `event-hub-page.tsx`**, theo `pages/event-hub/draws-tab.tsx`. Làm được ngay phần khung; lưới/panel ở task 4, 5.
+- [x] **2. Tab "Lịch & kết quả" — `schedule-tab.tsx` + sửa `event-hub-page.tsx`**, theo `pages/event-hub/draws-tab.tsx`. Làm được ngay phần khung; lưới/panel ở task 4, 5.
   Checklist (hub tab, 4 member / 5 ứng viên, bound `apps/admin/src`, snapshot 2026-11-14):
   - [ ] đăng ký tab — `{ key: 'schedule', label: 'Lịch & kết quả' }` sau `draws`, nhận `HubTabContext` — 4 of 4
   - [ ] khung — `Flex gap="middle" align="start"`; trái `width: SIDE_MENU_WIDTH, flex: 'none'` (panel task 5); phải `Flex vertical gap="middle" flex:1 minWidth:0` (lưới task 4) — 2 of 2 tab có panel trái
@@ -46,7 +46,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   Không chép từ draws-tab: `SubEventSideMenu`, `Tabs` theo loại draw, `drawsOverviewKey`.
   Dùng: `SIDE_MENU_WIDTH`, `DISPLAY_DATE_FORMAT`, `ConfirmActionButton`, `apiUrl`, `apiFetch`/`ApiError`, `PUBLIC_REFRESH_DELAYED`.
 
-- [ ] **3. Hộp thoại session — `session-form-modal.tsx`**, theo `resources/venues/venue-table-modals.tsx` (`TableFormModal`). `parked — waiting on Q1a (tên/chỗ file), Q1b (danh sách bàn có thứ tự)`.
+- [x] **3. Hộp thoại session — `session-form-modal.tsx`**, theo `resources/venues/venue-table-modals.tsx` (`TableFormModal`). `parked — waiting on Q1a (tên/chỗ file), Q1b (danh sách bàn có thứ tự)`.
   Checklist (modal, family 12 file `<Modal`):
   - [ ] khung — `Modal title={session ? \`Sửa session ${code}\` : 'Thêm session'} okText="Lưu" cancelText="Hủy" onOk={form.submit} confirmLoading destroyOnHidden width={640}` — tham chiếu; 640: 6 of 6 có width
   - [ ] form — `Form layout="vertical"`, `Form.Item name label rules[{required,message}]`, gợi ý ở `extra`
@@ -59,7 +59,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] xong — `message.success('Đã thêm session' | 'Đã lưu session')`, đóng, tab nạp lại
   Không chép: `BulkTablesModal`, tiền tố mã, `InputNumber` thứ tự.
 
-- [ ] **4. Lưới xếp lịch — `session-grid.tsx`** (tên do spec nêu; không có tham chiếu cùng loại). `parked — waiting on Q2 (dữ liệu trọn session + cảnh báo theo trận, bỏ xếp, scheduledAt, trận nào được dời)`.
+- [x] **4. Lưới xếp lịch — `session-grid.tsx`** (tên do spec nêu; không có tham chiếu cùng loại). `parked — waiting on Q2 (dữ liệu trọn session + cảnh báo theo trận, bỏ xếp, scheduledAt, trận nào được dời)`.
   Checklist:
   - [ ] phần tử — `Table size="small" bordered pagination={false}`, cột = bàn theo thứ tự (`displayName ?? code`), hàng = thứ tự 1…(max+1), cột đầu "#"; `scroll={{ x: 'max-content' }}`, cột rộng hằng `GRID_COLUMN_WIDTH`; không phân trang (dữ liệu một session nhỏ, cố định — ngoại lệ có lý do)
   - [ ] dữ liệu — một `useQuery` `GET /admin/events/:id/matches?filter[sessionId]=…` cho cả session (Q2)
@@ -71,7 +71,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] trận LIVE/OFFICIAL — chữ thường, không bấm/kéo (Q2 iv)
   Không có: tự xếp, zoom, đổi chỗ hai trận một lần.
 
-- [ ] **5. Panel "Trận chưa xếp" — `unscheduled-panel.tsx`**, cơ chế truy vấn theo `pages/results/results-entry-page.tsx`. `parked — waiting on Q1c (debounce); phần còn lại làm được`.
+- [x] **5. Panel "Trận chưa xếp" — `unscheduled-panel.tsx`**, cơ chế truy vấn theo `pages/results/results-entry-page.tsx`. `parked — waiting on Q1c (debounce); phần còn lại làm được`.
   Checklist:
   - [ ] khung — `Card size="small" title="Trận chưa xếp"`, số trận ở `extra`
   - [ ] bộ lọc — `Select allowClear placeholder="Tất cả nội dung"`, `Select allowClear placeholder="Tất cả vòng"`, `Input.Search allowClear placeholder="Tên VĐV hoặc số trận"`, `Flex vertical gap="small"`, rộng 100%
@@ -82,7 +82,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] lỗi — `Alert type="warning" showIcon action Thử lại`
   Không chép từ results-entry-page: lọc trạng thái, `Table` + cột, tô "Trận kế tiếp", `minWidth: 260/200`, `width: 150/260`, `FALLBACK_PAGE_SIZE`.
 
-- [ ] **6. Trang in phiếu trận — `match-sheets-print-page.tsx` + `styles/print.css` + route trong `app.tsx`** (tên do spec nêu; không có tiền lệ in).
+- [x] **6. Trang in phiếu trận — `match-sheets-print-page.tsx` + `styles/print.css` + route trong `app.tsx`** (tên do spec nêu; không có tiền lệ in).
   Checklist:
   - [ ] route — trong lớp kiểm đăng nhập, ngoài `AdminLayout` (như `/change-password`), `/events/:id/print/match-sheets?sessionId&tableId`, `RequireAccess resource="tournaments" action="read"`
   - [ ] thanh màn hình (class `no-print`) — link `ArrowLeftOutlined` về tab, `Typography.Title level={3}` "Phiếu trận — S01 · dd/MM/YYYY", `Select allowClear placeholder="Tất cả bàn"`, `Button type="primary" icon={<PrinterOutlined />}` "In" → `window.print()`
@@ -92,7 +92,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] 2 phiếu / A4 dọc — đề xuất (không có tiền lệ), theo plan's yes
   - [ ] dữ liệu — một `useQuery` `GET /admin/events/:id/match-sheets?sessionId&tableId`
 
-- [ ] **7. Mở rộng drawer — `match-score-drawer.tsx`, `use-match-actions.ts`**, tham chiếu chính nó.
+- [ ] **7. Mở rộng drawer — `match-score-drawer.tsx`, `use-match-actions.ts`**, tham chiếu chính nó. Trạng thái: viết xong 2026-11-14, typecheck + lint đạt; chưa bấm thử trên trình duyệt (không có tài khoản seed được ghi trong docs), chờ checker.
   Checklist:
   - [ ] hàng nút — `Space wrap`: "Chốt kết quả" (primary), "Bắt đầu" (SCHEDULED), "Lưu tạm" (LIVE), "Hủy bắt đầu" (LIVE), "Không đến / Bỏ cuộc"; Bắt đầu/Hủy/Lưu tạm theo `canStart` (`matches.update`), còn lại `matches.confirm`
   - [ ] gọi API — `un-start`, `save-progress`, `amend-scores`, `reopen` qua `useMatchActions` (mở rộng union), kèm `expectedVersion`, lỗi vào `problem`
@@ -102,9 +102,9 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] 409 — `ProblemAlert` conflict: `MATCH_CONFLICT_TEXT` + "Tải lại"
   - [ ] `PUBLIC_REFRESH_DELAYED` → `message.warning('Đã lưu. Trang công khai sẽ cập nhật chậm hơn')`
   Không chép / không sửa trong task này: literal trong `game-score-inputs.tsx` (`paddingLeft/marginLeft: 64`, `width: 88/56/16`, `opacity: 0.45`) và `results-entry-page.tsx` — lệch có sẵn của lát cắt, ghi để refactor.
-  - [ ] trang Nhập tỷ số: mặc định giải đang diễn ra + session hiện tại; bộ lọc bàn nhớ lựa chọn lần trước (localStorage, bọc try/catch) — spec "Màn admin", đã chốt 2026-11-14
+  - [x] trang Nhập tỷ số: mặc định giải đang diễn ra + session hiện tại; bộ lọc bàn nhớ lựa chọn lần trước (localStorage, bọc try/catch) — spec "Màn admin", đã chốt 2026-11-14
 
-- [ ] **8. Hộp thoại "Sửa tỷ số" — `amend-scores-modal.tsx`**, theo `pages/event-hub/draw-entry-action-modal.tsx`. `parked — waiting on Q3 (hằng độ dài lý do); phần còn lại làm được`.
+- [ ] **8. Hộp thoại "Sửa tỷ số" — `amend-scores-modal.tsx`**, theo `pages/event-hub/draw-entry-action-modal.tsx`. Hằng `MATCH_REASON_*` đã có. Trạng thái: viết xong 2026-11-14, typecheck + lint đạt; chưa bấm thử trên trình duyệt (không có tài khoản seed được ghi trong docs), chờ checker.
   Checklist (modal):
   - [ ] khung — `Modal width={640} destroyOnHidden cancelText="Hủy" okText="Lưu tỷ số"`, `okButtonProps={{ loading, disabled: !valid || winnerChanged || reasonTooShort }}`, `afterClose` reset — 6 of 6
   - [ ] nội dung — `Flex vertical gap={token.margin}`; lỗi `Alert type="error" showIcon` đầu nội dung, 409 kèm `action` "Tải lại"
@@ -114,7 +114,7 @@ Chung cho mọi task (giá trị, nhắc lại trong từng task khi giao riêng
   - [ ] xong — đóng, `message.success('Đã sửa tỷ số')`; 409 "Dùng Mở lại" hiện chữ API
   Không chép: `Radio.Group`, `Select` VĐV thay thế, `dryRun`.
 
-- [ ] **9. Hộp thoại "Mở lại" — `reopen-preview-modal.tsx`**, theo `pages/event-hub/draw-entry-action-modal.tsx`. `parked — waiting on Q3 (hằng độ dài lý do); phần còn lại làm được`.
+- [ ] **9. Hộp thoại "Mở lại" — `reopen-preview-modal.tsx`**, theo `pages/event-hub/draw-entry-action-modal.tsx`. Hằng `MATCH_REASON_*` đã có. Trạng thái: viết xong 2026-11-14, typecheck + lint đạt; chưa bấm thử trên trình duyệt (không có tài khoản seed được ghi trong docs), chờ checker.
   Checklist (modal):
   - [ ] khung — `Modal width={640} destroyOnHidden cancelText="Hủy" okText="Mở lại"`, OK tắt khi có ô bị chặn hoặc lý do chưa đủ
   - [ ] xem trước — `useQuery GET /admin/matches/:id/reopen-preview` (`retry: false, gcTime: 0`), `Skeleton active paragraph={{ rows: 2 }}`; sẽ gỡ → `Alert type="warning"`; không ảnh hưởng → `Alert type="info"`; lỗi → `Alert type="error"`

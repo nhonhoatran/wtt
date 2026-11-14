@@ -52,7 +52,8 @@ Số đếm dùng ở dưới (một search mỗi vị trí):
 - [ ] kéo đổi ô — `@dnd-kit/core` `useDraggable` (trận ở panel và ô) + `useDroppable` (ô trống), `PointerSensor` + `KeyboardSensor` như `tiebreaker-list-field.tsx` — thư viện đã có (1 file), không thêm thư viện; bàn phím đi bằng 2-click
 - [ ] cảnh báo trùng trên ô — viền `token.colorWarning`, icon `WarningOutlined` màu `token.colorWarning`, `Tooltip` liệt kê ("Nguyễn A có trận #31 cách 10 phút", "Bàn T03 trùng giờ") — Tooltip 6 file; sau PATCH có cảnh báo → thêm `message.warning` một dòng
 - [ ] trận không dời được (LIVE/OFFICIAL) — hiển thị chữ thường, không bấm, không kéo — **chờ Q2 (iv)**
-- [ ] không có: tự xếp lịch, zoom, đổi chỗ hai trận một lần (API là PATCH một trận)
+- [ ] không có: tự xếp lịch, zoom
+- [ ] đổi chỗ: chỉ khi trận đang kéo đã có ô (API trả `swappedMatchId`, gửi `expectedOccupantId`); trận từ panel (chưa có ô) không nhận ô đã có trận (API 409 `SCHEDULE_SLOT_OCCUPIED`)
 
 ## D. Panel "Trận chưa xếp" (`unscheduled-panel.tsx`) — component do spec nêu; tham chiếu cơ chế truy vấn `pages/results/results-entry-page.tsx` (cùng endpoint, cùng kiểu `MatchListItem`, 1 file)
 
