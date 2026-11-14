@@ -4,6 +4,8 @@ import { isValidSlug, slugifyVietnamese, tournamentSettings } from '@kamito/shar
 import { AuditService } from '../../common/audit/audit.service.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { markEventRankingDirty } from '../ranking-jobs/ranking-event-dirty-marker.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { formatDateOnly } from './date-only.js';
 import type { CreateEventBody, UpdateEventBody } from './event-dtos.js';
@@ -13,7 +15,6 @@ import { EVENT_RELATIONS, toEventView } from './event-view.js';
 import { diffEventFields, toEventFields } from './event-write-data.js';
 
 // Phase 07 hook: revalidate public cache tags after create/update/publish/cancel/delete.
-// Phase 09 hook: recompute rankings when endDate, eventTypeId or isCancelled changes (see `update`, `setCancelled`).
 
 @Injectable()
 export class EventsService {
@@ -21,6 +22,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly settings: AppSettingsService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   async create(body: CreateEventBody) {
@@ -60,15 +62,17 @@ export class EventsService {
 
     const fields = toEventFields(body);
     const diff = diffEventFields(current, fields);
-    if (!diff) return toEventView(current);
+    if (!diff) return { data: toEventView(current) };
     const data = Object.fromEntries(Object.entries(fields).filter(([key]) => key in diff.after));
     try {
+      let dirty: string[] = [];
       const updated = await this.prisma.$transaction(async (tx) => {
         const row = await tx.event.update({ where: { id }, data, include: EVENT_RELATIONS });
         await this.audit.record({ action: 'event.update', entity: 'Event', entityId: id, ...diff }, tx);
+        if ('endDate' in diff.after || 'eventTypeId' in diff.after) dirty = await markEventRankingDirty(tx, id);
         return row;
       });
-      return toEventView(updated);
+      return this.withRanking(toEventView(updated), dirty);
     } catch (error) {
       if (isUniqueViolation(error) && body.slug) throw await this.slugTaken(body.slug, id);
       throw error;
@@ -113,13 +117,20 @@ export class EventsService {
   /** Idempotent state flip; a no-op writes nothing and audits nothing. */
   private async change(id: string, action: string, data: Prisma.EventUncheckedUpdateInput, isNoop: (row: EventRow) => boolean) {
     const current = await this.findOrThrow(id);
-    if (isNoop(current)) return toEventView(current);
+    if (isNoop(current)) return { data: toEventView(current) };
+    let dirty: string[] = [];
     const updated = await this.prisma.$transaction(async (tx) => {
       const row = await tx.event.update({ where: { id }, data, include: EVENT_RELATIONS });
       await this.audit.record({ action, entity: 'Event', entityId: id, before: statusSnapshot(current), after: statusSnapshot(row) }, tx);
+      if (row.isCancelled !== current.isCancelled) dirty = await markEventRankingDirty(tx, id);
       return row;
     });
-    return toEventView(updated);
+    return this.withRanking(toEventView(updated), dirty);
+  }
+
+  private async withRanking(view: ReturnType<typeof toEventView>, dirty: string[]) {
+    const warnings = await this.ranking.enqueueRecompute(dirty);
+    return { data: view, ...(warnings.length > 0 && { warnings }) };
   }
 
   private async findOrThrow(id: string) {

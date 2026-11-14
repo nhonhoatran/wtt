@@ -2,6 +2,8 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { findOrCreateCompetitor, lockPlayersForUpdate, lockSubEventsInOrder, orderPairIds, refreshCompetitorNames, type Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RANKING_SNAPSHOT_REBUILD_SUGGESTED, RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import type { MergeBody } from './player-dtos.js';
 import { affectedSubEventIds, analyseMerge, toPreviewView } from './player-merge-preview.js';
 
@@ -12,6 +14,7 @@ export class PlayerMergeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   async preview(targetId: string, sourceId: string) {
@@ -20,7 +23,7 @@ export class PlayerMergeService {
 
   async merge(body: MergeBody) {
     const { targetId, sourceId, reason } = body;
-    return this.prisma.$transaction(async (tx) => {
+    const { data, rankingDirty, rebuildSuggested } = await this.prisma.$transaction(async (tx) => {
       // Lock order: sub-events by id, then players by id (same as entry writers).
       const members = [targetId, sourceId];
       const planned = await affectedSubEventIds(tx, members);
@@ -49,7 +52,8 @@ export class PlayerMergeService {
       await this.moveSingles(tx, targetId, sourceId);
       const pairMoves = await this.movePairs(tx, targetId, sourceId);
       await refreshCompetitorNames(tx, targetId);
-      // Phase 09 hook: re-point ledger rows to target and mark sub-events rankingDirtyAt
+      const rebuildSuggested = await this.moveRankingRows(tx, targetId, sourceId);
+      const rankingDirty = await markRankingDirty(tx, planned);
       await tx.player.update({ where: { id: sourceId }, data: { mergedIntoId: targetId, mergedAt: new Date(), isActive: false } });
 
       await this.audit.record(
@@ -63,8 +67,22 @@ export class PlayerMergeService {
         },
         tx,
       );
-      return { targetId, sourceId, movedEntries: movedEntryIds.length, movedPairs: pairMoves.length };
+      return { data: { targetId, sourceId, movedEntries: movedEntryIds.length, movedPairs: pairMoves.length }, rankingDirty, rebuildSuggested };
     });
+    const warnings = await this.ranking.enqueueRecompute(rankingDirty);
+    if (rebuildSuggested) warnings.push(RANKING_SNAPSHOT_REBUILD_SUGGESTED);
+    return { data, ...(warnings.length > 0 && { warnings }) };
+  }
+
+  /**
+   * AUTO rows of the source are rebuilt from the moved entries by the recompute; MANUAL rows follow the player.
+   * Returns true when ranking data of the source existed: snapshots keep the old player, so a new draft should be built.
+   */
+  private async moveRankingRows(tx: Tx, targetId: string, sourceId: string): Promise<boolean> {
+    await tx.rankingPointsEarned.deleteMany({ where: { playerId: sourceId, source: 'AUTO' } });
+    const moved = await tx.rankingPointsEarned.updateMany({ where: { playerId: sourceId }, data: { playerId: targetId } });
+    const inSnapshots = await tx.rankingSnapshotRow.count({ where: { playerId: sourceId } });
+    return moved.count > 0 || inSnapshots > 0;
   }
 
   private async moveSingles(tx: Tx, targetId: string, sourceId: string): Promise<void> {

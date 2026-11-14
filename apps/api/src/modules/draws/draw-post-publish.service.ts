@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { isStructureLocked, lockDraw, type Draw, type Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { ReplaceEntryBody, UnpublishBody, WithdrawEntryBody } from './draw-dtos.js';
@@ -24,14 +26,19 @@ export class DrawPostPublishService {
     private readonly audit: AuditService,
     private readonly groupWithdrawal: GroupWithdrawalService,
     private readonly revalidation: RevalidationEnqueueService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
-  /** Runs the operation, then (unless dry run) asks the public site to drop the draw pages it changed. */
+  /** Runs the operation, then (unless dry run) drops the draw pages it changed and, for result-affecting edits, queues a ranking recompute. */
   private async withRefresh<T extends object>(drawId: string, dryRun: boolean | undefined, mutation: 'draw.unpublish' | 'draw.postPublishEdit', run: () => Promise<T>) {
     const result = await run();
     if (dryRun) return result;
     const context = await loadDrawTagContext(this.prisma, drawId);
     const warnings = await this.revalidation.enqueue(() => CACHE_TAGS[mutation](context));
+    if (mutation === 'draw.postPublishEdit') {
+      const draw = await this.prisma.draw.findUnique({ where: { id: drawId }, select: { subEventId: true } });
+      if (draw) warnings.push(...(await this.ranking.enqueueRecompute([draw.subEventId])));
+    }
     return warnings.length > 0 ? { ...result, warnings } : result;
   }
 
@@ -43,6 +50,7 @@ export class DrawPostPublishService {
 
   private async finish(tx: Tx, draw: Draw, action: string, reason: string | undefined, impacts: RawImpact[], extra: object = {}) {
     const updated = await bumpVersion(tx, draw.id);
+    await markRankingDirty(tx, [draw.subEventId]);
     await this.audit.record(
       { action, entity: 'Draw', entityId: draw.id, reason, before: drawAuditFields(draw), after: { version: updated.version, ...extra, impacts } },
       tx,

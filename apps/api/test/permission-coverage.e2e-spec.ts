@@ -54,10 +54,12 @@ describe('permission coverage', () => {
   it('RESULTS_OPERATOR gets 403 on every ADMIN-only group that has endpoints', async () => {
     const operator = await kit.createUser({ role: 'RESULTS_OPERATOR' });
     const cookie = await kit.signIn(operator);
-    for (const path of ['/api/v1/admin/users', '/api/v1/admin/audit-logs', '/api/v1/admin/settings', '/api/v1/admin/queues']) {
+    for (const path of ['/api/v1/admin/users', '/api/v1/admin/audit-logs', '/api/v1/admin/settings', '/api/v1/admin/queues', '/api/v1/admin/ranking-lists', '/api/v1/admin/ranking-points', '/api/v1/admin/ranking-snapshots']) {
       expect({ path, status: (await kit.get(path, cookie)).status }).toEqual({ path, status: 403 });
     }
     await kit.write('post', '/api/v1/admin/users', cookie, { email: 'x@test.kamito.local', name: 'x' }).expect(403);
+    await kit.write('put', '/api/v1/admin/ranking-rules/matrix', cookie, {}).expect(403);
+    await kit.write('post', '/api/v1/admin/ranking/recompute', cookie, {}).expect(403);
     await kit.write('put', '/api/v1/admin/settings/auth.stepUp.ttlMinutes', cookie, { value: 30 }).expect(403);
   });
 

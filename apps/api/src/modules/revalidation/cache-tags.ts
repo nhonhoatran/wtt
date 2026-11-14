@@ -15,6 +15,12 @@ export interface DrawTagContext {
   hasGroups: boolean;
 }
 
+export interface RankingTagContext {
+  listCode: string;
+  /** Players whose rank or points changed (new, moved or dropped) in the published snapshot. */
+  playerSlugs: string[];
+}
+
 const matchTags = (c: MatchTagContext) => [
   t.event(c.eventSlug),
   t.schedule(c.eventSlug),
@@ -42,6 +48,7 @@ export const CACHE_TAGS = {
   'draw.unpublish': drawTags,
   'draw.postPublishEdit': drawTags,
   'settings.update': () => [t.settings()],
+  'ranking.publish': (c: RankingTagContext) => [t.rankings(), t.ranking(c.listCode), t.players(), ...c.playerSlugs.map(t.player)],
 } as const;
 
 export type CacheTagMutation = keyof typeof CACHE_TAGS;

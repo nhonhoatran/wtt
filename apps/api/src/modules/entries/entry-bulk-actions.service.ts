@@ -4,6 +4,8 @@ import { playerSettings } from '@kamito/shared';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import type { BulkEntriesBody } from './entry-dtos.js';
 import { EntryEligibilityService } from './entry-eligibility.service.js';
@@ -19,6 +21,7 @@ export class EntryBulkActionsService {
     private readonly eligibility: EntryEligibilityService,
     private readonly entries: EntriesService,
     private readonly settings: AppSettingsService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   async apply(body: BulkEntriesBody) {
@@ -31,8 +34,9 @@ export class EntryBulkActionsService {
     if (subEventIds.size > 1) throw fieldError('ids', 'Chỉ thao tác hàng loạt trên các entry của cùng một nội dung');
     const subEventId = [...subEventIds][0]!;
 
+    let rankingDirty: string[] = [];
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         await lockSubEvent(tx, subEventId);
         const subEvent = await this.eligibility.loadSubEvent(tx, subEventId);
         const rows = await tx.entry.findMany({ where: { id: { in: ids } } });
@@ -70,8 +74,11 @@ export class EntryBulkActionsService {
             tx,
           );
         }
+        if (body.action === 'withdraw' && changes.length) rankingDirty = await markRankingDirty(tx, [subEventId]);
         return { data: { updated: changes.length }, warnings };
       });
+      result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      return result;
     } catch (error) {
       throw mapSeedConflict(error, undefined);
     }

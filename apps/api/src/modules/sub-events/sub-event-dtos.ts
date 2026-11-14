@@ -23,6 +23,7 @@ const maxEntries = z.number().int('Phải là số nguyên').min(1, 'Tối thi�
 const formatDefaults = {
   matchFormatId: uuid('Thể thức trận không hợp lệ').nullable().optional(),
   groupScoringRuleId: uuid('Luật tính điểm bảng không hợp lệ').nullable().optional(),
+  rankingListId: uuid('Bảng xếp hạng không hợp lệ').nullable().optional(),
   hasQualifying: z.boolean().optional(),
   maxEntries: maxEntries.optional(),
 };

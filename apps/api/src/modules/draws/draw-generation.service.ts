@@ -4,7 +4,7 @@ import { isStructureLocked, lockDraw, lockSubEvent } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { DrawParamsBody, GenerateDrawBody } from './draw-dtos.js';
-import { alreadyPublished, runEngine, structureLocked, subEventNotFound, versionConflict } from './draw-errors.js';
+import { alreadyPublished, runEngine, structureLocked, versionConflict } from './draw-errors.js';
 import { DrawParamsService } from './draw-params.service.js';
 import { DrawPersistenceService } from './draw-persistence.service.js';
 import { planDraw } from './draw-planner.js';
@@ -23,13 +23,6 @@ export class DrawGenerationService {
     const resolved = await this.params.resolve(this.prisma, subEventId, body);
     const { preview, params, defaults, existing } = resolved;
     return { data: { ...preview, params, defaults, existingDraw: existing } };
-  }
-
-  /** Placeholder until the ranking phase provides points to seed by; the UI shows the button disabled. */
-  async suggestSeeds(subEventId: string) {
-    const subEvent = await this.prisma.subEvent.findUnique({ where: { id: subEventId }, select: { id: true } });
-    if (!subEvent) throw subEventNotFound();
-    return { data: { available: false, suggestions: [] as string[] } };
   }
 
   /** Creates the DRAFT of `kind`, or replaces the existing DRAFT of that kind (the old one is audited first). */

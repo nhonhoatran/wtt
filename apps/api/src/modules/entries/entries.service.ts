@@ -4,6 +4,8 @@ import type { UserRoleName } from '@kamito/shared';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import type { CreateEntryBody, UpdateEntryBody } from './entry-dtos.js';
 import { EntryEligibilityService, type EntryIssue } from './entry-eligibility.service.js';
 import { DRAFT_DRAW_WARNING, entryNotFound, mapSeedConflict, PUBLISHED_DRAW_HINT } from './entry-errors.js';
@@ -19,11 +21,13 @@ export class EntriesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly eligibility: EntryEligibilityService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   async create(subEventId: string, body: CreateEntryBody, role: UserRoleName) {
+    let rankingDirty: string[] = [];
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         await lockSubEvent(tx, subEventId);
         const subEvent = await this.eligibility.loadSubEvent(tx, subEventId);
         const stage = body.stage ?? 'MAIN';
@@ -51,6 +55,7 @@ export class EntriesService {
           : await tx.entry.create({ data: { subEventId, competitorId: competitor.id, ...data }, include: ENTRY_INCLUDE });
 
         if (existing) {
+          rankingDirty = await markRankingDirty(tx, [subEventId]);
           await this.audit.record({ action: 'entry.update', entity: 'Entry', entityId: row.id, before: entryAuditFields(existing), after: entryAuditFields(row) }, tx);
         } else {
           await this.audit.record(
@@ -66,14 +71,17 @@ export class EntriesService {
         }
         return { data: toEntryView(row), warnings: [] as string[] };
       });
+      result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      return result;
     } catch (error) {
       throw mapSeedConflict(error, body.seed);
     }
   }
 
   async update(id: string, body: UpdateEntryBody, role: UserRoleName) {
+    let rankingDirty: string[] = [];
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const probe = await tx.entry.findUnique({ where: { id }, select: { subEventId: true } });
         if (!probe) throw entryNotFound();
         await lockSubEvent(tx, probe.subEventId);
@@ -114,6 +122,7 @@ export class EntriesService {
           return { data: toEntryView(await tx.entry.findUniqueOrThrow({ where: { id }, include: ENTRY_INCLUDE })), warnings };
         }
         const row = await tx.entry.update({ where: { id }, data, include: ENTRY_INCLUDE });
+        if (data.status) rankingDirty = await markRankingDirty(tx, [entry.subEventId]);
         const before = entryAuditFields(entry);
         const after = entryAuditFields(row);
         const keys = (Object.keys(after) as (keyof typeof after)[]).filter((key) => before[key] !== after[key]);
@@ -132,6 +141,8 @@ export class EntriesService {
         }
         return { data: toEntryView(row), warnings };
       });
+      result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      return result;
     } catch (error) {
       throw mapSeedConflict(error, body.seed);
     }

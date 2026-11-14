@@ -7,6 +7,8 @@ import { MatchQueryService } from '../matches/match-query.service.js';
 import { isPendingWalkover, resolveMatchFormat, type MatchDetailRow } from '../matches/match-result-view.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CACHE_TAGS, type MatchTagContext } from '../revalidation/cache-tags.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { advanceWinner } from './bracket-advance.js';
 import type { ConfirmMatchBody } from './match-result-dtos.js';
@@ -16,6 +18,10 @@ import { loadMatchTagContext } from './match-tag-context.js';
 
 type Tx = Prisma.TransactionClient;
 type MatchMutation = 'match.start' | 'match.confirm';
+interface WriteOutcome {
+  context: MatchTagContext;
+  rankingDirty: string[];
+}
 
 const snapshot = (m: MatchDetailRow) => ({
   status: m.status,
@@ -42,6 +48,7 @@ export class MatchResultService {
     private readonly standings: GroupStandingsService,
     private readonly query: MatchQueryService,
     private readonly revalidation: RevalidationEnqueueService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   start(matchId: string, expectedVersion: number) {
@@ -51,7 +58,7 @@ export class MatchResultService {
       assertReady(m);
       await tx.match.update({ where: { id: m.id }, data: { status: 'LIVE', startedAt: new Date(), version: { increment: 1 } } });
       await this.audit.record({ action: 'match.start', entity: 'Match', entityId: m.id, before: snapshot(m), after: { status: 'LIVE', version: m.version + 1 } }, tx);
-      return loadMatchTagContext(tx, m);
+      return { context: await loadMatchTagContext(tx, m), rankingDirty: [] };
     });
   }
 
@@ -80,15 +87,16 @@ export class MatchResultService {
 
       const after = { ...result, status: 'OFFICIAL', games: body.games, version: m.version + 1, advancedMatchNos: advanced };
       await this.audit.record({ action: 'match.confirm', entity: 'Match', entityId: m.id, before: snapshot(m), after }, tx);
-      return loadMatchTagContext(tx, m, advanced);
+      const rankingDirty = await markRankingDirty(tx, [m.subEventId]);
+      return { context: await loadMatchTagContext(tx, m, advanced), rankingDirty };
     });
   }
 
-  /** Runs the locked write, then reads the fresh detail and queues public cache invalidation after commit. */
-  private async write(mutation: MatchMutation, matchId: string, run: (tx: Tx) => Promise<MatchTagContext>) {
-    const context = await this.prisma.$transaction(run, { timeout: 30_000 });
+  /** Runs the locked write, then reads the fresh detail and queues cache invalidation and ranking recompute after commit. */
+  private async write(mutation: MatchMutation, matchId: string, run: (tx: Tx) => Promise<WriteOutcome>) {
+    const { context, rankingDirty } = await this.prisma.$transaction(run, { timeout: 30_000 });
     const data = await this.query.detail(matchId);
-    const warnings = await this.revalidation.enqueue(() => CACHE_TAGS[mutation](context));
+    const warnings = [...(await this.revalidation.enqueue(() => CACHE_TAGS[mutation](context))), ...(await this.ranking.enqueueRecompute(rankingDirty))];
     return { data, ...(warnings.length > 0 && { warnings }) };
   }
 }

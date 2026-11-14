@@ -44,7 +44,7 @@ export class AdminPlayersController {
   @RequirePermission('players', 'manage')
   @RequireStepUp()
   async merge(@Body() body: unknown) {
-    return { data: await this.merges.merge(parseBody(mergeBody, body)) };
+    return this.merges.merge(parseBody(mergeBody, body));
   }
 
   @Get(':id')

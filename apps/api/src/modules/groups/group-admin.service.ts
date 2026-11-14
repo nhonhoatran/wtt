@@ -5,6 +5,8 @@ import type { ManualRanksBody } from '../draws/draw-dtos.js';
 import { conflict, invalid } from '../draws/draw-errors.js';
 import { assertGroupsNotPlaced } from '../draws/groups-placed-guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import { GroupStandingsService } from './group-standings.service.js';
 import { GroupViewService } from './group-view.service.js';
 
@@ -21,6 +23,7 @@ export class GroupAdminService {
     private readonly audit: AuditService,
     private readonly standings: GroupStandingsService,
     private readonly views: GroupViewService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   private async storedState(tx: Tx, groupId: string) {
@@ -33,7 +36,7 @@ export class GroupAdminService {
 
   /** `ranks` replaces all manual ranks of the group and must cover exactly the tied blocks it settles. */
   async setManualRanks(groupId: string, body: ManualRanksBody) {
-    await this.prisma.$transaction(async (tx) => {
+    const dirty = await this.prisma.$transaction(async (tx) => {
       const { draw, group } = await this.standings.lockForWrite(tx, groupId);
       await assertGroupsNotPlaced(tx, draw.subEventId, GROUPS_PLACED_MESSAGE);
       if (group.version !== body.expectedVersion) {
@@ -57,12 +60,13 @@ export class GroupAdminService {
         },
         tx,
       );
+      return markRankingDirty(tx, [draw.subEventId]);
     });
-    return { data: await this.views.forGroup(groupId) };
+    return this.respond(groupId, dirty);
   }
 
   async recompute(groupId: string) {
-    await this.prisma.$transaction(async (tx) => {
+    const dirty = await this.prisma.$transaction(async (tx) => {
       const { draw, group } = await this.standings.lockForWrite(tx, groupId);
       await assertGroupsNotPlaced(tx, draw.subEventId, GROUPS_PLACED_MESSAGE);
       const before = await this.storedState(tx, groupId);
@@ -77,7 +81,13 @@ export class GroupAdminService {
         },
         tx,
       );
+      return markRankingDirty(tx, [draw.subEventId]);
     });
-    return { data: await this.views.forGroup(groupId) };
+    return this.respond(groupId, dirty);
+  }
+
+  private async respond(groupId: string, dirty: string[]) {
+    const warnings = await this.ranking.enqueueRecompute(dirty);
+    return { data: await this.views.forGroup(groupId), ...(warnings.length > 0 && { warnings }) };
   }
 }

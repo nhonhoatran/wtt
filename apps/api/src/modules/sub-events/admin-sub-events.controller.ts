@@ -30,7 +30,7 @@ export class AdminSubEventsController {
   @Patch(':id')
   @RequirePermission('tournaments', 'update')
   async update(@Param('eventId') eventId: string, @Param('id') id: string, @Body() body: unknown) {
-    return { data: await this.subEvents.update(eventId, id, parseBody(updateSubEventBody, body)) };
+    return this.subEvents.update(eventId, id, parseBody(updateSubEventBody, body));
   }
 
   @Delete(':id')

@@ -2,15 +2,19 @@ import { ConflictException, Injectable, NotFoundException, UnprocessableEntityEx
 import { Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
+import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import type { BulkSubEventsBody, CreateSubEventBody, UpdateSubEventBody } from './sub-event-dtos.js';
 import { resolveFormat } from './sub-event-format.js';
 import { resolveItems, SUB_EVENT_INCLUDE } from './sub-event-items.js';
+import { assertRankingListFits } from './sub-event-ranking-list.js';
 
 @Injectable()
 export class SubEventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly ranking: RankingEnqueueService,
   ) {}
 
   async list(eventId: string) {
@@ -27,6 +31,7 @@ export class SubEventsService {
     await this.requireEvent(eventId);
     const [item] = await resolveItems(this.prisma, [body], false);
     const format = await resolveFormat(this.prisma, body);
+    await assertRankingListFits(this.prisma, body.rankingListId, [item!.disciplineId]);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const order = body.order ?? (await nextOrder(tx, eventId));
@@ -40,6 +45,7 @@ export class SubEventsService {
             nameEn: body.nameEn,
             hasQualifying: body.hasQualifying,
             maxEntries: body.maxEntries,
+            rankingListId: body.rankingListId,
             order,
           },
           include: SUB_EVENT_INCLUDE,
@@ -56,6 +62,7 @@ export class SubEventsService {
     await this.requireEvent(eventId);
     const items = await resolveItems(this.prisma, body.items, true);
     const format = await resolveFormat(this.prisma, body.defaults);
+    await assertRankingListFits(this.prisma, body.defaults.rankingListId, items.map((item) => item.disciplineId));
     const codes = items.map((item) => item.code);
     const existing = await this.prisma.subEvent.findMany({ where: { eventId, code: { in: codes } }, select: { code: true } });
     const seen = new Set<string>();
@@ -66,11 +73,11 @@ export class SubEventsService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const start = await nextOrder(tx, eventId);
-        const { hasQualifying, maxEntries } = body.defaults;
+        const { hasQualifying, maxEntries, rankingListId } = body.defaults;
         const ids: string[] = [];
         for (const [index, item] of items.entries()) {
           const row = await tx.subEvent.create({
-            data: { eventId, ...item, ...format, format: body.defaults.format, hasQualifying, maxEntries, order: start + index },
+            data: { eventId, ...item, ...format, format: body.defaults.format, hasQualifying, maxEntries, rankingListId, order: start + index },
             select: { id: true },
           });
           ids.push(row.id);
@@ -100,20 +107,26 @@ export class SubEventsService {
       { matchFormatId: current.matchFormatId, groupScoringRuleId: current.groupScoringRuleId ?? undefined },
     );
     const data = { ...body, ...resolved };
-    return this.prisma.$transaction(async (tx) => {
+    const listChanged = body.rankingListId !== undefined && body.rankingListId !== current.rankingListId;
+    if (listChanged) await assertRankingListFits(this.prisma, body.rankingListId, [current.disciplineId]);
+    let dirty: string[] = [];
+    const row = await this.prisma.$transaction(async (tx) => {
       const row = await tx.subEvent.update({ where: { id }, data, include: SUB_EVENT_INCLUDE });
+      if (listChanged) dirty = await markRankingDirty(tx, [id]);
       await this.audit.record(
         {
           action: 'subEvent.update',
           entity: 'SubEvent',
           entityId: id,
-          before: { format: current.format, matchFormatId: current.matchFormatId, groupScoringRuleId: current.groupScoringRuleId },
+          before: { format: current.format, matchFormatId: current.matchFormatId, groupScoringRuleId: current.groupScoringRuleId, rankingListId: current.rankingListId },
           after: data,
         },
         tx,
       );
       return row;
     });
+    const warnings = await this.ranking.enqueueRecompute(dirty);
+    return { data: row, ...(warnings.length > 0 && { warnings }) };
   }
 
   // Phase 06+ will also refuse deletion once draws or matches exist.

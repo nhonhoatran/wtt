@@ -51,35 +51,35 @@ export class AdminEventsController {
   @Patch(':id')
   @RequirePermission('tournaments', 'update')
   async update(@Param('id') id: string, @Body() body: unknown) {
-    return { data: await this.events.update(id, parseBody(updateEventBody, body)) };
+    return this.events.update(id, parseBody(updateEventBody, body));
   }
 
   @Post(':id/publish')
   @HttpCode(200)
   @RequirePermission('tournaments', 'publish')
   async publish(@Param('id') id: string) {
-    return { data: await this.events.publish(id) };
+    return this.events.publish(id);
   }
 
   @Post(':id/unpublish')
   @HttpCode(200)
   @RequirePermission('tournaments', 'publish')
   async unpublish(@Param('id') id: string) {
-    return { data: await this.events.unpublish(id) };
+    return this.events.unpublish(id);
   }
 
   @Post(':id/cancel')
   @HttpCode(200)
   @RequirePermission('tournaments', 'update')
   async cancel(@Param('id') id: string) {
-    return { data: await this.events.cancel(id) };
+    return this.events.cancel(id);
   }
 
   @Post(':id/uncancel')
   @HttpCode(200)
   @RequirePermission('tournaments', 'update')
   async uncancel(@Param('id') id: string) {
-    return { data: await this.events.uncancel(id) };
+    return this.events.uncancel(id);
   }
 
   @Delete(':id')

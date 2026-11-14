@@ -385,7 +385,7 @@ describe('draw post-publish operations and group-fed knockout (real Postgres)', 
     });
   });
 
-  it('suggest-seeds answers unavailable until the ranking phase', async () => {
+  it('suggest-seeds answers unavailable while the sub-event has no published ranking snapshot', async () => {
     const res = await post(`/sub-events/${sub('MS')}/entries/suggest-seeds`).expect(200);
     expect(res.body.data).toEqual({ available: false, suggestions: [] });
     await post(`/sub-events/${sub('MS')}/entries/suggest-seeds`, {}, operatorCookie).expect(403);

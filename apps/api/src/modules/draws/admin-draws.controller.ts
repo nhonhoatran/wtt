@@ -4,12 +4,13 @@ import { can } from '@kamito/shared';
 import { getAuthContext } from '../auth/auth-context.js';
 import { parseBody } from '../../common/validation/parse-body.js';
 import { RequirePermission } from '../access-control/access-decorators.js';
-import { generateDrawBody, previewDrawBody, replaceEntryBody, roundFormatBody, swapBody, unpublishBody, versionedBody, withdrawEntryBody } from './draw-dtos.js';
+import { generateDrawBody, previewDrawBody, replaceEntryBody, roundFormatBody, suggestSeedsBody, swapBody, unpublishBody, versionedBody, withdrawEntryBody } from './draw-dtos.js';
 import { DrawEditService } from './draw-edit.service.js';
 import { DrawGenerationService } from './draw-generation.service.js';
 import { DrawPostPublishService } from './draw-post-publish.service.js';
 import { DrawPublishService } from './draw-publish.service.js';
 import { DrawReadService } from './draw-read.service.js';
+import { DrawSeedSuggestionService } from './draw-seed-suggestion.service.js';
 import { GroupQualifierService } from './group-qualifier.service.js';
 import { RoundFormatService } from './round-format.service.js';
 
@@ -28,6 +29,7 @@ export class AdminDrawsController {
     private readonly rounds: RoundFormatService,
     private readonly postPublish: DrawPostPublishService,
     private readonly groupQualifiers: GroupQualifierService,
+    private readonly seedSuggestion: DrawSeedSuggestionService,
   ) {}
 
   @Get('events/:eventId/draws')
@@ -106,8 +108,8 @@ export class AdminDrawsController {
   @Post('sub-events/:id/entries/suggest-seeds')
   @HttpCode(200)
   @RequirePermission('tournaments', 'create')
-  suggestSeeds(@Param('id') id: string) {
-    return this.generation.suggestSeeds(id);
+  suggestSeeds(@Param('id') id: string, @Body() body: unknown) {
+    return this.seedSuggestion.suggest(id, parseBody(suggestSeedsBody, body ?? {}).apply === true);
   }
 
   @Post('draws/:id/publish')

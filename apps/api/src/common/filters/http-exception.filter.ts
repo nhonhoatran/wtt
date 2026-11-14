@@ -20,7 +20,7 @@ export interface ApiErrorBody {
 }
 
 /** Machine-readable details some conflicts carry so the admin UI can react without parsing the message. */
-const DETAIL_KEYS = ['currentVersion', 'pendingSections', 'pendingGroups', 'groups', 'entryIds', 'withdrawnEntryIds', 'missingEntryIds'] as const;
+const DETAIL_KEYS = ['currentVersion', 'pendingSections', 'pendingGroups', 'groups', 'entryIds', 'withdrawnEntryIds', 'missingEntryIds', 'dirtySubEvents'] as const;
 
 const STATUS_CODES: Record<number, string> = {
   400: 'BAD_REQUEST',

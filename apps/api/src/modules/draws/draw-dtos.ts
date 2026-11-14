@@ -20,6 +20,8 @@ export type DrawParamsBody = z.infer<typeof previewDrawBody>;
 export const generateDrawBody = z.object({ ...paramFields, expectedVersion: expectedVersion.optional() });
 export type GenerateDrawBody = z.infer<typeof generateDrawBody>;
 
+export const suggestSeedsBody = z.object({ apply: z.boolean().optional() });
+
 export const versionedBody = z.object({ expectedVersion });
 
 export const swapBody = z.object({

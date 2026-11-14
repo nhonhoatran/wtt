@@ -18,6 +18,7 @@
     "@bull-board/express": "9.10.5",
     "@kamito/competition-engine": "workspace:*",
     "@kamito/db": "workspace:*",
+    "@kamito/ranking-engine": "workspace:*",
     "@kamito/shared": "workspace:*",
     "@nestjs/common": "12.3.2",
     "@nestjs/core": "12.3.2",
