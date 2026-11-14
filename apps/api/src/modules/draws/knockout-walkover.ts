@@ -28,7 +28,9 @@ export async function settleDeferredWalkover(tx: Tx, matchId: string): Promise<v
     const slot = match.nextMatchSide === 1 ? 'side1' : 'side2';
     const occupant = next[`${slot}EntryId`];
     if (occupant && occupant !== winnerId) throw conflict('ADVANCEMENT_CONFLICT', 'Trận kế tiếp đã có VĐV khác ở vị trí này');
-    if (!occupant) await tx.match.update({ where: { id: next.id }, data: { [`${slot}EntryId`]: winnerId, [`${slot}Source`]: Prisma.DbNull } });
+    if (!occupant) {
+      await tx.match.update({ where: { id: next.id }, data: { [`${slot}EntryId`]: winnerId, [`${slot}Source`]: Prisma.DbNull, version: { increment: 1 } } });
+    }
     currentId = next.id;
   }
 }

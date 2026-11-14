@@ -4,7 +4,8 @@ import { lockGroups, type Draw, type Prisma } from '@kamito/db';
 import { GroupStandingsService } from '../groups/group-standings.service.js';
 import { conflict, engineToHttp, invalid } from './draw-errors.js';
 import type { RawImpact } from './draw-impact.js';
-import { assertGroupsNotPlaced } from './groups-placed-guard.js';
+import { assertGroupNotPlaced } from './groups-placed-guard.js';
+import { releaseScheduleSlots } from '../scheduling/release-schedule-slots.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -18,7 +19,7 @@ export class GroupWithdrawalService {
     if (!member) throw invalid('ENTRY_NOT_IN_DRAW', 'VĐV không nằm trong nhánh này');
     const { group } = member;
 
-    await assertGroupsNotPlaced(tx, draw.subEventId, 'Các bảng đã xếp vào nhánh chính, hãy rút VĐV ở nhánh chính');
+    await assertGroupNotPlaced(tx, draw.subEventId, group.id, 'Các bảng đã xếp vào nhánh chính, hãy rút VĐV ở nhánh chính');
 
     await lockGroups(tx, draw.id);
     const subEvent = await tx.subEvent.findUniqueOrThrow({ where: { id: draw.subEventId }, select: { groupScoringRule: true } });
@@ -65,6 +66,7 @@ export class GroupWithdrawalService {
     }
     if (plan.voidedMatchIds.length) {
       await tx.match.updateMany({ where: { id: { in: plan.voidedMatchIds } }, data: { isVoided: true, version: { increment: 1 } } });
+      await releaseScheduleSlots(tx, { id: { in: plan.voidedMatchIds } });
       for (const matchId of plan.voidedMatchIds) {
         const match = byId.get(matchId)!;
         impacts.push({ type: 'VOID_MATCH', matchId, matchNo: match.matchNo, roundCode: match.round.code, groupCode: group.code, removedId: entryId });

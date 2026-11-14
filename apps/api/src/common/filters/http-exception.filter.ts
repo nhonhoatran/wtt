@@ -16,11 +16,12 @@ export interface ApiErrorBody {
     entryIds?: string[];
     withdrawnEntryIds?: string[];
     missingEntryIds?: string[];
+    preview?: unknown;
   };
 }
 
 /** Machine-readable details some conflicts carry so the admin UI can react without parsing the message. */
-const DETAIL_KEYS = ['currentVersion', 'pendingSections', 'pendingGroups', 'groups', 'entryIds', 'withdrawnEntryIds', 'missingEntryIds', 'dirtySubEvents'] as const;
+const DETAIL_KEYS = ['currentVersion', 'pendingSections', 'pendingGroups', 'groups', 'entryIds', 'withdrawnEntryIds', 'missingEntryIds', 'dirtySubEvents', 'preview'] as const;
 
 const STATUS_CODES: Record<number, string> = {
   400: 'BAD_REQUEST',
@@ -32,7 +33,22 @@ const STATUS_CODES: Record<number, string> = {
   429: 'TOO_MANY_REQUESTS',
 };
 
+const RETRYABLE_SQLSTATES = new Set(['40P01', '40001']);
+
+/** Prisma P2034 (write conflict / deadlock) or Postgres deadlock / serialization failure, however Prisma wrapped it. */
+export function isRetryableDbConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, meta, message } = error as { code?: unknown; meta?: { code?: unknown; message?: unknown }; message?: unknown };
+  if (code === 'P2034') return true;
+  if (typeof meta?.code === 'string' && RETRYABLE_SQLSTATES.has(meta.code)) return true;
+  if (typeof code === 'string' && RETRYABLE_SQLSTATES.has(code)) return true;
+  return typeof message === 'string' && /deadlock detected/i.test(message);
+}
+
 export function toErrorBody(exception: unknown): { status: number; body: ApiErrorBody } {
+  if (!(exception instanceof HttpException) && isRetryableDbConflict(exception)) {
+    return { status: 409, body: { error: { code: 'CONCURRENT_UPDATE_RETRY', message: 'Có thao tác khác đang ghi cùng lúc. Thử lại sau giây lát' } } };
+  }
   if (!(exception instanceof HttpException)) {
     return { status: 500, body: { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } } };
   }

@@ -4,6 +4,7 @@ import type { MatchData } from '@kamito/competition-engine';
 import { allocateMatchNumbers, Prisma } from '@kamito/db';
 import type { PlannedStructure } from './draw-planner.js';
 import { toStoredSource } from './draw-source-json.js';
+import { releaseScheduleSlots } from '../scheduling/release-schedule-slots.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -23,6 +24,7 @@ async function insertChunked<T>(rows: T[], insert: (chunk: T[]) => Promise<unkno
 export class DrawPersistenceService {
   /** Removes everything generated for the draw (positions, rounds, matches, groups); the Draw row stays. */
   async clearStructure(tx: Tx, drawId: string): Promise<void> {
+    await releaseScheduleSlots(tx, { drawId });
     await tx.match.deleteMany({ where: { drawId } });
     await tx.round.deleteMany({ where: { drawId } });
     await tx.bracketPosition.deleteMany({ where: { drawId } });

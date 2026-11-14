@@ -72,7 +72,13 @@ export class DrawEditService {
 
       const qualifying = await tx.draw.findUnique({ where: { subEventId_kind: { subEventId: draw.subEventId, kind: 'QUALIFYING' } } });
       if (!qualifying) throw conflict('QUALIFYING_DRAW_MISSING', 'Chưa có nhánh vòng loại');
-      const winners = await this.sectionWinners(tx, qualifying.id, qualifying.qualifierCount ?? 0);
+      // After a reopen only the freed slots are refilled, with the section winners not yet seated in this draw.
+      const freeSlots = rows.filter((r) => r.source === 'QUALIFIER').length;
+      const seated = new Set(rows.map((r) => r.entryId));
+      const winners = (await this.sectionWinners(tx, qualifying.id, qualifying.qualifierCount ?? 0)).filter((id) => !seated.has(id));
+      if (winners.length !== freeSlots) {
+        throw conflict('QUALIFIER_SLOT_MISMATCH', `Còn ${freeSlots} suất vòng loại trống nhưng có ${winners.length} người thắng chưa được xếp. Kiểm tra lại các ô Q của nhánh chính`);
+      }
 
       const positions = rows.map(toData);
       const placementSeed = randomBytes(16).toString('hex');

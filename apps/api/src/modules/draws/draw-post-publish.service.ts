@@ -15,6 +15,7 @@ import { loadDrawTagContext } from './draw-tag-context.js';
 import { drawAuditFields } from './draw-view.js';
 import { GroupWithdrawalService } from './group-withdrawal.service.js';
 import { withdrawFromKnockout } from './knockout-walkover.js';
+import { releaseScheduleSlots } from '../scheduling/release-schedule-slots.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -67,6 +68,7 @@ export class DrawPostPublishService {
       }
       const impacts: RawImpact[] = [{ type: 'UNPUBLISH' }];
       const updated = await bumpVersion(tx, drawId, { status: 'DRAFT', publishedAt: null });
+      await releaseScheduleSlots(tx, { drawId });
       await this.audit.record(
         {
           action: 'draw.unpublish',
