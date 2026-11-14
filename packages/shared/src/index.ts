@@ -30,5 +30,6 @@ export * from './with-timeout.js';
 export * from './public-event-contract.js';
 export * from './public-site-contract.js';
 export * from './draw-limits.js';
+export * from './match-limits.js';
 export * from './public-bracket-contract.js';
 export * from './public-api.js';
