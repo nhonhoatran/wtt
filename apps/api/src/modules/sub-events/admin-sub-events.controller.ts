@@ -24,7 +24,7 @@ export class AdminSubEventsController {
   @Post()
   @RequirePermission('tournaments', 'create')
   async create(@Param('eventId') eventId: string, @Body() body: unknown) {
-    return { data: await this.subEvents.create(eventId, parseBody(createSubEventBody, body)) };
+    return this.subEvents.create(eventId, parseBody(createSubEventBody, body));
   }
 
   @Patch(':id')
@@ -36,6 +36,6 @@ export class AdminSubEventsController {
   @Delete(':id')
   @RequirePermission('tournaments', 'delete')
   async remove(@Param('eventId') eventId: string, @Param('id') id: string) {
-    return { data: await this.subEvents.remove(eventId, id) };
+    return this.subEvents.remove(eventId, id);
   }
 }

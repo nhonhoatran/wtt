@@ -1,6 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { findDirtySubEventIds, type Prisma } from '@kamito/db';
-import { REVALIDATE_MAX_TAGS } from '@kamito/shared';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { toIsoDate } from '../../common/validation/iso-date-field.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -94,13 +93,8 @@ export class RankingSnapshotPublishService {
     return { listCode: snapshot.rankingList.code, playerSlugs: slugs.map((row) => row.slug), publishedAt };
   }
 
-  /** One revalidate request carries at most REVALIDATE_MAX_TAGS tags, so a big change goes out in batches. */
   private async revalidate(listCode: string, playerSlugs: string[]): Promise<string[]> {
     const tags = CACHE_TAGS['ranking.publish']({ listCode, playerSlugs });
-    const warnings = new Set<string>();
-    for (let i = 0; i < tags.length; i += REVALIDATE_MAX_TAGS) {
-      for (const warning of await this.revalidation.enqueue(() => tags.slice(i, i + REVALIDATE_MAX_TAGS))) warnings.add(warning);
-    }
-    return [...warnings];
+    return this.revalidation.enqueue(() => tags);
   }
 }

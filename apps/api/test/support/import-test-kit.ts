@@ -14,6 +14,8 @@ export interface ImportDeps {
   storage: ObjectStorage;
   env: { IMPORT_MAX_FILE_BYTES: number; IMPORT_MAX_UNZIPPED_BYTES: number; IMPORT_MAX_ROWS: number };
   commitBatchSize?: number;
+  enqueueRevalidate?: (tags: string[]) => Promise<void>;
+  logger?: { warn: (fields: object, message: string) => void };
   onBatchCommitted?: (batchNo: number) => void | Promise<void>;
 }
 

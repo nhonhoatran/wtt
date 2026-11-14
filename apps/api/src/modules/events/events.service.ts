@@ -6,6 +6,9 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
 import { markEventRankingDirty } from '../ranking-jobs/ranking-event-dirty-marker.js';
+import { CACHE_TAGS, type CacheTagMutation } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
+import { loadEventMatchNos, loadSubEventCodes } from '../revalidation/public-tag-context.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { formatDateOnly } from './date-only.js';
 import type { CreateEventBody, UpdateEventBody } from './event-dtos.js';
@@ -14,8 +17,6 @@ import { isSlugTaken, suggestSlug } from './event-slug.js';
 import { EVENT_RELATIONS, toEventView } from './event-view.js';
 import { diffEventFields, toEventFields } from './event-write-data.js';
 
-// Phase 07 hook: revalidate public cache tags after create/update/publish/cancel/delete.
-
 @Injectable()
 export class EventsService {
   constructor(
@@ -23,6 +24,7 @@ export class EventsService {
     private readonly audit: AuditService,
     private readonly settings: AppSettingsService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async create(body: CreateEventBody) {
@@ -36,7 +38,8 @@ export class EventsService {
         await this.audit.record({ action: 'event.create', entity: 'Event', entityId: row.id, after: auditSnapshot(row) }, tx);
         return row;
       });
-      return toEventView(created);
+      const warnings = await this.refreshPublic('event.create', created.id, [created.slug]);
+      return { data: toEventView(created), ...(warnings.length > 0 && { warnings }) };
     } catch (error) {
       if (isUniqueViolation(error)) throw await this.slugTaken(slug);
       throw error;
@@ -72,7 +75,7 @@ export class EventsService {
         if ('endDate' in diff.after || 'eventTypeId' in diff.after) dirty = await markEventRankingDirty(tx, id);
         return row;
       });
-      return this.withRanking(toEventView(updated), dirty);
+      return this.withRanking(toEventView(updated), dirty, 'event.update', [...new Set([current.slug, updated.slug])]);
     } catch (error) {
       if (isUniqueViolation(error) && body.slug) throw await this.slugTaken(body.slug, id);
       throw error;
@@ -95,7 +98,7 @@ export class EventsService {
     return this.change(id, 'event.uncancel', { isCancelled: false }, (row) => !row.isCancelled);
   }
 
-  async remove(id: string): Promise<{ id: string }> {
+  async remove(id: string) {
     const current = await this.findOrThrow(id);
     await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.event.deleteMany({ where: { id, publishStatus: 'DRAFT', subEvents: { none: {} } } });
@@ -111,11 +114,12 @@ export class EventsService {
       }
       await this.audit.record({ action: 'event.delete', entity: 'Event', entityId: id, before: auditSnapshot(current) }, tx);
     });
-    return { id };
+    const warnings = await this.refreshPublic('event.delete', id, [current.slug]);
+    return { data: { id }, ...(warnings.length > 0 && { warnings }) };
   }
 
   /** Idempotent state flip; a no-op writes nothing and audits nothing. */
-  private async change(id: string, action: string, data: Prisma.EventUncheckedUpdateInput, isNoop: (row: EventRow) => boolean) {
+  private async change(id: string, action: EventMutation, data: Prisma.EventUncheckedUpdateInput, isNoop: (row: EventRow) => boolean) {
     const current = await this.findOrThrow(id);
     if (isNoop(current)) return { data: toEventView(current) };
     let dirty: string[] = [];
@@ -125,12 +129,22 @@ export class EventsService {
       if (row.isCancelled !== current.isCancelled) dirty = await markEventRankingDirty(tx, id);
       return row;
     });
-    return this.withRanking(toEventView(updated), dirty);
+    return this.withRanking(toEventView(updated), dirty, action, [updated.slug]);
   }
 
-  private async withRanking(view: ReturnType<typeof toEventView>, dirty: string[]) {
-    const warnings = await this.ranking.enqueueRecompute(dirty);
+  private async withRanking(view: ReturnType<typeof toEventView>, dirty: string[], mutation: EventMutation, slugs: string[]) {
+    const warnings = [...(await this.ranking.enqueueRecompute(dirty)), ...(await this.refreshPublic(mutation, view.id, slugs))];
     return { data: view, ...(warnings.length > 0 && { warnings }) };
+  }
+
+  private refreshPublic(mutation: EventMutation, eventId: string, eventSlugs: string[]) {
+    return this.revalidation.enqueue(async () =>
+      CACHE_TAGS[mutation]({
+        eventSlugs,
+        subEventCodes: await loadSubEventCodes(this.prisma, eventId),
+        ...(VISIBILITY_MUTATIONS.has(mutation) && { matchNos: await loadEventMatchNos(this.prisma, eventId) }),
+      }),
+    );
   }
 
   private async findOrThrow(id: string) {
@@ -156,6 +170,10 @@ export class EventsService {
     });
   }
 }
+
+const VISIBILITY_MUTATIONS = new Set<string>(['event.publish', 'event.unpublish', 'event.cancel', 'event.uncancel']);
+
+type EventMutation = Extract<CacheTagMutation, `event.${string}`>;
 
 type EventRow = Prisma.EventGetPayload<{ include: typeof EVENT_RELATIONS }>;
 

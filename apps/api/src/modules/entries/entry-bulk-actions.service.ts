@@ -6,6 +6,9 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadEntryTagContext, loadPlayerIdsOfEntries } from '../revalidation/public-tag-context.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import type { BulkEntriesBody } from './entry-dtos.js';
 import { EntryEligibilityService } from './entry-eligibility.service.js';
@@ -22,6 +25,7 @@ export class EntryBulkActionsService {
     private readonly entries: EntriesService,
     private readonly settings: AppSettingsService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async apply(body: BulkEntriesBody) {
@@ -35,6 +39,7 @@ export class EntryBulkActionsService {
     const subEventId = [...subEventIds][0]!;
 
     let rankingDirty: string[] = [];
+    let changedIds: string[] = [];
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         await lockSubEvent(tx, subEventId);
@@ -74,10 +79,17 @@ export class EntryBulkActionsService {
             tx,
           );
         }
+        changedIds = changes.map((change) => change.row.id);
         if (body.action === 'withdraw' && changes.length) rankingDirty = await markRankingDirty(tx, [subEventId]);
         return { data: { updated: changes.length }, warnings };
       });
       result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      if (changedIds.length > 0) {
+        const refresh = await this.revalidation.enqueue(async () =>
+          CACHE_TAGS['entry.bulk'](await loadEntryTagContext(this.prisma, subEventId, await loadPlayerIdsOfEntries(this.prisma, changedIds))),
+        );
+        result.warnings.push(...refresh);
+      }
       return result;
     } catch (error) {
       throw mapSeedConflict(error, undefined);

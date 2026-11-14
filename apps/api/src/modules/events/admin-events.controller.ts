@@ -45,7 +45,7 @@ export class AdminEventsController {
   @Post()
   @RequirePermission('tournaments', 'create')
   async create(@Body() body: unknown) {
-    return { data: await this.events.create(parseBody(createEventBody, body)) };
+    return this.events.create(parseBody(createEventBody, body));
   }
 
   @Patch(':id')
@@ -85,6 +85,6 @@ export class AdminEventsController {
   @Delete(':id')
   @RequirePermission('tournaments', 'delete')
   async remove(@Param('id') id: string) {
-    return { data: await this.events.remove(id) };
+    return this.events.remove(id);
   }
 }

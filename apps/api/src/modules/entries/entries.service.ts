@@ -6,6 +6,9 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadEntryTagContext } from '../revalidation/public-tag-context.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { CreateEntryBody, UpdateEntryBody } from './entry-dtos.js';
 import { EntryEligibilityService, type EntryIssue } from './entry-eligibility.service.js';
 import { DRAFT_DRAW_WARNING, entryNotFound, mapSeedConflict, PUBLISHED_DRAW_HINT } from './entry-errors.js';
@@ -22,6 +25,7 @@ export class EntriesService {
     private readonly audit: AuditService,
     private readonly eligibility: EntryEligibilityService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async create(subEventId: string, body: CreateEntryBody, role: UserRoleName) {
@@ -72,6 +76,7 @@ export class EntriesService {
         return { data: toEntryView(row), warnings: [] as string[] };
       });
       result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      result.warnings.push(...(await this.refreshPublic('entry.create', subEventId, body.playerIds)));
       return result;
     } catch (error) {
       throw mapSeedConflict(error, body.seed);
@@ -80,6 +85,7 @@ export class EntriesService {
 
   async update(id: string, body: UpdateEntryBody, role: UserRoleName) {
     let rankingDirty: string[] = [];
+    const changed: { subEventId: string; playerIds: string[] }[] = [];
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const probe = await tx.entry.findUnique({ where: { id }, select: { subEventId: true } });
@@ -122,6 +128,7 @@ export class EntriesService {
           return { data: toEntryView(await tx.entry.findUniqueOrThrow({ where: { id }, include: ENTRY_INCLUDE })), warnings };
         }
         const row = await tx.entry.update({ where: { id }, data, include: ENTRY_INCLUDE });
+        changed.push({ subEventId: entry.subEventId, playerIds: competitorPlayerIds(entry.competitor) });
         if (data.status) rankingDirty = await markRankingDirty(tx, [entry.subEventId]);
         const before = entryAuditFields(entry);
         const after = entryAuditFields(row);
@@ -142,10 +149,15 @@ export class EntriesService {
         return { data: toEntryView(row), warnings };
       });
       result.warnings.push(...(await this.ranking.enqueueRecompute(rankingDirty)));
+      if (changed[0]) result.warnings.push(...(await this.refreshPublic('entry.update', changed[0].subEventId, changed[0].playerIds)));
       return result;
     } catch (error) {
       throw mapSeedConflict(error, body.seed);
     }
+  }
+
+  private refreshPublic(mutation: 'entry.create' | 'entry.update', subEventId: string, playerIds: string[]) {
+    return this.revalidation.enqueue(async () => CACHE_TAGS[mutation](await loadEntryTagContext(this.prisma, subEventId, playerIds)));
   }
 
   /** Withdrawing from a published draw would break the bracket; a draft draw only needs a redraw. */

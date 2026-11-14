@@ -18,6 +18,15 @@ describe('RevalidationEnqueueService', () => {
     expect(Date.now() - started).toBeLessThan(5_000);
   });
 
+  it('turns a failing async tag builder (context lookup) into a warning', async () => {
+    service = new RevalidationEnqueueService(deadRedis);
+    await expect(
+      service.enqueue(async () => {
+        throw new Error('db down');
+      }),
+    ).resolves.toEqual([PUBLIC_REFRESH_DELAYED]);
+  });
+
   it('turns a tag that cannot be built into a warning', async () => {
     service = new RevalidationEnqueueService(deadRedis);
     const context = { eventSlug: 'bad slug', subEventCode: 'MS', matchNos: [1], isGroupMatch: false, playerSlugs: [] };
@@ -38,5 +47,38 @@ describe('CACHE_TAGS', () => {
       'results-strip',
       'player-nguyen-a',
     ]);
+  });
+
+  it('invalidates both the old and the new slug when an event is renamed', () => {
+    const tags = CACHE_TAGS['event.update']({ eventSlugs: ['cu', 'moi'], subEventCodes: ['MS'] });
+    expect(tags).toEqual(['events', 'event-cu', 'schedule-cu', 'draw-cu-MS', 'groups-cu-MS', 'event-moi', 'schedule-moi', 'draw-moi-MS', 'groups-moi-MS']);
+  });
+
+  it('maps a sub-event change to its event, schedule, draw and groups tags for old and new code', () => {
+    expect(CACHE_TAGS['subEvent.update']({ eventSlug: 'g', subEventCodes: ['MS', 'MS2'] })).toEqual([
+      'event-g',
+      'schedule-g',
+      'draw-g-MS',
+      'groups-g-MS',
+      'draw-g-MS2',
+      'groups-g-MS2',
+    ]);
+  });
+
+  it('maps an entry change to event, draw, groups and player tags only', () => {
+    expect(CACHE_TAGS['entry.bulk']({ eventSlug: 'g', subEventCodes: ['MS'], playerSlugs: ['a', 'b'] })).toEqual(['event-g', 'draw-g-MS', 'groups-g-MS', 'player-a', 'player-b']);
+  });
+
+  it('maps a player merge to the players list, both profiles and the entered events', () => {
+    const tags = CACHE_TAGS['player.merge']({ playerSlugs: ['a', 'b'], events: [{ eventSlug: 'g', subEventCodes: ['MS'], matchNos: [3, 8] }] });
+    expect(tags).toEqual(['players', 'player-a', 'player-b', 'event-g', 'draw-g-MS', 'groups-g-MS', 'schedule-g', 'match-g-3', 'match-g-8']);
+  });
+
+  it('adds the results strip and match pages to publish, unpublish and cancel flips only', () => {
+    const context = { eventSlugs: ['g'], subEventCodes: ['MS'], matchNos: [4] };
+    for (const key of ['event.publish', 'event.unpublish', 'event.cancel', 'event.uncancel'] as const) {
+      expect(CACHE_TAGS[key](context)).toEqual(expect.arrayContaining(['results-strip', 'match-g-4']));
+    }
+    expect(CACHE_TAGS['event.update'](context)).not.toContain('results-strip');
   });
 });

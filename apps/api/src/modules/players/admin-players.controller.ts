@@ -56,12 +56,12 @@ export class AdminPlayersController {
   @Post()
   @RequirePermission('players', 'create')
   async create(@Body() body: unknown, @Req() req: Request) {
-    return { data: await this.players.create(parseBody(createPlayerBody, body), requireAuthContext(req).user.role) };
+    return this.players.create(parseBody(createPlayerBody, body), requireAuthContext(req).user.role);
   }
 
   @Patch(':id')
   @RequirePermission('players', 'update')
   async update(@Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
-    return { data: await this.players.update(id, parseBody(updatePlayerBody, body), requireAuthContext(req).user.role) };
+    return this.players.update(id, parseBody(updatePlayerBody, body), requireAuthContext(req).user.role);
   }
 }

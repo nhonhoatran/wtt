@@ -5,10 +5,16 @@ import { AuditService } from '../../common/audit/audit.service.js';
 import { assertReadyMedia } from '../../common/crud/ready-media.js';
 import { booleanFilter, enumFilter, invalidQuery, prismaListQuery, type ListSpec } from '../../common/crud/prisma-list-query.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadPlayerTagContext } from '../revalidation/public-tag-context.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import type { CreatePlayerBody, LookupQuery, UpdatePlayerBody } from './player-dtos.js';
 import { resolveBirth } from './player-birth.js';
 import { auditFields, countEntriesByPlayer, diffFields, PLAYER_LOOKUP_SELECT, toPlayerDetail, toPlayerListItem } from './player-views.js';
+
+/** Player fields that bracket, groups, entries, schedule and match pages print next to a competitor. */
+const PUBLIC_SIDE_FIELDS = ['fullName', 'fullNameEn', 'publicDisplayName', 'club'] as const;
 
 export const PLAYER_LIST_SPEC = {
   sortable: ['code', 'fullName', 'createdAt', 'birthYear'],
@@ -37,6 +43,7 @@ export class PlayersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly settings: AppSettingsService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async list(query: PaginationQueryShape, role: UserRoleName) {
@@ -91,7 +98,7 @@ export class PlayersService {
       this.settings.get(playerSettings.defaultCountryCode),
     ]);
     const birth = resolveBirth(null, body);
-    const id = await this.transact(() =>
+    const created = await this.transact(() =>
       this.prisma.$transaction(async (tx) => {
         const identity = await allocatePlayerIdentity(tx, { fullName: body.fullName, fullNameEn: body.fullNameEn }, { prefix, digits });
         const row = await tx.player.create({
@@ -117,10 +124,11 @@ export class PlayersService {
           },
         });
         await this.audit.record({ action: 'player.create', entity: 'Player', entityId: row.id, after: { code: row.code, slug: row.slug, ...auditFields(row) } }, tx);
-        return row.id;
+        return { id: row.id, slug: row.slug };
       }),
     );
-    return this.get(id, role);
+    const warnings = await this.revalidation.enqueue(() => CACHE_TAGS['player.create']({ playerSlugs: [created.slug], events: [] }));
+    return { data: await this.get(created.id, role), ...(warnings.length > 0 && { warnings }) };
   }
 
   async update(id: string, body: UpdatePlayerBody, role: UserRoleName) {
@@ -134,11 +142,17 @@ export class PlayersService {
       const fresh = await tx.player.findUniqueOrThrow({ where: { id } });
       if (fresh.mergedIntoId) throw merged();
       const row = await tx.player.update({ where: { id }, data });
-      if (data.fullName !== undefined && data.fullName !== current.fullName) await refreshCompetitorNames(tx, id);
+      const renamed = data.fullName !== undefined && data.fullName !== current.fullName;
+      if (renamed) await refreshCompetitorNames(tx, id);
       const { before, after, changed } = diffFields(auditFields(fresh), auditFields(row));
       if (changed) await this.audit.record({ action: 'player.update', entity: 'Player', entityId: id, before, after }, tx);
     });
-    return this.get(id, role);
+    const showsOnEventPages = PUBLIC_SIDE_FIELDS.some((key) => data[key] !== undefined && data[key] !== current[key]);
+    const warnings = await this.revalidation.enqueue(async () => {
+      const context = showsOnEventPages ? await loadPlayerTagContext(this.prisma, [id]) : { playerSlugs: [current.slug], events: [] };
+      return CACHE_TAGS['player.update'](context);
+    });
+    return { data: await this.get(id, role), ...(warnings.length > 0 && { warnings }) };
   }
 
   private buildUpdate(current: Player, body: UpdatePlayerBody): Prisma.PlayerUncheckedUpdateInput {

@@ -4,6 +4,8 @@ import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS, type CacheTagMutation } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { BulkSubEventsBody, CreateSubEventBody, UpdateSubEventBody } from './sub-event-dtos.js';
 import { resolveFormat } from './sub-event-format.js';
 import { resolveItems, SUB_EVENT_INCLUDE } from './sub-event-items.js';
@@ -15,6 +17,7 @@ export class SubEventsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async list(eventId: string) {
@@ -33,7 +36,7 @@ export class SubEventsService {
     const format = await resolveFormat(this.prisma, body);
     await assertRankingListFits(this.prisma, body.rankingListId, [item!.disciplineId]);
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const row = await this.prisma.$transaction(async (tx) => {
         const order = body.order ?? (await nextOrder(tx, eventId));
         const row = await tx.subEvent.create({
           data: {
@@ -53,6 +56,7 @@ export class SubEventsService {
         await this.audit.record({ action: 'subEvent.create', entity: 'SubEvent', entityId: row.id, after: { eventId, code: row.code, format: row.format } }, tx);
         return row;
       });
+      return this.withRefresh({ data: row }, 'subEvent.create', eventId, [row.code]);
     } catch (error) {
       throw mapDuplicate(error, [item!.code]);
     }
@@ -71,7 +75,7 @@ export class SubEventsService {
     if (conflicts.length) throw duplicateCodes(conflicts);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const start = await nextOrder(tx, eventId);
         const { hasQualifying, maxEntries, rankingListId } = body.defaults;
         const ids: string[] = [];
@@ -89,6 +93,7 @@ export class SubEventsService {
         const data = await tx.subEvent.findMany({ where: { id: { in: ids } }, orderBy: { order: 'asc' }, include: SUB_EVENT_INCLUDE });
         return { data, total: data.length, page: 1, pageSize: data.length };
       });
+      return this.withRefresh(result, 'subEvent.create', eventId, codes);
     } catch (error) {
       throw mapDuplicate(error, codes);
     }
@@ -126,11 +131,11 @@ export class SubEventsService {
       return row;
     });
     const warnings = await this.ranking.enqueueRecompute(dirty);
-    return { data: row, ...(warnings.length > 0 && { warnings }) };
+    return this.withRefresh({ data: row, ...(warnings.length > 0 && { warnings }) }, 'subEvent.update', eventId, [current.code, row.code]);
   }
 
   // Phase 06+ will also refuse deletion once draws or matches exist.
-  async remove(eventId: string, id: string): Promise<{ id: string }> {
+  async remove(eventId: string, id: string) {
     const current = await this.requireSubEvent(eventId, id);
     await this.prisma.$transaction(async (tx) => {
       if ((await tx.entry.count({ where: { subEventId: id } })) > 0) {
@@ -142,7 +147,17 @@ export class SubEventsService {
       }
       await this.audit.record({ action: 'subEvent.delete', entity: 'SubEvent', entityId: id, before: { eventId, code: current.code } }, tx);
     });
-    return { id };
+    return this.withRefresh({ data: { id } }, 'subEvent.delete', eventId, [current.code]);
+  }
+
+  /** Attaches the public-refresh warning to an already committed result. */
+  private async withRefresh<T extends object>(result: T, mutation: SubEventMutation, eventId: string, subEventCodes: string[]): Promise<T & { warnings?: string[] }> {
+    const refresh = await this.revalidation.enqueue(async () => {
+      const event = await this.prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { slug: true } });
+      return CACHE_TAGS[mutation]({ eventSlug: event.slug, subEventCodes: [...new Set(subEventCodes)] });
+    });
+    const warnings = [...('warnings' in result ? (result.warnings as string[]) : []), ...refresh];
+    return warnings.length > 0 ? { ...result, warnings } : result;
   }
 
   private async requireEvent(eventId: string) {
@@ -156,6 +171,8 @@ export class SubEventsService {
     return row;
   }
 }
+
+type SubEventMutation = Extract<CacheTagMutation, `subEvent.${string}`>;
 
 async function nextOrder(tx: Pick<Prisma.TransactionClient, 'subEvent'>, eventId: string): Promise<number> {
   const { _max } = await tx.subEvent.aggregate({ where: { eventId }, _max: { order: true } });

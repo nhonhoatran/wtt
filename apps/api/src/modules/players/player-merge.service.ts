@@ -4,6 +4,9 @@ import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RANKING_SNAPSHOT_REBUILD_SUGGESTED, RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadPlayerTagContext } from '../revalidation/public-tag-context.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { MergeBody } from './player-dtos.js';
 import { affectedSubEventIds, analyseMerge, toPreviewView } from './player-merge-preview.js';
 
@@ -15,6 +18,7 @@ export class PlayerMergeService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async preview(targetId: string, sourceId: string) {
@@ -70,6 +74,7 @@ export class PlayerMergeService {
       return { data: { targetId, sourceId, movedEntries: movedEntryIds.length, movedPairs: pairMoves.length }, rankingDirty, rebuildSuggested };
     });
     const warnings = await this.ranking.enqueueRecompute(rankingDirty);
+    warnings.push(...(await this.revalidation.enqueue(async () => CACHE_TAGS['player.merge'](await loadPlayerTagContext(this.prisma, [targetId, sourceId])))));
     if (rebuildSuggested) warnings.push(RANKING_SNAPSHOT_REBUILD_SUGGESTED);
     return { data, ...(warnings.length > 0 && { warnings }) };
   }
