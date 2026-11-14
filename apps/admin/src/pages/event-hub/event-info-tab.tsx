@@ -1,6 +1,7 @@
 import { App, Button, Flex, Form, theme } from 'antd';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { EventFormSections } from '../../resources/events/event-form-sections';
 import { toEventFormValues, toEventPayload, type EventFormValues } from '../../resources/events/event-form-values';
 import { EVENT_FORM_MAX_WIDTH } from '../../resources/events/event-labels';
@@ -16,9 +17,10 @@ export function EventInfoTab({ event, canUpdate, onChanged }: HubTabContext) {
   const save = async (values: EventFormValues) => {
     setSaving(true);
     try {
-      await apiFetch(`/admin/events/${event.id}`, { method: 'PATCH', body: toEventPayload(values) });
+      const response = await apiFetch(`/admin/events/${event.id}`, { method: 'PATCH', body: toEventPayload(values) });
       await onChanged();
       message.success('Đã lưu thông tin giải');
+      showWarnings(message, warningsOf(response));
     } catch (error) {
       if (error instanceof ApiError && error.errors) {
         form.setFields(Object.entries(error.errors).map(([name, text]) => ({ name: name as keyof EventFormValues, errors: [text] })));

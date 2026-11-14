@@ -1,5 +1,6 @@
 import { App, Space } from 'antd';
 import { apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { ConfirmActionButton } from '../../components/confirm-action-button';
 import type { EventRecord } from '../../resources/events/event-labels';
 
@@ -14,9 +15,10 @@ interface EventHubActionsProps {
 export function EventHubActions({ event, canUpdate, canPublish, onChanged }: EventHubActionsProps) {
   const { message } = App.useApp();
   const run = (action: string, done: string) => async () => {
-    await apiFetch(`/admin/events/${event.id}/${action}`, { method: 'POST' });
+    const response = await apiFetch(`/admin/events/${event.id}/${action}`, { method: 'POST' });
     await onChanged();
     message.success(done);
+    showWarnings(message, warningsOf(response));
   };
   const published = event.publishStatus === 'PUBLISHED';
 

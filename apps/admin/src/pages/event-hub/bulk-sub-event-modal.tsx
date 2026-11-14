@@ -1,6 +1,7 @@
 import { Alert, App, Button, Checkbox, Flex, Form, Modal, Select, Typography, theme } from 'antd';
 import { useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { useCatalogRows, useCatalogSelect } from '../../resources/events/use-catalog-options';
 import { SubEventFormatFields } from './sub-event-format-fields';
 import { DEFAULT_SUB_EVENT_FORMAT, type SubEventFormat } from './sub-event-labels';
@@ -53,7 +54,7 @@ export function BulkSubEventModal({ eventId, open, onClose, onCreated }: BulkSub
     setSaving(true);
     setProblems([]);
     try {
-      await apiFetch(`/admin/events/${eventId}/sub-events/bulk`, {
+      const response = await apiFetch(`/admin/events/${eventId}/sub-events/bulk`, {
         method: 'POST',
         body: {
           items,
@@ -66,6 +67,7 @@ export function BulkSubEventModal({ eventId, open, onClose, onCreated }: BulkSub
       });
       await onCreated();
       message.success(`Đã tạo ${items.length} nội dung`);
+      showWarnings(message, warningsOf(response));
       reset();
       onClose();
     } catch (error) {

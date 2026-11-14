@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Descriptions, Flex, Form, Input, Modal, Skeleton, Typography, theme } from 'antd';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { PlayerLookupSelect } from '../../components/player-lookup-select';
 import { useStepUp } from '../../components/step-up-modal';
 import { playerCodeName, playerSummary, type PlayerLookupItem, type PlayerRecord } from './player-labels';
@@ -49,10 +50,11 @@ export function PlayerMergeModal({ target, onClose, onMerged }: PlayerMergeModal
     setSaving(true);
     setError(null);
     try {
-      await runWithStepUp(() =>
+      const response = await runWithStepUp(() =>
         apiFetch('/admin/players/merge', { method: 'POST', body: { targetId: target.id, sourceId: source.id, reason: reason.trim() } }),
       );
       message.success(`Đã gộp ${playerCodeName(source)} vào ${playerCodeName(target)}`);
+      showWarnings(message, warningsOf(response));
       onMerged();
       onClose();
     } catch (failure) {

@@ -1,6 +1,7 @@
 import { Edit, useForm } from '@refinedev/antd';
 import { useCan } from '@refinedev/core';
-import { Alert, Form, theme } from 'antd';
+import { Alert, App, Form, theme } from 'antd';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { Link } from 'react-router';
 import { cleanPlayerValues, fillBirthYear, PlayerFormFields } from './player-form';
 import { PLAYER_FORM_MAX_WIDTH, playerCodeName, type PlayerDetail } from './player-labels';
@@ -8,7 +9,13 @@ import { PLAYER_FORM_MAX_WIDTH, playerCodeName, type PlayerDetail } from './play
 /** Read-only for a merged profile (kept for history and redirects) and for roles that may only view players. */
 export function PlayerEdit() {
   const { token } = theme.useToken();
-  const { formProps, saveButtonProps, query, form } = useForm<PlayerDetail>({ resource: 'players', action: 'edit', redirect: 'list' });
+  const { message } = App.useApp();
+  const { formProps, saveButtonProps, query, form } = useForm<PlayerDetail>({
+    resource: 'players',
+    action: 'edit',
+    redirect: 'list',
+    onMutationSuccess: (result) => showWarnings(message, warningsOf(result)),
+  });
   const record = query?.data?.data;
   const mergedInto = record?.mergedIntoId ? record.mergedInto : null;
   const merged = Boolean(record?.mergedIntoId);

@@ -1,5 +1,4 @@
 import { QUOTA_EXPORT_LABELS } from '@kamito/shared';
-import type { App } from 'antd';
 import type { Gender } from '../../resources/players/player-labels';
 import type { SubEventRecord } from './sub-event-labels';
 
@@ -73,6 +72,4 @@ export function genderForRule(rule: GenderRule): Gender | undefined {
 
 export const entryCountsKey = (eventId: string) => ['admin-entry-counts', eventId];
 
-export function showWarnings(message: ReturnType<typeof App.useApp>['message'], warnings?: string[]) {
-  warnings?.forEach((text) => void message.warning(text));
-}
+export { showWarnings } from '../../api/write-warnings';

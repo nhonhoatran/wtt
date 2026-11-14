@@ -1,6 +1,7 @@
 import { App, Form, Input, InputNumber, Modal, Switch } from 'antd';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { SubEventFormatFields } from './sub-event-format-fields';
 import { subEventTitle, type SubEventFormat, type SubEventRecord } from './sub-event-labels';
 
@@ -29,7 +30,7 @@ export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEv
     if (!subEvent) return;
     setSaving(true);
     try {
-      await apiFetch(`/admin/events/${eventId}/sub-events/${subEvent.id}`, {
+      const response = await apiFetch(`/admin/events/${eventId}/sub-events/${subEvent.id}`, {
         method: 'PATCH',
         body: {
           ...values,
@@ -40,6 +41,7 @@ export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEv
       });
       await onSaved();
       message.success('Đã lưu nội dung');
+      showWarnings(message, warningsOf(response));
       onClose();
     } catch (error) {
       if (error instanceof ApiError && error.errors) {

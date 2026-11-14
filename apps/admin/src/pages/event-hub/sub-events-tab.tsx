@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { App, Button, Empty, Flex, Result, Skeleton, Space, Table, Tag, Tooltip } from 'antd';
 import { useState } from 'react';
 import { apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { ConfirmActionButton } from '../../components/confirm-action-button';
 import { BulkSubEventModal } from './bulk-sub-event-modal';
 import type { HubTabContext } from './hub-tab-context';
@@ -26,9 +27,10 @@ export function SubEventsTab({ event, canCreate, canUpdate, canDelete, onChanged
 
   const refresh = () => Promise.all([refetch(), onChanged()]);
   const remove = (row: SubEventRecord) => async () => {
-    await apiFetch(`/admin/events/${event.id}/sub-events/${row.id}`, { method: 'DELETE' });
+    const response = await apiFetch(`/admin/events/${event.id}/sub-events/${row.id}`, { method: 'DELETE' });
     await refresh();
     message.success('Đã xóa nội dung');
+    showWarnings(message, warningsOf(response));
   };
   const addButton = canCreate && (
     <Button type="primary" icon={<PlusOutlined />} onClick={() => setBulkOpen(true)}>

@@ -1,10 +1,17 @@
 import { Create, useForm } from '@refinedev/antd';
-import { Form } from 'antd';
+import { App, Form } from 'antd';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { cleanPlayerValues, fillBirthYear, PlayerFormFields } from './player-form';
 import { PLAYER_FORM_MAX_WIDTH } from './player-labels';
 
 export function PlayerCreate() {
-  const { formProps, saveButtonProps, form } = useForm({ resource: 'players', action: 'create', redirect: 'list' });
+  const { message } = App.useApp();
+  const { formProps, saveButtonProps, form } = useForm({
+    resource: 'players',
+    action: 'create',
+    redirect: 'list',
+    onMutationSuccess: (result) => showWarnings(message, warningsOf(result)),
+  });
 
   return (
     <Create title="Thêm VĐV" saveButtonProps={{ ...saveButtonProps, children: 'Tạo VĐV' }}>

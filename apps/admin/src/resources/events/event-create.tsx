@@ -1,8 +1,9 @@
 import { Create, useForm } from '@refinedev/antd';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Form, Result, Skeleton } from 'antd';
+import { App, Button, Form, Result, Skeleton } from 'antd';
 import { useNavigate } from 'react-router';
 import { apiFetch } from '../../api/http-client';
+import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { toEventPayload, type EventFormValues } from './event-form-values';
 import { EventFormSections } from './event-form-sections';
 import { EVENT_FORM_MAX_WIDTH, type EventRecord } from './event-labels';
@@ -15,6 +16,7 @@ interface EventDefaults {
 
 export function EventCreate() {
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const defaults = useQuery({
     queryKey: ['event-defaults'],
     queryFn: async () => (await apiFetch<{ data: EventDefaults }>('/admin/events/defaults')).data,
@@ -24,7 +26,10 @@ export function EventCreate() {
     resource: 'events',
     action: 'create',
     redirect: false,
-    onMutationSuccess: ({ data }) => navigate(`/events/${data.id}/sub-events`),
+    onMutationSuccess: (result) => {
+      showWarnings(message, warningsOf(result));
+      navigate(`/events/${result.data.id}/sub-events`);
+    },
   });
 
   if (defaults.isLoading) return <Skeleton active />;
