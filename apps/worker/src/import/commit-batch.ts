@@ -1,7 +1,7 @@
-import { advisoryLock, lockPlayersForShare, lockSubEventsInOrder, type ImportRow, type Prisma } from '@kamito/db';
+import { advisoryLock, lockPlayersForShare, lockSubEventsInOrder, subEventsWithLockedDraw, type ImportRow, type Prisma } from '@kamito/db';
 import { commitRow } from './commit-row.js';
 import type { BatchState, CommitSettings } from './commit-types.js';
-import type { Decisions, RowData } from './import-row-types.js';
+import { ImportFailure, type Decisions, type RowData } from './import-row-types.js';
 import { loadPlayerIndex } from './player-lookup.js';
 
 type Tx = Prisma.TransactionClient;
@@ -44,6 +44,12 @@ async function lockAndLoadPlayers(tx: Tx, rows: ImportRow[], state: BatchState) 
   return index;
 }
 
+/** Fails the whole import when a sub-event already has a published draw, unless an ADMIN override reason was given. */
+export async function assertNoLockedDraw(tx: Tx, subEventIds: string[], codes: Map<string, string>): Promise<void> {
+  const locked = await subEventsWithLockedDraw(tx, [...new Set(subEventIds)]);
+  if (locked.length) throw new ImportFailure(`Nội dung đã có bốc thăm, không thể import: ${locked.map((id) => codes.get(id) ?? id).join(', ')}`);
+}
+
 /** Commits one batch of rows inside the caller's transaction; a rejected row becomes ERROR and the rest go on. */
 export async function commitBatch(tx: Tx, batch: ImportRow[], settings: CommitSettings, eventId: string, state: BatchState): Promise<void> {
   await advisoryLock(tx, `import-event-${eventId}`);
@@ -53,7 +59,10 @@ export async function commitBatch(tx: Tx, batch: ImportRow[], settings: CommitSe
     orderBy: { rowNo: 'asc' },
   });
   if (!rows.length) return;
-  await lockSubEventsInOrder(tx, rows.flatMap((row) => dataOf(row).subEventId ?? []));
+  const subEventIds = rows.flatMap((row) => dataOf(row).subEventId ?? []);
+  await lockSubEventsInOrder(tx, subEventIds);
+  // Under the SubEvent lock: a draw published since the import started (or since the previous batch) cannot let rows through.
+  if (!settings.overrideReason) await assertNoLockedDraw(tx, subEventIds, new Map([...settings.subEventsById].map(([id, subEvent]) => [id, subEvent.code])));
   const index = await lockAndLoadPlayers(tx, rows, state);
 
   for (const row of rows) {

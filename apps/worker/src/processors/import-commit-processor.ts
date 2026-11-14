@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
-import { subEventsWithLockedDraw } from '@kamito/db';
 import { playerSettings } from '@kamito/shared';
-import { commitBatch, committableWhere } from '../import/commit-batch.js';
+import { assertNoLockedDraw, commitBatch, committableWhere } from '../import/commit-batch.js';
 import type { BatchState, CommitSettings, CreatedEntities } from '../import/commit-types.js';
 import type { ImportDeps } from '../import/import-deps.js';
 import { refreshPublicAfterImport } from '../import/import-revalidate-tags.js';
@@ -21,13 +20,11 @@ async function assertFileUnchanged(deps: ImportDeps, job: { fileKey: string; fil
   if (hash !== job.fileSha256) throw new ImportFailure('File đã thay đổi sau khi kiểm tra');
 }
 
-async function assertNoLockedDraw(deps: ImportDeps, jobId: string, override: boolean, subEventCodes: Map<string, string>): Promise<void> {
-  const rows = await deps.prisma.importRow.findMany({ where: committableWhere(jobId, override), select: { data: true } });
-  const ids = [...new Set(rows.map((row) => (row.data as unknown as RowData).subEventId).filter((id): id is string => !!id))];
-  const locked = await subEventsWithLockedDraw(deps.prisma, ids);
-  if (locked.length && !override) {
-    throw new ImportFailure(`Nội dung đã có bốc thăm, không thể import: ${locked.map((id) => subEventCodes.get(id) ?? id).join(', ')}`);
-  }
+/** Early exit before any write; each batch repeats the check under the SubEvent lock (see commitBatch). */
+async function assertNoLockedDrawUpFront(deps: ImportDeps, jobId: string, subEventCodes: Map<string, string>): Promise<void> {
+  const rows = await deps.prisma.importRow.findMany({ where: committableWhere(jobId, false), select: { data: true } });
+  const ids = rows.map((row) => (row.data as unknown as RowData).subEventId).filter((id): id is string => !!id);
+  await assertNoLockedDraw(deps.prisma, ids, subEventCodes);
 }
 
 function summarize(all: CreatedEntities[]) {
@@ -64,7 +61,7 @@ export async function commitImport(deps: ImportDeps, jobId: string, attemptNo?: 
       readSetting(deps.prisma, playerSettings.ageCalculation),
     ]);
     const subEventsById = new Map([...subEvents.values()].map((subEvent) => [subEvent.id, subEvent]));
-    await assertNoLockedDraw(deps, jobId, override, new Map([...subEventsById].map(([id, subEvent]) => [id, subEvent.code])));
+    if (!override) await assertNoLockedDrawUpFront(deps, jobId, new Map([...subEventsById].map(([id, subEvent]) => [id, subEvent.code])));
 
     const settings: CommitSettings = { jobId, actorId: job.createdById, overrideReason: job.overrideReason, ageMethod, codeFormat: { prefix: codePrefix, digits: codeDigits }, countryCode, eventStartDate: event.startDate, subEventsById };
     const earlier = await deps.prisma.importRow.findMany({ where: { importJobId: jobId, status: 'COMMITTED' }, select: { createdEntityIds: true } });

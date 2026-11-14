@@ -1,5 +1,5 @@
 import { createPrismaClient } from '@kamito/db';
-import { QueueName, revalidateTagsJobs, withTimeout } from '@kamito/shared';
+import { QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, withTimeout } from '@kamito/shared';
 import { createObjectStorage } from '@kamito/shared/object-storage';
 import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
@@ -15,8 +15,6 @@ export const VALIDATE_IMPORT_JOB = 'validate-import';
 export const COMMIT_IMPORT_JOB = 'commit-import';
 export const IMPORT_CLEANUP_JOB = 'cleanup-import-files';
 const CLEANUP_SCHEDULER_ID = 'import-file-cleanup';
-/** The shared connection retries forever when Redis is down; the import is committed already, so do not hold a worker slot. */
-const REVALIDATE_ENQUEUE_TIMEOUT_MS = 2_000;
 
 /** Starts the import worker (validate, commit, periodic file cleanup); the returned function stops it. */
 export async function startImportWorker(env: WorkerEnv, redis: Redis, logger: Logger): Promise<() => Promise<void>> {

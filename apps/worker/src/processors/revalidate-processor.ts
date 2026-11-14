@@ -7,6 +7,9 @@ export interface RevalidateDeps {
   fetch?: typeof fetch;
 }
 
+/** A relative reference keeps a base path such as `/web`; an absolute `/api/revalidate` would drop it. */
+export const revalidateUrl = (clientInternalUrl: string): URL => new URL('api/revalidate', clientInternalUrl.endsWith('/') ? clientInternalUrl : `${clientInternalUrl}/`);
+
 /** Thrown for input that no retry can fix; the worker marks the job failed without retrying. */
 export class PermanentRevalidateError extends Error {}
 
@@ -17,7 +20,7 @@ export class PermanentRevalidateError extends Error {}
 export async function revalidateTags(deps: RevalidateDeps, tags: unknown): Promise<{ tags: number }> {
   if (!Array.isArray(tags) || !tags.length || tags.length > REVALIDATE_MAX_TAGS || !tags.every(isValidCacheTag)) throw new PermanentRevalidateError('invalid tags payload');
   const doFetch = deps.fetch ?? fetch;
-  const response = await doFetch(new URL('/api/revalidate', deps.clientInternalUrl), {
+  const response = await doFetch(revalidateUrl(deps.clientInternalUrl), {
     method: 'POST',
     headers: { 'content-type': 'application/json', [REVALIDATE_SECRET_HEADER]: deps.secret },
     body: JSON.stringify({ tags }),
