@@ -4,6 +4,7 @@ export const QueueName = {
   Media: 'media',
   Import: 'import',
   Revalidate: 'revalidate',
+  Ranking: 'ranking',
 } as const;
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName];
@@ -16,3 +17,7 @@ export function isQueuePrefixValid(prefix: string | undefined, appEnv: string): 
   const [namespace, env] = prefix.split(':');
   return namespace === QUEUE_PREFIX_NAMESPACE && env === appEnv;
 }
+
+export const RANKING_RECOMPUTE_JOB = 'recompute-sub-event';
+export const RANKING_SNAPSHOT_JOB = 'build-snapshot';
+export const RANKING_SWEEP_JOB = 'sweep-dirty-sub-events';

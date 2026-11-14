@@ -123,6 +123,9 @@ importers:
       '@kamito/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@kamito/ranking-engine':
+        specifier: workspace:*
+        version: link:../../packages/ranking-engine
       '@kamito/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -263,6 +266,9 @@ importers:
       '@kamito/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@kamito/ranking-engine':
+        specifier: workspace:*
+        version: link:../../packages/ranking-engine
       '@kamito/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -368,6 +374,28 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+
+  packages/ranking-engine:
+    dependencies:
+      '@kamito/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@kamito/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.7(@types/node@24.19.2)(jiti@2.7.0))
 
   packages/shared:
     dependencies:

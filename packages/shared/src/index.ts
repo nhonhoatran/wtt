@@ -20,6 +20,8 @@ export * from './entry-eligibility.js';
 export * from './player-settings.js';
 export * from './import-columns.js';
 export * from './import-operational-settings.js';
+export * from './ranking-settings.js';
+export * from './ranking-job-options.js';
 export * from './match-predicates.js';
 export * from './public-cache-tags.js';
 export * from './public-event-contract.js';
