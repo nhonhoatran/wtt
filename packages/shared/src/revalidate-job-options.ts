@@ -1,8 +1,13 @@
 import { REVALIDATE_MAX_TAGS } from './public-api.js';
 import { REVALIDATE_TAGS_JOB } from './public-cache-tags.js';
 
+// Internal reliability knobs, not business settings: nobody tunes them per tournament, and a bad value only delays public refresh.
+/** Retries before a revalidate job is given up; pages still expire on their own TTL afterwards. */
 const ATTEMPTS = 5;
+/** Base of the exponential retry delay (2 s, 4 s, 8 s ...). */
 const BACKOFF_MS = 2_000;
+/** Fail fast when Redis is down: the caller has already committed and only reports a warning. Shared by the API and the import worker. */
+export const REVALIDATE_ENQUEUE_TIMEOUT_MS = 2_000;
 const COMPLETED_KEPT = 100;
 const FAILED_KEPT = 500;
 
