@@ -268,6 +268,26 @@ describe('import worker processors (real Postgres + local storage)', () => {
     expect(await kit.prisma.importJob.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'DONE', committedRows: 6, errorRows: 0 });
   });
 
+  it('refuses a later batch when a draw is published after validation; the earlier batch stays committed', async () => {
+    const id = await submit([newPlayer('Lo Dau'), newPlayer('Lo Sau')]);
+    const before = await entryCount();
+    const subEventId = fixture.subEvents.MS!;
+    try {
+      const outcome = await commit(id, {
+        commitBatchSize: 1,
+        onBatchCommitted: async (batchNo) => {
+          if (batchNo === 1) await kit.prisma.draw.create({ data: { subEventId, kind: 'MAIN', randomSeed: `late-${tag}`, size: 4, status: 'PUBLISHED' } });
+        },
+      });
+      expect(outcome).toBe('failed');
+      expect(await kit.prisma.importJob.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'FAILED', failureReason: expect.stringContaining('MS') });
+      expect(await entryCount()).toBe(before + 1);
+      expect((await kit.prisma.importRow.findMany({ where: { importJobId: id }, orderBy: { rowNo: 'asc' } })).map((row) => row.status)).toEqual(['COMMITTED', 'VALID']);
+    } finally {
+      await kit.prisma.draw.deleteMany({ where: { subEventId } });
+    }
+  });
+
   it('fails the commit when the stored file changed', async () => {
     const id = await submit([newPlayer('File Doi')]);
     await storage.put(`private/imports/${id}.xlsx`, await buildXlsx([newPlayer('File Khac')]));

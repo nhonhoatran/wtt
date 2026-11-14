@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { Queue, type Job } from 'bullmq';
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { API } from './support/entries-fixtures.js';
 import { createSchedulingFixture, SESSION_DATE, type SchedulingFixture } from './support/scheduling-fixtures.js';
+import { openRevalidateQueue, removeOwn, tagsSince } from './support/revalidate-queue-probe.js';
 
 const binary = (res: NodeJS.ReadableStream, done: (error: Error | null, body?: Buffer) => void) => {
   const chunks: Buffer[] = [];
@@ -19,12 +19,10 @@ describe('match sheets, exports and public refresh of the schedule (real Postgre
   let sf: SchedulingFixture;
   let sessionId: string;
   let slug: string;
-  const queue = new Queue('revalidate', { connection: { url: process.env.REDIS_URL }, prefix: process.env.QUEUE_PREFIX });
+  const startedAt = Date.now();
+  const queue = openRevalidateQueue();
 
-  const queuedTags = async (since: number) => {
-    const jobs: Job[] = await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed']);
-    return new Set(jobs.filter((job) => job.timestamp >= since).flatMap((job) => job.data.tags as string[]));
-  };
+  const queuedTags = (since: number) => tagsSince(queue, since, sf.fx.tag);
   const pause = () => new Promise((resolve) => setTimeout(resolve, 5));
   const download = async (url: string, cookie = admin) => {
     const res = await kit.http.get(url).set('Cookie', cookie).buffer(true).parse(binary as never).expect(200);
@@ -51,6 +49,7 @@ describe('match sheets, exports and public refresh of the schedule (real Postgre
 
   afterAll(async () => {
     if (!kit) return;
+    if (sf) await removeOwn(queue, startedAt, sf.fx.tag);
     await queue.close();
     await sf?.cleanup();
     await kit.close();

@@ -61,7 +61,8 @@ describe('admin players (real Postgres)', () => {
     const first = await createPlayer(kit, adminCookie, fixtures, { fullName: `  ${name}  `, gender: 'MALE', birthYear: 1999 });
     const second = await createPlayer(kit, adminCookie, fixtures, { fullName: 'Lê Văn Khác ' + fixtures.tag, gender: 'MALE' });
 
-    expect(first.code).toMatch(new RegExp(`^${prefix}\\d{${digits}}$`));
+    // codeDigits is a minimum width (padStart); a long-lived dev DB sequence can exceed it.
+    expect(first.code).toMatch(new RegExp(`^${prefix}\\d{${digits},}$`));
     const number = (code: string) => Number(code.slice(prefix.length));
     expect(number(second.code)).toBeGreaterThan(number(first.code));
     expect(first.fullName).toBe(name);

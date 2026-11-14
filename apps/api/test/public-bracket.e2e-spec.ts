@@ -156,7 +156,7 @@ describe('public bracket API (real Postgres)', () => {
     await kit.write('post', `${API}/draws/${draft.id}/unpublish`, adminCookie, { expectedVersion: published.version, reason: 'test' }).expect(200);
     await expectHidden(`${slug}/draws/WS`);
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue.mock.calls[0]![0]()).toContain(`draw-${slug}-WS`);
+    expect(await enqueue.mock.calls[0]![0]()).toContain(`draw-${slug}-WS`);
     enqueue.mockRestore();
   });
 });

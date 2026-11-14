@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { Queue, type Job } from 'bullmq';
+import { type Job } from 'bullmq';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { API, cleanupFixtures, createPlayer, type Fixtures } from './support/entries-fixtures.js';
+import { openRevalidateQueue, recentJobs } from './support/revalidate-queue-probe.js';
 
 describe('public cache refresh is queued after admin writes (real Postgres + Redis)', () => {
   let kit: AuthTestKit;
@@ -11,12 +12,12 @@ describe('public cache refresh is queued after admin writes (real Postgres + Red
   let eventSlug: string;
   const tag = randomUUID().slice(0, 6);
   const startedAt = Date.now();
-  const queue = new Queue('revalidate', { connection: { url: process.env.REDIS_URL }, prefix: process.env.QUEUE_PREFIX });
+  const queue = openRevalidateQueue();
 
   const tagsOf = (job: Job) => job.data.tags as string[];
   // Only jobs queued by this run and carrying a slug that embeds this run's tag are ours.
   const mine = (job: Job) => job.timestamp >= startedAt && tagsOf(job).some((value) => value.toLowerCase().includes(tag.toLowerCase()));
-  const ownJobs = async () => (await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed'])).filter(mine);
+  const ownJobs = async () => (await recentJobs(queue)).filter(mine);
   const queuedTags = async (since = startedAt) => new Set((await ownJobs()).filter((job) => job.timestamp >= since).flatMap(tagsOf));
   const expectQueued = async (since: number, ...tags: string[]) => {
     const queued = await queuedTags(since);

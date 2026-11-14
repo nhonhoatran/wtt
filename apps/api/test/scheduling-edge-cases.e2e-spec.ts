@@ -1,8 +1,8 @@
-import { Queue, type Job } from 'bullmq';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { API } from './support/entries-fixtures.js';
 import { createSchedulingFixture, SESSION_DATE, type SchedulingFixture } from './support/scheduling-fixtures.js';
+import { openRevalidateQueue, removeOwn, tagsSince } from './support/revalidate-queue-probe.js';
 
 describe('scheduling edge cases: swaps, caps, retiming, timezone, hidden matches (real Postgres)', () => {
   let kit: AuthTestKit;
@@ -167,13 +167,13 @@ describe('scheduling edge cases: swaps, caps, retiming, timezone, hidden matches
     await place(sf.singles[0]!.id, s1.id, a!, 1).expect(200);
     const since = Date.now();
     await kit.write('patch', `${API}/events/${sf.fx.eventId}`, admin, { timezone: 'Asia/Tokyo' }).expect(200);
-    const queue = new Queue('revalidate', { connection: { url: process.env.REDIS_URL }, prefix: process.env.QUEUE_PREFIX });
+    const queue = openRevalidateQueue();
     try {
       const slug = (await kit.prisma.event.findUniqueOrThrow({ where: { id: sf.fx.eventId }, select: { slug: true } })).slug;
-      const jobs: Job[] = await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed']);
-      const tags = new Set(jobs.filter((job) => job.timestamp >= since).flatMap((job) => job.data.tags as string[]));
+      const tags = await tagsSince(queue, since, sf.fx.tag);
       expect(tags.has(`match-${slug}-${sf.singles[0]!.matchNo}`)).toBe(true);
     } finally {
+      await removeOwn(queue, since, sf.fx.tag);
       await queue.close();
     }
     const list = await kit.get(sessionsUrl(), admin).expect(200);

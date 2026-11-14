@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { Queue, type Job } from 'bullmq';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { API } from './support/entries-fixtures.js';
+import { openRevalidateQueue, removeOwn, tagsSince } from './support/revalidate-queue-probe.js';
 
 describe('catalog, media and ranking-list writes refresh the public pages that show them (real Postgres + Redis)', () => {
   let kit: AuthTestKit;
@@ -10,15 +10,13 @@ describe('catalog, media and ranking-list writes refresh the public pages that s
   let adminId: string;
   const tag = randomUUID().slice(0, 6).toUpperCase();
   const lower = tag.toLowerCase();
-  const queue = new Queue('revalidate', { connection: { url: process.env.REDIS_URL }, prefix: process.env.QUEUE_PREFIX });
+  const startedAt = Date.now();
+  const queue = openRevalidateQueue();
   const ids: Record<string, string> = {};
   let slug: string;
 
   const pause = () => new Promise((resolve) => setTimeout(resolve, 5));
-  const queuedSince = async (since: number) => {
-    const jobs: Job[] = await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed']);
-    return new Set(jobs.filter((job) => job.timestamp >= since).flatMap((job) => job.data.tags as string[]));
-  };
+  const queuedSince = (since: number) => tagsSince(queue, since);
   // Jobs of other runs may share the queue: assert what must be there, and that nothing of another event of ours slipped in.
   const expectTags = (tags: Set<string>, expected: string[]) => {
     for (const tag of expected) expect(tags.has(tag), tag).toBe(true);
@@ -93,8 +91,7 @@ describe('catalog, media and ranking-list writes refresh the public pages that s
       await kit.prisma.auditLog.deleteMany({ where: { entityId: { in: entityIds } } });
       await kit.close();
     }
-    const jobs: Job[] = await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed']);
-    await Promise.all(jobs.filter((job) => (job.data.tags as string[]).some((t) => t.toLowerCase().includes(lower))).map((job) => job.remove().catch(() => undefined)));
+    await removeOwn(queue, startedAt, lower);
     await queue.close();
   }, 60_000);
 

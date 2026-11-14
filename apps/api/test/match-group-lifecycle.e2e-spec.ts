@@ -5,6 +5,7 @@ import { cleanupDraws } from './support/draw-play-helpers.js';
 import { API, cleanupFixtures, createEventFixtures, type Fixtures } from './support/entries-fixtures.js';
 import { createScoringRule } from './support/group-test-helpers.js';
 import { MatchApi, stepUp, straightWin, winWithOneGameLost } from './support/match-flow-helpers.js';
+import { openRevalidateQueue, removeOwn, tagsSince } from './support/revalidate-queue-probe.js';
 
 type Plan = (slotA: number, slotB: number) => { winner: number; lostOneGame?: boolean };
 
@@ -32,6 +33,22 @@ describe('group matches after the groups were placed into the knockout (real Pos
     const rows = await kit.prisma.match.findMany({ where: { groupId: group.id } });
     return rows.find((m) => new Set([slots.get(m.side1EntryId!), slots.get(m.side2EntryId!)]).has(slotA) && new Set([slots.get(m.side1EntryId!), slots.get(m.side2EntryId!)]).has(slotB))!;
   };
+
+  const startedAt = Date.now();
+  const queue = openRevalidateQueue();
+
+  /** Placing group qualifiers into the published MAIN draw refreshes the draw, the matches they now sit in and their player pages. */
+  async function expectPlacementTags(since: number) {
+    const queued = await tagsSince(queue, since, fx.tag);
+    const slug = (await kit.prisma.event.findUniqueOrThrow({ where: { id: fx.eventId }, select: { slug: true } })).slug;
+    const qualified = (await kit.prisma.groupStanding.findMany({ where: { groupId: { in: [groupA.id, groupB.id] }, qualified: true }, select: { entryId: true } })).map((r) => r.entryId);
+    const matches = await kit.prisma.match.findMany({ where: { drawId: mainId, OR: [{ side1EntryId: { in: qualified } }, { side2EntryId: { in: qualified } }] }, select: { matchNo: true } });
+    expect(matches.length).toBeGreaterThan(0);
+    expect(queued.has(`draw-${slug}-XD`)).toBe(true);
+    for (const m of matches) expect(queued.has(`match-${slug}-${m.matchNo}`), `match ${m.matchNo}`).toBe(true);
+    const entry = await kit.prisma.entry.findUniqueOrThrow({ where: { id: qualified[0]! }, select: { competitor: { select: { player: { select: { slug: true } }, pair: { select: { playerA: { select: { slug: true } } } } } } } });
+    expect(queued.has(`player-${entry.competitor.player?.slug ?? entry.competitor.pair!.playerA.slug}`)).toBe(true);
+  }
 
   async function playGroup(groupId: string, plan: Plan) {
     const members = await kit.prisma.groupMember.findMany({ where: { groupId } });
@@ -77,7 +94,11 @@ describe('group matches after the groups were placed into the knockout (real Pos
     const groupPlan: Plan = (a, b) => (a === 1 || b === 1 ? { winner: 1 } : cycle[`${Math.min(a, b)}-${Math.max(a, b)}`]!);
     await playGroup(groupA.id, groupPlan);
     await playGroup(groupB.id, groupPlan);
-    expect((await place()).status).toBe(200);
+    const since = Date.now();
+    const placed = await place();
+    expect(placed.status).toBe(200);
+    expect(placed.body.warnings).toBeUndefined();
+    await expectPlacementTags(since);
   }, 180_000);
 
   afterAll(async () => {
@@ -87,6 +108,8 @@ describe('group matches after the groups were placed into the knockout (real Pos
     await cleanupDraws(kit, [sub()].filter(Boolean), fx?.eventId);
     await cleanupFixtures(kit, fx);
     if (ruleId) await kit.prisma.groupScoringRule.deleteMany({ where: { id: ruleId } });
+    if (fx) await removeOwn(queue, startedAt, fx.tag);
+    await queue.close();
     await kit.close();
   }, 60_000);
 

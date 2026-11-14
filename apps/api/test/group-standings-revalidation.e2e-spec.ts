@@ -1,9 +1,9 @@
-import { Queue, type Job } from 'bullmq';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { DrawFixtureKit } from './support/draw-fixtures.js';
 import { API, cleanupFixtures, createEventFixtures, type Fixtures } from './support/entries-fixtures.js';
 import { createScoringRule, finishGroupMatches } from './support/group-test-helpers.js';
+import { openRevalidateQueue, removeOwn, tagsSince } from './support/revalidate-queue-probe.js';
 
 describe('group standings writes refresh the public group pages (real Postgres + Redis)', () => {
   let kit: AuthTestKit;
@@ -14,12 +14,10 @@ describe('group standings writes refresh the public group pages (real Postgres +
   let groupId: string;
   let slug: string;
   let memberIds: string[];
-  const queue = new Queue('revalidate', { connection: { url: process.env.REDIS_URL }, prefix: process.env.QUEUE_PREFIX });
+  const startedAt = Date.now();
+  const queue = openRevalidateQueue();
 
-  const queuedSince = async (since: number) => {
-    const jobs: Job[] = await queue.getJobs(['waiting', 'delayed', 'active', 'completed', 'failed']);
-    return new Set(jobs.filter((job) => job.timestamp >= since).flatMap((job) => job.data.tags as string[]));
-  };
+  const queuedSince = (since: number) => tagsSince(queue, since, fx.tag);
 
   beforeAll(async () => {
     kit = await AuthTestKit.start();
@@ -50,6 +48,7 @@ describe('group standings writes refresh the public group pages (real Postgres +
       if (ruleId) await kit.prisma.groupScoringRule.deleteMany({ where: { id: ruleId } });
       await kit.close();
     }
+    if (fx) await removeOwn(queue, startedAt, fx.tag);
     await queue.close();
   }, 60_000);
 
