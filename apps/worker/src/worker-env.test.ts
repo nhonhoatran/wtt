@@ -21,6 +21,7 @@ const base = {
 describe('loadWorkerEnv', () => {
   it('parses a valid env with defaults', () => {
     expect(loadWorkerEnv(base)).toMatchObject({ WORKER_HEALTH_PORT: 3010, LOG_LEVEL: 'info', MEDIA_WORKER_CONCURRENCY: 2, IMPORT_WORKER_CONCURRENCY: 1 });
+    expect(loadWorkerEnv(base)).toMatchObject({ RANKING_WORKER_CONCURRENCY: 1, RANKING_DIRTY_SWEEP_INTERVAL_MINUTES: 10 });
   });
 
   it('rejects a prefix belonging to another environment', () => {

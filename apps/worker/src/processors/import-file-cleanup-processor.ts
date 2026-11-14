@@ -1,5 +1,6 @@
 import { importOperationalSettings, importSettings } from '@kamito/shared';
-import { readSetting, type ImportDeps } from '../import/import-deps.js';
+import type { ImportDeps } from '../import/import-deps.js';
+import { readSetting } from '../read-setting.js';
 
 const BATCH_SIZE = 200;
 const DAY_MS = 24 * 60 * 60 * 1000;

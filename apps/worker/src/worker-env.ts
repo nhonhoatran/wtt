@@ -25,6 +25,8 @@ export const workerEnvSchema = z
     IMPORT_MAX_ROWS: positiveInt,
     IMPORT_WORKER_CONCURRENCY: positiveInt.default(1),
     IMPORT_CLEANUP_INTERVAL_MINUTES: positiveInt.default(60),
+    RANKING_WORKER_CONCURRENCY: positiveInt.default(1),
+    RANKING_DIRTY_SWEEP_INTERVAL_MINUTES: positiveInt.default(10),
     CLIENT_INTERNAL_URL: z.string().url(),
     REVALIDATE_SECRET: secretString,
     REVALIDATE_TIMEOUT_MS: positiveInt.default(5_000),

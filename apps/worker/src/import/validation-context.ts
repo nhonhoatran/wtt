@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@kamito/db';
 import { playerSettings, type EntryImportRawRow } from '@kamito/shared';
 import type { SubEventInfo } from './entry-row-mapper.js';
-import { readSetting } from './import-deps.js';
+import { readSetting } from '../read-setting.js';
 import { loadPlayerIndex } from './player-lookup.js';
 import { competitorKey, type EvaluationContext } from './row-evaluator.js';
 

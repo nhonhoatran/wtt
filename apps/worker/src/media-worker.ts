@@ -1,11 +1,11 @@
 import { createPrismaClient, type PrismaClient } from '@kamito/db';
-import { type AppSettingDefinition, QueueName, resolveAppSetting, tournamentSettings } from '@kamito/shared';
+import { QueueName, tournamentSettings } from '@kamito/shared';
 import { effectiveMaxImageBytes, MEDIA_CLEANUP_JOB, MEDIA_PROCESS_JOB, parseVariantWidths } from '@kamito/shared/media';
 import { createObjectStorage } from '@kamito/shared/object-storage';
 import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
-import type { z } from 'zod';
+import { readSetting } from './read-setting.js';
 import { cleanupExpiredIntents, cleanupStuckProcessing } from './processors/media-intent-cleanup-processor.js';
 import { failProcessing, processImage, type MediaProcessorDeps } from './processors/media-image-processor.js';
 import type { WorkerEnv } from './worker-env.js';
@@ -24,11 +24,6 @@ export function buildMediaDeps(env: WorkerEnv, prisma: PrismaClient): MediaProce
     },
     processingTimeoutMinutes: () => readSetting(prisma, tournamentSettings.processingTimeoutMinutes),
   };
-}
-
-async function readSetting<T extends z.ZodType>(prisma: PrismaClient, def: AppSettingDefinition<T>): Promise<z.infer<T>> {
-  const row = await prisma.appSetting.findUnique({ where: { key: def.key } });
-  return resolveAppSetting(def, row?.value);
 }
 
 /** Starts the media worker (image processing + intent cleanup); the returned function stops it. */

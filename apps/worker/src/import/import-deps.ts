@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@kamito/db';
-import { importSettings, effectiveLimit, BYTES_PER_MEGABYTE, resolveAppSetting, type AppSettingDefinition } from '@kamito/shared';
+import { importSettings, effectiveLimit, BYTES_PER_MEGABYTE } from '@kamito/shared';
 import type { ObjectStorage } from '@kamito/shared/object-storage';
-import type { z } from 'zod';
+import { readSetting } from '../read-setting.js';
 
 export interface ImportEnvCeilings {
   IMPORT_MAX_FILE_BYTES: number;
@@ -18,11 +18,6 @@ export interface ImportDeps {
   commitBatchSize?: number;
   /** Called after each committed batch (1-based); lets tests interrupt a commit between batches. */
   onBatchCommitted?: (batchNo: number) => void | Promise<void>;
-}
-
-export async function readSetting<T extends z.ZodType>(prisma: PrismaClient, def: AppSettingDefinition<T>): Promise<z.infer<T>> {
-  const row = await prisma.appSetting.findUnique({ where: { key: def.key } });
-  return resolveAppSetting(def, row?.value);
 }
 
 export async function effectiveImportLimits(deps: ImportDeps) {
