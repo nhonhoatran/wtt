@@ -4,6 +4,7 @@ import { authSettings } from './auth-settings.js';
 import { listSettings } from './list-settings.js';
 import { importOperationalSettings } from './import-operational-settings.js';
 import { importSettings, playerSettings } from './player-settings.js';
+import { publicSiteSettings } from './public-site-settings.js';
 import { tournamentSettings } from './tournament-settings.js';
 
 export * from './app-setting-definition.js';
@@ -25,6 +26,7 @@ export const appSettingRegistry = {
   ...playerSettings,
   ...importSettings,
   ...importOperationalSettings,
+  ...publicSiteSettings,
 } as const;
 
 export type AppSettingKey = (typeof appSettingRegistry)[keyof typeof appSettingRegistry]['key'];

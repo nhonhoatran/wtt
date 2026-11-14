@@ -48,6 +48,7 @@ export const APP_SETTING_GROUPS = [
   { key: 'auth', label: 'Đăng nhập & phiên' },
   { key: 'list', label: 'Danh sách' },
   { key: 'draw', label: 'Bốc thăm & nhánh đấu' },
+  { key: 'publicAccess', label: 'Truy cập site công khai' },
 ] as const;
 export type AppSettingGroupKey = (typeof APP_SETTING_GROUPS)[number]['key'];
 

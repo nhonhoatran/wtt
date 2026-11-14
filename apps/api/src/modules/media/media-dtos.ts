@@ -1,5 +1,6 @@
 import { MEDIA_PURPOSES, publicUrlFor, type MediaVariant } from '@kamito/shared/media';
 import type { MediaAsset } from '@kamito/db';
+import { API_GLOBAL_PREFIX } from '@kamito/shared';
 import { z } from 'zod';
 
 export const createIntentBody = z.object({
@@ -27,7 +28,12 @@ export interface MediaView {
   url: string | null;
 }
 
-function readVariants(raw: MediaAsset['variants']): MediaVariant[] {
+/** Public variants are served by the API itself when MEDIA_PUBLIC_BASE_URL is unset (local dev). */
+export function mediaPublicBaseUrl(env: { MEDIA_PUBLIC_BASE_URL?: string }): string {
+  return env.MEDIA_PUBLIC_BASE_URL ?? `/${API_GLOBAL_PREFIX}/media/public`;
+}
+
+export function readVariants(raw: MediaAsset['variants']): MediaVariant[] {
   return Array.isArray(raw) ? (raw as unknown as MediaVariant[]) : [];
 }
 

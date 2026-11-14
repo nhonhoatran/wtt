@@ -16,6 +16,9 @@ export function slugifyVietnamese(input: string, maxLength = MAX_SLUG_LENGTH): s
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** Literal public routes that sit where a slug would (/events/calendar). */
+export const RESERVED_SLUGS: readonly string[] = ['calendar'];
+
 export function isValidSlug(value: string): boolean {
-  return value.length > 0 && value.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(value);
+  return value.length > 0 && value.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(value) && !RESERVED_SLUGS.includes(value);
 }

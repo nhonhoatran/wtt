@@ -32,7 +32,7 @@ interface DrawRow {
 }
 
 /** Same rule as the admin label: an explicit name wins, else "discipline – category". */
-function subEventNames({ name, nameEn, discipline, category }: SubEventRow) {
+export function subEventNames({ name, nameEn, discipline, category }: Pick<SubEventRow, 'name' | 'nameEn' | 'discipline' | 'category'>) {
   const compose = (pick: (row: NamedRow) => string) => (category ? `${pick(discipline)} – ${pick(category)}` : pick(discipline));
   return {
     name: name ?? compose((row) => row.name),
@@ -45,7 +45,7 @@ function toPlayerName(p: PlayerRow): PublicPlayerName {
   return { name: p.publicDisplayName ?? p.fullName, nameEn: p.publicDisplayName ? null : p.fullNameEn, club: p.club };
 }
 
-function toSide(entry: SideRow | null): PublicSide | null {
+export function toSide(entry: SideRow | null): PublicSide | null {
   if (!entry) return null;
   const { player, pair } = entry.competitor;
   const players = player ? [player] : pair ? [pair.playerA, pair.playerB] : [];

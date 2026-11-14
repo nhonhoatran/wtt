@@ -41,6 +41,7 @@ export const CACHE_TAGS = {
   // Unpublish and every edit of a published draw; the draw tag covers both MAIN and QUALIFYING of the sub-event.
   'draw.unpublish': drawTags,
   'draw.postPublishEdit': drawTags,
+  'settings.update': () => [t.settings()],
 } as const;
 
 export type CacheTagMutation = keyof typeof CACHE_TAGS;

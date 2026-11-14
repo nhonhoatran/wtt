@@ -7,6 +7,8 @@ import type { ApiEnv } from '../../common/config/env-schema.js';
 import { parseBody } from '../../common/validation/parse-body.js';
 import { RequirePermission } from '../access-control/access-decorators.js';
 import { requireAuthContext } from '../auth/auth-context.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { AppSettingsService } from './app-settings.service.js';
 import { assertWithinEnvCeiling } from './setting-ceilings.js';
 
@@ -14,6 +16,7 @@ import { assertWithinEnvCeiling } from './setting-ceilings.js';
 export class AdminSettingsController {
   constructor(
     private readonly settings: AppSettingsService,
+    private readonly revalidation: RevalidationEnqueueService,
     @Inject(API_ENV) private readonly env: ApiEnv,
   ) {}
 
@@ -30,7 +33,7 @@ export class AdminSettingsController {
     const parsed = parseBody(z.object({ value: def.schema }), body);
     assertWithinEnvCeiling(key, parsed.value, this.env);
     await this.settings.update(def, parsed.value, requireAuthContext(req).user.id);
-    return { data: { key, value: parsed.value } };
+    return this.withRefresh({ data: { key, value: parsed.value } });
   }
 
   @Delete(':key')
@@ -39,7 +42,13 @@ export class AdminSettingsController {
   async reset(@Param('key') key: string) {
     const def = this.requireDefinition(key);
     await this.settings.reset(def);
-    return { data: { key, value: def.defaultValue } };
+    return this.withRefresh({ data: { key, value: def.defaultValue } });
+  }
+
+  /** Public pages read some settings (results strip, page size); the API's own 10 s setting cache still applies. */
+  private async withRefresh<T extends object>(result: T) {
+    const warnings = await this.revalidation.enqueue(() => CACHE_TAGS['settings.update']());
+    return warnings.length > 0 ? { ...result, warnings } : result;
   }
 
   private requireDefinition(key: string) {

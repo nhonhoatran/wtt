@@ -25,4 +25,9 @@ describe('slugifyVietnamese', () => {
     expect(isValidSlug('a--b')).toBe(false);
     expect(isValidSlug('')).toBe(false);
   });
+
+  it('rejects reserved slugs that would shadow a public route', () => {
+    expect(isValidSlug('calendar')).toBe(false);
+    expect(isValidSlug('calendar-2026')).toBe(true);
+  });
 });

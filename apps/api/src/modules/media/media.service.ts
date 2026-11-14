@@ -13,7 +13,7 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { OBJECT_STORAGE } from '../storage/object-storage.provider.js';
-import { type CreateIntentBody, toMediaView, type UpdateMediaBody } from './media-dtos.js';
+import { type CreateIntentBody, mediaPublicBaseUrl, toMediaView, type UpdateMediaBody } from './media-dtos.js';
 import { MediaQueue } from './media-queue.js';
 import { receiveUpload } from './media-upload-stream.js';
 
@@ -34,7 +34,7 @@ export class MediaService {
   }
 
   private publicBaseUrl(): string {
-    return this.env.MEDIA_PUBLIC_BASE_URL ?? `/${API_GLOBAL_PREFIX}/media/public`;
+    return mediaPublicBaseUrl(this.env);
   }
 
   private async findOwned(actorId: string, id: string): Promise<MediaAsset> {
