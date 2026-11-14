@@ -1,6 +1,6 @@
 import { UploadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Flex, Image, Progress, Tag, Upload, theme } from 'antd';
+import { Alert, Button, Flex, Image, Progress, Tag, Typography, Upload, theme } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../api/http-client';
 import { errorText, FAILURE_TEXT, PHASE_TAG, putContent, sleep, type Phase } from './media-upload-support';
@@ -161,7 +161,7 @@ export function MediaUploadField({ value, onChange, purpose, previewUrl, hint }:
           action={pendingId ? <Button size="small" onClick={recheck}>Kiểm tra lại</Button> : undefined}
         />
       )}
-      {hint && <span style={{ color: token.colorTextSecondary }}>{hint}</span>}
+      {hint && <Typography.Text type="secondary">{hint}</Typography.Text>}
     </Flex>
   );
 }

@@ -5,7 +5,7 @@ const BLOCKED_TEXT: Record<string, string> = {
   DRAW_STRUCTURE_LOCKED: 'Nhánh đã khóa cấu trúc vì đã có trận bắt đầu.',
   DRAW_NOT_PUBLISHED: 'Nhánh chưa được công bố.',
   ENTRY_NOT_ELIGIBLE: 'Đăng ký này không đủ điều kiện vào nhánh.',
-  WITHDRAWAL_POLICY_MISSING: 'Luật tính điểm bảng chưa chọn cách xử lý khi VĐV rút.',
+  WITHDRAWAL_POLICY_MISSING: 'Luật vòng bảng chưa chọn cách xử lý khi VĐV rút.',
   DRAW_NOT_DRAFT: 'Nhánh đã công bố, không còn là nháp.',
   ENTRY_NOT_IN_DRAW: 'VĐV này không có trong nhánh.',
   ENTRY_ALREADY_WITHDRAWN: 'VĐV này đã rút khỏi nhánh.',

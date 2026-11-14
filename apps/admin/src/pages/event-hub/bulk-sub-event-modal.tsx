@@ -1,10 +1,12 @@
 import { Alert, App, Button, Checkbox, Flex, Form, Modal, Select, Typography, theme } from 'antd';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { useCatalogRows, useCatalogSelect } from '../../resources/events/use-catalog-options';
 import { SubEventFormatFields } from './sub-event-format-fields';
 import { DEFAULT_SUB_EVENT_FORMAT, type SubEventFormat } from './sub-event-labels';
+
+const DISCIPLINE_COLUMN_MIN_WIDTH = 180;
 
 interface BulkSubEventModalProps {
   eventId: string;
@@ -22,6 +24,8 @@ interface BulkValues {
 export function BulkSubEventModal({ eventId, open, onClose, onCreated }: BulkSubEventModalProps) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const disciplinesLabelId = useId();
+  const categoriesLabelId = useId();
   const [form] = Form.useForm<BulkValues>();
   const disciplines = useCatalogRows('disciplines');
   const [pickedDisciplines, setPickedDisciplines] = useState<string[]>([]);
@@ -95,21 +99,23 @@ export function BulkSubEventModal({ eventId, open, onClose, onCreated }: BulkSub
         {problems.length > 0 && <Alert type="error" showIcon message={problems.map((text) => <div key={text}>{text}</div>)} />}
         <div>
           <Flex justify="space-between" align="center">
-            <Typography.Text strong>Chọn nội dung</Typography.Text>
+            <Typography.Text strong id={disciplinesLabelId}>Chọn nội dung</Typography.Text>
             <Button type="link" size="small" onClick={() => setPickedDisciplines(allPicked ? [] : allIds)}>
               {allPicked ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
             </Button>
           </Flex>
           <Checkbox.Group
+            aria-labelledby={disciplinesLabelId}
             value={pickedDisciplines}
             onChange={(values) => setPickedDisciplines(values as string[])}
             options={(disciplines.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: token.marginXS }}
+            style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${DISCIPLINE_COLUMN_MIN_WIDTH}px, 1fr))`, gap: token.marginXS }}
           />
         </div>
         <div>
-          <Typography.Text strong>Nhóm tuổi / trình độ</Typography.Text>
+          <Typography.Text strong id={categoriesLabelId}>Nhóm tuổi / trình độ</Typography.Text>
           <Select
+            aria-labelledby={categoriesLabelId}
             mode="multiple"
             allowClear
             style={{ width: '100%', marginTop: token.marginXXS }}

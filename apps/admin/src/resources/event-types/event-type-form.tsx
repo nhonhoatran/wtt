@@ -1,8 +1,8 @@
-import { useSelect } from '@refinedev/antd';
 import { Form, Input, InputNumber, Select } from 'antd';
 import { MediaUploadField } from '../../components/media-upload-field';
 import { CatalogCreatePage, CatalogEditPage, IsActiveField } from '../catalog-common/catalog-form-pages';
 import { ColorHexField } from '../catalog-common/color-hex-field';
+import { useCatalogSelect } from '../events/use-catalog-options';
 
 export interface EventTypeRecord {
   id: string;
@@ -19,13 +19,7 @@ export interface EventTypeRecord {
 }
 
 function EventTypeFields({ currentTierId }: { currentTierId?: string }) {
-  const { selectProps } = useSelect({
-    resource: 'tiers',
-    optionLabel: 'name',
-    optionValue: 'id',
-    defaultValue: currentTierId,
-    onSearch: (text) => [{ field: 'q', operator: 'contains', value: text }],
-  });
+  const { selectProps } = useCatalogSelect('tiers', { selected: currentTierId });
   return (
     <>
       <Form.Item name="tierId" label="Nhóm giải" rules={[{ required: true, message: 'Chọn nhóm giải' }]}>

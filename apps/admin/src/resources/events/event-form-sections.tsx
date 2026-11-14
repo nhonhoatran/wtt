@@ -112,7 +112,7 @@ export function EventFormSections({ form, event, defaultDurationDays }: EventFor
         <Form.Item name="isFeatured" label="Giải nổi bật" valuePropName="checked">
           <Switch />
         </Form.Item>
-        <Form.Item name="ticketUrl" label="Link bán vé" extra="Bắt đầu bằng https://">
+        <Form.Item name="ticketUrl" label="Link bán vé" extra="Chỉ nhận liên kết bắt đầu bằng https://">
           <Input inputMode="url" placeholder="https://" />
         </Form.Item>
         <Form.Item name="showTicket" label="Hiện nút mua vé" valuePropName="checked">

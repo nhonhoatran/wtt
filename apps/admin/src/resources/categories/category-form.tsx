@@ -56,7 +56,7 @@ function CategoryFields() {
 
 export function CategoryCreate() {
   return (
-    <CatalogCreatePage resource="categories" title="Thêm nhóm tuổi / trình độ" saveText="Tạo mới">
+    <CatalogCreatePage resource="categories" title="Thêm nhóm tuổi / trình độ" saveText="Tạo nhóm tuổi / trình độ">
       <CategoryFields />
     </CatalogCreatePage>
   );

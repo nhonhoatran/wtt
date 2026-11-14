@@ -16,7 +16,7 @@ export function EventIntroSection() {
       <Form.Item name="presentedBy" label="Đơn vị tổ chức / trình bày">
         <Input maxLength={200} />
       </Form.Item>
-      <Form.Item name="city" label="Thành phố">
+      <Form.Item name="city" label="Tỉnh / thành phố">
         <Input maxLength={120} />
       </Form.Item>
       <Form.Item name="summary" label="Mô tả ngắn">

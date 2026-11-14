@@ -29,6 +29,7 @@ export function VenueTablesSection({ venueId }: { venueId: string }) {
     try {
       await apiFetch(`${base}/${table.id}`, { method: 'PATCH', body: { isActive } });
       reload();
+      message.success(isActive ? `Đã hiện lại bàn ${table.code}` : `Đã ẩn bàn ${table.code}`);
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Không lưu được');
     }

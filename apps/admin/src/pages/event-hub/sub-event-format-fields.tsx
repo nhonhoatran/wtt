@@ -40,7 +40,7 @@ export function SubEventFormatFields({ form }: SubEventFormatFieldsProps) {
       <Form.Item noStyle shouldUpdate={(prev, next) => prev.format !== next.format}>
         {({ getFieldValue }) =>
           getFieldValue('format') === 'GROUP_KNOCKOUT' ? (
-            <Form.Item name="groupScoringRuleId" label="Luật tính điểm vòng bảng">
+            <Form.Item name="groupScoringRuleId" label="Luật vòng bảng">
               <Select {...rules.selectProps} />
             </Form.Item>
           ) : null
