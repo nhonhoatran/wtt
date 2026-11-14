@@ -9,45 +9,47 @@ enum Handedness {
 }
 
 model Player {
-  id                String      @id @default(uuid())
+  id                  String                @id @default(uuid())
   // Prefix (AppSetting player.codePrefix) + number from Postgres sequence player_code_seq.
-  code              String      @unique
-  slug              String      @unique
-  fullName          String
-  fullNameEn        String?
-  publicDisplayName String?
-  gender            Gender
-  birthDate         DateTime?   @db.Date
-  birthYear         Int?
-  countryCode       String
-  club              String?
-  city              String?
-  handedness        Handedness?
-  gripStyle         String?
-  playStyle         String?
-  photoMediaId      String?
-  photoMedia        MediaAsset? @relation("PlayerPhoto", fields: [photoMediaId], references: [id], onDelete: SetNull)
-  bio               String?
-  bioEn             String?
+  code                String                @unique
+  slug                String                @unique
+  fullName            String
+  fullNameEn          String?
+  publicDisplayName   String?
+  gender              Gender
+  birthDate           DateTime?             @db.Date
+  birthYear           Int?
+  countryCode         String
+  club                String?
+  city                String?
+  handedness          Handedness?
+  gripStyle           String?
+  playStyle           String?
+  photoMediaId        String?
+  photoMedia          MediaAsset?           @relation("PlayerPhoto", fields: [photoMediaId], references: [id], onDelete: SetNull)
+  bio                 String?
+  bioEn               String?
   // Private: never exposed by public APIs.
-  phone             String?
-  email             String?
+  phone               String?
+  email               String?
   // Lowercase, no diacritics, single spaces; used for matching and search.
-  normalizedName    String
-  isPublicProfile   Boolean     @default(true)
+  normalizedName      String
+  isPublicProfile     Boolean               @default(true)
   // On until the public-consent question is answered.
-  noindex           Boolean     @default(true)
-  isActive          Boolean     @default(true)
+  noindex             Boolean               @default(true)
+  isActive            Boolean               @default(true)
   // Set when this profile was merged into another; its slug then redirects (301) to the target.
-  mergedIntoId      String?
-  mergedInto        Player?     @relation("PlayerMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
-  mergedFrom        Player[]    @relation("PlayerMerge")
-  mergedAt          DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  competitor        Competitor?
-  pairsAsA          Pair[]      @relation("PairPlayerA")
-  pairsAsB          Pair[]      @relation("PairPlayerB")
+  mergedIntoId        String?
+  mergedInto          Player?               @relation("PlayerMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
+  mergedFrom          Player[]              @relation("PlayerMerge")
+  mergedAt            DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  competitor          Competitor?
+  pairsAsA            Pair[]                @relation("PairPlayerA")
+  pairsAsB            Pair[]                @relation("PairPlayerB")
+  rankingPoints       RankingPointsEarned[]
+  rankingSnapshotRows RankingSnapshotRow[]
 
   @@index([normalizedName])
   @@index([club])
@@ -105,14 +107,14 @@ enum QuotaType {
 }
 
 model Entry {
-  id                        String            @id @default(uuid())
+  id                        String                @id @default(uuid())
   subEventId                String
-  subEvent                  SubEvent          @relation(fields: [subEventId], references: [id], onDelete: Restrict)
+  subEvent                  SubEvent              @relation(fields: [subEventId], references: [id], onDelete: Restrict)
   competitorId              String
-  competitor                Competitor        @relation(fields: [competitorId], references: [id], onDelete: Restrict)
-  status                    EntryStatus       @default(CONFIRMED)
-  stage                     EntryStage        @default(MAIN)
-  quotaType                 QuotaType         @default(DIRECT)
+  competitor                Competitor            @relation(fields: [competitorId], references: [id], onDelete: Restrict)
+  status                    EntryStatus           @default(CONFIRMED)
+  stage                     EntryStage            @default(MAIN)
+  quotaType                 QuotaType             @default(DIRECT)
   // Postgres allows many NULLs under the unique below, so unseeded entries never clash.
   seed                      Int?
   // Filled by the ranking phase; null for pairs.
@@ -121,13 +123,14 @@ model Entry {
   pointsAtEntry             Int?
   eligibilityOverrideReason String?
   notes                     String?
-  createdAt                 DateTime          @default(now())
-  updatedAt                 DateTime          @updatedAt
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
   bracketPositions          BracketPosition[]
-  matchesAsSide1            Match[]           @relation("MatchSide1")
-  matchesAsSide2            Match[]           @relation("MatchSide2")
+  matchesAsSide1            Match[]               @relation("MatchSide1")
+  matchesAsSide2            Match[]               @relation("MatchSide2")
   groupMemberships          GroupMember[]
   groupStandings            GroupStanding[]
+  rankingPoints             RankingPointsEarned[]
 
   @@unique([subEventId, competitorId])
   @@unique([subEventId, stage, seed])

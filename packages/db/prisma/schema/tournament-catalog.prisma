@@ -19,22 +19,23 @@ model Tier {
 }
 
 model EventType {
-  id                String      @id @default(uuid())
+  id                String              @id @default(uuid())
   tierId            String
-  tier              Tier        @relation(fields: [tierId], references: [id], onDelete: Restrict)
-  code              String      @unique
+  tier              Tier                @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  code              String              @unique
   name              String
   nameEn            String?
   colorHex          String?
   logoMediaId       String?
-  logoMedia         MediaAsset? @relation("EventTypeLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  logoMedia         MediaAsset?         @relation("EventTypeLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
   backgroundMediaId String?
-  backgroundMedia   MediaAsset? @relation("EventTypeBackground", fields: [backgroundMediaId], references: [id], onDelete: SetNull)
-  order             Int         @default(0)
-  isActive          Boolean     @default(true)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  backgroundMedia   MediaAsset?         @relation("EventTypeBackground", fields: [backgroundMediaId], references: [id], onDelete: SetNull)
+  order             Int                 @default(0)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   events            Event[]
+  rankingRules      RankingPointsRule[]
 
   @@index([tierId])
 }
@@ -46,18 +47,19 @@ enum CategoryKind {
 }
 
 model Category {
-  id        String       @id @default(uuid())
-  kind      CategoryKind
-  code      String       @unique
-  name      String
-  nameEn    String?
-  minAge    Int?
-  maxAge    Int?
-  order     Int          @default(0)
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  subEvents SubEvent[]
+  id           String        @id @default(uuid())
+  kind         CategoryKind
+  code         String        @unique
+  name         String
+  nameEn       String?
+  minAge       Int?
+  maxAge       Int?
+  order        Int           @default(0)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  subEvents    SubEvent[]
+  rankingLists RankingList[]
 }
 
 enum CompetitorKind {

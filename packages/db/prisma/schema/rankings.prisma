@@ -1,0 +1,120 @@
+// Ranking lists, versioned points rules, the points ledger and published snapshots.
+// Partial unique indexes and immutability triggers live only in SQL (see the migrations).
+
+model RankingList {
+  id               String                @id @default(uuid())
+  code             String                @unique
+  name             String
+  nameEn           String?
+  competitorKind   CompetitorKind
+  genderRule       GenderRule
+  categoryId       String?
+  category         Category?             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  validityDays     Int
+  // Separate group-stage codes per final group rank (GROUP-2) instead of a single GROUP.
+  groupStageByRank Boolean               @default(false)
+  order            Int                   @default(0)
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  subEvents        SubEvent[]
+  pointsEarned     RankingPointsEarned[]
+  snapshots        RankingSnapshot[]
+
+  @@index([categoryId])
+}
+
+// One row per (event type, kind, draw kind, stage, effective date); the newest effectiveFrom not after an event's endDate applies.
+model RankingPointsRule {
+  id             String         @id @default(uuid())
+  eventTypeId    String
+  eventType      EventType      @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  competitorKind CompetitorKind
+  drawKind       DrawKind
+  // W, F, SF, QF, R16.., QF-1/QF-2.. (qualifying), GROUP, GROUP-2..
+  stageCode      String
+  points         Int
+  effectiveFrom  DateTime       @db.Date
+  // User id; plain column so deleting a user never touches rules.
+  createdById    String
+  createdAt      DateTime       @default(now())
+
+  @@unique([eventTypeId, competitorKind, drawKind, stageCode, effectiveFrom])
+}
+
+enum PointsSource {
+  AUTO
+  MANUAL
+}
+
+// AUTO rows are rebuilt per sub-event on every recompute; MANUAL rows are edited by admins only.
+model RankingPointsEarned {
+  id                String       @id @default(uuid())
+  rankingListId     String
+  rankingList       RankingList  @relation(fields: [rankingListId], references: [id], onDelete: Restrict)
+  playerId          String
+  player            Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  source            PointsSource
+  subEventId        String?
+  subEvent          SubEvent?    @relation(fields: [subEventId], references: [id], onDelete: Cascade)
+  eventId           String?
+  event             Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  entryId           String?
+  entry             Entry?       @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  stageCode         String?
+  // Frozen value applied when the row was written.
+  points            Int
+  ruleEffectiveFrom DateTime?    @db.Date
+  earnedAt          DateTime     @db.Date
+  expiresAt         DateTime     @db.Date
+  reason            String?
+  createdById       String?
+  createdAt         DateTime     @default(now())
+
+  @@index([rankingListId, playerId])
+  @@index([subEventId])
+  @@index([rankingListId, expiresAt])
+  @@index([playerId])
+  @@index([eventId])
+  @@index([entryId])
+}
+
+enum SnapshotStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// A PUBLISHED snapshot and its rows are immutable (DB triggers); at most one DRAFT per (list, asOfDate).
+model RankingSnapshot {
+  id            String               @id @default(uuid())
+  rankingListId String
+  rankingList   RankingList          @relation(fields: [rankingListId], references: [id], onDelete: Restrict)
+  asOfDate      DateTime             @db.Date
+  status        SnapshotStatus       @default(DRAFT)
+  publishedAt   DateTime?
+  // User id; plain column so deleting a user never touches snapshots.
+  publishedById String?
+  note          String?
+  createdAt     DateTime             @default(now())
+  rows          RankingSnapshotRow[]
+
+  @@index([rankingListId, status, asOfDate])
+}
+
+model RankingSnapshotRow {
+  snapshotId     String
+  snapshot       RankingSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player          @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  rank           Int
+  previousRank   Int?
+  movement       Int?
+  points         Int
+  resultsCounted Int
+  // [{ledgerId, eventSlug, eventName, eventNameEn, eventTypeCode, stageCode, points, earnedAt, expiresAt}]
+  breakdown      Json
+
+  @@id([snapshotId, playerId])
+  @@index([snapshotId, rank])
+  @@index([playerId])
+}

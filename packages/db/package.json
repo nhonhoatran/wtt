@@ -23,7 +23,8 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
-    "seed:config": "node --env-file-if-exists=../../.env prisma/seed/seed-config-defaults.ts"
+    "seed:config": "node --env-file-if-exists=../../.env prisma/seed/seed-config-defaults.ts",
+    "seed:ranking": "node --env-file-if-exists=../../.env prisma/seed/seed-ranking-defaults.ts"
   },
   "dependencies": {
     "@kamito/shared": "workspace:*",

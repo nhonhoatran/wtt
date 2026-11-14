@@ -10,3 +10,4 @@ export * from './domain/competitors.js';
 export * from './domain/entry-guards.js';
 export * from './domain/player-locks.js';
 export * from './domain/draw-locks.js';
+export * from './domain/ranking-dirty.js';
