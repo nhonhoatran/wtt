@@ -18,6 +18,7 @@ interface SlugInputProps {
 
 type Check = { state: 'idle' } | { state: 'checking' } | { state: 'available' } | { state: 'taken'; suggestion: string };
 
+// Fixed on purpose: a typing-feel detail of one input, not a business or operational setting.
 const CHECK_DEBOUNCE_MS = 400;
 
 export function SlugInput({ value, onChange, source, excludeId, endpoint, disabled, disabledHint }: SlugInputProps) {
