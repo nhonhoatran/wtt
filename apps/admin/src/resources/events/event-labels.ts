@@ -39,6 +39,7 @@ export const FILTER_YEARS_BACK = 5;
 export const FILTER_YEARS_AHEAD = 1;
 export const DATE_ONLY_FORMAT = 'YYYY-MM-DD';
 export const DISPLAY_DATE_FORMAT = 'DD/MM/YYYY';
+export const TIME_FORMAT = 'HH:mm';
 
 export const LIFECYCLE_OPTIONS = EVENT_LIFECYCLES.map((value) => ({ value, label: EVENT_LIFECYCLE_LABELS[value] }));
 export const PUBLISH_LABELS = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố' } as const;

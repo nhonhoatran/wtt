@@ -59,6 +59,8 @@ export const ENTRY_STAGE_OPTIONS = optionsOf(ENTRY_STAGE_LABELS);
 export const QUOTA_OPTIONS = optionsOf(QUOTA_LABELS);
 
 export const SUB_EVENT_QUERY_PARAM = 'subEvent';
+export const DAY_QUERY_PARAM = 'day';
+export const SESSION_QUERY_PARAM = 'session';
 export const SIDE_MENU_WIDTH = 260;
 
 export const isDoubles = (subEvent: EntrySubEvent) => subEvent.discipline.competitorKind === 'DOUBLES';

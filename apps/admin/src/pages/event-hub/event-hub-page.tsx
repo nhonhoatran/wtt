@@ -17,6 +17,7 @@ import { EntriesTab } from './entries-tab';
 import { EventHubActions } from './event-hub-actions';
 import { EventInfoTab } from './event-info-tab';
 import type { HubTabContext } from './hub-tab-context';
+import { ScheduleTab } from './schedule-tab';
 import { SubEventsTab } from './sub-events-tab';
 
 interface HubTabDef {
@@ -31,6 +32,7 @@ const HUB_TABS: HubTabDef[] = [
   { key: 'sub-events', label: 'Nội dung thi đấu', render: (context) => <SubEventsTab {...context} /> },
   { key: 'entries', label: 'Danh sách', render: (context) => <EntriesTab {...context} /> },
   { key: 'draws', label: 'Bốc thăm', render: (context) => <DrawsTab {...context} /> },
+  { key: 'schedule', label: 'Lịch & kết quả', render: (context) => <ScheduleTab {...context} /> },
 ];
 const DEFAULT_TAB = HUB_TABS[0]!.key;
 

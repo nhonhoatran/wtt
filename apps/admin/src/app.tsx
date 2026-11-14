@@ -1,12 +1,13 @@
 import { antdTheme } from '@kamito/ui-tokens/antd-theme';
 import { useNotificationProvider } from '@refinedev/antd';
-import { Authenticated, Refine } from '@refinedev/core';
-import routerProvider, { CatchAllNavigate } from '@refinedev/react-router';
+import { Refine } from '@refinedev/core';
+import routerProvider from '@refinedev/react-router';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import viVN from 'antd/es/locale/vi_VN';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { AuthGate } from './components/auth-gate';
 import { RequireAccess } from './components/require-access';
 import { StepUpProvider } from './components/step-up-modal';
 import { i18nProvider } from './i18n/vi';
@@ -21,6 +22,7 @@ import { authProvider } from './providers/auth-provider';
 import { dataProvider } from './providers/data-provider';
 import { AuditLogList } from './resources/audit-logs/audit-log-list';
 import { EventHubPage } from './pages/event-hub/event-hub-page';
+import { MatchSheetsPrintPage } from './pages/event-hub/match-sheets-print-page';
 import { catalogResources, catalogRoutes } from './resources/catalog-routes';
 import { EventCreate } from './resources/events/event-create';
 import { EventList } from './resources/events/event-list';
@@ -64,14 +66,9 @@ export function App() {
             <StepUpProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route
-                  element={
-                    <Authenticated key="protected" fallback={<CatchAllNavigate to="/login" />}>
-                      <Outlet />
-                    </Authenticated>
-                  }
-                >
+                <Route element={<AuthGate />}>
                   <Route path="/change-password" element={<ChangePasswordPage />} />
+                  <Route path="/events/:id/print/match-sheets" element={<RequireAccess resource="tournaments" action="read"><MatchSheetsPrintPage /></RequireAccess>} />
                   <Route element={<AdminLayout />}>
                     <Route index element={<RoleHomePage />} />
                     <Route path="/users" element={<RequireAccess resource="users" action="list"><UserList /></RequireAccess>} />

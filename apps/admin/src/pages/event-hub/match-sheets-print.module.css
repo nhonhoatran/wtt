@@ -1,0 +1,105 @@
+/* Paper has no theme: every size is a named property here. Two sheets fill one portrait A4. */
+.printPage {
+  --sheet-page-width: 210mm;
+  --sheet-page-height: 297mm;
+  --sheet-padding: 6mm;
+  --sheet-gap: 4mm;
+  --sheet-page-slack: 2mm;
+  --sheet-border: 0.4mm;
+  --sheet-font-size: 11pt;
+  --sheet-title-size: 14pt;
+  --sheet-cell-height: 9mm;
+  --sheet-cell-padding: 1mm;
+  --sheet-signature-height: 12mm;
+  --sheet-ink: #000;
+  --sheet-paper: #fff;
+}
+
+.matchSheets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sheet-gap);
+  max-width: var(--sheet-page-width);
+  margin: 0 auto;
+}
+
+.matchSheet {
+  box-sizing: border-box;
+  height: calc((var(--sheet-page-height) - 2 * var(--sheet-page-margin) - var(--sheet-gap) - var(--sheet-page-slack)) / 2);
+  padding: var(--sheet-padding);
+  border: var(--sheet-border) solid var(--sheet-ink);
+  color: var(--sheet-ink);
+  background: var(--sheet-paper);
+  font-size: var(--sheet-font-size);
+  break-inside: avoid;
+  overflow: hidden;
+}
+
+.matchSheet h2 {
+  margin: 0 0 var(--sheet-gap);
+  font-size: var(--sheet-title-size);
+}
+
+.matchSheet dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--sheet-gap);
+  margin: 0 0 var(--sheet-gap);
+}
+
+.matchSheet dt {
+  font-weight: 600;
+}
+
+.matchSheet dd {
+  margin: 0;
+}
+
+.matchSheet table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.matchSheet th,
+.matchSheet td {
+  height: var(--sheet-cell-height);
+  padding: 0 var(--sheet-cell-padding);
+  border: var(--sheet-border) solid var(--sheet-ink);
+  text-align: center;
+}
+
+.sheetNote {
+  margin: var(--sheet-gap) 0 0;
+}
+
+.sheetSignature {
+  display: flex;
+  align-items: flex-end;
+  height: var(--sheet-signature-height);
+}
+
+@media print {
+  .printPage {
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
+  .matchSheets {
+    display: block;
+    max-width: none;
+    margin: 0;
+  }
+
+  .matchSheet + .matchSheet {
+    margin-top: var(--sheet-gap);
+  }
+
+  .matchSheet:nth-child(2n) {
+    break-after: page;
+  }
+}
