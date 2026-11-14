@@ -19,3 +19,7 @@ apps/client/next-env.d.ts
 .cursor/
 .opencode/
 GEMINI.md
+
+# Playwright
+test-results/
+playwright-report/
