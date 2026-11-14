@@ -4,6 +4,9 @@ import { ApiError, apiFetch } from '../api/http-client';
 
 type RunWithStepUp = <T>(action: () => Promise<T>) => Promise<T>;
 
+// antd lifts modals opened inside a drawer/modal (1200+), while this one lives at the app root (1000); stay above them but below toasts (2010).
+const STEP_UP_Z_INDEX = 2000;
+
 const StepUpContext = createContext<RunWithStepUp | null>(null);
 
 /**
@@ -23,12 +26,11 @@ export function StepUpProvider({ children }: { children: ReactNode }) {
       if (!(error instanceof ApiError) || error.code !== 'STEP_UP_REQUIRED') throw error;
       await new Promise<void>((resolve, reject) => {
         waiter.current = { resolve, reject };
-        form.resetFields();
         setOpen(true);
       });
       return action();
     }
-  }, [form]);
+  }, []);
 
   const submit = async () => {
     const { password } = await form.validateFields();
@@ -61,9 +63,10 @@ export function StepUpProvider({ children }: { children: ReactNode }) {
         confirmLoading={submitting}
         onOk={submit}
         onCancel={cancel}
+        zIndex={STEP_UP_Z_INDEX}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" onFinish={submit}>
+        <Form form={form} layout="vertical" preserve={false} onFinish={submit}>
           <Form.Item name="password" label="Mật khẩu của bạn" rules={[{ required: true, message: 'Nhập mật khẩu' }]}>
             <Input.Password autoFocus autoComplete="current-password" />
           </Form.Item>

@@ -36,7 +36,8 @@ export function DrawEntryActionModal({ target, data, call, onClose, onDone }: Dr
 
   const operation: Operation = target?.mode === 'cell' ? picked : 'unpublish';
   const cell = target?.mode === 'cell' ? target : null;
-  const taken = new Set(data.positions.flatMap((position) => (position.entry ? [position.entry.id] : [])));
+  // Group views carry no `positions`; only a bracket cell action needs the taken set.
+  const taken = new Set(cell ? data.positions.flatMap((position) => (position.entry ? [position.entry.id] : [])) : []);
   const replacements = useReplacementEntries(data.subEventId, operation === 'replace' && Boolean(cell), taken);
   const ready = operation !== 'replace' || Boolean(newEntryId);
   const reasonTooShort = reason.trim().length > 0 && reason.trim().length < MIN_REASON_LENGTH;

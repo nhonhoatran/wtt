@@ -41,8 +41,13 @@ export const authProvider: AuthProvider = {
     return { success: true, redirectTo: '/login' };
   },
   check: async () => {
-    const user = await loadCurrentUser().catch(() => null);
-    return user ? { authenticated: true } : { authenticated: false, redirectTo: '/login', logout: true };
+    try {
+      const user = await loadCurrentUser();
+      return user ? { authenticated: true } : { authenticated: false, redirectTo: '/login', logout: true };
+    } catch (error) {
+      // Only a 401 means signed out; a 5xx or network failure must not bounce the user to /login.
+      return { authenticated: false, error: error instanceof Error ? error : new Error('Không kiểm tra được phiên đăng nhập') };
+    }
   },
   onError: async (error: unknown) => {
     if (!(error instanceof ApiError)) return {};
