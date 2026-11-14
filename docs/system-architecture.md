@@ -1,6 +1,6 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-13 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh), phase 05 (VĐV, cặp đôi, đăng ký, import và export Excel, gộp VĐV), phase 06 (bốc thăm, hạt giống, vòng bảng, sinh nhánh; chưa commit), phase 07 lát cắt (nhập và chốt tỷ số, revalidate cache; chưa commit), phase 08 lát cắt (API nhánh đấu công khai, trang nhánh đấu, route `/api/revalidate` của client; chưa commit). Chưa có lịch thi đấu, bàn, sửa và mở lại tỷ số (phase 07 đợt 2), bảng xếp hạng điểm (phase 09).
+> Cập nhật: 2026-11-14 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh), phase 05 (VĐV, cặp đôi, đăng ký, import và export Excel, gộp VĐV), phase 06 (bốc thăm, hạt giống, vòng bảng, sinh nhánh; chưa commit), phase 07 lát cắt (nhập và chốt tỷ số, revalidate cache; chưa commit), phase 08 đợt 1 đến 3 (site công khai: API public, khung, danh sách và lịch giải, trang giải, trang trận, nhánh, in, SEO, rate limit, CSP report-only; chưa commit). Chưa có lịch thi đấu, bàn, sửa và mở lại tỷ số (phase 07 đợt 2), bảng xếp hạng điểm (phase 09).
 > Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
@@ -33,15 +33,15 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 - Quản trị: trình duyệt → admin (nginx phục vụ SPA, proxy vào api) → api. Đăng nhập bằng session cookie (Better Auth), phân quyền ở api.
 - Ảnh: admin tải lên qua api → worker xử lý (WebP) → `public/` trên object storage hoặc thư mục local (dev).
 - Nền: api và worker dùng chung PostgreSQL, Redis (`noeviction`, dành cho queue BullMQ và khóa đăng nhập), object storage (S3 API, hoặc driver `local` khi dev). api đưa job vào queue `media`, `import` và `revalidate`, và chạy bull-board; worker chạy processor cho ba queue này.
-- Cache công khai: api đưa tag vào queue `revalidate` sau khi ghi xong; worker gọi `client` `/api/revalidate` để xóa cache theo tag. Trang công khai (phase 08) đọc nhánh đấu từ api qua `/api/v1/public/*`, bằng secret nội bộ.
+- Cache công khai: api đưa tag vào queue `revalidate` sau khi ghi xong; worker gọi `client` `/api/revalidate` để xóa cache theo tag. Trang công khai (phase 08) đọc dữ liệu từ api qua `/api/v1/public/*`, bằng secret nội bộ.
 
 ## Thành phần
 
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
-| `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Layout `[locale]` (vi, en), trang nhánh đấu `/events/:slug/draws/:subEventCode` (SSR, đọc api công khai), route health, route `/api/revalidate`, `proxy.ts`. Trang chủ vẫn là khung |
+| `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Site công khai `[locale]` (vi, en): trang chủ tạm, danh sách và lịch giải, trang giải 6 tab, trang trận, nhánh đấu, SSR đọc `api` công khai. Route `/api/revalidate`, `/api/csp-report`, `/api/health`, `sitemap.ts`, `robots.ts`, `proxy.ts`. Chi tiết: [public-site.md](./public-site.md) |
 | `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text, VĐV, cặp đôi, tab Danh sách đăng ký, wizard import, gộp VĐV, tab Bốc thăm (wizard sinh nhánh, bảng sơ đồ, vòng bảng, thao tác sau công bố), trang Nhập tỷ số `/results` |
-| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05), bốc thăm, nhánh, vòng bảng, trận, đọc (phase 06), nhập và chốt tỷ số, revalidation (phase 07) |
+| `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05), bốc thăm, nhánh, vòng bảng, trận, đọc (phase 06), nhập và chốt tỷ số, revalidation (phase 07), API công khai `/public/*` (phase 08) |
 | `apps/worker` | Node, ioredis, BullMQ 6.5.1, sharp 0.35.5 | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP, media worker: job `process-image` và job dọn định kỳ `cleanup-expired-intents`. Import worker (queue `import`): `validate-import`, `commit-import`, dọn file import định kỳ. Revalidate worker (queue `revalidate`): job `revalidate-tags`, gọi `client` `/api/revalidate` |
 | `migrate` (target của `api.Dockerfile`) | Prisma CLI | — (chạy một lần) | `internal` | Xác nhận target, `prisma migrate deploy` |
 | PostgreSQL | 17.11 (dev) | 5433 (dev) | ngoài compose prod | Dữ liệu nghiệp vụ, `_prisma_migrations` |
@@ -92,7 +92,7 @@ Quy tắc:
 - nginx chuyển tiếp `X-Forwarded-For` nguyên vẹn, không nối thêm hop. API đặt `trust proxy` = `TRUST_PROXY_HOPS`.
 - Dev không có proxy: `TRUST_PROXY_HOPS=0` (`.env.example`). Compose prod bắt buộc khai biến này.
 - Chưa kiểm: Traefik có ghi đè XFF do client gửi không, và có tin `forwardedHeaders` không. Kiểm ở Spike D.
-- Rate limit cho site công khai đặt ở tầng thấy IP thật (Traefik hoặc Next), không đặt ở api. Chưa triển khai.
+- Rate limit cho site công khai đặt ở `proxy.ts` của client (thấy IP thật qua `X-Real-Ip` hoặc phần tử cuối `X-Forwarded-For`), không đặt ở api. Chưa kiểm trên staging: Traefik có tin `forwardedHeaders` của client không. Chi tiết: [public-site.md](./public-site.md#proxy-locale-chặn-revalidate-rate-limit).
 
 ### Admin: cấu hình lúc chạy
 
@@ -480,7 +480,7 @@ Phase 06 chèn `Draw` và `Group` sau `SubEvent`, trước `Player`. Xem [Bốc 
 - SĐT, email và ngày sinh chỉ trả khi người xem có `players.update` (`canSeePlayerPii` trong `player-views.ts`). `RESULTS_OPERATOR` chỉ có `players.list` và `read`, nên không thấy các trường này.
 - Năm sinh, CLB và mã VĐV vẫn hiện cho cả hai vai trò.
 - Dữ liệu dòng import và file export không chứa ngày sinh, SĐT hay email.
-- `GET /public/*` có từ phase 08 cho nhánh đấu, xem [Site công khai](#site-công-khai-phase-08). `player.showAge` vẫn chưa có nơi đọc (phase 08 đợt 2, 10).
+- `GET /public/*` có từ phase 08 (đợt 1 đến 3), xem [Site công khai](#site-công-khai-phase-08). `player.showAge` vẫn chưa có nơi đọc (phase 08 đợt 2, 10).
 
 ## Bốc thăm và vòng bảng (phase 06)
 
@@ -586,43 +586,23 @@ Thành công: gọi `revalidateTag(tag, { expire: 0 })` cho từng tag duy nhấ
 
 ## Site công khai (phase 08)
 
-Phạm vi lát cắt: một API đọc nhánh đấu công khai, trang nhánh đấu (vi, en), và route `/api/revalidate`. Chưa có trang giải, lịch, bảng xếp hạng, VĐV hay tin.
+Chi tiết route, API, cache, proxy, SEO, in ấn, CSP và việc còn mở: [public-site.md](./public-site.md).
+
+Tóm tắt:
+- Trang Server Component trong `apps/client/src/app/[locale]/` (vi, en). Mọi dữ liệu đọc qua `publicGet()` (`lib/public-data.ts`, `lib/api-client.ts`, chỉ server).
+- Request từ client đến `api` mang header `x-internal-secret` (`SSR_INTERNAL_SECRET`). API không có domain công khai, nên secret là ranh giới thật.
+- API `GET /api/v1/public/*`: `@Public()` + `SsrInternalGuard`, một predicate phạm vi `publicScope`, serializer whitelist. Không công khai thì 200 `{data: null}`, không 404.
 
 ```
-Browser ──> client (Next SSR): /[locale]/events/:slug/draws/:code?draw=qualifying
-              publicGet(): fetch api, header x-internal-secret, cache: 'force-cache',
-              next.tags = [draw-<slug>-<code>], next.revalidate = TTL, timeout API_FETCH_TIMEOUT_MS
-client ──> api: GET /api/v1/public/events/:slug/draws/:subEventCode?kind=main|qualifying
-api:   @Public + SsrInternalGuard ──> PublicBracketQuery (2 truy vấn, publicScope) ──> toPublicBracket
+Browser ──> client (Next SSR, proxy.ts: locale, rate limit, chặn /api/revalidate)
+              publicGet(): header x-internal-secret, next.tags, next.revalidate (TTL theo policy)
+client ──> api: GET /api/v1/public/*  (API_INTERNAL_URL, không qua Traefik)
+api:   @Public + SsrInternalGuard ──> publicScope ──> serializer whitelist
 ```
 
-### API công khai
+Cache: tag chính xác theo mutation (`packages/shared/src/public-cache-tags.ts`), TTL dự phòng (`PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS`), trang có `q` không cache. Bảng tag và mutation: [public-site.md](./public-site.md#dữ-liệu-và-cache).
 
-| Mục | Quy định |
-|---|---|
-| Đường dẫn | `GET /api/v1/public/events/:slug/draws/:subEventCode`, `kind` là `main` (mặc định) hoặc `qualifying` |
-| Xác thực | Chỉ request có `x-internal-secret` đúng `SSR_INTERNAL_SECRET`. Thiếu hoặc sai → 403 `{error:{code:"SSR_ONLY"}}` |
-| Thành công | 200 `{data: PublicBracket}` (hợp đồng trong `packages/shared/src/public-bracket-contract.ts`) |
-| Không công khai | 200 `{data: null}`: event nháp, đã hủy hoặc slug lạ; sub-event lạ; nhánh không `PUBLISHED`; `kind` lạ |
-| Vì sao không 404 | Next chỉ ghi response 200 vào cache. Nếu API trả 404 khi gỡ nhánh, bản 200 cũ vẫn được phục vụ tới khi hết TTL. Với `{data: null}`, bản mới được cache và thay bản cũ khi tag bị xóa |
-| Lỗi khác | 5xx hoặc timeout: `publicGet` ném lỗi, trang vào `error.tsx`, không cache |
-| Trường trả về | Whitelist trong `toPublicBracket`. VĐV chỉ có tên hiển thị (`publicDisplayName` thay cả tên thật lẫn tên EN) và CLB. SĐT, email, ngày sinh không nằm trong select. Test `serializes exactly the whitelisted fields` (`public-bracket.e2e-spec.ts`) khóa danh sách trường |
-| Tham số sai ở client | Slug và mã sub-event phải khớp `^[A-Za-z0-9][A-Za-z0-9_-]*$`; kind ngoài `main`/`qualifying` → 404 trước khi gọi API |
-
-### Cấu trúc client
-
-| Đường dẫn trong `apps/client/src` | Vai trò |
-|---|---|
-| `app/[locale]/events/[slug]/draws/[subEventCode]/page.tsx` | Trang nhánh đấu. `generateMetadata` và trang dùng chung `fetchBracket` (React `cache()`), một lượt gọi API |
-| `app/api/revalidate/route.ts` | POST cho worker, xem [mục trên](#route-apirevalidate-ở-client-phase-08) |
-| `proxy.ts` | Trả 404 cho `/api/revalidate` khi Host không nội bộ (lớp thứ hai) |
-| `lib/` | `api-client.ts` (`publicGet()`, chỉ server: header secret, tag, TTL), `cache-policy.ts` (TTL `PUBLIC_REVALIDATE_SECONDS` / `MATCHDAY_REVALIDATE_SECONDS`), `server-env.ts` (env đọc theo request), `internal-request.ts` (Host, secret), `format-date-time.ts` (giờ theo múi giờ của giải) |
-| `i18n/` | `locales.ts` (vi mặc định, en), `get-dictionary.ts`, `vi.json`, `en.json`, `pick-localized.ts` (thiếu tên EN thì dùng VI), `render-bracket-labels.ts` (nhãn vòng, nguồn suất) |
-| `components/bracket/` | `bracket-board.tsx` (server component, một cột CSS grid mỗi vòng), `bracket-round-column.tsx`, `bracket-match-cell.tsx`, `bracket.module.css` |
-| `components/layout/` | `site-header.tsx`, `site-footer.tsx`. Tên site lấy từ default của `appSettingRegistry`, vì chưa có API settings công khai |
-| `app/[locale]/error.tsx`, `not-found.tsx` | Trang lỗi theo locale; 404 dùng vi (không có params) |
-
-## Xác thực và phân quyền (phase 03)
+Rate limit công khai ở `proxy.ts` của client (bộ đếm trong bộ nhớ, một instance), không ở api. Thông số ở `/settings`, nhóm "Truy cập site công khai".
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -742,7 +722,8 @@ Code phía admin (`apps/admin/src`):
 | Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job), `media`, `import` và `revalidate` (đang dùng) |
 | Tag cache theo ảnh | 07 (đợt 2) | Chưa có. Phase 04 dời sang phase 07 |
 | Lịch thi đấu, bàn, sửa và mở lại tỷ số | 07 (đợt 2) | Chưa có. Nhập và chốt tỷ số đã có, xem [match-results](./match-results.md) |
-| Trang công khai khác (giải, lịch, bảng xếp hạng, VĐV, tin) | 08 (đợt 2), 09–12 | Chỉ có trang nhánh đấu. Route và API công khai còn lại chưa có |
+| Lịch theo session và bàn (`GET /public/events/:slug/schedule`), bản in lịch | 07 (đợt 2), 08 | Chưa có. Trang trận và danh sách trận đã có |
+| Trang xếp hạng, hồ sơ VĐV, tin, video, nhà tài trợ | 10–11 | Chưa có route công khai. Mutation `ranking.publish` (`modules/ranking-snapshots/`, phase 09, chưa commit) gửi tag `rankings`, `ranking-<listCode>`, `players`, `player-<slug>`. Chưa đối chiếu với trạng thái phase 09 trong [roadmap](./development-roadmap.md) |
 | Sửa `site.name` trên `/settings` | — | Key có trong registry, chưa có editor |
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | — | Không còn dùng (đã chọn thiết kế (b)). Vẫn nằm trong `env-schema.ts`, compose và `.env.example`. Gỡ ở lần dọn env |
 
@@ -783,6 +764,9 @@ Code phía admin (`apps/admin/src`):
 | 31 | Revalidate sau commit, ngoài transaction; lỗi enqueue không rollback thao tác | Transaction không chờ Redis. Cache công khai tái tạo được: một lần xóa thất bại không làm sai dữ liệu gốc, chỉ làm trang cũ lâu hơn. Job có `jobId` duy nhất vì BullMQ có thể bỏ job mới khi trùng id |
 | 32 | Nội dung công khai không có hoặc chưa công bố trả 200 `{data: null}`, không 404 | Next chỉ cache 200. Với 404, trang đã gỡ vẫn nằm trong cache. Đổi lại, slug sai cũng là 200: client phải kiểm `data` |
 | 33 | Site công khai đọc API bằng secret nội bộ (`x-internal-secret`), không bằng phiên | API không có domain công khai nên secret là ranh giới thật. Host allowlist ở `/api/revalidate` là lớp phụ |
+| 34 | Rate limit công khai ở `proxy.ts` của client, bộ đếm trong bộ nhớ, ngưỡng ở `/settings` | API chỉ thấy IP container, còn client thấy IP thật qua header. Bộ đếm trong bộ nhớ đủ cho một instance; nhiều instance cần bộ đếm dùng chung |
+| 35 | CSP `Content-Security-Policy-Report-Only` từ phase 08, enforce ở phase 12 | Đo vi phạm trước khi chặn. Báo cáo gửi về `/api/csp-report` có giới hạn kích thước và số lần ghi log |
+| 36 | `sitemap` và `robots` sinh lúc chạy (`force-dynamic`) | Build Docker không gọi được API nên không sinh lúc build |
 
 Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của chủ repo. Chưa đối chiếu lại trong lần viết này.
 
@@ -790,6 +774,7 @@ Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của ch�
 
 - [draws-and-groups.md](./draws-and-groups.md): bốc thăm, hạt giống, vòng bảng, walkover treo, mã lỗi (phase 06).
 - [match-results.md](./match-results.md): nhập và chốt tỷ số, API trận, quy tắc tỷ số, tag revalidate (phase 07).
+- [public-site.md](./public-site.md): site công khai (phase 08): route, API public, cache, proxy, SEO, in ấn, CSP.
 - [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API, danh mục và upload.
 - [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành, seed.
 - [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.

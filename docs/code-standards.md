@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-13 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine).
+> Cập nhật: 2026-11-14 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine), phase 08 (site công khai: query, metadata, cache công khai).
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`, `apps/api/src/common/*`, `apps/worker/src/*`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -410,6 +410,9 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
   - Danh sách, tìm kiếm, lọc, phân trang: render ở server (Server Component + `searchParams`). Không tải toàn bộ dữ liệu về trình duyệt rồi lọc bằng JS.
   - `next.config.ts` dùng `output: 'standalone'`, `outputFileTracingRoot` là root monorepo.
   - Dữ liệu công khai chỉ đọc qua `publicGet()` (`lib/api-client.ts`, chỉ chạy trên server). Tham số đưa vào URL phải qua regex trước khi gọi API, để `..` hay `/` không đi ra khỏi `/public`.
+  - Tham số query công khai (lọc, trang, năm) đi qua `toQuery()` (`lib/public-query.ts`) trước khi gọi fetch có cache. Chỉ giá trị được luật của khóa chấp nhận mới vào URL gọi API, theo thứ tự khóa cố định. Lý do: Next cache trên đĩa không giới hạn kích thước, bot không được tạo vô hạn mục cache bằng giá trị bịa.
+  - Mọi trang hiển thị nội dung gọi `pageMetadata()` hoặc `eventPageMetadata()` (`lib/page-metadata.ts`). Trang chỉ chuyển hướng và `not-found` được miễn. Không tự viết `metadata` lẻ trong từng trang.
+  - Trang có `q` (tìm kiếm tự do) dùng policy `none`, không cache. Trang còn lại chọn `standard` hoặc `matchday` trong `publicGet()`.
   - Env client đọc theo request (`lib/server-env.ts`), không lúc build: Docker build không có env runtime.
   - Route nội bộ (`/api/revalidate`) kiểm Host ở `proxy.ts` và ở route. Secret so bằng `timingSafeEqual` trên SHA-256.
 - **Admin (Vite + React + antd):**
@@ -431,6 +434,7 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |
+| client e2e | Playwright 1.64.1 | `pnpm --filter @kamito/client test:e2e` | Cần stack dev và `.env` ở root. Chi tiết: [deployment-guide](./deployment-guide.md#playwright-e2e-client) |
 
 Quy tắc:
 - E2E cần dependency dev đang chạy (`docker-compose.dev.yml`). CI có service container Postgres 17.11, Redis 8.2.11 và RustFS 1.0.4.

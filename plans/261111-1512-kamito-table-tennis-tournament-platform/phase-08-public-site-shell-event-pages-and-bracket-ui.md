@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: in progress (lát cắt bước 1–3 xong 2026-11-13, chưa deploy staging; bước 4 + M1 chưa đạt). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: in progress (lát cắt bước 1–3 xong 2026-11-13; phần không bị chặn của đợt 1–3 xong 2026-11-14; còn bước 4 + M1/M2 (staging), lịch session/bàn + bản in lịch chờ phase 07; chưa deploy staging). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 6, ≈4 ngày):** khung client tối thiểu (layout, wordmark, tiếng Việt), API public nhánh đấu theo slug/mã + predicate phạm vi công khai + serializer whitelist, 1 trang nhánh đấu (CSS grid tự làm), route `/api/revalidate`, deploy staging + kiểm luồng lát cắt. → **Mốc M1 cuối tuần 6.**
   - **Phần còn lại (tuần 12–13, ≈5 ngày):** i18n vi/en đầy đủ, danh sách + lịch giải, trang giải đủ tab, trang trận, dải kết quả, metadata + sitemap sinh lúc chạy, stylesheet in (nhánh, lịch theo session/bàn), CSP report-only, rate limit công khai, e2e.
 - Toàn bộ Server Components + `searchParams`, slug, metadata, làm mới theo tag. Chỉ học cấu trúc/bố cục; không dùng ảnh, chữ, logo, dữ liệu của site tham chiếu.
@@ -71,6 +71,102 @@
   5. Rule Traefik theo path và `passHostHeader` chưa kiểm trên staging.
   6. Cách render `infoBody` công khai (sanitize lại ở Next hay API trả HTML đã sanitize) vẫn chưa chốt (phase 04).
   7. Bước 4 (Playwright + staging, M1) chưa làm.
+
+<!-- ui-consistency finding-patterns + planning — 2026-11-14 -->
+## Mẫu giao diện site công khai (ui-consistency, đọc 2026-11-14)
+
+Phạm vi đợt này (đã chốt 2026-11-14): làm phần không bị chặn; tab Thông tin chỉ có `infoBody` (API sanitize lại khi trả); lịch theo session/bàn + bản in lịch chờ phần còn lại phase 07; bước 4/M1 chờ staging. Chạy 3 đợt: (1) i18n + API public + test; (2) khung + danh sách/lịch giải + trang giải/tab + trang trận; (3) in nhánh, SEO/sitemap, rate limit + CSP, Playwright.
+
+Trang công khai so với "trang nội dung site công khai" — tham chiếu `apps/client/src/app/[locale]/events/[slug]/draws/[subEventCode]/page.tsx`, 1 thành viên / 4 ứng viên (`page.tsx` trang chủ tạm, `not-found`, `error` bị loại: không có nội dung dữ liệu). Họ chỉ có tham chiếu → chưa có quy ước nào; mọi dòng dưới đây là quyết định từ tham chiếu (level 3) hoặc từ plan (level 1), không phải đếm.
+
+Theme: `packages/ui-tokens/src/tokens.ts` → biến CSS `--color-*`, `--radius-*`, `--space-section-*`, `--layout-*`. Không có `DESIGN.md`, không có thang cỡ chữ/khoảng cách trong theme. Đã chốt thêm 3 token: `textMuted #404040`, `textSubtle #737373` (brand §7), `lineStrong #A3A3A3` — thay mọi `#525252`/`#737373`/`#a3a3a3` viết tay (sửa luôn L8).
+
+Checklist dùng chung cho mọi trang mới:
+- [ ] Khung trang — `<main id="content" className="container">` như tham chiếu; header/footer từ `[locale]/layout.tsx`, không trang nào tự vẽ.
+- [ ] Đầu trang giải — eyebrow (tên giải, 14/600, `--color-text-muted`) + `h1` (24 → 32 từ 768px, 800) như tham chiếu; trên trang giải phần này chuyển vào `events/[slug]/layout.tsx` (hero + tab), các tab không tự viết lại.
+- [ ] Bậc heading — `h1` một lần/trang; khối trong trang dùng `h2` (16/700 như `.sectionTitle`), tiêu đề cột/thẻ `h3`.
+- [ ] Nav dạng viên (tab, chọn nội dung, chọn vòng, trạng thái trận) — `<nav aria-label>` + `<Link aria-current="page">`, kiểu `.kind` của tham chiếu (viên bo `--radius-pill`, chọn = nền `--color-data` chữ `--color-surface`), cuộn ngang trong khung; tách thành `components/common/pill-nav` (plan đã nêu `tab-scroller.tsx`).
+- [ ] Bảng số liệu (BXH, bảng điểm ván) — `<table>` thật, hàng đầu nền `--color-data` chữ `--color-surface` như `.roundTitle`; số `tabular-nums`; khung cuộn ngang riêng (`overflow-x:auto`, `tabIndex=0`, `role=region`) như `.scroller`.
+- [ ] Ô/thẻ — viền 1px `--color-border`, bo `--radius-button` (ô trận) / `--radius-card` (thẻ giải), nền `--color-surface`.
+- [ ] Nhãn LIVE — nền `--color-data`, chữ `--color-live`, bo `--radius-pill` (`.live`), không đặt `--color-live` trên nền sáng.
+- [ ] Chữ phụ (giờ, CLB, ghi chú) — `--color-text-muted` / `--color-text-subtle`; không literal xám.
+- [ ] Lọc — `<form method="get">` thật, nút submit, không JS; phân trang = link thật (`?page=`).
+- [ ] Rỗng — `<p>` câu từ từ điển (như `t.bracket.empty`); không dữ liệu/không công bố → `notFound()`.
+- [ ] Chữ hiển thị qua `getDictionary` + `pickLocalized`; giờ qua `format-date-time.ts` theo `event.timezone`.
+- [ ] Không chép từ tham chiếu: chữ tiêu đề, `--cell-w/--cell-h` của nhánh, gợi ý cuộn `.hint`, `#525252` viết tay.
+
+Task trang (đợt 2–3; mỗi task: đọc lại checklist trước khi viết → báo xong cho người điều phối gửi agent `ui-consistency:verifying` không phải người viết → báo `done` hoặc `parked — <lý do>`):
+
+| # | Trang / mảnh | Trạng thái |
+|---|---|---|
+| 0 | Hiệu chỉnh verifying trên bản nháp tham chiếu (ngoài repo) | done |
+| 1 | Token theme + `pill-nav` dùng chung + thay xám viết tay | done |
+| 2 | Header (nav, locale switcher, menu mobile) + dải kết quả | done |
+| 3 | Danh sách giải + lịch giải | done |
+| 4 | Khung trang giải (`EventShell`: hero + tab) + Tổng quan | done |
+| 5 | Tab Trận đấu + trang trận | done |
+| 6 | Tab Nhánh (đưa trang nhánh vào khung giải) | done |
+| 7 | Tab Bảng đấu + Danh sách VĐV + Thông tin (`infoBody`) + trang chủ | done |
+| 8 | Bản in nhánh | done |
+| — | Lịch theo session/bàn + bản in lịch | parked — chờ phần còn lại phase 07 (`EventSession`) |
+
+<!-- Phase 08 batch 1 sync — 2026-11-14 -->
+## Đợt 1 (2026-11-14): API public + i18n nền — xong
+
+- API: module `public-events` (`events`, `events/calendar`, `events/:slug`, `events/:slug/info`) + `public-competition` thêm `matches`, `matches/:matchNo`, `groups/:subEventCode`, `entries/:subEventCode`, `results/strip`. Mọi query qua `publicScope` (thêm `entry`, `match`, `matchIn`); tham số URL sai → bỏ qua (`public-query-params.ts`).
+- Quyết định: trận hủy kết quả (`isVoided`) hiện kèm cờ `voided` ở tab trận/bảng đấu, không vào dải kết quả; tìm VĐV có `publicDisplayName` chỉ theo tên hiển thị; `infoBody` sanitize lại ở API; slug `calendar` bị chặn (`RESERVED_SLUGS`); lọc "sắp diễn ra" xếp gần nhất trước.
+- Setting mới: `header.resultsStrip.limit` (10), `public.listPageSize` (24). Đổi setting → tag `settings`. Theme thêm `lineStrong`, `textMuted`, `textSubtle`.
+- Client: `proxy.ts` chuyển hướng locale (cookie `locale` → `Accept-Language` → `vi`), bỏ redirect `/` trong `next.config.ts`.
+- Kiểm chứng: e2e mới `public-events`, `public-matches`, `public-groups-entries`, `public-results-strip` + `public-bracket` + `permission-coverage` 44/44; toàn API 66 file 429/429; shared 90/90; worker 34/34; client typecheck/lint/build sạch. DB test: stack docker `kamito-tt-dev` trong WSL2 (`localhost:5433/kamito_tt_dev`).
+- Review: `plans/reports/code-reviewer-261114-phase-08-batch-1-public-api.md` (8/10). Còn mở: rate limit trang có `q` (đợt 3); trang danh sách cần gắn thêm tag `settings` (đợt 2); lọc trạng thái theo múi giờ mặc định còn nhãn theo múi giờ giải (lệch quanh nửa đêm, chấp nhận).
+
+## Đợt 2 (2026-11-14): khung site + trang giải — xong
+
+- Trang: trang chủ (đang/sắp diễn ra), danh sách giải, lịch giải, trang giải 6 tab (Tổng quan, Trận đấu, Nhánh, Bảng đấu, VĐV, Thông tin), trang trận; header (nav, chọn ngôn ngữ, menu `<details>`), dải kết quả.
+- Lệch plan: `events/[slug]/layout.tsx` thay bằng component `EventShell` (layout không biết tab đang mở nếu không có JS client). Trang trận đứng ngoài `EventShell` (1 lần gọi API) — chờ chủ repo xác nhận.
+- Mảnh dùng chung mới: `common/{pill-nav,filter-form,pagination-links,empty-state,scroll-region}`, `events/{sub-event-chooser,tier-badge,event-shell,event-hero}`, `groups/group-standings`, `players/entry-table`, `lib/public-query.ts`.
+- Cache: giá trị query chỉ tới fetch có cache khi hợp lệ (`toQuery` + luật từng khóa; mã hạng/nhóm/năm lấy từ danh sách không lọc) — chặn bot tạo vô hạn mục cache.
+- Hành vi mặc định: tab Trận của giải đang diễn ra mở "đang đấu", rỗng thì mở "đã xong"; nội dung chỉ có vòng loại mở thẳng vòng loại (nhánh + VĐV); tab Thông tin thiếu bản ngôn ngữ thì hiện bản còn lại; đổi ngôn ngữ giữ query.
+- Kiểm chứng: client typecheck/lint/build sạch; chạy thử local `/vi`, `/vi/events`, `/en/events/calendar` (kể cả tham số bậy) trả 200. Chưa render trang giải có dữ liệu (DB dev chưa có giải công bố) → Playwright đợt 3.
+- Review: `plans/reports/code-reviewer-261114-phase-08-batch-2-public-pages.md` (8/10), `plans/reports/ui-verifier-261114-phase-08-batch-2.md` (2 vòng).
+- Còn mở: tên site + chữ wordmark đang lấy mặc định cứng (cần endpoint public settings); API chưa revalidate khi sửa event/entry/sub-event (tag `events` chưa phát); tương phản nút Mua vé ~4.4:1; tab Trận chọn nội dung bằng `<select>` khác các tab khác (viên); chưa có component chung cho nhãn LIVE/ô trận; nav chính chưa có `aria-current`.
+
+## Đợt 3 (2026-11-14): in, SEO, rate limit, CSP, Playwright — xong
+
+- In:
+  - `@media print` chung: ẩn header/nav/form/footer; giữ màu nền (`print-color-adjust`).
+  - Nhánh in ngang (`@page bracket`); cột 150px vừa 6 vòng A4; mỗi phần nhánh sang tờ mới; hero in nền trắng.
+  - Chưa làm: chia nửa nhánh khi lớn (nhánh 128 = 8 vòng tràn A4; vừa A3 hoặc co theo trình duyệt).
+- SEO:
+  - `lib/page-metadata.ts`: canonical, hreflang vi/en/x-default, OG kèm banner giải.
+  - Query nằm trong canonical chỉ khi chọn nội dung (`?draw=qualifying`, `?stage=`, `?year=`).
+  - `metadataBase` lấy từ `PUBLIC_SITE_URL`.
+  - `app/sitemap.ts` (force-dynamic, gọi API `GET /public/sitemap`) + `app/robots.ts`.
+- Tên site: lấy từ AppSetting `site.name` qua `GET /public/site` (`lib/site-name.ts`). Wordmark "KAMITO" chờ file logo.
+- Rate limit:
+  - `proxy.ts` + `lib/public-rate-limit.ts`: cửa sổ cố định theo IP, bộ đếm trong bộ nhớ (1 instance).
+  - IPv6 gom theo /64; bỏ qua request prefetch (matcher `missing`); 429 + `Retry-After` + `no-store`.
+  - IP lấy từ `X-Real-Ip`; không có thì mục cuối `X-Forwarded-For`.
+  - Ngưỡng là AppSetting nhóm mới `publicAccess` trên `/settings`: `public.rateLimit.windowSeconds` (60), `maxRequests` (600), `searchMaxRequests` (60), `maxTrackedIps` (100000).
+  - Đọc qua `/public/site`, giữ một TTL matchday, làm mới nền; lỗi API thì cho qua.
+- CSP report-only: header trong `next.config.ts`; `app/api/csp-report/route.ts` đọc tối đa 8 KB, log tối đa 30 dòng/phút (hằng cố định; lý do: chốt tạm tới phase 12 enforce).
+- UI: nút Mua vé 20px/700 (chữ lớn) để đạt 3:1 trên `--color-primary`.
+- Đã chốt 2026-11-14: trang trận đứng ngoài `EventShell`; tab Trận chọn nội dung bằng ô thả xuống; nút vé tăng cỡ chữ.
+- Kiểm chứng:
+  - API: `public-site.e2e-spec.ts` 8 test; toàn API 67 file 436/436 (trước khi thêm `maxTrackedIps`); sau đó chạy lại public-site/public-events/permission-coverage 20/20.
+  - Shared 90/90.
+  - Playwright (`@playwright/test` 1.64.1, chromium) `apps/client/tests/e2e/`: 34 passed + 4 skipped có chủ đích; desktop 1280 + mobile 390; dữ liệu dựng bằng `setupPublicWorld` qua `apps/api/test/playwright/*` (`vitest.playwright.config.ts`), dọn sạch sau chạy.
+  - Ảnh in: `plans/reports/screenshots-261114-phase-08-batch-3/`.
+- Review: `plans/reports/code-reviewer-261114-phase-08-batch-3.md` (7.5/10). Đã sửa: H1 prefetch, H2 giới hạn bộ nhớ + IPv6 /64, M1 làm mới nền, M3 đọc body có giới hạn, M4 canonical lịch, sitemap x-default, 429 no-store, tách `public-site-contract.ts`.
+- UI: `plans/reports/ui-verifier-261114-phase-08-batch-2.md` mục "Toàn bộ (đợt 3)". Đã sửa: in (lề hero, cỡ chữ ô, tiêu đề ghi rõ vòng/trạng thái khi in, chỉ nhánh in ngang), focus skip link.
+- Còn mở:
+  - Rate limit chưa có e2e.
+  - Kiểm Traefik `forwardedHeaders`/CDN trên staging.
+  - API chưa phát tag `events`/`event-{slug}` khi sửa giải/entry/sub-event (chờ phase 07).
+  - `.env` cục bộ thiếu `API_FETCH_TIMEOUT_MS`, `REVALIDATE_ALLOWED_HOSTS`.
+  - Test mặc định của `/public/site` rớt nếu DB dev có ghi đè `/settings`.
+  - `pnpm-lock.yaml` lẫn thay đổi ranking của phiên khác: tách khi commit.
+  - Nav chính chưa `aria-current`; chưa có component chung cho nhãn LIVE/ô trận.
 
 ## Requirements
 
@@ -192,18 +288,18 @@ Phần còn lại (tuần 12–13)
 - [x] (Lát cắt) Khung client + api-client + cache-policy
 - [x] (Lát cắt) public-scope + API nhánh theo slug + serializer + test
 - [x] (Lát cắt) Trang nhánh CSS grid + route revalidate
-- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1 (chưa làm: repo chưa có Playwright, staging chưa có)
-- [ ] ui-consistency: finding-patterns → planning (site công khai)
-- [ ] i18n vi/en + chuyển hướng locale + fallback vi + nhãn ô chờ qua từ điển
-- [ ] API public events/matches/draws/groups/entries/schedule/strip + test phạm vi từng endpoint + snapshot trường
-- [ ] Khung header/dải kết quả/nav/footer
-- [ ] Danh sách giải + lịch giải
-- [ ] Trang giải 6 tab + trang trận
-- [ ] Bản in nhánh + lịch theo session/bàn
-- [ ] Metadata/canonical/hreflang/OG + sitemap lúc chạy
-- [ ] Rate limit công khai + CSP report-only
-- [ ] Playwright e2e
-- [ ] ui-consistency: verifying → M2
+- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1 (Playwright đã có (đợt 3); còn staging)
+- [x] ui-consistency: finding-patterns → planning (site công khai) (2026-11-14)
+- [x] i18n vi/en + chuyển hướng locale + fallback vi + nhãn ô chờ qua từ điển (2026-11-14)
+- [x] API public events/matches/draws/groups/entries/strip + test phạm vi từng endpoint + snapshot trường (2026-11-14; `schedule` chờ phase 07)
+- [x] Khung header/dải kết quả/nav/footer (2026-11-14)
+- [x] Danh sách giải + lịch giải (2026-11-14)
+- [x] Trang giải 6 tab + trang trận (2026-11-14)
+- [ ] Bản in nhánh + lịch theo session/bàn (bản in nhánh xong 2026-11-14; lịch session/bàn + bản in lịch chờ phase 07)
+- [x] Metadata/canonical/hreflang/OG + sitemap lúc chạy (2026-11-14)
+- [x] Rate limit công khai + CSP report-only (2026-11-14)
+- [x] Playwright e2e (2026-11-14)
+- [x] ui-consistency: verifying → M2 (2026-11-14: verifying 2 vòng mỗi trang + kiểm cả bộ; M2 còn chờ staging)
 
 ## Success Criteria
 

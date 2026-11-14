@@ -1,7 +1,44 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-13. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
+> Cập nhật: 2026-11-14. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-14 — Phase 08: site công khai, đợt 1 đến 3 (chưa commit)
+
+### Thêm
+- API public: `events`, `events/calendar`, `events/:slug`, `events/:slug/info`, `events/:slug/matches`, `events/:slug/matches/:matchNo`, `events/:slug/groups/:subEventCode`, `events/:slug/entries/:subEventCode`, `results/strip`, `site`, `sitemap`. Module `public-events` và `public-competition`. Chi tiết: [public-site](./public-site.md#api-công-khai).
+- Client: danh sách giải, lịch giải, trang giải 6 tab (`EventShell`), trang trận, trang chủ tạm, header, footer, dải kết quả, chọn ngôn ngữ, `proxy.ts` (chuyển hướng locale, chặn `/api/revalidate` theo Host, rate limit).
+- Client: `lib/public-query.ts`, `lib/page-metadata.ts`, `lib/public-data.ts`, `lib/public-rate-limit.ts`, `lib/site-name.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/api/csp-report/route.ts`.
+- In: `@media print` toàn site; `@page bracket` (khổ ngang) cho nhánh đấu.
+- Setting mới: `header.resultsStrip.limit` (10), `public.listPageSize` (24), nhóm "Truy cập site công khai" với `public.rateLimit.windowSeconds` (60), `maxRequests` (600), `searchMaxRequests` (60), `maxTrackedIps` (100 000).
+- CSP `Content-Security-Policy-Report-Only` (`apps/client/next.config.ts`), báo cáo gửi về `/api/csp-report` (tối đa 8 KB mỗi báo cáo, 30 log mỗi phút).
+- Playwright: `apps/client/playwright.config.ts`, `tests/e2e/` (`event-pages.spec.ts`, `site-chrome-and-seo.spec.ts`, global setup và teardown), seed `apps/api/test/playwright/` dùng `setupPublicWorld`.
+
+### Thay đổi
+- Tên site lấy từ `GET /public/site`, fallback về default của registry khi API lỗi. Trước đó chỉ dùng default.
+- Rate limit công khai đặt ở `proxy.ts` của client (bộ đếm trong bộ nhớ, một instance). API không có rate limit công khai.
+- Sitemap và robots sinh lúc chạy (`force-dynamic`), không lúc build.
+- Cache công khai: query lạ không đi vào URL gọi API có cache. Trang có `q` dùng policy `none`.
+- Theme thêm `lineStrong`, `textMuted`, `textSubtle`. Màu xám viết tay trong `components/bracket`, `components/events`, `components/common` đã thay bằng token.
+- Chuyển hướng `/` theo locale nằm ở `proxy.ts`. Đã bỏ redirect `/` trong `next.config.ts`.
+- Tài liệu: `system-architecture.md` rút phần site công khai, chi tiết chuyển sang `public-site.md`.
+
+### Chưa xong
+- Lịch theo session và bàn, bản in lịch: chờ `EventSession` của phase 07.
+- Mốc M1 (deploy staging) và M2 chưa đạt.
+- Tag `events` chưa được mutation nào gửi. Bỏ công bố giải, hủy giải, sửa entry hoặc VĐV chưa có tag riêng. `group-qualifier.service` chưa kiểm có gửi tag khi sửa nhánh MAIN đã công bố.
+- Rate limit và cache theo instance. Cần cache handler dùng chung và bộ đếm dùng chung trước khi scale.
+- Traefik: `forwardedHeaders` và quy tắc chặn `/api/revalidate` chưa kiểm trên staging.
+- Chưa chốt: render `infoBody` công khai (API đã sanitize lại khi trả; client chưa sanitize).
+- `API_FETCH_TIMEOUT_MS` còn ở env, chưa ở `/settings`.
+- Nav chính chưa có `aria-current`. Tab Trận chọn nội dung bằng `<select>`. Nút "Mua vé" tương phản khoảng 4,4:1 (ghi nhận đợt 2, chưa đo lại).
+
+### Kiểm chứng
+- Đợt 1 (số liệu từ phase file): e2e mới `public-events`, `public-matches`, `public-groups-entries`, `public-results-strip`, cộng `public-bracket` và `permission-coverage` 44/44; toàn API 66 file 429/429; shared 90/90; worker 34/34; client typecheck, lint, build sạch. Review 8/10: `plans/reports/code-reviewer-261114-phase-08-batch-1-public-api.md`.
+- Đợt 2: client typecheck, lint, build sạch. Chạy local `/vi`, `/vi/events`, `/en/events/calendar` (kể cả tham số lạ) trả 200. Review 8/10: `plans/reports/code-reviewer-261114-phase-08-batch-2-public-pages.md`. Giao diện 2 vòng: `plans/reports/ui-verifier-261114-phase-08-batch-2.md`.
+- Đợt 3: API `public-site.e2e-spec.ts` 8 test; toàn API 67 file 436/436 (trước khi thêm `maxTrackedIps`; sau đó `public-site`, `public-events`, `permission-coverage` chạy lại 20/20); shared 90/90; Playwright 34 passed + 4 skipped có chủ đích (desktop 1280 + mobile 390); client typecheck, lint, build sạch. Review 7.5/10: `plans/reports/code-reviewer-261114-phase-08-batch-3.md`; Playwright: `plans/reports/tester-261114-phase-08-batch-3-playwright.md`.
+
+---
 
 ## 2026-11-13 — Phase 08 lát cắt: site công khai và trang nhánh đấu (chưa commit)
 

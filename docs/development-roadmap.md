@@ -1,6 +1,6 @@
 # Development Roadmap — Kamito
 
-> Cập nhật: 2026-11-13. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase.
+> Cập nhật: 2026-11-14. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase.
 > Lịch sử thay đổi: [project-changelog.md](./project-changelog.md).
 
 ## Trạng thái phase
@@ -14,7 +14,7 @@
 | 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong (code, chưa commit). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ), mỗi sửa có test riêng. Chưa làm: tag cache cho VĐV và đăng ký (phase 07), 301 (phase 10). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-chưa-commit) |
 | 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Xong (code, chưa commit). Chưa deploy staging | Gate G1a và G1b chưa được BTC xác nhận. Chi tiết: [draws-and-groups](./draws-and-groups.md). Changelog: [phase 06](./project-changelog.md#2026-11-13--phase-06-bốc-thăm-hạt-giống-vòng-bảng-sinh-nhánh-chưa-commit) |
 | 07 | Xếp lịch, bàn thi đấu, nhập tỷ số | Lát cắt xong (đã commit). Phần còn lại chưa làm | Đã có: validator tỷ số, bắt đầu và chốt trận có `expectedVersion`, đẩy nhánh, BXH bảng tính lại, revalidate cho trận và công bố nhánh, màn `/results`. Chưa có: lịch, bàn, sửa và mở lại tỷ số. Chi tiết: [match-results](./match-results.md), [changelog](./project-changelog.md#2026-11-13--phase-07-lát-cắt-nhập-tỷ-số-và-revalidate-cache-chưa-commit) |
-| 08 | Site công khai: khung, trang giải, nhánh đấu | Lát cắt xong (chưa commit, chưa lên staging). Phần còn lại chưa làm | Đã có: API `GET /api/v1/public/events/:slug/draws/:subEventCode` (secret nội bộ), trang nhánh đấu vi và en, route `/api/revalidate` của client. Chưa có: trang giải, lịch, bảng xếp hạng, VĐV, Playwright slice spec. Chi tiết: [system-architecture](./system-architecture.md#site-công-khai-phase-08), [changelog](./project-changelog.md#2026-11-13--phase-08-lát-cắt-site-công-khai-và-trang-nhánh-đấu-chưa-commit) |
+| 08 | Site công khai: khung, i18n, trang giải, nhánh đấu, bảng đấu, trận, bản in | Đợt 1 đến 3 xong (chưa commit, chưa lên staging). Còn: lịch theo session/bàn và bản in lịch (chờ phase 07), mốc M1 và M2 | Đã có: 12 endpoint public (chưa có `schedule`), i18n vi/en, khung và header, danh sách và lịch giải, trang giải 6 tab, trang trận, nhánh và bảng đấu, bản in nhánh, metadata, sitemap, robots, rate limit công khai, CSP report-only, 2 spec Playwright (chưa ghi số liệu chạy). Chi tiết: [public-site](./public-site.md), [changelog](./project-changelog.md#2026-11-14--phase-08-site-công-khai-đợt-1-đến-3-chưa-commit) |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng | Pending | Chờ G2 |
 | 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Pending | |
 | 11 | CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ | Pending | |
@@ -46,7 +46,7 @@
    - Kiểm sharp trên image Alpine, và upload một ảnh thật với `STORAGE_DRIVER=s3`.
    - Phase 05: upload một file import thật (lưu từ Excel), kiểm tra, nhập, thử gộp VĐV trên staging.
    - Phase 07 (lát cắt): worker cần `CLIENT_INTERNAL_URL` và `REVALIDATE_SECRET`. Compose đã khai cho worker. Thử chốt một trận trên staging và xem job trong bull-board (queue `revalidate`).
-   - Phase 08 (lát cắt): client cần `REVALIDATE_ALLOWED_HOSTS` (phải khớp `CLIENT_INTERNAL_URL` của worker), `SSR_INTERNAL_SECRET`, `REVALIDATE_SECRET`. Thử trên staging: mở một nhánh đã công bố, chốt một trận, bỏ công bố, rồi xem trang công khai đổi.
+   - Phase 08: client cần đủ biến runtime (danh sách trong [deployment-guide](./deployment-guide.md#biến-môi-trường-theo-service)), gồm `REVALIDATE_ALLOWED_HOSTS` (phải khớp `CLIENT_INTERNAL_URL` của worker). Thử trên staging: mở một nhánh đã công bố, chốt một trận, bỏ công bố, rồi xem trang công khai đổi. Chạy Playwright với stack dev trước khi deploy (xem [Playwright e2e](./deployment-guide.md#playwright-e2e-client)). Mốc M1 cần thêm bước này trên staging.
 4. **Nợ kỹ thuật phase 04** (theo báo cáo tester và review 13:29, chưa đối chiếu lại hết):
    - Test api crash native trong một lần chạy đầy đủ (F1). Chưa tìm được nguyên nhân.
    - Test crash làm sót user test trong DB dev (F3). Cần dọn.
@@ -59,8 +59,11 @@
    - Chuyển hướng 301 slug VĐV đã gộp. Thuộc phase 10.
    - Chưa thử file xlsx do Excel thật tạo.
    - Phase 06: gate G1a và G1b chưa được BTC xác nhận. Quyết định chờ chủ giải: người thắng vòng loại đã rút có dùng lucky loser không (hiện tự walkover). Chi tiết: [draws-and-groups](./draws-and-groups.md#chưa-làm).
-6. **Phase 08, nợ còn lại** (theo review 2026-11-13, [báo cáo](../plans/reports/code-review-and-test-261113-phase-08-slice.md)):
-   - Playwright `vertical-slice.spec.ts` chưa có. Mốc M1 cần thêm deploy staging.
-   - L8: màu xám cứng trong `bracket.module.css`. Làm cùng đợt `ui-consistency` của site công khai.
-   - Bỏ công bố và hủy giải cấp event chưa gửi tag. Xếp suất vòng loại và nhất/nhì bảng chưa gửi tag.
-   - Scale nhiều instance client cần cache handler dùng chung.
+6. **Phase 08, nợ còn lại** (chi tiết và nguồn: [public-site](./public-site.md#việc-còn-mở)):
+   - Mốc M1: deploy staging và kiểm trên staging. Playwright đã có 2 spec (`event-pages`, `site-chrome-and-seo`) nhưng chưa ghi số liệu chạy.
+   - Lịch theo session/bàn và bản in lịch: chờ `EventSession` của phase 07 đợt 2.
+   - Tag `events` chưa có mutation nào gửi. Bỏ công bố giải, hủy giải, sửa entry hay VĐV chưa làm mới trang liên quan. Xếp suất vòng loại và nhất/nhì bảng chưa gửi tag.
+   - Cách render `infoBody` công khai (sanitize lại ở client hay không) chưa chốt.
+   - Traefik: quy tắc chặn `/api/revalidate` và `forwardedHeaders` chưa kiểm. Rate limit công khai phụ thuộc vào đây.
+   - Scale nhiều instance client cần cache handler dùng chung. Rate limit cũng theo instance.
+   - Tương phản nút "Mua vé" khoảng 4,4:1; nav chính thiếu `aria-current`.

@@ -21,7 +21,7 @@ created: 2026-11-11
 
 ## Phases
 
-Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lát cắt; chưa deploy staging. Phase 06 làm trước khi G1a/G1b được BTC trả lời (sai lệch so với cổng, xem phase 06). Phase 07 đã xong lát cắt (2026-11-13, chưa deploy staging). Phase 08 đã xong lát cắt bước 1–3 (2026-11-13, chưa deploy); M1 chưa đạt vì thiếu Playwright + staging. Phần còn lại phase 07 và 08 làm sau. Sync phase 03–08: 2026-11-13.
+Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lát cắt; chưa deploy staging. Phase 06 làm trước khi G1a/G1b được BTC trả lời (sai lệch so với cổng, xem phase 06). Phase 07 đã xong lát cắt (2026-11-13, chưa deploy staging). Phase 08 đã xong lát cắt bước 1–3 (2026-11-13) và phần không bị chặn của đợt 1–3 (2026-11-14); M1 và M2 chưa đạt vì thiếu staging (Playwright đã có). Phần còn lại phase 07 và 08 làm sau. Sync phase 03–08: 2026-11-13.
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -32,7 +32,7 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 | 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: test chặn import theo draw, tag revalidate entry/VĐV/gộp/import chưa đăng ký, file Excel thật) |
 | 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; còn mở: revalidate, màn admin chưa chạy trên trình duyệt) |
 | 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | In progress (lát cắt xong 2026-11-13, chưa deploy staging; chưa test trình duyệt màn nhập tỷ số; phần còn lại tuần 11–12 chưa làm) |
-| 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (lát cắt bước 1–3 xong 2026-11-13, chưa deploy staging; bước 4 Playwright + staging chưa làm → M1 chưa đạt; phần còn lại chưa làm) |
+| 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (phần không bị chặn xong 2026-11-14: bản in, SEO, rate limit, CSP report-only, Playwright 34 pass; còn bước 4 staging → M1/M2 chưa đạt; còn lịch session/bàn + bản in lịch chờ phase 07; chưa deploy staging) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | Pending |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | Pending |
 | 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | Pending |

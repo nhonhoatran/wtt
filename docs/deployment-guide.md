@@ -1,12 +1,13 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-12 · Trạng thái: phase 01, code phase 03 và code phase 04 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
+> Cập nhật: 2026-11-14 · Trạng thái: phase 01, code phase 03 đến 08 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
 ## Contents
 - [Môi trường](#môi-trường)
 - [Chạy dev local](#chạy-dev-local)
+- [Playwright e2e (client)](#playwright-e2e-client)
 - [Biến môi trường theo service](#biến-môi-trường-theo-service)
 - [Dokploy: compose và domain](#dokploy-compose-và-domain)
 - [Quy trình phát hành](#quy-trình-phát-hành)
@@ -51,6 +52,29 @@ Cả staging và production dùng cùng `docker-compose.yml`. Giá trị khác n
 6. Tạo ADMIN đầu tiên để đăng nhập admin. Xem [Tạo admin đầu tiên](#tạo-admin-đầu-tiên).
 
 Ảnh khi dev: `.env.example` đặt `STORAGE_DRIVER=local`, file nằm ở `apps/api/uploads/` (đã gitignore). Không cần RustFS để thử upload.
+
+Client khi chạy `next dev` không đọc `.env` ở root. Các biến client (bảng [Biến môi trường theo service](#biến-môi-trường-theo-service), mục `client`) phải có trong shell hoặc `apps/client/.env.local` (đã gitignore qua `.env.*`). Thiếu biến thì `serverEnv` ném lỗi `Missing environment variable <TÊN>` khi trang được render.
+
+## Playwright e2e (client)
+
+Chạy từ root repo:
+
+```bash
+pnpm --filter @kamito/client test:e2e
+```
+
+| Mục | Nội dung | Nguồn |
+|---|---|---|
+| Điều kiện | Stack dev đang chạy (Postgres 5433, Redis 6380, xem [Chạy dev local](#chạy-dev-local)). `.env` ở root có đủ biến | `apps/client/playwright.config.ts` |
+| Trước khi chạy | Kiểm đích DB: `pnpm db:print-target`. Seed ghi dữ liệu vào DB mà `.env` trỏ tới | `scripts/print-db-target.mjs` |
+| Web server | Playwright tự chạy API (`apps/api/src/main.ts`, cổng `API_PORT`, mặc định 3000) và `next dev` cổng 3001. Khi không có biến `CI`, nếu cổng đã có server đang chạy thì Playwright dùng lại server đó (`reuseExistingServer`) | `playwright.config.ts` |
+| Biến ghi đè | `REVALIDATE_ALLOWED_HOSTS` mặc định `localhost:3001`; `API_FETCH_TIMEOUT_MS=5000` | `playwright.config.ts` |
+| Dữ liệu | `global-setup` dọn world cũ, seed giải công khai (`apps/api/test/playwright/public-world.seed.ts`, gọi `setupPublicWorld`), gọi `/api/revalidate`, warm up route. `global-teardown` dọn lại | `tests/e2e/global-setup.ts`, `global-teardown.ts` |
+| Project | `desktop` 1280×800; `mobile` 390×844 | `playwright.config.ts` |
+| Spec | `event-pages.spec.ts` (danh sách, trang giải, nhánh, bảng đấu, VĐV); `site-chrome-and-seo.spec.ts` (locale, SEO, CSP report-only, 390 px không tràn ngang, in nhánh) | `tests/e2e/` |
+| Đầu ra | `apps/client/test-results/` và `apps/client/playwright-report/` (đều gitignore) | `.gitignore` |
+
+Nếu trình duyệt Playwright chưa được cài, chạy `pnpm exec playwright install` (bước chuẩn của Playwright, chưa kiểm trên máy này). Số liệu chạy cụ thể chưa được ghi trong tài liệu này. Ghi lại khi chạy.
 
 Cổng dev:
 
@@ -103,7 +127,7 @@ Quy tắc:
 | `CLIENT_INTERNAL_URL` | api, worker | có | Origin nội bộ của client, ví dụ `http://client:3000`. Compose đặt mặc định này khi không khai biến; code không có mặc định. Chỉ dùng origin, path con bị bỏ. Api chỉ kiểm định dạng, chưa dùng |
 | `REVALIDATE_TIMEOUT_MS` | worker | không | Mặc định 5000 (ms). Timeout mỗi lần gọi `/api/revalidate`. Compose truyền biến này (mặc định như code) |
 | `REVALIDATE_WORKER_CONCURRENCY` | worker | không | Mặc định 2. Số job revalidate chạy song song. Compose truyền biến này |
-| `PUBLIC_SITE_URL` | api, client, admin | có | Canonical, sitemap, kiểm `Origin` |
+| `PUBLIC_SITE_URL` | api, client, admin | có | Client: `metadataBase` (canonical, hreflang, Open Graph), sitemap, robots. API: kiểm `Origin` |
 | `ADMIN_PUBLIC_URL` | api, admin | có | |
 | `TRUST_PROXY_HOPS` | api | có (compose) | Mã mặc định trong code là `0`. Số proxy tin cậy trước api. Phải khớp đúng số hop thật, xem [auth-and-rbac.md](./auth-and-rbac.md#chống-dò-mật-khẩu) |
 | `PAGINATION_MAX_PAGE_SIZE` | api | không | Mặc định 100. Trần cứng của `pageSize`. Page size mặc định sửa ở `/settings` |
@@ -118,10 +142,11 @@ Quy tắc:
 | `WORKER_MAX_OLD_SPACE_MB`, `WORKER_MEM_LIMIT` | compose | không | Mặc định 384 và 512m. Trần heap Node và giới hạn RAM container worker (import đọc cả file vào bộ nhớ) |
 | `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` | api, worker | có | Trần import (phase 05). Thời hạn giữ file (`import.retentionDays`) và hạn chờ tải file (`import.uploadTtlHours`) chỉnh ở `/settings` |
 | `WORKER_HEALTH_PORT` | worker | cố định | `3010` |
-| `API_INTERNAL_URL` | client | không | Mặc định `http://api:3000` |
-| `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có (compose) | TTL dự phòng của cache công khai (số nguyên dương). Client đọc theo request (`lib/server-env.ts`). Làm mới chính là revalidate theo tag |
-| `REVALIDATE_ALLOWED_HOSTS` | client | không (compose mặc định `client:3000`) | Danh sách Host (`host:port`, cách nhau bằng dấu phẩy) được gọi `/api/revalidate`. Phải bằng `host:port` của `CLIENT_INTERNAL_URL` của worker. Sai thì mọi lần revalidate nhận 404 và job failed. Domain công khai không đưa vào danh sách |
-| `API_FETCH_TIMEOUT_MS` | client | không | Mặc định 5000 (ms). Timeout khi client gọi API công khai. Hết giờ thì trang báo lỗi và không được cache. Compose truyền biến này |
+| `API_INTERNAL_URL` | client | có | Code không có mặc định (`lib/server-env.ts`). Compose mặc định `http://api:3000` |
+| `SSR_INTERNAL_SECRET` | client | có | Gửi trong header `x-internal-secret` khi đọc API công khai. Code không có mặc định |
+| `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có | TTL dự phòng của cache công khai (số nguyên dương). Client đọc theo request. Làm mới chính là revalidate theo tag. Compose bắt buộc khai (`:?`) |
+| `REVALIDATE_ALLOWED_HOSTS` | client | có (compose mặc định `client:3000`) | Danh sách Host (`host:port`, cách nhau bằng dấu phẩy) được gọi `/api/revalidate`. Phải bằng `host:port` của `CLIENT_INTERNAL_URL` của worker. Sai thì mọi lần revalidate nhận 404 và job failed. Domain công khai không đưa vào danh sách |
+| `API_FETCH_TIMEOUT_MS` | client | có (compose mặc định 5000) | Timeout khi client gọi API công khai, đơn vị ms, số nguyên dương. Hết giờ thì trang báo lỗi và không được cache. Đang nằm ở env, chưa ở `/settings` (xem [việc còn mở](#việc-còn-mở)) |
 | `API_BASE_PATH` | admin | không | Mặc định `/api/v1`. Ghi vào `/config.json` |
 
 `MEDIA_INTENT_TTL_MINUTES` đã bỏ (2026-11-12): thời gian chờ tải ảnh là setting `media.intentTtlMinutes`, thời gian tối đa xử lý ảnh là `media.processingTimeoutMinutes`, số ngày kết thúc mặc định của giải là `event.defaultDurationDays`, đều sửa ở `/settings`.
@@ -195,7 +220,7 @@ Kết quả preflight chưa có trong repo. Ghi lại khi có, kèm output lện
 | Redis | `maxmemory-policy` hiện tại; có dùng chung không. Nếu không phải `noeviction` thì cần Redis riêng cho BullMQ (cổng ra phase 01) | Chưa có |
 | S3 / MinIO | Trình duyệt có tới được qua HTTPS không; ai đặt được bucket policy và CORS; service account giới hạn một bucket | Chưa có |
 | Thiết kế upload | (a) trình duyệt upload trực tiếp bằng URL ký, hoặc (b) upload qua API | Chưa chọn |
-| Traefik | Có chuyển IP thật vào container không; có ghi đè XFF không; có tin `forwardedHeaders` không | Chưa kiểm |
+| Traefik | Có chuyển IP thật vào container không; có ghi đè XFF không; có tin `forwardedHeaders` không. Rate limit công khai của client đọc `X-Real-Ip`, nếu không có thì phần tử cuối `X-Forwarded-For`. Nếu Traefik tin header do client gửi, client giả được IP để vượt ngưỡng hoặc gây 429 cho người khác. Quy tắc chặn `/api/revalidate` theo path cũng nằm ở Traefik | Chưa kiểm (chưa có staging) |
 | Sao lưu | Chủ sở hữu, RPO, lịch, thời gian giữ, nơi lưu | Chưa chốt |
 
 ## Quy trình phát hành
@@ -389,6 +414,9 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 17 | Chưa thử file xlsx do Excel thật tạo. Bộ test dùng file viết tay có cấu trúc giống Excel | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Thêm một file mẫu nhỏ, không có dữ liệu thật, vào `apps/api/test/fixtures/` trước pilot |
 | 18 | Worker đọc sheet đầu theo tên `xl/worksheets/sheetN.xml`, không theo thứ tự tab. Nếu người dùng đổi thứ tự tab, kiểm header báo lỗi | `plans/reports/code-reviewer-261112-1436-phase-05-review-2.md` | Ghi rõ trong hướng dẫn cho BTC: sheet đăng ký phải là sheet đầu tiên của file |
 | 19 | Route `/api/revalidate` ở client đã có (phase 08 lát cắt, chưa commit). Chưa kiểm trên staging: worker gọi `client` qua mạng `internal` và Host khớp `REVALIDATE_ALLOWED_HOSTS` | [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08), review phase 08 | Deploy staging, chốt một trận hoặc bỏ công bố một nhánh, rồi xem job `revalidate` trong bull-board và trang công khai |
+| 20 | Phase 08 chưa lên staging (mốc M1): Playwright mới chạy trên máy dev, chưa chạy trên staging | [public-site](./public-site.md#việc-còn-mở) | Sau khi deploy: kiểm trang giải, nhánh, `robots.txt`, `sitemap.xml`, header CSP report-only trên domain staging |
+| 21 | Rate limit công khai và `forwardedHeaders` của Traefik chưa kiểm | Mục Traefik ở [Preflight hạ tầng](#preflight-hạ-tầng-trạng-thái) | Trên staging: gửi `X-Forwarded-For` giả từ client và xem IP mà client thấy. Chỉnh Traefik nếu nó tin header client |
+| 22 | `API_FETCH_TIMEOUT_MS` nằm ở env. Luật dự án yêu cầu tham số vận hành ở `/settings` | Phase 08, câu hỏi 4 | Chủ repo quyết: chuyển sang setting hoặc nêu lý do giữ env |
 
 ## Liên quan
 
