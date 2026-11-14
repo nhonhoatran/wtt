@@ -15,3 +15,7 @@ export function formatOf(round: { matchFormat: FormatRow | null }, draw: { match
   if (draw.matchFormat) return { matchFormat: draw.matchFormat, matchFormatSource: 'DRAW' as const };
   return { matchFormat: draw.subEvent.matchFormat, matchFormatSource: 'SUB_EVENT' as const };
 }
+
+/** The one precedence rule for a match's format: round override, else draw override, else the sub-event default. */
+export const pickMatchFormat = <F>(round: { matchFormat: F | null }, draw: { matchFormat: F | null }, subEvent: { matchFormat: F }): F =>
+  round.matchFormat ?? draw.matchFormat ?? subEvent.matchFormat;

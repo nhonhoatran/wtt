@@ -1,4 +1,5 @@
 import type { Prisma } from '@kamito/db';
+import { pickMatchFormat } from '../draws/round-format-view.js';
 
 const MINUTES = { select: { matchFormat: { select: { estimatedMinutes: true } } } } as const;
 
@@ -6,6 +7,4 @@ export const DURATION_SELECT = { round: MINUTES, draw: MINUTES, subEvent: MINUTE
 
 type DurationRow = Prisma.MatchGetPayload<{ select: typeof DURATION_SELECT }>;
 
-/** Round overrides draw, draw overrides sub-event, same as the score validator's format. */
-export const matchDurationMinutes = (m: DurationRow): number =>
-  (m.round.matchFormat ?? m.draw.matchFormat ?? m.subEvent.matchFormat).estimatedMinutes;
+export const matchDurationMinutes = (m: DurationRow): number => pickMatchFormat(m.round, m.draw, m.subEvent).estimatedMinutes;

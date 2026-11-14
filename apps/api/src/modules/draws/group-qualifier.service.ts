@@ -4,10 +4,13 @@ import { isStructureLocked, lockGroups } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { GroupStandingsService } from '../groups/group-standings.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { syncDerivedMatches } from './draw-derived-sync.js';
 import { conflict, invalid, runEngine } from './draw-errors.js';
 import { bumpVersion, loadDrawLocked } from './draw-lock.js';
 import { toPositionData, writePositions } from './draw-position-io.js';
+import { loadPlacementTagContext } from './draw-tag-context.js';
 import { toDrawSummary } from './draw-view.js';
 
 @Injectable()
@@ -16,6 +19,7 @@ export class GroupQualifierService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly standings: GroupStandingsService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   /**
@@ -23,7 +27,7 @@ export class GroupQualifierService {
    * Standings are computed fresh from the matches (not read from stored rows) so a stale table can never be placed.
    */
   async place(drawId: string, expectedVersion: number) {
-    return this.prisma.$transaction(
+    const placed = await this.prisma.$transaction(
       async (tx) => {
         const draw = await loadDrawLocked(tx, drawId, expectedVersion);
         const subEvent = await tx.subEvent.findUniqueOrThrow({ where: { id: draw.subEventId }, select: { format: true } });
@@ -74,9 +78,12 @@ export class GroupQualifierService {
           },
           tx,
         );
-        return { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) };
+        return { result: { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) }, published: draw.status === 'PUBLISHED', entryIds: [...entryByPlace.values()] };
       },
       { timeout: 30_000 },
     );
+    if (!placed.published) return placed.result;
+    const warnings = await this.revalidation.enqueue(async () => CACHE_TAGS['draw.placeQualifiers'](await loadPlacementTagContext(this.prisma, drawId, placed.entryIds)));
+    return warnings.length > 0 ? { ...placed.result, warnings } : placed.result;
   }
 }

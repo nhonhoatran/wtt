@@ -8,7 +8,7 @@ import { CACHE_TAGS, type MatchTagContext } from '../revalidation/cache-tags.js'
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 
 type Tx = Prisma.TransactionClient;
-/** Fixed on purpose: a match write holds draw and group locks, so a stuck transaction must give up well before a client retries. */
+/** Fixed on purpose (internal reliability knob, not an operational setting): a match write holds draw and group locks, so a stuck transaction must give up well before a client retries. */
 export const MATCH_WRITE_TIMEOUT_MS = 30_000;
 
 export type MatchMutation = 'match.start' | 'match.unStart' | 'match.saveProgress' | 'match.confirm' | 'match.amend' | 'match.reopen';

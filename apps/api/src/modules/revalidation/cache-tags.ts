@@ -13,6 +13,10 @@ export interface DrawTagContext {
   eventSlug: string;
   subEventCode: string;
   hasGroups: boolean;
+  /** Set when match pages change too (publish, unpublish, post-publish edits). */
+  matchNos?: number[];
+  /** Players whose pages show the changed entry. */
+  playerSlugs?: string[];
 }
 
 export interface RankingTagContext {
@@ -128,6 +132,8 @@ const drawTags = (c: DrawTagContext) => [
   t.schedule(c.eventSlug),
   t.draw(c.eventSlug, c.subEventCode),
   ...(c.hasGroups ? [t.groups(c.eventSlug, c.subEventCode)] : []),
+  ...(c.matchNos ?? []).map((no) => t.match(c.eventSlug, no)),
+  ...(c.playerSlugs ?? []).map(t.player),
 ];
 
 /**
@@ -147,6 +153,8 @@ export const CACHE_TAGS = {
   // Unpublish and every edit of a published draw; the draw tag covers both MAIN and QUALIFYING of the sub-event.
   'draw.unpublish': drawTags,
   'draw.postPublishEdit': drawTags,
+  // Qualifiers or group places filling slots of a published MAIN draw.
+  'draw.placeQualifiers': drawTags,
   'schedule.update': scheduleTags,
   'session.create': scheduleTags,
   'session.update': scheduleTags,

@@ -4,6 +4,7 @@ import { lockGroups, type Draw, type Group, type Prisma } from '@kamito/db';
 import { tiebreakersSchema } from '@kamito/shared';
 import { conflict } from '../draws/draw-errors.js';
 import { loadDrawLocked } from '../draws/draw-lock.js';
+import { pickMatchFormat } from '../draws/round-format-view.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -36,7 +37,7 @@ export class GroupStandingsService {
         members: { select: { entryId: true, entry: { select: { status: true } } }, orderBy: { slot: 'asc' } },
         standings: { select: { entryId: true, manualRank: true } },
         draw: { select: { advancePerGroup: true, matchFormat: true, subEvent: { select: { matchFormat: true, groupScoringRule: true } } } },
-        matches: { include: { games: { orderBy: { number: 'asc' } } } },
+        matches: { include: { games: { orderBy: { number: 'asc' } }, round: { select: { matchFormat: true } } } },
       },
     });
     if (!group) throw groupNotFound();
@@ -53,15 +54,16 @@ export class GroupStandingsService {
       resultType: m.resultType,
       winnerSide: m.winnerSide === 1 || m.winnerSide === 2 ? m.winnerSide : null,
       isVoided: m.isVoided,
+      format: pickMatchFormat(m.round, draw, draw.subEvent),
       games: m.games.map((g) => ({ score1: g.score1, score2: g.score2 })),
     }));
     const ruleInput: GroupScoringRuleInput = { ...rule, tiebreakers: tiebreakersSchema.parse(rule.tiebreakers) };
-    const format = draw.matchFormat ?? draw.subEvent.matchFormat;
     return calculateGroupStandings({
       entryIds: group.members.map((m) => m.entryId),
       matches,
       rule: ruleInput,
-      format,
+      // Only a placeholder: every match above carries its own resolved format.
+      format: draw.subEvent.matchFormat,
       advancePerGroup: draw.advancePerGroup,
       withdrawnEntryIds: group.members.filter((m) => m.entry.status === 'WITHDRAWN').map((m) => m.entryId),
       manualRanks: manualRanks ?? stored,

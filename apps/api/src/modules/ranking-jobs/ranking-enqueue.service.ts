@@ -7,7 +7,7 @@ import type { ApiEnv } from '../../common/config/env-schema.js';
 export const RANKING_RECOMPUTE_DELAYED = 'RANKING_RECOMPUTE_DELAYED';
 export const RANKING_SNAPSHOT_REBUILD_SUGGESTED = 'RANKING_SNAPSHOT_REBUILD_SUGGESTED';
 
-/** Fail fast when Redis is down: callers have already committed and the dirty sweep is the safety net. */
+/** Fixed: internal reliability knob. Fail fast when Redis is down: callers have already committed and the dirty sweep is the safety net. */
 const ENQUEUE_TIMEOUT_MS = 2_000;
 const RANKING_JOB_ID = /^rank-[A-Za-z0-9-]{1,120}$/;
 

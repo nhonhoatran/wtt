@@ -37,7 +37,7 @@ export class DrawPublishService {
         { action: 'draw.publish', entity: 'Draw', entityId: drawId, before: drawAuditFields(draw), after: { status: 'PUBLISHED', version: updated.version } },
         tx,
       );
-      const context = await loadDrawTagContext(tx, drawId);
+      const context = await loadDrawTagContext(tx, drawId, { matches: 'draw' });
       return { result: { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) }, context, rankingDirty };
     });
     const warnings = [...(await this.revalidation.enqueue(() => CACHE_TAGS['draw.publish'](context))), ...(await this.ranking.enqueueRecompute(rankingDirty))];

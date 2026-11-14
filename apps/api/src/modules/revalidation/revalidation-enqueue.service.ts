@@ -1,13 +1,10 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { isValidCacheTag, QueueName, revalidateTagsJobs, withTimeout } from '@kamito/shared';
+import { isValidCacheTag, QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, withTimeout } from '@kamito/shared';
 import { Queue } from 'bullmq';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
 
 export const PUBLIC_REFRESH_DELAYED = 'PUBLIC_REFRESH_DELAYED';
-
-/** Fail fast when Redis is down: the caller has already committed and only needs to report a warning. */
-const ENQUEUE_TIMEOUT_MS = 2_000;
 
 /** Producer of the revalidate queue; job options come from `@kamito/shared` so the import worker enqueues identically. */
 @Injectable()
@@ -32,7 +29,7 @@ export class RevalidationEnqueueService implements OnModuleDestroy {
       if (dropped) this.logger.warn(`dropped ${dropped} invalid cache tag(s)`);
       if (!tags.length) return dropped ? [PUBLIC_REFRESH_DELAYED] : [];
       const jobs = revalidateTagsJobs(tags);
-      await withTimeout(Promise.all(jobs.map((job) => this.queue.add(job.name, job.data, job.opts))), ENQUEUE_TIMEOUT_MS);
+      await withTimeout(Promise.all(jobs.map((job) => this.queue.add(job.name, job.data, job.opts))), REVALIDATE_ENQUEUE_TIMEOUT_MS);
       return dropped ? [PUBLIC_REFRESH_DELAYED] : [];
     } catch (error) {
       this.logger.warn(`revalidate enqueue failed: ${(error as Error).message}`);

@@ -1,4 +1,5 @@
 import type { Prisma } from '@kamito/db';
+import { pickMatchFormat } from '../draws/round-format-view.js';
 import { ENTRY_BRIEF_SELECT, toEntryBrief } from './match-view.js';
 
 const FORMAT_SELECT = { select: { name: true, bestOf: true, pointsPerGame: true, winBy: true } } as const;
@@ -23,7 +24,7 @@ export type MatchResultRow = Prisma.MatchGetPayload<{ include: typeof MATCH_RESU
 export type MatchDetailRow = Prisma.MatchGetPayload<{ include: typeof MATCH_DETAIL_INCLUDE }>;
 
 /** Round overrides draw, draw overrides sub-event. */
-export const resolveMatchFormat = (m: MatchResultRow) => m.round.matchFormat ?? m.draw.matchFormat ?? m.subEvent.matchFormat;
+export const resolveMatchFormat = (m: MatchResultRow) => pickMatchFormat(m.round, m.draw, m.subEvent);
 
 /** A pending walkover waits for its winner to arrive; it is completed by the system, not by result entry. */
 export const isPendingWalkover = (m: Pick<MatchResultRow, 'resultType' | 'status'>) => m.resultType === 'WALKOVER' && m.status === 'SCHEDULED';

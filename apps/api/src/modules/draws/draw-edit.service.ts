@@ -4,11 +4,14 @@ import { createRng, deriveMatches, fillQualifierSlots, swapPositions } from '@ka
 import { isStructureLocked, type Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { syncDerivedMatches } from './draw-derived-sync.js';
 import type { SwapBody } from './draw-dtos.js';
 import { conflict, invalid, notDraft, runEngine, structureLocked } from './draw-errors.js';
 import { bumpVersion, loadDrawLocked } from './draw-lock.js';
 import { refOf, toPositionData as toData, writePositions } from './draw-position-io.js';
+import { loadPlacementTagContext } from './draw-tag-context.js';
 import { toDrawSummary } from './draw-view.js';
 
 type Tx = Prisma.TransactionClient;
@@ -18,6 +21,7 @@ export class DrawEditService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   /** positionA/positionB are BracketPosition ids from the bracket read; both must sit in the same section. */
@@ -64,7 +68,7 @@ export class DrawEditService {
 
   /** Needs every QUALIFYING section final OFFICIAL. Allowed on a published MAIN draw: only empty Q sides are filled. */
   async placeQualifiers(drawId: string, expectedVersion: number) {
-    return this.prisma.$transaction(async (tx) => {
+    const placed = await this.prisma.$transaction(async (tx) => {
       const draw = await loadDrawLocked(tx, drawId, expectedVersion);
       if (draw.kind !== 'MAIN') throw invalid('KIND_NOT_ALLOWED', 'Chỉ xếp suất vòng loại vào nhánh chính');
       const rows = await tx.bracketPosition.findMany({ where: { drawId }, orderBy: { position: 'asc' } });
@@ -97,8 +101,11 @@ export class DrawEditService {
         },
         tx,
       );
-      return { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) };
+      return { result: { data: toDrawSummary(updated, await isStructureLocked(tx, drawId)) }, published: draw.status === 'PUBLISHED', entryIds: winners };
     });
+    if (!placed.published) return placed.result;
+    const warnings = await this.revalidation.enqueue(async () => CACHE_TAGS['draw.placeQualifiers'](await loadPlacementTagContext(this.prisma, drawId, placed.entryIds)));
+    return warnings.length > 0 ? { ...placed.result, warnings } : placed.result;
   }
 
   private async sectionWinners(tx: Tx, qualifyingDrawId: string, sections: number): Promise<string[]> {
