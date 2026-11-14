@@ -37,6 +37,11 @@
 - `@RequireStepUp` vẫn chưa gắn route nào (phase 04 cũng chưa gắn). Gộp VĐV gắn ở phase này.
 - Đăng ký `cache-tags.ts` (bước 10): file đã có từ lát cắt phase 07 (2026-11-13), chưa đăng ký mutation entry/VĐV/gộp; điểm nối có sẵn ở `apps/api/src/modules/events/events.service.ts:15`.
 
+<!-- Phase 05 sync — 2026-11-14 -->
+- Chặn import theo draw: test cấp import có 3 ca, `apps/api/test/imports-commit-guards.e2e-spec.ts` (draw đã công bố → từ chối, không ghi gì; ADMIN override có lý do → commit và làm mới trang công khai; draw DRAFT không chặn). Hợp đồng: một dòng khóa draw làm cả job `FAILED`, trừ khi ADMIN override có lý do.
+- Revalidate import: worker gọi `refreshPublicAfterImport` sau commit (`apps/worker/src/processors/import-commit-processor.ts:93`, `apps/worker/src/import/import-revalidate-tags.ts`). Lỗi enqueue chỉ ghi log, không làm fail job.
+- Đã đóng 2026-11-14 (review phase 06 L6, split từ mục "kiểm draw ngoài tx"): `assertNoLockedDraw` chạy lại **trong** transaction của từng lô, sau khóa SubEvent (`apps/worker/src/import/commit-batch.ts`). Draw được công bố giữa hai lô thì lô sau bị từ chối, lô trước vẫn giữ (`apps/api/test/imports-worker.e2e-spec.ts`, "refuses a later batch when a draw is published after validation"). Kiểm đầu job ngoài transaction (`import-commit-processor.ts`) vẫn giữ để báo lỗi sớm.
+
 ## Requirements
 
 Functional
@@ -242,11 +247,12 @@ Phần còn lại (tuần 8–9)
 - [x] Pair/Entry + eligibility + bulk + override có lý do + audit seed/stage/quota/status
 - [x] Chặn rút entry khi draw đã công bố — phase 06 (2026-11-13): hook `entriesInLockedDraw` (`packages/db/src/domain/entry-guards.ts`) gọi ở `entries.service.ts`, 409 `ENTRY_IN_PUBLISHED_DRAW` có test (`draws.e2e-spec.ts`, `draw-review-guards.e2e-spec.ts`)
 - [x] Import ENTRIES: trần, SHA-256, khớp lại khi commit, NEEDS_CONFIRM, trạng thái theo dòng, audit, resume khi commit dở
-- [ ] Import: chặn draw khác DRAFT — hook `subEventsWithLockedDraw` đã nối ở worker (`apps/worker/src/processors/import-commit-processor.ts`) từ phase 06; còn mở: chưa có test cấp import, kiểm tra đọc ngoài tx (review phase 06 L6)
+- [x] Import: chặn draw khác DRAFT — test cấp import có (`apps/api/test/imports-commit-guards.e2e-spec.ts`, 3 ca; 2026-11-14)
+- [x] Import: kiểm draw khóa trong transaction của từng lô, dưới khóa SubEvent (review phase 06 L6) — đóng 2026-11-14: `apps/worker/src/import/commit-batch.ts`; e2e `imports-worker.e2e-spec.ts`
 - [x] Export stream đồng bộ (`exports` module; test xuất > 1 trang 1000 dòng)
 - [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug chuyển phase 10
 - [x] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp — `apps/admin` (tests 4/4, build OK)
-- [ ] Đăng ký tag revalidate cho entry/VĐV/gộp/import — `cache-tags.ts` đã có từ phase 07 (lát cắt 2026-11-13); còn mở (xem phase 07, sync 2026-11-12)
+- [x] Đăng ký tag revalidate cho entry/VĐV/gộp/import — 2026-11-14: `cache-tags.ts` (`entry.create/update/bulk`, `player.create/update/merge`); import: `apps/worker/src/import/import-revalidate-tags.ts`, gọi sau commit
 - [x] ui-consistency: verifying — 2 vòng kiểm độc lập trên UI ban đầu (kết quả trong `plans/reports/ui-261112-1436-phase-05-admin-ui.md`, checklist ở `ui/`); các chỉnh UI sau review (nút "Thử lại"/"Kiểm tra lại" trang import, ẩn thẻ liên hệ riêng tư trên form VĐV, nhãn "Từ vòng loại") chưa qua verifying lại; chưa chạy trên trình duyệt
 - [ ] Deploy + migrate staging — chờ cổng ra phase 01 (chủ hạ tầng)
 - [ ] File import thử cho pilot — chờ staging; cần thử file do Excel thật lưu trước
@@ -291,7 +297,11 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 
 ## Kết quả thực hiện
 
-**Trạng thái (2026-11-12, sync 2026-11-13):** Hoàn thành (chưa deploy staging). Còn mở: test chặn import theo draw và L6 (phase 06), tag revalidate cho entry/VĐV/gộp/import (`cache-tags.ts` đã có từ lát cắt phase 07, chưa đăng ký mục này), staging + pilot (chờ cổng phase 01).
+**Trạng thái (2026-11-12, sync 2026-11-14):** Hoàn thành (chưa deploy staging). Còn mở: staging + pilot (chờ cổng phase 01), file Excel thật. Đã đóng 2026-11-14: test chặn import theo draw; tag revalidate entry/VĐV/gộp/import; kiểm draw trong transaction của từng lô (L6).
+
+<!-- Debt fixes sync — 2026-11-14 -->
+- Đóng: L6 (kiểm draw khóa chạy lại trong transaction của từng lô, dưới khóa SubEvent; e2e "draw công bố giữa chừng"). Mục "kiểm draw ngoài tx" trong "Việc còn mở" đã tách: phần test đã đóng từ trước, phần transaction đóng hôm nay.
+- Còn mở (không đổi): staging + pilot, file xlsx do Excel thật lưu, và các mục 6–8 của "Việc còn mở" (crash `0xC0000409`, trùng `Competitor_playerId_key`, verifying UI sau review).
 
 **Cách làm:** làm trọn phase trong một đợt. Hai vòng review: 7/10 → 8/10, đã sửa N1–N3.
 
@@ -315,7 +325,7 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 | Trùng seed cùng nội dung/giai đoạn bị DB chặn | Đạt | `apps/api/test/entries.e2e-spec.ts:113` |
 | Gộp: xung đột chặn; cặp trùng gộp, entry chuyển | Đạt một phần | `player-merge.e2e-spec.ts:129, 141`; 301 chờ phase 10 |
 | Rút entry trong draw đã công bố → 409 | Đạt (sync 2026-11-13) | `draws.e2e-spec.ts:217`, `draw-review-guards.e2e-spec.ts:68, 70` |
-| Import vào draw PUBLISHED bị từ chối | Chưa test | hook đã nối (`import-commit-processor.ts`), chưa có test cấp import |
+| Import vào draw PUBLISHED bị từ chối, kể cả draw công bố giữa chừng | Đạt (sync 2026-11-14) | `apps/api/test/imports-commit-guards.e2e-spec.ts`; `apps/api/test/imports-worker.e2e-spec.ts` (draw công bố sau lô 1); kiểm trong transaction của lô đã đóng (L6) |
 | Thêm VĐV đơn: 2 click + gõ tên | Chưa đo | cần kiểm tay trên staging |
 | `GET /public/*` không trả phone/email/birthDate | Chưa | phase 08 |
 
@@ -336,8 +346,8 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 **Sai lệch so với plan:** đã ghi trong "Hợp đồng đã chốt khi code" ở trên. Tóm tắt: `decisions` thay `chosenPlayerId`; setting thay env `IMPORT_RETENTION_DAYS`; thêm route `validate`; thứ tự khóa SubEvent → Player; xlsx đọc bằng exceljs stream.
 
 **Việc còn mở:**
-1. Chặn import theo draw: test cấp import và kiểm tra lại trong tx (review phase 06 L6). Hook đã nối từ phase 06.
-2. Tag revalidate cho entry/VĐV/gộp/import — phase 07 (`cache-tags.ts`).
+1. ~~Chặn import theo draw: test cấp import~~ **Đã đóng 2026-11-14**. ~~Kiểm tra lại draw trong tx (review phase 06 L6)~~ **Đã đóng 2026-11-14** (`commit-batch.ts`, e2e draw công bố giữa hai lô).
+2. ~~Tag revalidate cho entry/VĐV/gộp/import~~ **Đã đóng 2026-11-14** (`cache-tags.ts`, `import-revalidate-tags.ts`).
 3. 301 slug VĐV đã gộp — phase 10.
 4. Deploy staging + migrate + pilot — chờ cổng phase 01 (chủ hạ tầng).
 5. Thử file do Excel thật lưu trước pilot. Hiện mới test bằng file exceljs và file dựng tay.

@@ -1,6 +1,6 @@
 # Bốc thăm, hạt giống, vòng bảng (phase 06)
 
-> Cập nhật: 2026-11-13 · Trạng thái: code xong, chưa commit, chưa deploy staging. Gate G1a (mẫu hạt giống) và G1b (chia bảng, phá hòa, rút lui giữa bảng) chưa được BTC xác nhận. Xem [development-roadmap](./development-roadmap.md).
+> Cập nhật: 2026-11-14 · Trạng thái: code xong, đã commit, chưa deploy staging. Gate G1a (mẫu hạt giống) và G1b (chia bảng, phá hòa, rút lui giữa bảng) chưa được BTC xác nhận. Xem [development-roadmap](./development-roadmap.md).
 > Nguồn đối chiếu: `packages/competition-engine/src/`, `apps/api/src/modules/{draws,groups,matches}/`, `packages/db/prisma/schema/{draws-and-matches,groups-and-standings}.prisma`, `packages/db/src/domain/draw-locks.ts`, `packages/shared/src/tournament-settings.ts`.
 > Tổng quan kiến trúc: [system-architecture](./system-architecture.md). Quy ước code: [code-standards](./code-standards.md#bốc-thăm-và-vòng-bảng-phase-06).
 
@@ -24,7 +24,7 @@ Một nội dung (`SubEvent`) có tối đa một nhánh mỗi loại (`MAIN`, `
 - Xếp hạt giống, BYE, đổi chỗ (swap) khi còn là nháp.
 - Công bố. Sau công bố: bỏ công bố, thay VĐV, rút VĐV, phá hòa tay, xếp suất vòng loại và nhất/nhì bảng vào nhánh chính.
 
-Nhập và chốt tỷ số có từ lát cắt phase 07, xem [match-results](./match-results.md). Chưa có (phase sau): lịch thi đấu và sửa tỷ số (phase 07, đợt 2), bảng xếp hạng và điểm đầy đủ (phase 09). `POST /sub-events/:id/entries/suggest-seeds` trả `{available: false, suggestions: []}` tới phase 09.
+Nhập, chốt, sửa và mở lại tỷ số: xem [match-results](./match-results.md). Lịch thi đấu: xem [scheduling](./scheduling.md). Chưa có (phase sau): bảng xếp hạng và điểm đầy đủ (phase 09). `POST /sub-events/:id/entries/suggest-seeds` trả `{available: false, suggestions: []}` tới phase 09.
 
 ## Engine: `@kamito/competition-engine`
 
@@ -209,9 +209,9 @@ Lỗi 409 mang thêm khóa chi tiết (whitelist trong `common/filters/http-exce
 
 | Hạng mục | Phase | Ghi chú |
 |---|---|---|
-| Lịch thi đấu, sửa và mở lại tỷ số | 07 (đợt 2) | Nhập và chốt đã có, xem [match-results](./match-results.md#chưa-làm) |
+| Lịch thi đấu, sửa và mở lại tỷ số | Đã làm (phase 07, đợt 2) | Lịch: [scheduling](./scheduling.md). Sửa và mở lại: [match-results](./match-results.md#mở-lại-trận) |
 | Lucky loser khi người thắng vòng loại đã rút | Chờ chủ giải quyết | Hiện: walkover ở MAIN |
 | Quy tắc đặt hạt giống | Chờ G1a | Hạt 1 và 2 ở hai đầu. Hạt 3–4 bốc ngẫu nhiên vào ô `S/2` hoặc `S/2+1`. Hạt 5–8 vào ô biên phần tư, tương tự cho các tầng sau (`seed-positions.ts`). BTC chưa xác nhận mẫu |
 | Chia bảng, phá hòa, rút lui giữa bảng theo quy chế BTC | Chờ G1b | Engine làm theo quy ước hiện tại |
 | Gợi ý hạt giống từ bảng xếp hạng | 09 | `suggest-seeds` trả rỗng |
-| Revalidate sau xếp suất vòng loại và nhất/nhì bảng | 07 (đợt 2) | Bỏ công bố, thay và rút VĐV đã enqueue (phase 08 lát cắt). Route `/api/revalidate` của client có từ phase 08 |
+| Revalidate sau xếp suất vòng loại và nhất/nhì bảng vào nhánh MAIN đã công bố | Đã làm (2026-11-14) | Hai route gửi `draw.placeQualifiers` khi nhánh đã công bố. Xem [cache-revalidation](./cache-revalidation.md#mutation-và-tag) |

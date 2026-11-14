@@ -32,6 +32,11 @@
 - Phân trang admin đã có khung chung: `parsePaginationQuery` (server), `use-list-page-size.ts`, `list-filter-bar.tsx`. Page size mặc định là setting `list.defaultPageSize`; env chỉ là trần.
 - ~~Chưa thống nhất: mục "Cài đặt hiển thị" ghi tham số kỹ thuật (upload, import, page size...) ở env theo phase 01, trong khi plan.md yêu cầu tham số vận hành lên `/settings`. Chốt trước khi làm phase 04.~~ **Đã chốt 2026-11-12:** tham số vận hành lên `/settings`, env chỉ làm trần (chi tiết: Kết quả thực hiện).
 
+<!-- Phase 04 sync — 2026-11-14 -->
+- ui-consistency: verifying xong, `plans/reports/ui-verifier-261114-phase-04.md` (DONE_WITH_CONCERNS). Kind list và form (Refine `List`/`Create`/`Edit`) chưa hiệu chỉnh; hub tab + modal đã hiệu chỉnh ở phase 07.
+- Đăng ký tag revalidate cho mutation của module: `apps/api/src/modules/revalidation/cache-tags.ts` có `event.*` (create, update, publish, unpublish, cancel, uncancel, delete), `subEvent.*` (create, update, delete), `settings.update`, và catalog (`tier.write`, `eventType.write`, `venue.write`, `media.update`, `discipline.write`, `category.write`). Test phủ route: `apps/api/test/cache-tags-coverage.e2e-spec.ts`.
+- Chưa làm: deploy + migrate staging (chờ cổng phase 01).
+
 ## Requirements
 
 Functional
@@ -217,8 +222,9 @@ Phần còn lại (tuần 7–8)
 - [x] AppSetting registry (chỉ nghiệp vụ) + API + màn cài đặt — `packages/shared/src/tournament-settings.ts`, `apps/admin/src/pages/settings-editors/`
 - [x] Upload-intent + worker mã hóa lại + dọn intent; migration `add_media_assets` — `apps/api/src/modules/media/`, `apps/worker/src/processors/media-image-processor.ts`, `media-intent-cleanup-processor.ts`; thiết kế (b), không dùng presigned
 - [x] Màn admin: catalog, giải, hub, địa điểm — `apps/admin/src/resources/`, `apps/admin/src/pages/event-hub/`; smoke trình duyệt đã làm cho tạo giải; màn địa điểm/bàn chưa smoke riêng
-- [ ] Đăng ký tag revalidate cho mutation của module — chưa: `cache-tags.ts` tạo ở phase 07; điểm nối có sẵn `apps/api/src/modules/events/events.service.ts:15`; chưa có hook cho sub-event và AppSetting
-- [ ] ui-consistency: verifying; deploy staging — chưa có báo cáo verifying cho phase 04; chưa có staging
+- [x] Đăng ký tag revalidate cho mutation của module — đã đăng ký 2026-11-14 trong `apps/api/src/modules/revalidation/cache-tags.ts` (event, sub-event, AppSetting, catalog)
+- [x] ui-consistency: verifying — `plans/reports/ui-verifier-261114-phase-04.md` (DONE_WITH_CONCERNS; kind list và form chưa hiệu chỉnh)
+- [ ] Deploy staging + migrate — chờ cổng phase 01 (chủ hạ tầng)
 
 ## Success Criteria
 
@@ -254,7 +260,7 @@ Rollback: migrations chỉ thêm bảng; revert app về phase 03; MediaAsset/�
 
 ## Kết quả thực hiện
 
-**Trạng thái (2026-11-12):** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy staging) và đăng ký tag revalidate cho mutation giải/sub-event/AppSetting (`cache-tags.ts` đã có từ lát cắt phase 07, chưa đăng ký mục này).
+**Trạng thái (2026-11-12, sync 2026-11-14):** Hoàn thành (chưa deploy staging). Còn mở: bước 13 (deploy + migrate staging). Đã đóng 2026-11-14: đăng ký tag revalidate cho mutation giải/sub-event/AppSetting; verifying UI.
 
 **Cách làm:** làm trọn phase trong một đợt, không tách lát cắt. Kế hoạch và quyết định kèm theo: `./reports/implementation-plan-261112-1304-phase-04-task-breakdown.md`.
 
@@ -282,11 +288,11 @@ Rollback: migrations chỉ thêm bảng; revert app về phase 03; MediaAsset/�
 
 **Việc còn mở:**
 1. Deploy staging + migrate (bước 13). Cổng ra phase 01 chưa đạt (xem phase 03), chưa làm.
-2. Đăng ký tag revalidate cho mutation giải, sub-event, AppSetting: `cache-tags.ts` đã có từ lát cắt phase 07; mục này còn mở.
+2. ~~Đăng ký tag revalidate cho mutation giải, sub-event, AppSetting~~ **Đã đóng 2026-11-14** (`cache-tags.ts`).
 3. Driver `s3` chưa test với MinIO thật. Chưa xác nhận `content-length-range` và `HeadObject` trên đường S3 (`s3-object-storage.ts` chưa có test tích hợp).
 4. Native crash `0xC0000409` (exit 3221226505) xảy ra 1 trên 3 lần chạy full api, ở `must-change-password.e2e-spec.ts`. Chưa tái hiện; nghi `sharp` (chưa xác minh). Lần crash đó để lại 2 user `@test.kamito.local` trong DB dev; chưa dọn, cần chủ repo xác nhận trước khi xóa.
 5. Review Low chưa làm: L1, L2, L3, L4, L5, L6, L8, L9, L10, L11, L13. L7 (sanitizer cho phép `img`/`table` mà editor không tạo được) cần quyết định khi phase 11.
 6. M6 còn hằng số chưa đưa lên `/settings` hoặc chưa ghi lý do giữ env: `MAX_BULK_ITEMS` = 50 và `MAX_ENTRIES` = 10 000 (`apps/api/src/modules/sub-events/sub-event-dtos.ts`); tối đa 100 bàn mỗi lần (`apps/api/src/modules/venues/venue-dtos.ts`); chất lượng WebP 82 (`apps/worker/src/processors/media-image-processor.ts`); attempts/backoff của queue media (`apps/api/src/modules/media/media-queue.ts`). Chờ chủ repo quyết: chuyển hay giữ env.
 7. `@RequireStepUp` chưa gắn route admin nào (`apps/api/src/modules/auth/auth-decorators.ts`). Phase 03 dự kiến gắn ở phase 05, 07, 09; review đề xuất gắn sớm cho `PUT/DELETE /admin/settings/:key`. Chờ chủ repo quyết.
-8. Admin UI chưa có test tự động (`apps/admin` chưa có runner). Chưa có báo cáo `ui-consistency:verifying` cho phase 04. Tiêu chí "≤ 4 click" chỉ kiểm bằng tay.
+8. Admin UI chưa có test tự động (`apps/admin` chưa có runner). Báo cáo `ui-consistency:verifying` đã có (2026-11-14, `plans/reports/ui-verifier-261114-phase-04.md`; kind list và form chưa hiệu chỉnh). Tiêu chí "≤ 4 click" chỉ kiểm bằng tay.
 9. Bundle admin khoảng 2,5 MB (JS chunk, cảnh báo Vite > 500 kB). Không chặn; cần code-split khi tối ưu.

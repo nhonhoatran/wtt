@@ -1,6 +1,6 @@
 # Site công khai — Kamito (phase 08)
 
-> Cập nhật: 2026-11-14 · Trạng thái: đợt 1 đến 3 xong (chưa commit, chưa deploy staging). Chưa có: lịch theo session/bàn và bản in lịch (chờ phase 07), mốc M1 và M2 (cần staging).
+> Cập nhật: 2026-11-14 · Trạng thái: đợt 1 đến 3 xong (đã commit, chưa deploy staging). Chưa có: lịch theo session/bàn công khai và bản in lịch (chưa có endpoint `GET /public/events/:slug/schedule`), mốc M1 và M2 (cần staging).
 > Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/public-events/`, `apps/api/src/modules/public-competition/`, `apps/client/tests/e2e/`.
 > Kiến trúc chung xem [system-architecture.md](./system-architecture.md#site-công-khai-phase-08). Biến môi trường và chạy Playwright xem [deployment-guide.md](./deployment-guide.md#playwright-e2e-client). Kế hoạch: `plans/261111-1512-kamito-table-tennis-tournament-platform/phase-08-public-site-shell-event-pages-and-bracket-ui.md`.
 
@@ -30,7 +30,7 @@ Nguyên tắc:
 
 | Hạng mục | Đợt | Trạng thái |
 |---|---|---|
-| API public: events, calendar, event, info, matches, match, groups, entries, results/strip (đợt 1); draws (lát cắt 2026-11-13); site, sitemap (đợt 3) | 1, 3 | Xong. Thiếu `events/:slug/schedule` (chờ phase 07) |
+| API public: events, calendar, event, info, matches, match, groups, entries, results/strip (đợt 1); draws (lát cắt 2026-11-13); site, sitemap (đợt 3) | 1, 3 | Xong. Thiếu `events/:slug/schedule` (chưa làm, xem [scheduling](./scheduling.md)) |
 | i18n vi/en, chuyển hướng locale, `proxy.ts` | 1 | Xong |
 | Header, footer, dải kết quả, locale switcher | 2 | Xong |
 | Danh sách giải, lịch giải (theo tháng) | 2 | Xong |
@@ -41,7 +41,7 @@ Nguyên tắc:
 | Metadata, canonical, hreflang, OG, sitemap, robots | 3 | Xong |
 | Rate limit công khai, CSP report-only | 3 | Xong (một instance) |
 | Playwright e2e | 3 | Có spec và cấu hình. Chưa có số liệu chạy được ghi lại trong tài liệu này |
-| Lịch theo session/bàn, bản in lịch | — | Chờ phase 07 (`EventSession`) |
+| Lịch theo session/bàn, bản in lịch | — | Chưa làm. Dữ liệu `EventSession` đã có ([scheduling](./scheduling.md)) |
 | Mốc M1 (deploy staging, Playwright trên staging) | — | Chưa làm |
 
 ## Route
@@ -122,22 +122,25 @@ Trình duyệt ──> proxy.ts (locale, rate limit, chặn /api/revalidate)
 | `matchday` | `MATCHDAY_REVALIDATE_SECONDS` | Trang giải đang đấu: trang giải, trận, nhánh, bảng, dải kết quả |
 | `none` | không cache | Trang có `q` (tìm kiếm tự do) |
 
-TTL chỉ là dự phòng. Làm mới chính là revalidate theo tag khi có thay đổi (xem [system-architecture](./system-architecture.md#revalidate-cache-công-khai)).
+TTL chỉ là dự phòng. Làm mới chính là revalidate theo tag khi có thay đổi (xem [system-architecture](./cache-revalidation.md)).
 
 Tag (`packages/shared/src/public-cache-tags.ts`, không dùng wildcard):
 
 | Tag | Trang dùng | Mutation gửi tag (api) |
 |---|---|---|
-| `events` | Danh sách, lịch, sitemap | Chưa có mutation nào gửi |
+| Tag | Trang dùng | Mutation gửi tag (api) |
+|---|---|---|
+| `events` | Danh sách giải, lịch giải, sitemap | `event.*`, và đổi thông tin hiển thị trên thẻ giải: `tier.write`, `eventType.write`, `venue.write`, `media.update`, `discipline.write`, `category.write` |
 | `settings` | Danh sách, dải kết quả, VĐV, site | `settings.update` |
-| `event-<slug>` | Tổng quan, thông tin, VĐV | Mutation trận và mutation nhánh (`matchTags`, `drawTags`) |
-| `schedule-<slug>` | Danh sách trận | Mutation trận và mutation nhánh |
-| `draw-<slug>-<code>` | Nhánh | Mutation trận và mutation nhánh |
-| `groups-<slug>-<code>` | Bảng đấu | Mutation trận bảng, mutation nhánh có bảng |
-| `match-<slug>-<matchNo>` | Trang trận | Mutation trận |
-| `results-strip` | Dải kết quả | `match.confirm` |
+| `event-<slug>` | Tổng quan, thông tin, VĐV | Hầu hết mutation có ngữ cảnh giải: `event.*`, `subEvent.*`, nhánh, trận, lịch, đăng ký |
+| `schedule-<slug>` | Danh sách trận, lịch | Trận, lịch (`schedule.update`, `session.*`), nhánh, giải |
+| `draw-<slug>-<code>` | Nhánh | Trận, nhánh, lịch, đăng ký của nội dung |
+| `groups-<slug>-<code>` | Bảng đấu | Trận bảng, nhánh có bảng, `group.standings`, đăng ký |
+| `match-<slug>-<matchNo>` | Trang trận | Trận, lịch (trận có giờ đổi), `event.refresh` |
+| `results-strip` | Dải kết quả | `match.confirm`, `match.amend`, `match.reopen`, `event.publish`, `event.unpublish`, `event.cancel`, `event.uncancel`, `event.refresh` |
+| `players`, `player-<slug>` | Danh sách VĐV, hồ sơ VĐV | `player.*`, `ranking.publish`. Import (worker) cũng gửi khi có VĐV mới |
 
-Tag `events` chưa được mutation nào gửi. Bỏ công bố giải, hủy giải, sửa entry hay VĐV chưa có tag riêng. Vì vậy các thay đổi này chỉ hiện trên trang sau khi cache hết TTL, trừ khi trang đó có tag khác được gửi cùng. Xem [Việc còn mở](#việc-còn-mở).
+Bảng này tóm tắt. Mutation đầy đủ và route không gửi tag: [cache-revalidation](./cache-revalidation.md#mutation-và-tag). Thay đổi nào chưa có tag thì chỉ hiện trên trang sau khi cache hết TTL. Tính đến 2026-11-14, xếp suất vòng loại và nhất, nhì bảng đã có tag.
 
 Cache theo instance: mỗi instance client có cache riêng. Nhiều replica cần cache handler dùng chung trước khi scale.
 
@@ -196,7 +199,7 @@ Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. N�
 |---|---|---|
 | Toàn site | `app/[locale]/global.css`, `@media print` | Ẩn header, footer, nav, form. Giữ màu nền (`print-color-adjust: exact`) để bảng navy và điểm vẫn đọc được. `@page` lề 10 mm |
 | Nhánh đấu | `components/bracket/bracket.module.css`, `@page bracket` | Khổ ngang (landscape) |
-| Lịch theo session/bàn | — | Chưa làm (chờ `EventSession`) |
+| Lịch theo session/bàn | — | Chưa làm (dữ liệu `EventSession` đã có) |
 
 ## Content-Security-Policy
 
@@ -208,10 +211,8 @@ Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. N�
 
 | Việc | Nguồn | Hướng xử lý |
 |---|---|---|
-| Lịch theo session và bàn, bản in lịch | Phase 08 mục 10, phase 07 đợt 2 | Làm cùng `EventSession`. Thêm `GET /public/events/:slug/schedule` |
+| Lịch theo session và bàn, bản in lịch | Phase 08 mục 10 | Thêm `GET /public/events/:slug/schedule` và trang lịch. Dữ liệu `EventSession` đã có |
 | Mốc M1: deploy staging, chạy Playwright trên staging | Phase 08 bước 4 | Chờ staging (phase 01 và 02) |
-| Tag `events` chưa được mutation nào gửi. Bỏ công bố giải, hủy giải, sửa entry hoặc VĐV chưa làm mới trang liên quan | [system-architecture](./system-architecture.md#revalidate-cache-công-khai) | Bổ sung trong phase 07 đợt 2 |
-| `group-qualifier.service` sửa nhánh MAIN đã công bố: chưa kiểm có gửi tag | Changelog phase 08 lát cắt | Kiểm và bổ sung tag |
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
 | Cách render `infoBody` công khai (sanitize lại ở Next hay API trả HTML đã sanitize) | Phase 04 sync | API đã sanitize lại khi trả. Client chưa sanitize; chủ repo chốt |
 | `API_FETCH_TIMEOUT_MS` nằm ở env, không ở `/settings` | Phase 08 câu hỏi 4 | Chủ repo quyết: chuyển sang setting hoặc nêu lý do giữ env |

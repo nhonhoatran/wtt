@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: In progress (lát cắt xong, chưa deploy staging). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
+- Priority: P1. Status: Hoàn thành (chưa deploy staging). ≈9 ngày công (ước lại từ 6 ngày; gồm ui-consistency ≈0,5 ngày), làm 2 đợt:
   - **Lát cắt (tuần 5–6, ≈3,5 ngày):** validator tỷ số, `start` + `confirm` có `expectedVersion`, đẩy nhánh (gồm BYE), màn nhập tỷ số tối thiểu, module revalidation (enqueue + `cache-tags.ts` + processor) theo kết quả Spike E.
   - **Phần còn lại (tuần 11–12, ≈5,5 ngày):** session + xếp lịch tay trên lưới + cảnh báo trùng, `save-progress`, `un-start`, `amend-scores`, `reopen` có xem trước ảnh hưởng + đường cưỡng chế, tính lại BXH bảng dưới khóa, test đồng thời, nút "Làm mới trang công khai", in phiếu trận, export đồng bộ.
 - Phạm vi xếp lịch: chỉ xếp tay trên lưới, đủ cho quy mô giải hiện tại; các mục dời xem "Để giai đoạn sau" trong [plan.md](./plan.md#để-giai-đoạn-sau-ngoài-phạm-vi).
@@ -63,17 +63,30 @@
 - Chưa kiểm: màn nhập tỷ số chưa test trên trình duyệt, chưa thử 1024 px; chưa chạy `ui-consistency:finding-patterns` / `verifying`; chưa deploy staging.
 - Ghi nợ:
   - ~~Client chưa có route `/api/revalidate` (phase 08).~~ **Đã đóng 2026-11-13:** route có ở phase 08 (`app/api/revalidate/route.ts`).
-  - Thao tác draw sau công bố: **unpublish, replaceEntry, withdrawEntry đã đóng 2026-11-13** (tag `draw.unpublish`, `draw.postPublishEdit`). Còn mở: place/group qualifiers (`group-qualifier.service` chưa kiểm); `draw.publish` chưa có tag `match-*`.
-  - Tag còn thiếu: entry, VĐV, gộp VĐV, sub-event, AppSetting (chờ phase 04/05); `match.start` chưa có tag VĐV; VĐV thua walkover trong cascade chưa có tag.
-  - Chưa có test phủ `cache-tags` (`cache-tags-coverage.e2e-spec.ts`).
-  - Thể thức: `confirm` lấy `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua round (L8).
-  - `settleDeferredWalkover` không tăng `version` trận được điền (L10, từ phase 06).
-  - `new URL('/api/revalidate', base)` bỏ path con của `CLIENT_INTERNAL_URL` (L11).
-  - Hằng vận hành đang fix cứng: timeout enqueue 2 s, attempts 5 / backoff 2 s, page size 100, debounce tìm kiếm. Cần chuyển sang `/settings` hoặc nêu lý do fix cứng (L12).
-  - Picker giải lấy tối đa 100 giải rồi lọc phía client, trái luật lọc phía server (L13).
-  - E2e còn thiếu: chốt đồng thời 2 trận cùng bảng; cascade walkover khi đẩy nhánh; RETIRED có ván dở; RESULTS_OPERATOR bị 403 khi reopen (reopen chưa làm).
+  - Thao tác draw sau công bố: **unpublish, replaceEntry, withdrawEntry đã đóng 2026-11-13** (tag `draw.unpublish`, `draw.postPublishEdit`). ~~Còn mở: place/group qualifiers; `draw.publish` chưa có tag `match-*`; rút/đổi entry sau công bố chỉ gửi tag draw.~~ **Đã đóng 2026-11-14:** `draw.publish` và các thao tác sau công bố có tag `match-*` (`draws/draw-tag-context.ts`); rút/đổi entry gửi thêm `player-*` của VĐV cũ và mới (`draws/draw-post-publish.service.ts`); `place-qualifiers` và `place-group-qualifiers` trên MAIN đã công bố gửi `draw.placeQualifiers` (`draws/draw-edit.service.ts`, `draws/group-qualifier.service.ts`).
+  - ~~Tag còn thiếu: entry, VĐV, gộp VĐV, sub-event, AppSetting (chờ phase 04/05); `match.start` chưa có tag VĐV; VĐV thua walkover trong cascade chưa có tag.~~ **Đã đóng 2026-11-14:** tag entry/VĐV/gộp/sub-event/AppSetting (`cache-tags.ts:154-181`); `match.start` có tag VĐV (`matchWithPlayerTags`); VĐV thua walkover trong cascade có tag ở đường chốt trận (`bracket-advance.ts:10, 47`). Đường rút/đổi entry sau công bố: xem dòng draw ở trên.
+  - ~~Chưa có test phủ `cache-tags` (`cache-tags-coverage.e2e-spec.ts`).~~ **Đã đóng 2026-11-14:** file có (`apps/api/test/cache-tags-coverage.e2e-spec.ts`); báo cáo phiên: 92 route ghi admin, 0 chưa ánh xạ (chưa chạy lại khi sync).
+  - ~~Thể thức: `confirm` lấy `round ?? draw ?? subEvent`, còn `GroupStandingsService.compute` bỏ qua round (L8).~~ **Đã đóng 2026-11-14:** một hàm `pickMatchFormat` (`apps/api/src/modules/draws/round-format-view.ts`) dùng cho `confirm`, thời lượng xếp lịch và BXH bảng (`groups/group-standings.service.ts`). Engine `scoreMatch` nhận thể thức theo từng trận.
+  - ~~`settleDeferredWalkover` không tăng `version` trận được điền (L10, từ phase 06).~~ **Đã đóng 2026-11-14:** `apps/api/src/modules/draws/knockout-walkover.ts:32` tăng `version`.
+  - ~~`new URL('/api/revalidate', base)` bỏ path con của `CLIENT_INTERNAL_URL` (L11).~~ **Đã đóng 2026-11-14:** `revalidateUrl()` giữ path con (`apps/worker/src/processors/revalidate-processor.ts:11`, test `revalidate-processor.test.ts`).
+  - ~~Hằng vận hành đang fix cứng (L12).~~ **Quyết định 2026-11-14: giữ fix cứng**, có comment nêu lý do trong code. Đây là hằng số độ tin cậy nội bộ, không phải tham số nghiệp vụ hay vận hành: timeout enqueue 2 s, 5 lần thử và backoff 2 s (`packages/shared/src/revalidate-job-options.ts`); `MATCH_WRITE_TIMEOUT_MS` 30 s (`match-results/match-write-runner.ts:12`); `SCHEDULE_TX_TIMEOUT_MS` 30 s (`scheduling/schedule-tx.ts:5`); `SEARCH_DEBOUNCE_MS` 300 ms (`apps/admin/src/components/use-debounced-value.ts:4`). `CHECK_DEBOUNCE_MS` 400 ms của ô kiểm slug cũng giữ cố định, có comment lý do (2026-11-14).
+  - ~~Picker giải lấy tối đa 100 giải rồi lọc phía client, trái luật lọc phía server (L13).~~ **Đã đóng 2026-11-14:** tìm kiếm gửi `q` lên API, kích thước trang theo `useListPageSize` (`apps/admin/src/pages/results/use-results-event.ts`).
+  - ~~E2e còn thiếu: chốt đồng thời 2 trận cùng bảng; cascade walkover khi đẩy nhánh; RESULTS_OPERATOR bị 403 khi reopen~~ **Đã đóng 2026-11-14:** chốt đồng thời (`match-concurrency.e2e-spec.ts:51, 76`); cascade walkover (`draw-post-publish.e2e-spec.ts:180`, `match-reopen-qualifier-and-walkover.e2e-spec.ts:148`); 403 khi reopen (`match-reopen.e2e-spec.ts:66`). ~~RETIRED có ván dở~~ **Đã đóng 2026-11-14:** `apps/api/test/match-retired-format-and-redis-down.e2e-spec.ts` (RETIRED kèm ván dở; đội thắng thiếu ván vẫn xác nhận được theo thể thức vòng). Còn mở: chuỗi Q → BYE → R2 khi reopen (theo báo cáo phiên vẫn chỉ có unit).
   - ~~Lỗi có sẵn, không do lát cắt: `apps/api/test/draws.e2e-spec.ts:325` đậu/rớt ngẫu nhiên~~ **Đã sửa 2026-11-13:** test đọc `placementSeed` từ audit thay vì đoán (`draw-edit.service.ts:78`); 6/6 lượt xanh.
 - ~~Câu hỏi mở: route `/api/revalidate` giữ ở phase 08 hay kéo vào lát cắt?~~ **Đã chốt 2026-11-13:** làm trong lát cắt phase 08.
+
+<!-- Phase 07 sync — 2026-11-14 -->
+- Đã xong (backend `4c7124b`..`07f2500`, UI `8173f28`..`00eb3e3`; xem `git log 478ad88..HEAD`):
+  - Migration `20261114064027_add_sessions_and_match_scheduling`, `20261114071907_add_match_schedule_indexes` (áp dụng DB dev local; chưa staging).
+  - Sessions CRUD; xếp lịch tay có `scheduleVersion`, hoán đổi, cảnh báo trùng (setting `schedule.minRestMinutes`), trần số trận mỗi session (`schedule.sessionMatchCap`), tính lại giờ theo múi giờ giải.
+  - `save-progress`, `un-start`, `amend-scores`, `reopen` (xem trước, cưỡng chế, step-up, `expectedBlockingIds`); khóa theo bảng; P2034/40P01 → 409 `CONCURRENT_UPDATE_RETRY` (`apps/api/src/common/filters/http-exception.filter.ts`).
+  - Tính lại BXH bảng dưới khóa; test đồng thời `apps/api/test/match-concurrency.e2e-spec.ts` (5 ca).
+  - In phiếu trận: `apps/admin/src/pages/event-hub/match-sheets-print-page.tsx`. Export lịch/kết quả xlsx đồng bộ: `apps/api/src/modules/exports/`.
+  - Revalidate: `POST /admin/events/:id/revalidate` (nút "Làm mới trang công khai" ở `apps/admin/src/pages/event-hub/schedule-actions.tsx`); `cache-tags.ts` phủ mutation lịch, trận, draw, bảng; test phủ `apps/api/test/cache-tags-coverage.e2e-spec.ts`.
+- UI: tab lịch, session modal, lưới, panel trận chưa xếp, trang in, màn nhập tỷ số (start, un-start, save-progress, amend, reopen). Mặc định session và bộ lọc bàn/trạng thái nhớ lựa chọn trước. Browser QA 1440 và 1024 px (theo báo cáo phiên): 7 lỗi đã sửa, gồm crash trang bốc thăm bảng (code phase 06) và modal step-up bị che.
+- Verifying: `plans/reports/ui-verifier-261114-phase-07.md` (calibration bắt 3/3 lỗi cài sẵn; lưới C, panel D, trang in E chưa hiệu chỉnh). Plan và checklist: `ui/phase-07-ui-plan.md`, `ui/phase-07-ui-checklists.md`, `ui/phase-07-api-contract.md`.
+- Review: `plans/reports/reviewer-261114-phase07-scheduling.md` (H1, H2, M1, M2, M3). Fix thấy trong code: H2 `SCHEDULE_TX_TIMEOUT_MS` (`scheduling/schedule-tx.ts:5`), M1 `scheduleTags` có tag draw/groups, M2 mã 40P01/P2034. Báo cáo "result-lifecycle review" (H1–H3, M1–M3) không có file trong `plans/reports/`, chưa đối chiếu được.
+- Dữ liệu thử: DB dev local có bản ghi tiền tố "QA " và một tài khoản admin thử. Không phải staging; chưa dọn.
 
 ## Requirements
 
@@ -232,14 +245,16 @@ Phần còn lại (tuần 11–12)
 - [x] (Lát cắt) start/confirm + đẩy nhánh + BYE + khóa Draw + expectedVersion + audit
 - [x] (Lát cắt) Revalidation: enqueue id duy nhất, cache-tags, processor, lỗi enqueue → cảnh báo (phía API/worker; route client `/api/revalidate` đã có từ phase 08, 2026-11-13)
 - [x] (Lát cắt) Màn nhập tỷ số tối thiểu (còn mở: test trình duyệt + 1024 px)
-- [ ] ui-consistency: finding-patterns → planning
-- [ ] Migration sessions + scheduling
-- [ ] Sessions, xếp lịch tay (scheduleVersion), cảnh báo trùng, audit lịch
-- [ ] save-progress, un-start, amend-scores, reopen + xem trước + cưỡng chế + step-up
-- [ ] Tính lại BXH bảng dưới khóa; test đồng thời
-- [ ] cache-tags đầy đủ + test phủ; nút làm mới; đo staging
-- [ ] In phiếu trận; export stream
-- [ ] ui-consistency: verifying; deploy staging
+- [x] ui-consistency: finding-patterns → planning — `ui/phase-07-ui-plan.md`, `ui/phase-07-ui-checklists.md`
+- [x] Migration sessions + scheduling — `20261114064027_add_sessions_and_match_scheduling`, `20261114071907_add_match_schedule_indexes` (DB dev local)
+- [x] Sessions, xếp lịch tay (scheduleVersion), cảnh báo trùng, audit lịch — `apps/api/src/modules/{sessions,scheduling}/`
+- [x] save-progress, un-start, amend-scores, reopen + xem trước + cưỡng chế + step-up — `apps/api/src/modules/match-results/`
+- [x] Tính lại BXH bảng dưới khóa; test đồng thời — `apps/api/test/match-concurrency.e2e-spec.ts` (5 ca)
+- [x] cache-tags: phủ route + test phủ; nút "Làm mới trang công khai". Hai khoảng hở tag ở ghi nợ (`draw.publish` thiếu `match-*`; rút/đổi entry thiếu tag VĐV) **đã đóng 2026-11-14**
+- [ ] Đo staging: chốt → trang công khai đổi trong ≤ 5 s (chờ cổng phase 01)
+- [x] In phiếu trận; export stream — `match-sheets-print-page.tsx`, `apps/api/src/modules/exports/`
+- [x] ui-consistency: verifying — `plans/reports/ui-verifier-261114-phase-07.md` (DONE_WITH_CONCERNS; lưới, panel, trang in chưa hiệu chỉnh)
+- [ ] Deploy staging + migrate (chờ cổng phase 01)
 
 ## Success Criteria
 
@@ -275,3 +290,46 @@ Rollback: migration thêm bảng; revert app; kết quả đã chốt nằm tron
 ## Next Steps
 
 - Lát cắt phase 08 (trang nhánh công khai + route revalidate) đã làm 2026-11-13; còn Playwright + deploy staging (bước 4 phase 08, M1). Phase 08 hiển thị lịch, kết quả, nhánh, bảng; phase 09 thêm `rankingDirtyAt` và job tính điểm vào `confirm`/`reopen`.
+
+## Kết quả thực hiện (2026-11-14)
+
+**Trạng thái:** Hoàn thành (chưa deploy staging). Còn mở: đo staging, deploy + migrate staging, Q → BYE → R2 khi reopen (chỉ unit), và các mục UI bên dưới (xem sync 2026-11-13, 2026-11-14 và Debt fixes sync 2026-11-14).
+
+<!-- Debt fixes sync — 2026-11-14 -->
+- Đóng: tag `match-*` khi công bố draw; tag VĐV khi rút/đổi entry; `draw.placeQualifiers`; L8 (thể thức theo vòng, `pickMatchFormat`); L11 (path con của `CLIENT_INTERNAL_URL`); L13 (picker giải tìm kiếm phía server); RETIRED có ván dở (e2e); Redis tắt → 200 kèm `PUBLIC_REFRESH_DELAYED` (e2e).
+- L12: giữ fix cứng cho bốn nhóm hằng nội bộ, có comment lý do. `CHECK_DEBOUNCE_MS` (ô kiểm slug) cũng giữ cố định, có comment lý do.
+- Hạ tầng test: e2e phải chạy khi đã dừng dev worker (worker dev tiêu thụ job import của test). Assertion về job revalidate dùng `apps/api/test/support/revalidate-queue-probe.ts` (chỉ đọc 300 job mới nhất mỗi trạng thái, tự xóa job của chính test).
+- Còn mở (không đổi): đo và deploy staging; Q → BYE → R2 khi reopen (e2e); mục UI: focus đỏ thương hiệu, chữ "session" tiếng Anh, nhảy 76 px khi mở hộp thoại, kéo thả chưa có cảm biến bàn phím.
+
+**Cách làm:** làm trọn phần còn lại trong 2 cụm commit (backend, UI), không tách lát cắt.
+
+**Kiểm chứng** (số liệu báo cáo phiên 2026-11-14, KHÔNG chạy lại khi sync):
+- API e2e 65 file / 413 test; API unit 125; engine 227; shared 97; worker 34; typecheck + lint 18/18.
+- Chạy lại sau debt fixes (2026-11-14, dev worker đã dừng): API e2e 67/67 file, 420 test; API unit 125; engine 230; worker 39; shared 97; typecheck + lint 18/18. Một chunk vitest có thể rớt do crash native `0xC0000409` trên Windows; chạy lại chunk đó.
+- Migration áp dụng DB dev local. Chưa có staging.
+- Browser QA 1440 và 1024 px: 7 lỗi đã sửa (theo báo cáo phiên; không có file báo cáo trong `plans/reports/`).
+- Verifying UI: `plans/reports/ui-verifier-261114-phase-07.md`; lưới, panel và trang in chưa hiệu chỉnh.
+
+**Tiêu chí thành công** (đối chiếu test có tên trong repo):
+
+| Tiêu chí | Trạng thái | Bằng chứng |
+|---|---|---|
+| Hai request chốt hai trận khác nhau cùng bảng → BXH đúng cả hai | Đạt | `apps/api/test/match-concurrency.e2e-spec.ts:51` |
+| Cùng `expectedVersion` → 1 thành công, 1 nhận 409 | Đạt | `match-concurrency.e2e-spec.ts:96, 110` |
+| Sửa lịch lúc đang lưu tỷ số không mất tỷ số | Đạt | `match-concurrency.e2e-spec.ts:122` |
+| Cưỡng chế mở lại: audit giữ kết quả cũ | Đạt | `apps/api/test/match-reopen.e2e-spec.ts:150` |
+| RESULTS_OPERATOR không mở lại được | Đạt | `apps/api/test/match-reopen.e2e-spec.ts:66` |
+| Test phủ `cache-tags`: 0 route ghi thiếu ánh xạ | Đạt theo báo cáo phiên; file test có | `apps/api/test/cache-tags-coverage.e2e-spec.ts` (chưa chạy lại khi sync) |
+| Redis tắt lúc chốt → 200 kèm `PUBLIC_REFRESH_DELAYED` | Đạt (sync 2026-11-14) | `apps/api/test/match-retired-format-and-redis-down.e2e-spec.ts:88`; mã ở `apps/api/src/modules/revalidation/revalidation-enqueue.service.ts` |
+| Staging: chốt → trang công khai đổi ≤ 5 s | Chưa đo | chờ cổng phase 01 |
+
+**Sai lệch so với plan:**
+- ~~Trạng thái "Hoàn thành" trong khi ghi nợ L8, L11, L12, L13 vẫn mở.~~ L8, L11, L13 đã đóng và L12 đã có quyết định (2026-11-14). Trạng thái không đổi.
+- ~~Ghi nợ "`draw.publish` chưa có tag `match-*`" chưa đóng.~~ Đã đóng 2026-11-14 và kiểm trong code (xem mục ghi nợ).
+
+**Việc còn mở:**
+1. Deploy + migrate staging; đo chốt → HTML mới ≤ 5 s (chờ cổng phase 01).
+2. Ghi nợ còn mở: chuỗi Q → BYE → R2 khi reopen chưa có e2e (chỉ unit).
+3. Lỗi thiết kế từ QA, chưa sửa (theo báo cáo phiên): focus đỏ thương hiệu; chữ "session" tiếng Anh; nhảy 76 px khi mở hộp thoại; kéo thả chưa có cảm biến bàn phím (thao tác 2 click vẫn chạy).
+4. Dữ liệu thử trong DB dev local (tiền tố "QA " và một tài khoản admin thử) chưa dọn; cần xác nhận của chủ repo trước khi xóa.
+5. Verifying UI còn thiếu: lưới (`session-grid*`), panel (`unscheduled-panel`), trang in (`match-sheets-print-page` + `print.css`).

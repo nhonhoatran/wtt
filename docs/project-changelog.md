@@ -1,9 +1,79 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-14. Mục mới nhất ở trên. Mục "chưa commit" mô tả code trong working tree tại thời điểm ghi.
+> Cập nhật: 2026-11-14. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
-## 2026-11-14 — Phase 08: site công khai, đợt 1 đến 3 (chưa commit)
+## 2026-11-14 — Đóng ghi nợ review (c449c75..608d948)
+
+Commit trong ngày, từ `c449c75` đến `608d948` (6 commit): `c449c75`, `a7bc837`, `c966728`, `a80dfb2`, `865ff1e`, `608d948`.
+
+### Sửa
+- **Tag revalidate cho nhánh** (`a80dfb2`): `draw.publish`, `draw.unpublish`, `draw.postPublishEdit` gửi thêm tag `match-*` của trận trong nhánh. Rút và thay entry sau công bố gửi thêm tag `player-*` của VĐV cũ và mới. `place-qualifiers` và `place-group-qualifiers` trên nhánh MAIN đã công bố gửi `draw.placeQualifiers` (trước đó nhãn coverage ghi `none`, sai với code).
+- **Thể thức thống nhất** (`a80dfb2`): `pickMatchFormat` là nguồn duy nhất cho `confirm`, thời lượng xếp lịch và BXH bảng (L8). Engine `scoreMatch` nhận thể thức theo từng trận.
+- **Kiểm draw khi import** (`c966728`): `assertNoLockedDraw` chạy lại trong transaction của từng lô, dưới khóa SubEvent (L6 phase 05 và 06). Draw công bố giữa hai lô thì lô sau bị từ chối, lô trước vẫn giữ.
+- **URL revalidate** (`c966728`): `revalidateUrl()` giữ path con của `CLIENT_INTERNAL_URL` (L11).
+- **BXH bảng, ván dở cuối** (`c449c75`): ván dở cuối của `RETIRED` và `DISQUALIFIED` không tính là ván thắng, khớp `validateMatchScore`.
+- **Picker giải tìm kiếm phía server** (`608d948`): ô tìm giải gửi `q` lên API thay vì lấy 100 giải rồi lọc ở client (L13). Dùng chung hook debounce `SEARCH_DEBOUNCE_MS`.
+
+### Giữ cứng có chủ đích
+- L12: timeout enqueue, số lần thử và backoff của revalidate được định nghĩa một lần trong `packages/shared/src/revalidate-job-options.ts` (`a7bc837`). `MATCH_WRITE_TIMEOUT_MS`, `SCHEDULE_TX_TIMEOUT_MS` và `SEARCH_DEBOUNCE_MS` giữ cứng, có comment ghi lý do: đây là hằng độ tin cậy nội bộ, không phải tham số nghiệp vụ hay vận hành, nên không đưa lên `/settings`.
+
+### Kiểm thử (`865ff1e`)
+- E2e mới: RETIRED có ván dở và Redis tắt trả 200 kèm `PUBLIC_REFRESH_DELAYED` (`match-retired-format-and-redis-down.e2e-spec.ts`); draw công bố giữa lúc import (`imports-worker.e2e-spec.ts`); tag khi công bố, thay và rút entry (`draw-publish-edit-tags.e2e-spec.ts`).
+- Các spec đọc hàng đợi revalidate dùng `apps/api/test/support/revalidate-queue-probe.ts`: chỉ đọc 300 job mới nhất của mỗi trạng thái, và xóa job do chính spec tạo.
+- Số liệu chạy đầy đủ (đã dừng dev worker): API e2e 67/67 file, 420 test; API unit 125; engine 230; worker 39; shared 97; typecheck + lint 18/18. Một lần crash native `0xC0000409` trên Windows làm rớt một chunk vitest, đã chạy lại chunk đó.
+- E2e phải chạy khi đã dừng dev worker, vì worker dev sẽ lấy job import của test.
+
+### Chưa làm và còn mở
+- Deploy staging và đo; G1b; file xlsx do Excel thật lưu; mục thiết kế UI (màu focus, chữ "session", nhảy 76 px khi mở hộp thoại, cảm biến bàn phím cho kéo thả); e2e chuỗi Q → BYE → R2 khi reopen (hiện chỉ unit).
+- `CHECK_DEBOUNCE_MS` (400 ms, ô kiểm slug, `apps/admin/src/components/slug-input.tsx`): giữ cố định, có comment lý do (chi tiết cảm giác gõ của một ô nhập, không phải tham số nghiệp vụ/vận hành).
+
+## 2026-11-14 — Phase 07 đợt 2: lịch, session, sửa và mở lại tỷ số, revalidate mọi route ghi (đã commit)
+
+Commit trong ngày, từ `4cdfa23` đến `00eb3e3` (16 commit): `4cdfa23`, `dba2f2f`, `fc73052`, `6a91d27`, `2244f18`, `4c7124b`, `3e068d8`, `a356255`, `f3c78ce`, `4fb7505`, `07f2500`, `3853154`, `8173f28`, `856cac9`, `d0b8e8a`, `00eb3e3`.
+
+### Thêm
+- **Lịch thi đấu** (`4c7124b`, `f3c78ce`, `856cac9`): model `EventSession` và `EventSessionTable`, cột lịch của `Match` (`sessionId`, `tableId`, `orderInSession`, `scheduledAt`, `scheduleVersion`). Migration `20261114064027_add_sessions_and_match_scheduling`, `20261114071907_add_match_schedule_indexes`. API: CRUD session, `PATCH /admin/matches/:id/schedule`, `GET /admin/events/:eventId/match-sheets`, `GET /admin/exports/schedule` và `GET /admin/exports/results` (xlsx). Chi tiết: [scheduling](./scheduling.md).
+- **Sửa và mở lại tỷ số** (`3853154`, `4fb7505`, `3e068d8`): `un-start`, `save-progress`, `amend-scores`, `reopen-preview`, `reopen` (có step-up; `force` chỉ ADMIN và cần `expectedBlockingIds`). Hàm thuần `computeReopenImpact` và `validateProgressGames` trong `@kamito/competition-engine`. Audit: `match.unStart`, `match.saveProgress`, `match.amend`, `match.reopen`, `match.forceReopen`, `match.resetByReopen`. Chi tiết: [match-results](./match-results.md).
+- **Revalidate cho mọi route ghi** (`4cdfa23`, `dba2f2f`, `fc73052`, `07f2500`, `2244f18`): `ROUTE_TAG_RULES` (`route-tag-coverage.ts`) có 93 dòng, mỗi route ghi `/admin` một dòng. Test `cache-tags-coverage.e2e-spec.ts` kiểm. Import worker gửi tag sau commit. `POST /admin/events/:id/revalidate` cho nút "Làm mới trang công khai". Job chia lô 200 tag. Chi tiết: [cache-revalidation](./cache-revalidation.md).
+- **Cảnh báo ghi ở admin** (`6a91d27`): `apps/admin/src/api/write-warnings.ts` (`showWarnings`, `warningsOf`).
+- **Shared** (`a356255`, `4cdfa23`): `MATCH_REASON_MIN_LENGTH` (3), `MATCH_REASON_MAX_LENGTH` (500); setting `schedule.minRestMinutes` (20) và `schedule.sessionMatchCap` (500); `revalidateTagsJob`, `revalidateTagsJobs`, `REVALIDATE_ENQUEUE_TIMEOUT_MS`, `withTimeout`, `entryChangeTags`.
+- **Admin** (`856cac9`, `3853154`): tab "Lịch & kết quả" (session, lưới xếp lịch bằng hai cú bấm hoặc kéo thả, panel trận chưa xếp), trang in phiếu trận `/events/:id/print/match-sheets`. Màn nhập tỷ số có nút "Hủy bắt đầu", "Lưu tạm", modal sửa tỷ số và modal xem trước mở lại, nhớ lựa chọn session, bàn và trạng thái. Dùng chung: `components/sortable-list-field.tsx`, `components/use-debounced-value.ts`.
+- **Lỗi tranh chấp** (`4fb7505`): Prisma `P2034`, Postgres `40P01` và `40001` đổi thành 409 `CONCURRENT_UPDATE_RETRY` trong filter lỗi chung.
+
+### Thay đổi
+- Filter lỗi giữ thêm hai khóa chi tiết: `preview`, `dirtySubEvents` (`DETAIL_KEYS`).
+- Mở lại trận bảng gỡ mọi suất của bảng đó khỏi nhánh chính. Đây là chủ ý, và xem trước nêu rõ điều này.
+- Khóa "đã xếp vào nhánh" theo từng bảng (`isGroupPlaced`, `groups-placed-guard.ts`): mở lại một bảng không mở khóa các bảng khác.
+- Ô nhánh đã có VĐV giữ `sourceRef` (`draw-position-io.ts`), để nhãn suất vòng loại hoặc bảng gốc vẫn hiện.
+- `AuthGate` của admin: chỉ 401 mới đăng xuất, lỗi khác hiện nút "Thử lại" (`8173f28`).
+- Danh sách tiêu chí xếp hạng dùng chung `SortableListField` (`856cac9`).
+- Sửa theo lần kiểm: nhóm bốc thăm không còn crash khi bốc (`8173f28`), session giữ lại khi server lỗi, step-up hiện trên dialog; căn lại nhãn và form danh mục (`d0b8e8a`).
+
+### Breaking và lưu ý cấu hình
+- Không có biến môi trường mới. Không có breaking change với phase 06.
+- Migration chỉ thêm bảng, cột và index.
+- Route mở lại tỷ số cần nhập lại mật khẩu trong `auth.stepUp.ttlMinutes` (mặc định 5 phút).
+- Mọi route ghi `/admin` mới phải có dòng trong `ROUTE_TAG_RULES`, nếu không test e2e rớt.
+
+### Chưa xong
+- Lịch công khai (`GET /public/events/:slug/schedule`) và bản in lịch cho khách: thuộc phase 08.
+- `place-qualifiers` và `place-group-qualifiers` không gửi tag. Nhãn coverage ghi "draft only", nhưng code cho chạy trên nhánh MAIN đã công bố. Xem [cache-revalidation](./cache-revalidation.md#khe-hở-đã-biết).
+- Các mục giao diện trong `plans/reports/ui-verifier-261114-phase-07.md`: nhãn session thiếu ngày, panel chưa xếp báo "đã xếp hết" khi đang lọc, kéo thả chưa có bàn phím, trang in chưa có nút thử lại.
+- Chưa chạy trình duyệt với API thật (cỡ lưới, A4, focus, tương phản).
+- Chưa deploy staging.
+
+### Sửa theo review
+- Review lịch `plans/reports/reviewer-261114-phase07-scheduling.md` (14:14, viết trước các sửa): 7/10, 0 Critical, 2 High, 6 Medium, 7 Low. Đối chiếu code lúc viết mục này, các mục H1, H2, M1 đến M6 đã có trong code: bỏ xếp không bị chặn bởi trạng thái nhánh, giải phóng ô khi void, bỏ công bố và dựng lại; tính lại giờ bằng một câu UPDATE, timeout 30 giây; tag `draw-*` và `groups-*` khi đổi lịch; `40P01` đổi thành 409; `expectedOccupantId`; quy đổi session khi đổi múi giờ. Chưa có báo cáo review sau sửa.
+
+### Kiểm chứng
+- Lần cập nhật docs này chưa chạy lại test. Số liệu test lấy từ báo cáo `plans/reports/reviewer-261114-phase07-scheduling.md` (chạy trước sửa): `tsc` pass; 26/26 test lịch trên Postgres local.
+- Báo cáo UI `plans/reports/ui-verifier-261114-phase-07.md` đọc code, không chạy trình duyệt.
+- Tài liệu: đối chiếu từng route, DTO, mã lỗi, quyền và setting với code (nguồn ghi trong từng doc). Link nội bộ của các doc đã sửa được kiểm bằng script.
+
+---
+
+## 2026-11-14 — Phase 08: site công khai, đợt 1 đến 3 (đã commit)
 
 ### Thêm
 - API public: `events`, `events/calendar`, `events/:slug`, `events/:slug/info`, `events/:slug/matches`, `events/:slug/matches/:matchNo`, `events/:slug/groups/:subEventCode`, `events/:slug/entries/:subEventCode`, `results/strip`, `site`, `sitemap`. Module `public-events` và `public-competition`. Chi tiết: [public-site](./public-site.md#api-công-khai).
@@ -40,7 +110,7 @@
 
 ---
 
-## 2026-11-13 — Phase 08 lát cắt: site công khai và trang nhánh đấu (chưa commit)
+## 2026-11-13 — Phase 08 lát cắt: site công khai và trang nhánh đấu (đã commit)
 
 ### Thêm
 - API công khai `GET /api/v1/public/events/:slug/draws/:subEventCode?kind=main|qualifying`. Module `public-competition`, guard `SsrInternalGuard` (header `x-internal-secret`), `publicScope` (`modules/public-scope/`), serializer whitelist `toPublicBracket`. Chi tiết: [system-architecture](./system-architecture.md#site-công-khai-phase-08).
@@ -96,7 +166,7 @@ Ghi chú, chưa đổi code: L2 (kiểm Host chỉ là lớp phụ, ghi rõ tron
 
 ---
 
-## 2026-11-13 — Phase 07 lát cắt: nhập tỷ số và revalidate cache (chưa commit)
+## 2026-11-13 — Phase 07 lát cắt: nhập tỷ số và revalidate cache (đã commit)
 
 ### Thêm
 - `@kamito/competition-engine`: `validateMatchScore`, `checkGame`, `gamesToWin` (`match-score-validator.ts`). Hàm thuần, có test.
@@ -137,7 +207,7 @@ Chưa sửa (ghi nợ):
 
 ### Chưa xong
 - Lịch thi đấu, session, bàn; lưu tiến độ ván dở (`save-progress`); hủy bắt đầu (`un-start`); sửa, mở lại và cưỡng chế tỷ số. Các mục này chưa có endpoint.
-- Chưa commit. Chưa deploy staging.
+- Đã commit. Chưa deploy staging.
 - Màn nhập tỷ số chưa thử trên trình duyệt, chưa thử ở 1024 px. Chưa chạy `ui-consistency:finding-patterns` và `verifying`.
 
 ### Kiểm chứng
@@ -148,7 +218,7 @@ Chưa sửa (ghi nợ):
 
 ---
 
-## 2026-11-13 — Phase 06: bốc thăm, hạt giống, vòng bảng, sinh nhánh (chưa commit)
+## 2026-11-13 — Phase 06: bốc thăm, hạt giống, vòng bảng, sinh nhánh (đã commit)
 
 ### Thêm
 - Package `@kamito/competition-engine`: hàm thuần, RNG có hạt. Sinh loại trực tiếp, vòng loại, vòng bảng (chia pot, lịch vòng tròn), BXH và phá hòa, xếp nhất/nhì bảng vào nhánh chính, kế hoạch rút lui. Chi tiết: [draws-and-groups](./draws-and-groups.md#engine-kamitocompetition-engine).
@@ -193,7 +263,7 @@ Chưa sửa hoặc chưa đối chiếu lại trong lần ghi tài liệu này:
 - L5, L7: chấp nhận và ghi nợ (chi phí đọc theo bảng; chưa có cache công khai để revalidate).
 
 ### Chưa xong
-- Chưa commit. Chưa deploy staging. Chưa chạy migration phase 06 trên staging.
+- Đã commit. Chưa deploy staging. Chưa chạy migration phase 06 trên staging.
 - Gate G1a (vị trí hạt giống) và G1b (chia bảng, phá hòa, rút lui giữa bảng) chưa được BTC xác nhận.
 - Mở, cần chủ giải chốt: khi người thắng vòng loại đã rút, hiện tự walkover ở MAIN. Có dùng lucky loser (người thua chung kết section thay vào) hay không.
 
@@ -203,7 +273,7 @@ Chưa sửa hoặc chưa đối chiếu lại trong lần ghi tài liệu này:
 
 ---
 
-## 2026-11-12 — Phase 05: VĐV, đăng ký, import Excel (chưa commit)
+## 2026-11-12 — Phase 05: VĐV, đăng ký, import Excel (đã commit)
 
 ### Thêm
 - Bốn migration: `20261112074412_add_players_pairs_competitors` (`Player`, `Pair`, `Competitor`, sequence `player_code_seq`, CHECK), `20261112074503_add_entries` (`Entry`), `20261112074532_add_import_jobs` (`ImportJob`, `ImportRow`), `20261112074553_add_player_merge` (`Player.mergedAt`, gộp VĐV).
@@ -250,13 +320,13 @@ Chưa sửa hoặc chưa đối chiếu lại trong lần ghi tài liệu này:
 - Sau sửa N1–N3: worker 30/30; 2 file e2e import 31/31 (có test riêng cho từng sửa, gỡ sửa thì test rớt); API đầy đủ 37 file 257/257 (một lần chạy). Nginx admin có location riêng cho upload import theo `IMPORT_MAX_FILE_BYTES`; admin test 5/5.
 
 ### Chưa xong
-- Chưa commit. Chưa deploy staging. Chưa chạy migration phase 05 trên staging.
+- Đã commit. Chưa deploy staging. Chưa chạy migration phase 05 trên staging.
 - Chưa có `cache-tags.ts` (phase 07). Hook chặn rút và import khi draw đã công bố còn trả rỗng (phase 06). Số trận trong xem trước gộp còn 0 (phase 06 và 07). Chuyển hướng 301 (phase 10).
 - Chưa thử file xlsx do Excel thật tạo.
 - Crash native `0xC0000409` trong test API chưa rõ nguyên nhân.
 - Các việc tiếp theo: xem [development-roadmap](./development-roadmap.md).
 
-## 2026-11-12 — Phase 04: dữ liệu gốc giải đấu, cấu hình, upload ảnh (chưa commit)
+## 2026-11-12 — Phase 04: dữ liệu gốc giải đấu, cấu hình, upload ảnh (đã commit)
 
 ### Thêm
 - Ba migration: `20261112061544_add_tournament_master_data` (8 danh mục, `Event`, `SubEvent`, `Venue`, `VenueTable`), `20261112061630_add_media_assets` (`MediaAsset`), `20261112070130_add_single_default_partial_indexes` (partial unique index cho `MatchFormat` và `GroupScoringRule`). Chỉ thêm bảng và index.
@@ -291,12 +361,12 @@ Chưa sửa hoặc chưa đối chiếu lại trong lần ghi tài liệu này:
 - Review 13:29 (`plans/reports/code-reviewer-261112-1329-phase-04-review.md`), điểm 7.5/10, không có mục Critical. Đối chiếu lại trong code (`plans/reports/project-manager-261112-1347-phase-04-sync.md`): H1, H2, M1 đến M5 đã có bằng chứng trong code. M6 còn một phần. Mục L chưa đối chiếu.
 
 ### Chưa xong
-- Chưa commit. Chưa deploy staging.
+- Đã commit. Chưa deploy staging.
 - Chưa kiểm sharp trên image Alpine. Chưa thử `STORAGE_DRIVER=s3` với bucket thật.
 - Chưa có `cache-tags.ts` (phase 07).
 - Các việc tiếp theo: xem [development-roadmap](./development-roadmap.md).
 
-## 2026-11-12 — Phase 03: đăng nhập admin, RBAC, users, /settings, nhật ký, khung admin (chưa commit)
+## 2026-11-12 — Phase 03: đăng nhập admin, RBAC, users, /settings, nhật ký, khung admin (đã commit)
 
 ### Thêm
 - Đăng nhập bằng email và mật khẩu qua Better Auth 1.7.21. Đăng ký tắt. Không dùng plugin admin. Raw handler chỉ nhận `POST /sign-in/email` và `POST /sign-out` (`apps/api/src/modules/auth/auth-raw-handler.ts`).

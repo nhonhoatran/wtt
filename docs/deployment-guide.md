@@ -1,6 +1,6 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-14 · Trạng thái: phase 01, code phase 03 đến 08 (chưa commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
+> Cập nhật: 2026-11-14 · Trạng thái: phase 01, code phase 03 đến 08 (đã commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
@@ -124,7 +124,7 @@ Quy tắc:
 | `REVALIDATE_SECRET` | api, client, worker | có | Khác `AUTH_SECRET`. Worker gửi trong header `x-revalidate-secret` khi gọi `/api/revalidate` của client |
 | `SSR_INTERNAL_SECRET` | api, client | có | Client gửi trong header `x-internal-secret` khi đọc `/api/v1/public/*`. API kiểm bằng `SsrInternalGuard`. Phải khác các secret còn lại (api kiểm trong `env-schema.ts`) |
 | `IP_HASH_SALT` | api | có | Hash IP của form liên hệ (phase 11) |
-| `CLIENT_INTERNAL_URL` | api, worker | có | Origin nội bộ của client, ví dụ `http://client:3000`. Compose đặt mặc định này khi không khai biến; code không có mặc định. Chỉ dùng origin, path con bị bỏ. Api chỉ kiểm định dạng, chưa dùng |
+| `CLIENT_INTERNAL_URL` | api, worker | có | Origin nội bộ của client, ví dụ `http://client:3000`. Compose đặt mặc định này khi không khai biến; code không có mặc định. Path con được giữ: `http://host/app` gọi `http://host/app/api/revalidate` (worker, `revalidateUrl()`; sửa 2026-11-14). Api chỉ kiểm định dạng, chưa dùng |
 | `REVALIDATE_TIMEOUT_MS` | worker | không | Mặc định 5000 (ms). Timeout mỗi lần gọi `/api/revalidate`. Compose truyền biến này (mặc định như code) |
 | `REVALIDATE_WORKER_CONCURRENCY` | worker | không | Mặc định 2. Số job revalidate chạy song song. Compose truyền biến này |
 | `PUBLIC_SITE_URL` | api, client, admin | có | Client: `metadataBase` (canonical, hreflang, Open Graph), sitemap, robots. API: kiểm `Origin` |
@@ -405,7 +405,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 8 | Client chưa truyền `ADMIN_PUBLIC_URL` trong compose (phase 01 bảng biến có ghi) | So sánh compose với bảng phase | Thêm nếu client cần đọc |
 | 9 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo chưa có remote | Quyết định 2026-11-12 | Push cuối dự án |
 | 10 | Tạo admin đầu tiên trong container `api` chưa kiểm chứng | [Tạo admin đầu tiên](#tạo-admin-đầu-tiên) | Thử trên staging |
-| 11 | Deploy staging và migration `20261112042429_add_users_and_auth_sessions` chưa chạy. Phase 04 thêm 3 migration: `20261112061544_add_tournament_master_data`, `20261112061630_add_media_assets`, `20261112070130_add_single_default_partial_indexes` | Phase 03 bước 13; phase 04; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md). Sau migrate chạy seed danh mục |
+| 11 | Deploy staging: chưa áp dụng migration nào trong 15 migration của repo, theo thứ tự tên (danh sách ở [system-architecture](./system-architecture.md#dữ-liệu)). Migration đầu là `20261112015704_init_app_settings_audit_log`. Phase 03 có `20261112042429_add_users_and_auth_sessions`. Phase 04 thêm 3 migration: `20261112061544_add_tournament_master_data`, `20261112061630_add_media_assets`, `20261112070130_add_single_default_partial_indexes` | Phase 03 bước 13; phase 04; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md). Sau migrate chạy seed danh mục |
 | 12 | Sharp trên image Alpine (`node:24.22.3-alpine3.23`) chưa kiểm chứng | Phase 04 | Build image rồi xử lý một ảnh thật trong container api và worker trước khi dựa vào upload |
 | 13 | `STORAGE_DRIVER=s3` với bucket thật chưa thử: tải, xử lý, xóa `incoming/`, đọc `public/` | Phase 04 | Thử trên staging. Nên dùng `S3_INCOMING_BUCKET` riêng để đóng cửa sổ phơi bày (xem [Bucket công khai](#bucket-công-khai)) |
 | 14 | ~~Nginx admin giới hạn `2m` cho route upload import~~ | Đã sửa 2026-11-12 | Location riêng theo `IMPORT_MAX_FILE_BYTES` (xem [Giới hạn import Excel](#giới-hạn-import-excel)) |
@@ -413,7 +413,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 16 | Test API có một lần crash native `0xC0000409` (1/6 lần chạy đầy đủ, Windows), chưa rõ nguyên nhân | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Chạy lặp với reporter verbose để tìm file cuối trước khi crash. Trùng với F1 phase 04 |
 | 17 | Chưa thử file xlsx do Excel thật tạo. Bộ test dùng file viết tay có cấu trúc giống Excel | `plans/reports/tester-261112-1436-phase-05-test-run-2.md` | Thêm một file mẫu nhỏ, không có dữ liệu thật, vào `apps/api/test/fixtures/` trước pilot |
 | 18 | Worker đọc sheet đầu theo tên `xl/worksheets/sheetN.xml`, không theo thứ tự tab. Nếu người dùng đổi thứ tự tab, kiểm header báo lỗi | `plans/reports/code-reviewer-261112-1436-phase-05-review-2.md` | Ghi rõ trong hướng dẫn cho BTC: sheet đăng ký phải là sheet đầu tiên của file |
-| 19 | Route `/api/revalidate` ở client đã có (phase 08 lát cắt, chưa commit). Chưa kiểm trên staging: worker gọi `client` qua mạng `internal` và Host khớp `REVALIDATE_ALLOWED_HOSTS` | [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08), review phase 08 | Deploy staging, chốt một trận hoặc bỏ công bố một nhánh, rồi xem job `revalidate` trong bull-board và trang công khai |
+| 19 | Route `/api/revalidate` ở client đã có (phase 08 lát cắt, đã commit). Chưa kiểm trên staging: worker gọi `client` qua mạng `internal` và Host khớp `REVALIDATE_ALLOWED_HOSTS` | [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08), review phase 08 | Deploy staging, chốt một trận hoặc bỏ công bố một nhánh, rồi xem job `revalidate` trong bull-board và trang công khai |
 | 20 | Phase 08 chưa lên staging (mốc M1): Playwright mới chạy trên máy dev, chưa chạy trên staging | [public-site](./public-site.md#việc-còn-mở) | Sau khi deploy: kiểm trang giải, nhánh, `robots.txt`, `sitemap.xml`, header CSP report-only trên domain staging |
 | 21 | Rate limit công khai và `forwardedHeaders` của Traefik chưa kiểm | Mục Traefik ở [Preflight hạ tầng](#preflight-hạ-tầng-trạng-thái) | Trên staging: gửi `X-Forwarded-For` giả từ client và xem IP mà client thấy. Chỉnh Traefik nếu nó tin header client |
 | 22 | `API_FETCH_TIMEOUT_MS` nằm ở env. Luật dự án yêu cầu tham số vận hành ở `/settings` | Phase 08, câu hỏi 4 | Chủ repo quyết: chuyển sang setting hoặc nêu lý do giữ env |

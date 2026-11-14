@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-14 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine), phase 08 (site công khai: query, metadata, cache công khai).
+> Cập nhật: 2026-11-14 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine), phase 07 (nhập và sửa tỷ số, lịch, revalidate cho mọi route ghi), phase 08 (site công khai: query, metadata, cache công khai).
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`, `apps/api/src/common/*`, `apps/worker/src/*`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -18,6 +18,9 @@
 - [Worker và queue](#worker-và-queue)
 - [Nghiệp vụ VĐV và import (phase 05)](#nghiệp-vụ-vđv-và-import-phase-05)
 - [Bốc thăm và vòng bảng (phase 06)](#bốc-thăm-và-vòng-bảng-phase-06)
+- [Lịch và nhập tỷ số (phase 07)](#lịch-và-nhập-tỷ-số-phase-07)
+- [Route ghi admin phải đăng ký tag](#route-ghi-admin-mới-phải-đăng-ký-tag)
+- [Cảnh báo ghi (warnings) ở admin](#cảnh-báo-ghi-warnings)
 - [Frontend](#frontend)
 - [Kiểm thử](#kiểm-thử)
 - [Git và commit](#git-và-commit)
@@ -42,6 +45,7 @@
 | Next.js / React | 16.4.3 / 19.3.1 | `apps/client/package.json` |
 | Vite / antd | 8.3.5 / 5.29.3 | `apps/admin/package.json` |
 | Refine | core 5.0.12, antd 6.0.3, router 2.0.4 | `apps/admin/package.json` |
+| `@dnd-kit` | core 6.3.1, sortable 10.0.0, utilities 3.2.2 | `apps/admin/package.json` (kéo thả trận trên lưới lịch, sắp thứ tự trong danh sách) |
 | react-router | 7.18.5 | `apps/admin/package.json` |
 | TipTap | 3.33.1 (`react`, `starter-kit`, `extension-link`, `pm`) | `apps/admin/package.json` (ô soạn rich text) |
 | Vitest | 5.0.5 | `apps/api`, `apps/worker`, `packages/shared`, `packages/ui-tokens` |
@@ -71,6 +75,7 @@ apps/
               modules/{events,sub-events,media}/   (phase 04)
               modules/{players,pairs,entries,imports,exports}/   (phase 05)
               modules/{draws,groups,matches,match-results,revalidation}/   (phase 06: nhánh, vòng bảng, đọc trận; phase 07: nhập tỷ số, revalidate)
+              modules/{sessions,scheduling}/   (phase 07: session, xếp lịch, phiếu trận)
               modules/public-competition/, modules/public-scope/, common/guards/   (phase 08: API nhánh đấu công khai, SsrInternalGuard)
               cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
     test/     *.e2e-spec.ts (dùng dependency thật), support/
@@ -179,6 +184,11 @@ Phân loại:
 | Bulk tạo bàn | 1–100 bàn mỗi request | `apps/api/src/modules/venues/venue-dtos.ts` | Một request một transaction (ghi chú trong code) |
 | Độ dài trường (tên 200, mã bàn 8, rich text 100 000 ký tự...) | theo từng DTO | `*-dtos.ts` | Ràng buộc với cột DB và giao diện, không phải chính sách |
 | Trần body JSON | tính từ `MAX_INFO_BODY` | `apps/api/src/common/http/json-body-limit.ts` | Phải đủ cho hai trường rich text tối đa. Nginx admin đặt `2m`, cũng phải lớn hơn |
+| Timeout enqueue revalidate | 2 giây | `packages/shared/src/revalidate-job-options.ts` | Hằng độ tin cậy nội bộ: khi Redis tắt, thao tác đã commit phải trả về nhanh với cảnh báo, không chờ. Dùng chung API và worker import |
+| Số lần thử và backoff revalidate | 5 lần; exponential từ 2 giây | `packages/shared/src/revalidate-job-options.ts` | Hằng độ tin cậy nội bộ. Revalidate idempotent, và trang vẫn hết TTL nếu mọi lần thử lỗi. Không phải tham số admin |
+| Timeout ghi trận | 30 giây (`MATCH_WRITE_TIMEOUT_MS`) | `apps/api/src/modules/match-results/match-write-runner.ts` | Giao dịch ghi trận giữ khóa Draw và Group. Transaction bị kẹt phải tự dừng trước khi client thử lại |
+| Timeout giao dịch lịch | 30 giây (`SCHEDULE_TX_TIMEOUT_MS`) | `apps/api/src/modules/scheduling/schedule-tx.ts` | Mặc định 5 giây của Prisma làm hỏng một lần sửa lịch hợp lệ khi phải chờ nhập tỷ số |
+| Trễ tìm kiếm trên admin | 300 ms (`SEARCH_DEBOUNCE_MS`) | `apps/admin/src/components/use-debounced-value.ts` | Cảm giác gõ phím, không phải chính sách. Ô kiểm slug có hằng riêng (`CHECK_DEBOUNCE_MS`, 400 ms) cũng giữ cố định cùng lý do |
 
 Giữ dạng env (chốt trong plan phase 04):
 
@@ -219,14 +229,14 @@ Giữ dạng env (chốt trong plan phase 04):
   - Controller có `@Public()` và `@UseGuards(SsrInternalGuard)`. Test "guards every /public controller" quét metadata và báo lỗi nếu thiếu guard.
   - Điều kiện công khai lấy từ `publicScope` (`modules/public-scope/public-scope.ts`). Không viết lại `where` trong từng query.
   - Serializer là whitelist: liệt kê từng trường (`toPublicBracket`), không spread entity. Thêm hoặc bớt trường thì cập nhật `EXPECTED_FIELDS` trong `public-bracket.e2e-spec.ts` (field snapshot).
-  - Nội dung không có, chưa công bố, hoặc query lạ: 200 `{data: null}`, không 404. Lý do: Next chỉ cache 200 ([system-architecture](./system-architecture.md#api-công-khai)).
+  - Nội dung không có, chưa công bố, hoặc query lạ: 200 `{data: null}`, không 404. Lý do: Next chỉ cache 200 ([system-architecture](./public-site.md#api-công-khai)).
 - Thư mục: `common/` cho hạ tầng dùng chung, `modules/<feature>/` cho nghiệp vụ.
 - **Lỗi** trả về một dạng duy nhất:
   ```json
   { "error": { "code": "INVALID_QUERY", "message": "Invalid pagination query", "fields": { "page": "..." } } }
   ```
   `fields` chỉ có khi lỗi validate từng trường. Lỗi 500 luôn trả `INTERNAL_ERROR`, không lộ chi tiết.
-  Lỗi 409 có thể kèm khóa chi tiết. Filter chỉ giữ các khóa trong whitelist `DETAIL_KEYS` (`common/filters/http-exception.filter.ts`): `currentVersion`, `pendingSections`, `pendingGroups`, `groups`, `entryIds`, `withdrawnEntryIds`, `missingEntryIds`. Khóa mới phải thêm vào whitelist, nếu không sẽ bị bỏ khỏi phản hồi.
+  Lỗi 409 có thể kèm khóa chi tiết. Filter chỉ giữ các khóa trong whitelist `DETAIL_KEYS` (`common/filters/http-exception.filter.ts`): `currentVersion`, `pendingSections`, `pendingGroups`, `groups`, `entryIds`, `withdrawnEntryIds`, `missingEntryIds`, `dirtySubEvents`, `preview`. Khóa mới phải thêm vào whitelist, nếu không sẽ bị bỏ khỏi phản hồi.
 - **Mã HTTP theo loại lỗi:**
 
   | Loại | HTTP | Ví dụ `code` |
@@ -237,6 +247,8 @@ Giữ dạng env (chốt trong plan phase 04):
   | Xung đột trạng thái: đang được dùng, mặc định, đã công bố, phiên tải ảnh, đã đăng ký, đã gộp | 409 | `IN_USE`, `IS_DEFAULT`, `EVENT_PUBLISHED`, `DEFAULT_CHANGED`, `INTENT_EXPIRED`, `ALREADY_ENTERED`, `SEED_TAKEN`, `PLAYER_MERGED`, `MERGE_RETRY`, `MERGE_CONFLICT`, `NOT_COMMITTABLE` |
   | Có quyền vào màn hình nhưng không đủ quyền cho một tham số (ghi đè chỉ ADMIN) | 403 | `OVERRIDE_FORBIDDEN`, `OVERRIDE_ADMIN_ONLY` |
   | Phiên bản nhánh hoặc bảng lệch (`expectedVersion`) | 409 | `DRAW_VERSION_CONFLICT`, `GROUP_VERSION_CONFLICT` (kèm `currentVersion`) |
+  | Phiên bản trận hoặc lịch lệch; ô đã có trận; session đã đủ; tranh chấp khóa (deadlock, serialization) | 409 | `MATCH_VERSION_CONFLICT`, `SCHEDULE_VERSION_CONFLICT` (kèm `currentVersion`), `SCHEDULE_SLOT_OCCUPIED`, `SESSION_FULL`, `CONCURRENT_UPDATE_RETRY` ("thử lại") |
+  | Mở lại tỷ số: ảnh hưởng đã đổi hoặc đang bị chặn (kèm `preview`); cần nhập lại mật khẩu; chỉ ADMIN cưỡng chế | 409, 403 | `REOPEN_BLOCKED`, `REOPEN_IMPACT_CHANGED`; `STEP_UP_REQUIRED`, `FORCE_REOPEN_ADMIN_ONLY` |
   | File import: quá lớn, sai loại, rỗng | 413, 415, 422 | `PAYLOAD_TOO_LARGE`, `CONTENT_TYPE_MISMATCH`, `EMPTY_UPLOAD` |
   | Không tìm thấy | 404 | `EVENT_NOT_FOUND`, `TIER_NOT_FOUND` |
 
@@ -375,6 +387,7 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
 - **Job id cố định khi cần chống trùng:** `media-<mediaId>`. Trước khi `add`, xóa job cũ cùng id (`queue.remove`), vì BullMQ bỏ qua `add` khi job cùng id còn tồn tại.
 - **Retry:** job ảnh tối đa 3 lần, backoff exponential từ 5 giây. Lỗi tạm thời (storage, DB) để dữ liệu tạm cho lần sau. Hết lượt thử thì worker đặt trạng thái cuối (`FAILED`) và xóa dữ liệu tạm. Nếu worker chết giữa chừng, job dọn định kỳ đảm nhận.
 - **Job lặp:** dùng `upsertJobScheduler` với id cố định (`media-intent-cleanup`), không dùng `setInterval`.
+- **Revalidate** (queue `revalidate`): `revalidateTagsJobs` (`packages/shared/src/revalidate-job-options.ts`) chia tối đa 200 tag mỗi job, `jobId` duy nhất `reval-<uuid>`, hằng timeout dùng chung `REVALIDATE_ENQUEUE_TIMEOUT_MS`. Lỗi vĩnh viễn (payload sai) không retry. Chi tiết: [cache-revalidation](./cache-revalidation.md#hàng-đợi-và-thử-lại).
 - BullMQ là dependency của `apps/api` và `apps/worker` (xem [Toolchain](#toolchain-đã-ghim)). Khi thêm queue mới, kiểm license và mức bảo trì như mục [Thư viện mới](#thư-viện-mới).
 
 ## Nghiệp vụ VĐV và import (phase 05)
@@ -403,6 +416,33 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
 - **Mã trận** lấy từ `allocateMatchNumbers` dưới khóa dòng `EventMatchCounter`. Không tự đếm `matchNo` từ `max + 1`.
 - **Lỗi engine** là `DrawParamsError(code)`, đổi thành 422 bằng `runEngine` với cùng `code`. Không ném lỗi engine ra thẳng.
 
+## Lịch và nhập tỷ số (phase 07)
+
+- **Thứ tự khóa:** `SubEvent` → `Draw` → `Group` → `EventSession` → `Match`. Lịch dùng `lockScheduleScope` (`apps/api/src/modules/scheduling/schedule-locks.ts`), nhập tỷ số dùng `loadMatchLocked` và `loadMatchLockedAcrossDraws`. Đoạn code mới khóa `EventSession` hoặc `Match` phải theo đúng thứ tự này. Chi tiết: [system-architecture](./system-architecture.md#thứ-tự-khóa-phase-07).
+- **Hai khóa phiên bản tách nhau:** `scheduleVersion` cho lịch, `Match.version` cho kết quả. Không dùng một cột cho cả hai.
+- **Giờ trận:** tính lại bằng `recomputeSessionTimes` (một câu UPDATE theo tập giá trị) sau mọi thao tác đổi ô hoặc giờ. Trận `LIVE` và `OFFICIAL` giữ `scheduledAt`.
+- **Timeout tường minh:** transaction xếp lịch và nhập tỷ số khai `SCHEDULE_TX_TIMEOUT_MS` hoặc `MATCH_WRITE_TIMEOUT_MS` (30 giây). Không dùng mặc định 5 giây của Prisma.
+- **Giải phóng ô:** khi trận không còn đấu được (void, bỏ công bố, dựng lại nhánh), phải gọi `releaseScheduleSlots`. Thiếu lời gọi thì session không xóa được và ô bị chiếm.
+- **Xung đột lịch chỉ cảnh báo:** `computeScheduleConflicts` không được dùng để chặn xếp lịch.
+- **Múi giờ:** lưu instant UTC, đọc theo múi giờ của giải. Đổi múi giờ gọi `reconvertSessionsTimezone` trong cùng transaction với thao tác đổi.
+- **Ảnh hưởng khi mở lại tỷ số:** chỉ tính ở `computeReopenImpact` (`packages/competition-engine/src/reopen-impact.ts`). Không viết lại logic này trong service.
+
+Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
+
+## Route ghi admin mới phải đăng ký tag
+
+- Mọi route `POST`, `PUT`, `PATCH`, `DELETE` dưới `/admin` phải có một dòng trong `ROUTE_TAG_RULES` (`apps/api/src/modules/revalidation/route-tag-coverage.ts`): `tags(...)` hoặc `none(lý do)`.
+- Route làm đổi thứ trang công khai hiển thị: thêm mutation vào `CACHE_TAGS` (`cache-tags.ts`), gọi `RevalidationEnqueueService.enqueue` **sau commit**, và đặt tên mutation đó trong mã nguồn. Thiếu bất kỳ bước nào thì `apps/api/test/cache-tags-coverage.e2e-spec.ts` rớt.
+- `none` phải nêu lý do cụ thể, và lý do phải đúng với code. Test chỉ kiểm có lý do, không kiểm lý do đúng hay sai. Người review phải đối chiếu code. Đã có một lý do sai (xem [cache-revalidation](./cache-revalidation.md#khe-hở-đã-biết)).
+- Lỗi enqueue không rollback thao tác đã commit. Không gửi tag bên trong transaction.
+- Route mới trả `warnings` thì admin hiện qua helper ở mục dưới.
+
+### Cảnh báo ghi (warnings)
+
+- Mọi mutation trả `warnings` phải hiện qua `apps/admin/src/api/write-warnings.ts`: `showWarnings(message, warnings)` và `warningsOf(response)`. Không tự đọc `warnings` ở từng trang.
+- Mã mới thêm vào `WARNING_LABELS`. Mã chưa có nhãn thì hiện đúng chuỗi mã, nên nhãn nên được thêm trước khi đưa route ra.
+- Nhãn nói "Đã lưu". Chỉ dùng cho thao tác có ghi dữ liệu. Thao tác chỉ gửi lệnh (ví dụ "Làm mới trang công khai") cần nhãn riêng.
+
 ## Frontend
 
 - **Client (Next.js):**
@@ -419,6 +459,9 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
   - Không đọc URL từ biến build-time. Đọc `/config.json` lúc chạy (`runtime-config.ts`). Container sinh file này khi start.
   - Chỉ gọi `/api/v1/admin/*` và `/api/v1/auth/*`. Cùng khớp với proxy trong `vite.config.ts` và nginx.
   - Ô tải ảnh, ô rich text, ô slug, và hộp xác nhận hành động nguy hiểm là component dùng chung trong `components/`. Không viết lại trong từng resource.
+  - Danh sách sắp thứ tự dùng `SortableListField` (`components/sortable-list-field.tsx`), ô tìm kiếm có trễ dùng `useDebouncedValue` (`components/use-debounced-value.ts`). `AuthGate` (`components/auth-gate.tsx`) chỉ đẩy về `/login` khi `/auth/me` trả 401; lỗi khác hiện nút thử lại.
+  - Lựa chọn lọc được nhớ trong localStorage theo khóa `kamito.admin.<khu vực>.<tên>` (ví dụ `kamito.admin.results.status`). Storage bị chặn thì lựa chọn chỉ không được nhớ, trang vẫn dùng được.
+  - CSS in ấn nằm trong module riêng của trang (`match-sheets-print.module.css`), không đặt global, để không làm đổi kiểu của các trang admin khác.
 - **Design token:** sửa màu, bo góc, khoảng cách ở `packages/ui-tokens/src/tokens.ts`. Không hard-code hex trong component.
   - `tokens.css` sinh bởi `scripts/write-tokens-css.mjs` lúc build. Client import qua `@kamito/ui-tokens/tokens.css`.
   - Theme antd lấy từ `@kamito/ui-tokens/antd-theme`.
@@ -430,7 +473,7 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
 |---|---|---|---|
 | api, worker, shared, ui-tokens | Vitest 5 | `pnpm test` (qua turbo) | Không dùng Jest |
 | api (Nest) | Vitest + `unplugin-swc` | `pnpm --filter @kamito/api test` | SWC để giữ decorator metadata; esbuild không làm được |
-| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (35 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
+| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (67 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Chạy 2026-11-14 (dev worker đã dừng): 67/67 file, 420 test. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |
@@ -438,6 +481,9 @@ Sanitize lại khi render là yêu cầu của site công khai. Trang nhánh đ�
 
 Quy tắc:
 - E2E cần dependency dev đang chạy (`docker-compose.dev.yml`). CI có service container Postgres 17.11, Redis 8.2.11 và RustFS 1.0.4.
+- **Dừng dev worker trước khi chạy api e2e.** Worker dev lấy job import của test, nên test import rớt không rõ lý do. Chạy xong mới bật lại.
+- **Kiểm hàng đợi `revalidate` trong test:** dùng `apps/api/test/support/revalidate-queue-probe.ts` (`tagsSince`, `removeOwn`). Helper chỉ đọc 300 job mới nhất mỗi trạng thái và xóa job do chính test tạo. Không quét cả hàng đợi: hàng đợi local có thể có hàng nghìn job chưa xử lý, quét đủ sẽ timeout.
+- Vitest trên Windows có thể crash native (`0xC0000409`) và làm mất output của một chunk. Chạy lại chunk đó. Không bỏ qua nếu chunk còn assertion lỗi.
 - `vitest.config.ts` của api nạp `../../.env` nếu có. CI đặt env trực tiếp.
 - Không mock để qua build. Test lỗi phải kiểm lỗi thật.
 - Test upload ảnh đi qua luồng API thật (intent → content → complete) với file JPEG thật. Tester ghi nhận một test ảnh 3 MB chạy khoảng 644 ms (báo cáo 2026-11-12 13:29).
@@ -454,7 +500,7 @@ Lint: ESLint 10 (flat config). `apps/api`, `apps/admin`, `apps/client` có `esli
   feat: add audit log service with PII masking
   fix: reject placeholder secrets at boot
   ```
-- Lịch sử commit: xem `git log`. Code phase 04 chưa commit (kiểm 2026-11-12).
+- Lịch sử commit: xem `git log`. Code phase 01 đến 08 đã commit (kiểm 2026-11-14).
 - Repo chưa có remote (kiểm 2026-11-12). Đã chốt: chỉ commit cục bộ, push khi kết thúc dự án. Trước khi thêm remote, xác nhận lại tài khoản GitHub, email commit, tên repo.
 - Tài khoản dự kiến cho repo này: `midomax-hoa`, SSH host alias `github.com` (chưa thêm remote, chưa xác nhận lại). Không dùng URL HTTPS. Email commit đặt bằng `git config user.email` mức repo, không đặt `--global`.
 - Không commit `.env`, `packages/db/src/generated/`, `dist/`, `.next/`, `.turbo/`, `coverage/`, `apps/api/uploads/`.

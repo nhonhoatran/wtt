@@ -1,7 +1,7 @@
 # Đăng nhập, phân quyền và API quản trị — Kamito
 
-> Cập nhật: 2026-11-12 · Phạm vi: phase 03 (code chưa commit, chưa deploy staging).
-> Nguồn đối chiếu: `apps/api/src/modules/{auth,access-control,users,settings,audit-logs,queue}`, `apps/api/src/cli/`, `packages/shared/src/{permissions,auth-settings,list-settings,app-setting-registry}.ts`, `packages/db/prisma/schema/auth.prisma`.
+> Cập nhật: 2026-11-14 · Phạm vi: phase 03 (đã commit, chưa deploy staging), cộng thay đổi phase 07 (step-up khi mở lại tỷ số, quyền theo màn lịch và kết quả, AuthGate của admin).
+> Nguồn đối chiếu: `apps/api/src/modules/{auth,access-control,users,settings,audit-logs,queue}`, `apps/api/src/cli/`, `packages/shared/src/{permissions,auth-settings,list-settings,app-setting-registry,tournament-settings,public-site-settings,ranking-settings}.ts`, `packages/db/prisma/schema/auth.prisma`, `apps/admin/src/components/auth-gate.tsx`, `apps/admin/src/providers/auth-provider.ts`.
 > Kiến trúc tổng thể xem [system-architecture.md](./system-architecture.md). Triển khai và tạo admin đầu tiên xem [deployment-guide.md](./deployment-guide.md#tạo-admin-đầu-tiên).
 
 ## Contents
@@ -63,6 +63,18 @@ Mọi route khác dưới `/api/v1/auth/*` (kể cả `/sign-in/email/`, hoa th�
 - Polling của bull-board không làm mới `lastSeenAt` (xem [Hàng đợi](#hàng-đợi-bull-board)).
 - Token phiên lưu thô trong bảng `Session` (mặc định của Better Auth). Lộ dump DB = lộ phiên còn hạn. Đã ghi nhận ở [Giới hạn đã biết](#giới-hạn-đã-biết).
 
+### Admin: khi `/auth/me` lỗi
+
+Nguồn: `apps/admin/src/components/auth-gate.tsx`, `apps/admin/src/providers/auth-provider.ts`.
+
+| Kết quả của `/auth/me` | Hành vi admin |
+|---|---|
+| 200 | Vào trang |
+| 401 | Xóa thông tin người dùng đã nhớ, về `/login`, ghi lý do (`SESSION_EXPIRED`, `SESSION_IDLE_TIMEOUT`, ...) |
+| 5xx, mất mạng, lỗi khác | Không đăng xuất. Hiện màn hình "Không kết nối được máy chủ" với nút "Thử lại" |
+
+Chỉ 401 đưa người dùng về trang đăng nhập. Trước đây mọi lỗi đều bị coi là hết phiên, nên một lần máy chủ trả 5xx làm người vận hành mất trang đang nhập dở.
+
 ### Kiểm Origin
 
 - Better Auth kiểm Origin với `trustedOrigins = origin của ADMIN_PUBLIC_URL` (`disableOriginCheck: false`).
@@ -92,7 +104,7 @@ Khai báo ở `modules/access-control/access-decorators.ts` và `modules/auth/au
 | `@RequireSession()` | Cần đăng nhập, không cần quyền riêng | `GET /auth/me` (qua `AuthController`) |
 | `@RequirePermission(resource, action)` | Cần quyền trong ma trận | Mọi route admin |
 | `@AllowPendingPasswordChange()` | Dùng được khi đang có mật khẩu tạm | `/auth/me`, `/auth/change-password` |
-| `@RequireStepUp()` | Cần nhập lại mật khẩu gần đây | Hiện **chưa gắn route nào** (kiểm 2026-11-12) |
+| `@RequireStepUp()` | Cần nhập lại mật khẩu gần đây | `POST /admin/matches/:id/reopen` (phase 07), `POST /admin/players/merge` (phase 05), `POST /admin/ranking-points...` và `POST /admin/ranking-snapshots/:id/publish` (phase 09). Chưa gắn cho `PUT /admin/settings/:key` và `POST /admin/users/:id/reset-password` (quyết định của chủ repo, xem [Giới hạn đã biết](#giới-hạn-đã-biết)) |
 
 Route Nest không có decorator nào → bị từ chối (deny-by-default).
 
@@ -115,6 +127,9 @@ Nguồn duy nhất: `packages/shared/src/permissions.ts` (`PERMISSION_MATRIX`). 
 - `reopen` và `publish` chỉ có ở ADMIN (ghi chú trong ma trận: thao tác mở lại kết quả là đặc quyền ADMIN).
 - Phase 05: VĐV, cặp đôi và gộp VĐV dùng `players` (gộp cần `manage` và step-up). Đăng ký, import và export dùng `tournaments`. `RESULTS_OPERATOR` xem được đăng ký và lịch sử import, nhưng không tạo lượt import, không đăng ký, không gộp.
 - `players.update` quyết định có thấy SĐT, email và ngày sinh của VĐV không (xem [system-architecture](./system-architecture.md#quyền-xem-dữ-liệu-cá-nhân)).
+- Phase 07, nhập và sửa tỷ số: `matches.list`, `read`, `update`, `confirm`, `amend`. `RESULTS_OPERATOR` có đủ, trừ `reopen`.
+- Phase 07, lịch: session và xếp lịch dùng `tournaments.*`. `RESULTS_OPERATOR` không xếp được lịch (`PATCH /admin/matches/:id/schedule` yêu cầu `tournaments.update`). Xuất lịch và kết quả cần `tournaments.list`. Phiếu trận cần `matches.list`.
+- Phase 07, làm mới trang công khai (`POST /admin/events/:id/revalidate`): `tournaments.update`.
 - Thêm resource ở phase sau: thêm vào `PERMISSION_RESOURCES`, không thêm vai trò mới.
 
 **Ánh xạ action của Refine** (`apps/admin/src/providers/access-control-provider.ts`): `list`→`list`, `show`→`read`, `create`→`create`, `edit`→`update`, `delete`→`delete`.
@@ -165,7 +180,7 @@ Hai API:
 - Key không có hoặc không cho sửa → 404 `SETTING_NOT_FOUND`.
 - Cache trong từng replica 10 giây. Replica ghi thấy thay đổi ngay, replica khác thấy sau tối đa 10 giây.
 
-**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`):
+**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`, `public-site-settings.ts`, `ranking-settings.ts`, `player-settings.ts`, `import-operational-settings.ts`). Cột "Nhóm" là tên nhóm trong code:
 
 | Key | Nhóm | Mặc định | Khoảng | Đơn vị |
 |---|---|---|---|---|
@@ -198,6 +213,21 @@ Hai API:
 | `import.maxRows` | imports | 5000 | 1–100000 | dòng (kẹp theo `IMPORT_MAX_ROWS`) |
 | `import.retentionDays` | imports | 30 | 1–365 | ngày. Hết hạn thì xóa file, giữ lịch sử |
 | `import.uploadTtlHours` | imports | 24 | 1–168 | giờ. Lượt chưa tải file quá hạn thì thành `FAILED` |
+| `schedule.minRestMinutes` | event | 20 | 0–240 | phút. Nghỉ tối thiểu giữa hai trận của một VĐV, ngắn hơn thì cảnh báo trùng lịch (chỉ cảnh báo) |
+| `schedule.sessionMatchCap` | event | 500 | 50–2000 | trận. Số trận tối đa một session |
+| `header.resultsStrip.limit` | display | 10 | 1–30 | trận trên dải kết quả |
+| `public.listPageSize` | display | 24 | 6–48 | mục mỗi trang danh sách công khai |
+| `public.rateLimit.windowSeconds` | publicAccess | 60 | 10–3600 | giây. Cửa sổ đếm của rate limit công khai |
+| `public.rateLimit.maxRequests` | publicAccess | 600 | 30–100 000 | trang mỗi IP trong cửa sổ |
+| `public.rateLimit.searchMaxRequests` | publicAccess | 60 | 5–10 000 | lần tìm kiếm mỗi IP trong cửa sổ |
+| `public.rateLimit.maxTrackedIps` | publicAccess | 100 000 | 1 000–1 000 000 | IP được theo dõi trong bộ nhớ |
+| `draw.defaultSeedPercent` | draw | 25 | 5–50 | % VĐV được gieo hạt khi sinh nhánh |
+| `draw.defaultGroupSize` | draw | 4 | 3–16 | VĐV mỗi bảng |
+| `draw.defaultAdvancePerGroup` | draw | 2 | 1–2 | VĐV đi tiếp mỗi bảng |
+| `draw.defaultQualifierCount` | draw | 4 | 1–64 | suất vòng loại |
+| `ranking.defaultValidityDays` | ranking | 365 | 1–3650 | ngày. Điểm hết hạn sau số ngày này kể từ ngày kết thúc giải (phase 09) |
+| `ranking.awardPointsOnWalkoverLoss` | ranking | tắt | bật/tắt | Tắt thì VĐV thua walkover ở trận thật đầu tiên không được điểm vòng đó (phase 09) |
+| `ranking.dirtySweepAgeMinutes` | ranking | 5 | 1–1440 | phút. Nội dung có dấu cần tính lại cũ hơn mức này thì được xếp lại vào hàng đợi (phase 09) |
 
 Mã VĐV mới = `player.codePrefix` + số thứ tự từ sequence, đệm `player.codeDigits` chữ số. Đổi tiền tố không đổi mã đã cấp.
 
@@ -242,6 +272,14 @@ Ràng buộc:
 - `page` tối đa 10 000.
 - `q` tối đa `QUERY_MAX_LENGTH` ký tự (env, mặc định 100).
 
+### Nghiệp vụ giải đấu
+
+Các route nghiệp vụ không liệt kê ở đây. Quyền của từng route nằm trong ma trận ở trên, và danh sách route nằm ở tài liệu tương ứng:
+- Bốc thăm, nhánh, bảng: [draws-and-groups](./draws-and-groups.md#api).
+- Nhập, sửa, mở lại tỷ số: [match-results](./match-results.md#api).
+- Session, xếp lịch, phiếu trận, xuất lịch và kết quả: [scheduling](./scheduling.md#api).
+- Làm mới trang công khai và tag cache: [cache-revalidation](./cache-revalidation.md).
+
 ## Hàng đợi (bull-board)
 
 - Đường dẫn: `/api/v1/admin/queues`. Mount bằng Express trước Nest (`queue/bull-board-mount.ts`). Nginx admin chuyển tiếp `/api/v1/admin/*` nên đường này truy cập được từ domain admin.
@@ -276,7 +314,7 @@ Danh sách lấy từ review phase 03 (`plans/reports/code-reviewer-261112-phase
 | L9 | CLI `create-admin` không xóa khóa Redis của tài khoản | **Còn mở** |
 | L10 | Diff khi cập nhật user đọc ngoài transaction | **Còn mở** |
 | L11 | Token phiên lưu thô trong DB | Ghi nhận (mặc định Better Auth) |
-| — | `@RequireStepUp` chưa gắn route. Đề xuất gắn cho settings và reset-password | **Còn mở** (quyết định của chủ repo) |
+| — | `@RequireStepUp` chưa gắn cho `PUT/DELETE /admin/settings/:key` và `POST /admin/users/:id/reset-password`. Đã gắn cho gộp VĐV, mở lại tỷ số, và điểm/chụp xếp hạng | **Còn mở** (quyết định của chủ repo) |
 | — | E2E (`apps/api/test/*.e2e-spec.ts`, 13 file) | Đã chạy 2026-11-12 trên Postgres + Redis dev local: API 18 file / 87 test pass |
 | — | CLI `create-admin` chết ở câu hỏi thứ hai khi stdin là pipe | Đã sửa (một line reader dùng chung, có test) |
 

@@ -21,17 +21,22 @@ created: 2026-11-11
 
 ## Phases
 
-Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lát cắt; chưa deploy staging. Phase 06 làm trước khi G1a/G1b được BTC trả lời (sai lệch so với cổng, xem phase 06). Phase 07 đã xong lát cắt (2026-11-13, chưa deploy staging). Phase 08 đã xong lát cắt bước 1–3 (2026-11-13) và phần không bị chặn của đợt 1–3 (2026-11-14); M1 và M2 chưa đạt vì thiếu staging (Playwright đã có). Phần còn lại phase 07 và 08 làm sau. Sync phase 03–08: 2026-11-13.
+Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lát cắt; chưa deploy staging. Phase 06 làm trước khi G1a/G1b được BTC trả lời (sai lệch so với cổng, xem phase 06). Phase 07 hoàn thành phạm vi (2026-11-14, chưa deploy staging; còn đo staging và deploy). Phase 04–07 đã có verifying UI (phase 04, 06, 07 xác nhận 2026-11-14). Phase 05 còn mở: file Excel thật, staging và pilot.
+
+<!-- Debt fixes sync — 2026-11-14 -->
+- Đã đóng (commit `c449c75`..`608d948`, kiểm trong code): tag `match-*` và `player-*` khi công bố, gỡ, rút/đổi entry sau công bố; `place-qualifiers` và `place-group-qualifiers` trên MAIN đã công bố gửi tag (`draw.placeQualifiers`); L6 import (kiểm draw trong transaction từng lô, phase 05); L8 thể thức theo vòng (`pickMatchFormat`); L11 path con của `CLIENT_INTERNAL_URL`; L13 picker giải tìm kiếm phía server; L12 quyết định giữ fix cứng cho hằng độ tin cậy nội bộ (có comment lý do); engine: ván dở cuối của RETIRED/DISQUALIFIED không tính là ván thắng trong BXH; e2e RETIRED có ván dở và Redis tắt → `PUBLIC_REFRESH_DELAYED`.
+- Còn mở: đo và deploy staging; G1b; file Excel thật; mục thiết kế (màu focus, chữ "session", nhảy 76 px khi mở hộp thoại, cảm biến bàn phím cho kéo thả); e2e Q → BYE → R2 khi reopen (hiện chỉ unit).
+ Phase 08 đã xong lát cắt bước 1–3 (2026-11-13) và phần không bị chặn của đợt 1–3 (2026-11-14); M1 và M2 chưa đạt vì thiếu staging (Playwright đã có). Phần còn lại phase 08 làm sau. Sync phase 04–07: 2026-11-14; phase 03 và 08: 2026-11-13.
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
 | 1 | [Nền móng: monorepo, compose, Dokploy, staging, design token](./phase-01-foundation-monorepo-compose-dokploy-design-tokens.md) | 1–2 | 6 | In progress (code xong; chờ hạ tầng; chưa qua cổng ra) |
 | 2 | [Spike: Refine + antd 5, Better Auth, phát hành Dokploy, revalidate Next.js](./phase-02-spikes-refine-antd-better-auth-dokploy-nextjs-revalidation.md) | 1–2 | 3,5 | In progress (B/C/E đạt; D chờ staging) |
 | 3 | [Đăng nhập admin, RBAC, người dùng, khung admin](./phase-03-admin-auth-rbac-users-and-admin-shell.md) | 2–3 | 5,5 | Hoàn thành (chưa deploy staging) |
-| 4 | [Dữ liệu gốc giải đấu + cấu hình + upload ảnh + sanitizer](./phase-04-tournament-master-data-config-and-media-upload.md) | 4 · 7–8 | 2 + 6 | Hoàn thành (chưa deploy staging; làm trọn 2026-11-12) |
-| 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: test chặn import theo draw, tag revalidate entry/VĐV/gộp/import chưa đăng ký, file Excel thật) |
-| 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; còn mở: revalidate, màn admin chưa chạy trên trình duyệt) |
-| 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | In progress (lát cắt xong 2026-11-13, chưa deploy staging; chưa test trình duyệt màn nhập tỷ số; phần còn lại tuần 11–12 chưa làm) |
+| 4 | [Dữ liệu gốc giải đấu + cấu hình + upload ảnh + sanitizer](./phase-04-tournament-master-data-config-and-media-upload.md) | 4 · 7–8 | 2 + 6 | Hoàn thành (chưa deploy staging; làm trọn 2026-11-12; verifying UI xong 2026-11-14; còn: deploy staging) |
+| 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: file Excel thật, staging + pilot) |
+| 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; màn admin browser-tested 2026-11-14; còn mở: deploy staging, nhánh đấu và vòng bảng chưa hiệu chỉnh UI) |
+| 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Hoàn thành (chưa deploy staging; xong 2026-11-14; còn: đo staging, deploy staging, Q → BYE → R2 khi reopen (e2e), mục thiết kế UI) |
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (phần không bị chặn xong 2026-11-14: bản in, SEO, rate limit, CSP report-only, Playwright 34 pass; còn bước 4 staging → M1/M2 chưa đạt; còn lịch session/bàn + bản in lịch chờ phase 07; chưa deploy staging) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | Pending |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | Pending |
@@ -60,7 +65,7 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 
 - Chuỗi (1 người): 1 ∥ 2 → 3 → 4 (xong) → lát cắt (5 → 6 → 7 → 8) → M1 → 5 → pilot → [G1b] 6 → 7 → 8 → M2 → [G2] 9 → 10 → 11 → 12. Spike E quyết định revalidate ở 7, 8, 10.
 - Phase 03 code trước khi cổng phase 01 đạt: chờ chủ repo chốt tiếp tục hay dừng deploy (xem phase 03).
-- **Blocker (2026-11-13):** phase 02–08 đều chưa deploy staging vì cổng phase 01 chưa đạt (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
+- **Blocker (cập nhật 2026-11-14, vẫn chưa gỡ):** phase 02–08 đều chưa deploy staging vì cổng phase 01 chưa đạt; phase 04–07 đã xong code và verifying nhưng không deploy được (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
 - Điều kiện ngoài: chủ repo chốt tài khoản GitHub, email, tên repo; chủ hạ tầng trả lời preflight; tên miền; brand + logo vector; BTC trả lời G1a/G1b/G2; ngày bắt đầu + lịch Tết.
 
 ## Ràng buộc cứng (áp dụng mọi phase)
