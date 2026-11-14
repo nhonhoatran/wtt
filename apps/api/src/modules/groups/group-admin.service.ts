@@ -3,10 +3,13 @@ import type { Prisma } from '@kamito/db';
 import { AuditService } from '../../common/audit/audit.service.js';
 import type { ManualRanksBody } from '../draws/draw-dtos.js';
 import { conflict, invalid } from '../draws/draw-errors.js';
-import { assertGroupsNotPlaced } from '../draws/groups-placed-guard.js';
+import { loadDrawTagContext } from '../draws/draw-tag-context.js';
+import { assertGroupNotPlaced } from '../draws/groups-placed-guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { GroupStandingsService } from './group-standings.service.js';
 import { GroupViewService } from './group-view.service.js';
 
@@ -24,6 +27,7 @@ export class GroupAdminService {
     private readonly standings: GroupStandingsService,
     private readonly views: GroupViewService,
     private readonly ranking: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   private async storedState(tx: Tx, groupId: string) {
@@ -38,7 +42,7 @@ export class GroupAdminService {
   async setManualRanks(groupId: string, body: ManualRanksBody) {
     const dirty = await this.prisma.$transaction(async (tx) => {
       const { draw, group } = await this.standings.lockForWrite(tx, groupId);
-      await assertGroupsNotPlaced(tx, draw.subEventId, GROUPS_PLACED_MESSAGE);
+      await assertGroupNotPlaced(tx, draw.subEventId, groupId, GROUPS_PLACED_MESSAGE);
       if (group.version !== body.expectedVersion) {
         throw conflict('GROUP_VERSION_CONFLICT', 'Bảng vừa được người khác thay đổi. Tải lại rồi thao tác lại', { currentVersion: group.version });
       }
@@ -68,7 +72,7 @@ export class GroupAdminService {
   async recompute(groupId: string) {
     const dirty = await this.prisma.$transaction(async (tx) => {
       const { draw, group } = await this.standings.lockForWrite(tx, groupId);
-      await assertGroupsNotPlaced(tx, draw.subEventId, GROUPS_PLACED_MESSAGE);
+      await assertGroupNotPlaced(tx, draw.subEventId, groupId, GROUPS_PLACED_MESSAGE);
       const before = await this.storedState(tx, groupId);
       const { result, version } = await this.standings.recompute(tx, groupId);
       await this.audit.record(
@@ -87,7 +91,9 @@ export class GroupAdminService {
   }
 
   private async respond(groupId: string, dirty: string[]) {
-    const warnings = await this.ranking.enqueueRecompute(dirty);
+    const { drawId } = await this.prisma.group.findUniqueOrThrow({ where: { id: groupId }, select: { drawId: true } });
+    const refresh = await this.revalidation.enqueue(async () => CACHE_TAGS['group.standings'](await loadDrawTagContext(this.prisma, drawId)));
+    const warnings = [...refresh, ...(await this.ranking.enqueueRecompute(dirty))];
     return { data: await this.views.forGroup(groupId), ...(warnings.length > 0 && { warnings }) };
   }
 }

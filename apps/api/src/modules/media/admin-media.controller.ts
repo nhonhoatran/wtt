@@ -45,6 +45,6 @@ export class AdminMediaController {
   @Patch(':id')
   @RequirePermission('media', 'update')
   async update(@Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
-    return { data: await this.media.update(requireAuthContext(req).user.id, id, parseBody(updateMediaBody, body)) };
+    return this.media.update(requireAuthContext(req).user.id, id, parseBody(updateMediaBody, body));
   }
 }

@@ -12,6 +12,8 @@ import {
 import { booleanFilter, idFilter } from '../../common/crud/prisma-list-query.js';
 import { assertReadyMedia } from '../../common/crud/ready-media.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadEventSlugs } from '../revalidation/catalog-tag-context.js';
 
 export const EVENT_TYPE_LIST_SPEC = {
   sortable: ['order', 'name', 'code', 'createdAt'],
@@ -49,6 +51,11 @@ export class EventTypesService extends CatalogCrudService<EventType> {
     if (input.tierId) await assertExists(tx.tier.count({ where: { id: input.tierId } }), 'tierId', 'Không tìm thấy cấp giải');
     await assertReadyMedia(tx, { logoMediaId: input.logoMediaId, backgroundMediaId: input.backgroundMediaId });
     return { ...input };
+  }
+
+  protected override async publicTags(op: 'create' | 'update' | 'delete', before: EventType | null, after: EventType | null): Promise<string[]> {
+    const id = (after ?? before)!.id;
+    return CACHE_TAGS['eventType.write']({ eventSlugs: op === 'update' ? await loadEventSlugs(this.prisma, { eventTypeId: id }) : [] });
   }
 
   protected override usage(tx: Tx, row: EventType): UsageChecks {

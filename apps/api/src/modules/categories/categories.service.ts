@@ -6,6 +6,8 @@ import { type CatalogConfig, CatalogCrudService, type CrudDelegate,
 import { booleanFilter, enumFilter } from '../../common/crud/prisma-list-query.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadSubEventUsage } from '../revalidation/catalog-tag-context.js';
 
 export const CATEGORY_LIST_SPEC = {
   sortable: ['order', 'name', 'code', 'kind', 'createdAt'],
@@ -39,6 +41,11 @@ export class CategoriesService extends CatalogCrudService<Category> {
       throw fieldError('maxAge', 'Tuổi tối đa phải lớn hơn hoặc bằng tuổi tối thiểu');
     }
     return { ...input };
+  }
+
+  protected override async publicTags(op: 'create' | 'update' | 'delete', before: Category | null, after: Category | null): Promise<string[]> {
+    if (op !== 'update') return [];
+    return CACHE_TAGS['category.write'](await loadSubEventUsage(this.prisma, { categoryId: after!.id }));
   }
 
   protected override usage(tx: Tx, row: Category): UsageChecks {

@@ -29,18 +29,18 @@ export class AdminEventTypesController {
   @Post()
   @RequirePermission('tournaments', 'create')
   async create(@Body() body: unknown) {
-    return { data: await this.items.create(parseBody(createEventTypeBody, body)) };
+    return this.items.createRefreshed(parseBody(createEventTypeBody, body));
   }
 
   @Patch(':id')
   @RequirePermission('tournaments', 'update')
   async update(@Param('id') id: string, @Body() body: unknown) {
-    return { data: await this.items.update(id, parseBody(updateEventTypeBody, body)) };
+    return this.items.updateRefreshed(id, parseBody(updateEventTypeBody, body));
   }
 
   @Delete(':id')
   @RequirePermission('tournaments', 'delete')
   async remove(@Param('id') id: string) {
-    return { data: await this.items.remove(id) };
+    return this.items.removeRefreshed(id);
   }
 }

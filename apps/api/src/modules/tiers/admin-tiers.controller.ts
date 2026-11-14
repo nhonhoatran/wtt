@@ -29,18 +29,18 @@ export class AdminTiersController {
   @Post()
   @RequirePermission('tournaments', 'create')
   async create(@Body() body: unknown) {
-    return { data: await this.tiers.create(parseBody(createTierBody, body)) };
+    return this.tiers.createRefreshed(parseBody(createTierBody, body));
   }
 
   @Patch(':id')
   @RequirePermission('tournaments', 'update')
   async update(@Param('id') id: string, @Body() body: unknown) {
-    return { data: await this.tiers.update(id, parseBody(updateTierBody, body)) };
+    return this.tiers.updateRefreshed(id, parseBody(updateTierBody, body));
   }
 
   @Delete(':id')
   @RequirePermission('tournaments', 'delete')
   async remove(@Param('id') id: string) {
-    return { data: await this.tiers.remove(id) };
+    return this.tiers.removeRefreshed(id);
   }
 }

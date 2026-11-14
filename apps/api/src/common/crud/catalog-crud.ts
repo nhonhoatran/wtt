@@ -1,7 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@kamito/db';
 import type { PaginatedResult, PaginationQueryShape } from '@kamito/shared';
 import { PrismaService } from '../../modules/prisma/prisma.service.js';
+import { RevalidationEnqueueService } from '../../modules/revalidation/revalidation-enqueue.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { fieldError } from '../validation/parse-body.js';
 import { lockDefault } from './default-flag.js';
@@ -56,7 +57,15 @@ export abstract class CatalogCrudService<Row extends { id: string }> {
     protected readonly audit: AuditService,
   ) {}
 
+  // Property injection keeps every subclass constructor unchanged; the revalidation module is global.
+  @Inject(RevalidationEnqueueService) private readonly revalidation!: RevalidationEnqueueService;
+
   protected abstract delegate(db: Tx): CrudDelegate<Row>;
+
+  /** Public cache tags a committed write invalidates; the default is none. `before` is null on create, `after` null on delete. */
+  protected publicTags(_op: 'create' | 'update' | 'delete', _before: Row | null, _after: Row | null): Promise<string[]> | string[] {
+    return [];
+  }
 
   /** Validates cross-field rules and returns the Prisma data to write. `existing` is null on create. */
   protected prepare(_tx: Tx, input: object, _existing: Row | null): Promise<Record<string, unknown>> | Record<string, unknown> {
@@ -135,6 +144,28 @@ export abstract class CatalogCrudService<Row extends { id: string }> {
       rethrowForeignKeyAsInUse(error);
     }
     return { id };
+  }
+
+  createRefreshed(input: object) {
+    return this.refreshed('create', null, () => this.create(input));
+  }
+
+  updateRefreshed(id: string, input: object) {
+    return this.refreshed('update', id, () => this.update(id, input));
+  }
+
+  removeRefreshed(id: string) {
+    return this.refreshed('delete', id, () => this.remove(id));
+  }
+
+  /** Runs the write, then queues the cache tags of `publicTags`; a queue failure becomes a response warning, never an error. */
+  private async refreshed<T>(op: 'create' | 'update' | 'delete', id: string | null, run: () => Promise<T>): Promise<{ data: T; warnings?: string[] }> {
+    const before = id ? await this.delegate(this.prisma).findUnique({ where: { id } }) : null;
+    const data = await run();
+    const afterId = id ?? (data as { id?: string }).id;
+    const after = op === 'delete' || !afterId ? null : await this.delegate(this.prisma).findUnique({ where: { id: afterId } });
+    const warnings = await this.revalidation.enqueue(async () => this.publicTags(op, before, after));
+    return { data, ...(warnings.length > 0 && { warnings }) };
   }
 
   private async withUniqueCheck<T>(run: () => Promise<T>): Promise<T> {

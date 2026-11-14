@@ -35,7 +35,7 @@ export class AdminDisciplinesController {
   @Patch(':id')
   @RequirePermission('tournaments', 'update')
   async update(@Param('id') id: string, @Body() body: unknown) {
-    return { data: await this.items.update(id, parseBody(updateDisciplineBody, body)) };
+    return this.items.updateRefreshed(id, parseBody(updateDisciplineBody, body));
   }
 
   @Delete(':id')

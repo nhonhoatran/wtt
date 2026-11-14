@@ -11,6 +11,9 @@ import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadEventSlugs } from '../revalidation/catalog-tag-context.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { OBJECT_STORAGE } from '../storage/object-storage.provider.js';
 import { type CreateIntentBody, mediaPublicBaseUrl, toMediaView, type UpdateMediaBody } from './media-dtos.js';
@@ -26,6 +29,7 @@ export class MediaService {
     private readonly queue: MediaQueue,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorage,
     @Inject(API_ENV) private readonly env: ApiEnv,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   private async maxBytes(): Promise<number> {
@@ -136,6 +140,8 @@ export class MediaService {
       );
       return updated;
     });
-    return toMediaView(asset, this.publicBaseUrl());
+    // Alt text is public only through event banners.
+    const warnings = await this.revalidation.enqueue(async () => CACHE_TAGS['media.update']({ eventSlugs: await loadEventSlugs(this.prisma, { bannerMediaId: id }) }));
+    return { data: toMediaView(asset, this.publicBaseUrl()), ...(warnings.length > 0 && { warnings }) };
   }
 }

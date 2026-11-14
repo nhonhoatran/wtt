@@ -1,0 +1,119 @@
+import type { CacheTagMutation } from './cache-tags.js';
+
+/**
+ * Every admin write route (POST/PUT/PATCH/DELETE under /admin) and what it does to the public site.
+ * `cache-tags-coverage.e2e-spec.ts` fails for a route missing here, for a stale entry, and for a mutation
+ * that no source file actually uses. Keep this next to `cache-tags.ts` and update both together.
+ *
+ * - tags: wired; the route enqueues these CACHE_TAGS mutations after commit.
+ * - none: the route cannot change anything a public page shows (reason says why).
+ */
+export type RouteTagRule = { tags: CacheTagMutation[] } | { none: string };
+
+const tags = (...mutations: CacheTagMutation[]): RouteTagRule => ({ tags: mutations });
+const none = (reason: string): RouteTagRule => ({ none: reason });
+
+const IN_USE_GUARD = 'deletion is refused while an event or sub-event still uses it, so no public page can show it';
+const SCORING_RULE = 'public standings change only when a group is recomputed (group.standings)';
+const FORMAT = 'match formats are not exposed by the public API or rendered by the client';
+const TABLES = 'table names are not exposed by the public API or rendered by the client';
+const DRAFT_DRAW = 'draft draws are not public';
+const IMPORT = 'writes the import tables only; the worker enqueues the refresh when it commits entries';
+const RANKING_DRAFT = 'feeds drafts and the ledger; public rankings change only on snapshot publish';
+const USERS = 'staff accounts are not public';
+
+export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
+  'DELETE /admin/categories/:id': none(IN_USE_GUARD),
+  'DELETE /admin/disciplines/:id': none(IN_USE_GUARD),
+  'DELETE /admin/draws/:id': none(`${DRAFT_DRAW}; only a draft can be deleted`),
+  'DELETE /admin/event-types/:id': tags('eventType.write'),
+  'DELETE /admin/events/:eventId/sessions/:id': tags('session.delete'),
+  'DELETE /admin/events/:eventId/sub-events/:id': tags('subEvent.delete'),
+  'DELETE /admin/events/:id': tags('event.delete'),
+  'DELETE /admin/group-scoring-rules/:id': none(SCORING_RULE),
+  'DELETE /admin/match-formats/:id': none(FORMAT),
+  'DELETE /admin/ranking-lists/:id': tags('rankingList.write'),
+  'DELETE /admin/ranking-points/:id': none(RANKING_DRAFT),
+  'DELETE /admin/ranking-snapshots/:id': none('only a draft snapshot can be deleted'),
+  'DELETE /admin/settings/:key': tags('settings.update'),
+  'DELETE /admin/tiers/:id': tags('tier.write'),
+  'DELETE /admin/venues/:id': none(IN_USE_GUARD),
+  'DELETE /admin/venues/:id/tables/:tableId': none(TABLES),
+  'PATCH /admin/categories/:id': tags('category.write'),
+  'PATCH /admin/disciplines/:id': tags('discipline.write'),
+  'PATCH /admin/entries/:id': tags('entry.update'),
+  'PATCH /admin/event-types/:id': tags('eventType.write'),
+  'PATCH /admin/events/:eventId/sessions/:id': tags('session.update'),
+  'PATCH /admin/events/:eventId/sub-events/:id': tags('subEvent.update'),
+  'PATCH /admin/events/:id': tags('event.update'),
+  'PATCH /admin/group-scoring-rules/:id': none(SCORING_RULE),
+  'PATCH /admin/groups/:id/manual-ranks': tags('group.standings'),
+  'PATCH /admin/imports/:id/rows/:rowNo': none(IMPORT),
+  'PATCH /admin/match-formats/:id': none(FORMAT),
+  'PATCH /admin/matches/:id/schedule': tags('schedule.update'),
+  'PATCH /admin/media/:id': tags('media.update'),
+  'PATCH /admin/players/:id': tags('player.update'),
+  'PATCH /admin/ranking-lists/:id': tags('rankingList.write'),
+  'PATCH /admin/rounds/:id': none(FORMAT),
+  'PATCH /admin/tiers/:id': tags('tier.write'),
+  'PATCH /admin/users/:id': none(USERS),
+  'PATCH /admin/venues/:id': tags('venue.write'),
+  'PATCH /admin/venues/:id/tables/:tableId': none(TABLES),
+  'POST /admin/categories': none('a new catalog row is unreferenced until an event uses it'),
+  'POST /admin/disciplines': none('a new catalog row is unreferenced until an event uses it'),
+  'POST /admin/draws/:id/place-group-qualifiers': none(`${DRAFT_DRAW}; draft only`),
+  'POST /admin/draws/:id/place-qualifiers': none(`${DRAFT_DRAW}; draft only`),
+  'POST /admin/draws/:id/publish': tags('draw.publish'),
+  'POST /admin/draws/:id/replace-entry': tags('draw.postPublishEdit'),
+  'POST /admin/draws/:id/swap': none(`${DRAFT_DRAW}; draft only`),
+  'POST /admin/draws/:id/unpublish': tags('draw.unpublish'),
+  'POST /admin/draws/:id/withdraw-entry': tags('draw.postPublishEdit'),
+  'POST /admin/entries/bulk': tags('entry.bulk'),
+  'POST /admin/event-types': tags('eventType.write'),
+  'POST /admin/events': tags('event.create'),
+  'POST /admin/events/:eventId/sessions': tags('session.create'),
+  'POST /admin/events/:eventId/sub-events': tags('subEvent.create'),
+  'POST /admin/events/:eventId/sub-events/bulk': tags('subEvent.create'),
+  'POST /admin/events/:id/cancel': tags('event.cancel'),
+  'POST /admin/events/:id/publish': tags('event.publish'),
+  'POST /admin/events/:id/revalidate': tags('event.refresh'),
+  'POST /admin/events/:id/uncancel': tags('event.uncancel'),
+  'POST /admin/events/:id/unpublish': tags('event.unpublish'),
+  'POST /admin/group-scoring-rules': none('a new rule is unreferenced until a sub-event uses it'),
+  'POST /admin/groups/:id/recompute': tags('group.standings'),
+  'POST /admin/imports': none(IMPORT),
+  'POST /admin/imports/:id/commit': none(IMPORT),
+  'POST /admin/imports/:id/uploaded': none(IMPORT),
+  'POST /admin/imports/:id/validate': none(IMPORT),
+  'POST /admin/match-formats': none('a new format is unreferenced until a draw uses it'),
+  'POST /admin/matches/:id/amend-scores': tags('match.amend'),
+  'POST /admin/matches/:id/confirm': tags('match.confirm'),
+  'POST /admin/matches/:id/reopen': tags('match.reopen'),
+  'POST /admin/matches/:id/save-progress': tags('match.saveProgress'),
+  'POST /admin/matches/:id/start': tags('match.start'),
+  'POST /admin/matches/:id/un-start': tags('match.unStart'),
+  'POST /admin/media/:id/complete': none('an uploaded asset is public only once an event references it (event.update)'),
+  'POST /admin/media/intents': none('creates an upload session, nothing public'),
+  'POST /admin/players': tags('player.create'),
+  'POST /admin/players/merge': tags('player.merge'),
+  'POST /admin/ranking-lists': tags('rankingList.write'),
+  'POST /admin/ranking-points': none(RANKING_DRAFT),
+  'POST /admin/ranking-snapshots/:id/publish': tags('ranking.publish'),
+  'POST /admin/ranking-snapshots/drafts': none(RANKING_DRAFT),
+  'POST /admin/ranking/recompute': none(RANKING_DRAFT),
+  'POST /admin/sub-events/:id/draws': none(`${DRAFT_DRAW}; generation creates a draft`),
+  'POST /admin/sub-events/:id/draws/preview': none('read-only preview'),
+  'POST /admin/sub-events/:id/entries': tags('entry.create'),
+  'POST /admin/sub-events/:id/entries/suggest-seeds': none('read-only suggestion'),
+  'POST /admin/tiers': tags('tier.write'),
+  'POST /admin/users': none(USERS),
+  'POST /admin/users/:id/reset-password': none(USERS),
+  'POST /admin/users/:id/revoke-sessions': none(USERS),
+  'POST /admin/venues': none('a new venue is unreferenced until an event uses it'),
+  'POST /admin/venues/:id/tables': none('a new table is unused until a session uses it'),
+  'POST /admin/venues/:id/tables/bulk': none('new tables are unused until a session uses them'),
+  'PUT /admin/imports/:id/file': none(IMPORT),
+  'PUT /admin/media/:id/content': none('upload body, nothing public until referenced'),
+  'PUT /admin/ranking-rules/matrix': none(RANKING_DRAFT),
+  'PUT /admin/settings/:key': tags('settings.update'),
+};

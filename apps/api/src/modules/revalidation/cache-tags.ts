@@ -27,6 +27,8 @@ export interface EventTagContext {
   subEventCodes: string[];
   /** Set for publish, unpublish and cancel flips: the event's matches appear on results and match pages. */
   matchNos?: number[];
+  /** Players of the event; set only by the manual refresh button. */
+  playerSlugs?: string[];
 }
 
 export interface SubEventTagContext {
@@ -41,15 +43,40 @@ export interface PlayerTagContext {
   events: { eventSlug: string; subEventCodes: string[]; matchNos: number[] }[];
 }
 
+export interface ScheduleTagContext {
+  eventSlug: string;
+  /** Matches whose slot or derived start time changed; their public pages show the time and table. */
+  matchNos?: number[];
+  /** Sub-events of those matches: bracket and group pages show each match's time and table. */
+  subEventCodes?: string[];
+}
+
+export interface EventSlugsTagContext {
+  /** Events whose cards and detail pages show the changed catalog row or image; empty for a change that only touches list filters. */
+  eventSlugs: string[];
+}
+
+export interface SubEventUsageTagContext {
+  /** Per event: the sub-events (and their matches) that show the renamed discipline or category. */
+  events: { eventSlug: string; subEventCodes: string[]; matchNos: number[] }[];
+}
+
+export interface RankingListTagContext {
+  /** Old and new code when the code changed. */
+  codes: string[];
+}
+
 const eventTags = (c: EventTagContext) => [
   t.events(),
   ...c.eventSlugs.flatMap((slug) => [t.event(slug), t.schedule(slug), ...c.subEventCodes.flatMap((code) => [t.draw(slug, code), t.groups(slug, code)])]),
+  ...c.eventSlugs.flatMap((slug) => (c.matchNos ?? []).map((no) => t.match(slug, no))),
 ];
 
 const eventVisibilityTags = (c: EventTagContext) => [
   ...eventTags(c),
   t.resultsStrip(),
   ...c.eventSlugs.flatMap((slug) => (c.matchNos ?? []).map((no) => t.match(slug, no))),
+  ...(c.playerSlugs ?? []).map(t.player),
 ];
 
 const subEventTags = (c: SubEventTagContext) => [
@@ -68,6 +95,22 @@ const playerTags = (c: PlayerTagContext) => [
   ]),
 ];
 
+const eventCardTags = (c: EventSlugsTagContext) => [t.events(), ...c.eventSlugs.map(t.event)];
+
+const subEventUsageTags = (c: SubEventUsageTagContext) => [
+  t.events(),
+  ...c.events.flatMap((e) => eventVisibilityTags({ eventSlugs: [e.eventSlug], subEventCodes: e.subEventCodes, matchNos: e.matchNos })),
+];
+
+const rankingListTags = (c: RankingListTagContext) => [t.rankings(), ...c.codes.map(t.ranking)];
+
+const scheduleTags = (c: ScheduleTagContext) => [
+  t.event(c.eventSlug),
+  t.schedule(c.eventSlug),
+  ...(c.subEventCodes ?? []).flatMap((code) => [t.draw(c.eventSlug, code), t.groups(c.eventSlug, code)]),
+  ...(c.matchNos ?? []).map((no) => t.match(c.eventSlug, no)),
+];
+
 const matchTags = (c: MatchTagContext) => [
   t.event(c.eventSlug),
   t.schedule(c.eventSlug),
@@ -75,6 +118,10 @@ const matchTags = (c: MatchTagContext) => [
   ...(c.isGroupMatch ? [t.groups(c.eventSlug, c.subEventCode)] : []),
   ...c.matchNos.map((no) => t.match(c.eventSlug, no)),
 ];
+
+const matchWithPlayerTags = (c: MatchTagContext) => [...matchTags(c), ...c.playerSlugs.map(t.player)];
+
+const matchResultTags = (c: MatchTagContext) => [...matchTags(c), t.resultsStrip(), ...c.playerSlugs.map(t.player)];
 
 const drawTags = (c: DrawTagContext) => [
   t.event(c.eventSlug),
@@ -88,12 +135,31 @@ const drawTags = (c: DrawTagContext) => [
  * Mutations added in later phases register here (route coverage test: later part of phase 07).
  */
 export const CACHE_TAGS = {
-  'match.start': matchTags,
-  'match.confirm': (c: MatchTagContext) => [...matchTags(c), t.resultsStrip(), ...c.playerSlugs.map(t.player)],
+  'match.start': matchWithPlayerTags,
+  'match.unStart': matchWithPlayerTags,
+  'match.saveProgress': matchWithPlayerTags,
+  'match.confirm': matchResultTags,
+  'match.amend': matchResultTags,
+  'match.reopen': matchResultTags,
+  // Group standings (manual ranks, recompute): event, schedule, draw and groups pages of the sub-event; the results strip shows matches, not standings.
+  'group.standings': drawTags,
   'draw.publish': drawTags,
   // Unpublish and every edit of a published draw; the draw tag covers both MAIN and QUALIFYING of the sub-event.
   'draw.unpublish': drawTags,
   'draw.postPublishEdit': drawTags,
+  'schedule.update': scheduleTags,
+  'session.create': scheduleTags,
+  'session.update': scheduleTags,
+  'session.delete': scheduleTags,
+  // "Refresh public pages" button: every tag of the event.
+  'event.refresh': eventVisibilityTags,
+  'tier.write': eventCardTags,
+  'eventType.write': eventCardTags,
+  'venue.write': eventCardTags,
+  'media.update': eventCardTags,
+  'discipline.write': subEventUsageTags,
+  'category.write': subEventUsageTags,
+  'rankingList.write': rankingListTags,
   'event.create': eventTags,
   'event.update': eventTags,
   'event.publish': eventVisibilityTags,

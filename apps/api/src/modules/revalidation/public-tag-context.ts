@@ -52,3 +52,12 @@ export async function loadPlayerTagContext(db: Db, playerIds: string[]): Promise
     events: [...byEvent].map(([eventSlug, { codes, matchNos }]) => ({ eventSlug, subEventCodes: [...codes], matchNos: [...matchNos] })),
   };
 }
+
+export async function loadEventPlayerSlugs(db: Pick<Prisma.TransactionClient, 'entry'>, eventId: string): Promise<string[]> {
+  const slug = { select: { slug: true } } as const;
+  const rows = await db.entry.findMany({
+    where: { subEvent: { eventId } },
+    select: { competitor: { select: { player: slug, pair: { select: { playerA: slug, playerB: slug } } } } },
+  });
+  return [...new Set(rows.flatMap(({ competitor: c }) => (c.player ? [c.player.slug] : c.pair ? [c.pair.playerA.slug, c.pair.playerB.slug] : [])))];
+}

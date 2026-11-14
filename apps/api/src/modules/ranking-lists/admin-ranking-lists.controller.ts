@@ -29,7 +29,7 @@ export class AdminRankingListsController {
   @Post()
   @RequirePermission('rankings', 'create')
   async create(@Body() body: unknown) {
-    return { data: await this.lists.create(parseBody(createRankingListBody, body)) };
+    return this.lists.createRefreshed(parseBody(createRankingListBody, body));
   }
 
   @Patch(':id')
@@ -41,6 +41,6 @@ export class AdminRankingListsController {
   @Delete(':id')
   @RequirePermission('rankings', 'delete')
   async remove(@Param('id') id: string) {
-    return { data: await this.lists.remove(id) };
+    return this.lists.removeRefreshed(id);
   }
 }

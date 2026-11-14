@@ -5,6 +5,8 @@ import { type CatalogConfig, CatalogCrudService, type CrudDelegate,
   type UsageChecks, type Tx } from '../../common/crud/catalog-crud.js';
 import { booleanFilter, enumFilter } from '../../common/crud/prisma-list-query.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadSubEventUsage } from '../revalidation/catalog-tag-context.js';
 
 export const DISCIPLINE_LIST_SPEC = {
   sortable: ['order', 'name', 'code', 'createdAt'],
@@ -33,6 +35,11 @@ export class DisciplinesService extends CatalogCrudService<Discipline> {
 
   protected delegate(db: Tx): CrudDelegate<Discipline> {
     return db.discipline;
+  }
+
+  protected override async publicTags(op: 'create' | 'update' | 'delete', before: Discipline | null, after: Discipline | null): Promise<string[]> {
+    if (op !== 'update') return [];
+    return CACHE_TAGS['discipline.write'](await loadSubEventUsage(this.prisma, { disciplineId: after!.id }));
   }
 
   protected override usage(tx: Tx, row: Discipline): UsageChecks {

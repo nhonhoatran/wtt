@@ -7,6 +7,7 @@ import { type CatalogConfig, CatalogCrudService, type CrudDelegate, assertExists
 import { booleanFilter, enumFilter } from '../../common/crud/prisma-list-query.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
@@ -69,6 +70,10 @@ export class RankingListsService extends CatalogCrudService<RankingList> {
     return { ...input };
   }
 
+  protected override async publicTags(op: 'create' | 'update' | 'delete', before: RankingList | null, after: RankingList | null): Promise<string[]> {
+    return CACHE_TAGS['rankingList.write']({ codes: [...new Set([before?.code, after?.code].filter((code): code is string => Boolean(code)))] });
+  }
+
   protected override usage(tx: Tx, row: RankingList): UsageChecks {
     return {
       subEvents: () => tx.subEvent.count({ where: { rankingListId: row.id } }),
@@ -79,8 +84,8 @@ export class RankingListsService extends CatalogCrudService<RankingList> {
 
   /** Update, then queue a recompute for whatever the change left dirty (after commit). */
   async updateAndEnqueue(id: string, input: object) {
-    const data = await this.update(id, input);
-    const warnings = await this.enqueuer.enqueueRecompute(await findDirtySubEventIds(this.prisma, id));
+    const { data, warnings: refresh = [] } = await this.updateRefreshed(id, input);
+    const warnings = [...refresh, ...(await this.enqueuer.enqueueRecompute(await findDirtySubEventIds(this.prisma, id)))];
     return { data, ...(warnings.length > 0 && { warnings }) };
   }
 }

@@ -9,6 +9,8 @@ import { markEventRankingDirty } from '../ranking-jobs/ranking-event-dirty-marke
 import { CACHE_TAGS, type CacheTagMutation } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { loadEventMatchNos, loadSubEventCodes } from '../revalidation/public-tag-context.js';
+import { SCHEDULE_TX_TIMEOUT_MS } from '../scheduling/schedule-tx.js';
+import { reconvertSessionsTimezone } from '../sessions/session-timezone.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { formatDateOnly } from './date-only.js';
 import type { CreateEventBody, UpdateEventBody } from './event-dtos.js';
@@ -69,13 +71,15 @@ export class EventsService {
     const data = Object.fromEntries(Object.entries(fields).filter(([key]) => key in diff.after));
     try {
       let dirty: string[] = [];
+      let retimed: number[] = [];
       const updated = await this.prisma.$transaction(async (tx) => {
         const row = await tx.event.update({ where: { id }, data, include: EVENT_RELATIONS });
         await this.audit.record({ action: 'event.update', entity: 'Event', entityId: id, ...diff }, tx);
         if ('endDate' in diff.after || 'eventTypeId' in diff.after) dirty = await markEventRankingDirty(tx, id);
+        if ('timezone' in diff.after) retimed = await reconvertSessionsTimezone(tx, id, current.timezone, row.timezone);
         return row;
-      });
-      return this.withRanking(toEventView(updated), dirty, 'event.update', [...new Set([current.slug, updated.slug])]);
+      }, { timeout: SCHEDULE_TX_TIMEOUT_MS });
+      return this.withRanking(toEventView(updated), dirty, 'event.update', [...new Set([current.slug, updated.slug])], retimed);
     } catch (error) {
       if (isUniqueViolation(error) && body.slug) throw await this.slugTaken(body.slug, id);
       throw error;
@@ -132,17 +136,18 @@ export class EventsService {
     return this.withRanking(toEventView(updated), dirty, action, [updated.slug]);
   }
 
-  private async withRanking(view: ReturnType<typeof toEventView>, dirty: string[], mutation: EventMutation, slugs: string[]) {
-    const warnings = [...(await this.ranking.enqueueRecompute(dirty)), ...(await this.refreshPublic(mutation, view.id, slugs))];
+  private async withRanking(view: ReturnType<typeof toEventView>, dirty: string[], mutation: EventMutation, slugs: string[], matchNos?: number[]) {
+    const warnings = [...(await this.ranking.enqueueRecompute(dirty)), ...(await this.refreshPublic(mutation, view.id, slugs, matchNos))];
     return { data: view, ...(warnings.length > 0 && { warnings }) };
   }
 
-  private refreshPublic(mutation: EventMutation, eventId: string, eventSlugs: string[]) {
+  private refreshPublic(mutation: EventMutation, eventId: string, eventSlugs: string[], retimedMatchNos?: number[]) {
     return this.revalidation.enqueue(async () =>
       CACHE_TAGS[mutation]({
         eventSlugs,
         subEventCodes: await loadSubEventCodes(this.prisma, eventId),
         ...(VISIBILITY_MUTATIONS.has(mutation) && { matchNos: await loadEventMatchNos(this.prisma, eventId) }),
+        ...(retimedMatchNos?.length && { matchNos: retimedMatchNos }),
       }),
     );
   }
