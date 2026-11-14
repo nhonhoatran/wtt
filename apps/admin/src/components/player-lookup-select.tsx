@@ -3,9 +3,9 @@ import { Select, Spin, type RefSelectProps } from 'antd';
 import { useEffect, useState, type CSSProperties, type KeyboardEvent, type Ref } from 'react';
 import { apiFetch } from '../api/http-client';
 import { playerOptionLabel, type Gender, type PlayerLookupItem } from '../resources/players/player-labels';
+import { SEARCH_DEBOUNCE_MS } from './use-debounced-value';
 
 const LOOKUP_LIMIT = 10;
-const LOOKUP_DEBOUNCE_MS = 300;
 const NEW_OPTION = '__new__';
 
 export interface PlayerLookupSelectProps {
@@ -29,7 +29,7 @@ export interface PlayerLookupSelectProps {
 function useDebounced(text: string): string {
   const [value, setValue] = useState(text);
   useEffect(() => {
-    const timer = setTimeout(() => setValue(text), LOOKUP_DEBOUNCE_MS);
+    const timer = setTimeout(() => setValue(text), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [text]);
   return value;

@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Empty, Flex, Input, Result, Select, Skeleton, Table, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { apiFetch } from '../../api/http-client';
-import { useDebouncedValue } from '../../components/use-debounced-value';
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '../../components/use-debounced-value';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { sessionDatedLabel } from '../event-hub/schedule-types';
 import { subEventsKey, subEventTitle, type SubEventRecord } from '../event-hub/sub-event-labels';
@@ -14,7 +14,6 @@ import { useResultsEvent } from './use-results-event';
 import { useResultsScheduleFilter } from './use-results-schedule-filter';
 import { useStoredStatusFilter } from './use-stored-status-filter';
 
-const SEARCH_DEBOUNCE_MS = 300;
 const FALLBACK_PAGE_SIZE = 20;
 const EVENT_SELECT_MIN_WIDTH = 260;
 const SUB_EVENT_SELECT_MIN_WIDTH = 200;
@@ -24,7 +23,8 @@ const STATUS_SELECT_WIDTH = 150;
 const SEARCH_WIDTH = 260;
 
 export function ResultsEntryPage() {
-  const { events, list: eventList, selected, select } = useResultsEvent();
+  const events = useResultsEvent();
+  const { selected } = events;
   const pageSize = useListPageSize() ?? FALLBACK_PAGE_SIZE;
   const [status, setStatus] = useStoredStatusFilter();
   const [subEventId, setSubEventId] = useState<string | undefined>();
@@ -93,15 +93,17 @@ export function ResultsEntryPage() {
         <Select
           aria-label="Giải đấu"
           value={selected.id}
-          options={eventList.map((event) => ({ value: event.id, label: event.name }))}
+          options={events.options.map((event) => ({ value: event.id, label: event.name }))}
           onChange={(id) => {
-            select(id);
+            events.select(id);
             setSubEventId(undefined);
             setPage(1);
           }}
           style={{ minWidth: EVENT_SELECT_MIN_WIDTH }}
           showSearch
-          optionFilterProp="label"
+          filterOption={false}
+          onSearch={events.onSearch}
+          loading={events.searching}
         />
         <Select
           aria-label="Nội dung"

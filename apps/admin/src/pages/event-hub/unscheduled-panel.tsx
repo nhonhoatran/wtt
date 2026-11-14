@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Empty, Flex, Input, Pagination, Select, Skeleton, Typography, theme } from 'antd';
 import { useState } from 'react';
 import { apiFetch } from '../../api/http-client';
-import { useDebouncedValue } from '../../components/use-debounced-value';
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '../../components/use-debounced-value';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { sideName } from '../results/match-types';
 import { roundTitle } from './draw-labels';
@@ -12,8 +12,6 @@ import { DRAGGABLE_ROLE_DESCRIPTION } from './schedule-dnd-accessibility';
 import { matchDragId, type ScheduleBoard } from './session-grid-cell';
 import { subEventsKey, subEventTitle, type SubEventRecord } from './sub-event-labels';
 import { useRoundOptions } from './use-round-options';
-
-const UNSCHEDULED_SEARCH_DEBOUNCE_MS = 300;
 
 function UnscheduledItem({ match, board, canUpdate }: { match: ScheduleMatch; board: ScheduleBoard; canUpdate: boolean }) {
   const { token } = theme.useToken();
@@ -63,7 +61,7 @@ export function UnscheduledPanel({ eventId, board, canUpdate }: { eventId: strin
   const [roundIds, setRoundIds] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const q = useDebouncedValue(search.trim(), UNSCHEDULED_SEARCH_DEBOUNCE_MS);
+  const q = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
 
   const subEvents = useQuery({
     queryKey: subEventsKey(eventId),

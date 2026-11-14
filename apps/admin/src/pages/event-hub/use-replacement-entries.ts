@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '../../api/http-client';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import type { EntryRecord } from './entry-labels';
-
-const SEARCH_DEBOUNCE_MS = 300;
+import { SEARCH_DEBOUNCE_MS } from '../../components/use-debounced-value';
 
 /** Confirmed entries of the sub-event that are not in the draw yet, searched on the server. */
 export function useReplacementEntries(subEventId: string, enabled: boolean, takenEntryIds: Set<string>) {

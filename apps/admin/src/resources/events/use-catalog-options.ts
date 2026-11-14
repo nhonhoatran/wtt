@@ -2,6 +2,7 @@ import { keepPreviousData, useQueries, useQuery, useQueryClient, type QueryClien
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../api/http-client';
 import { useListPageSize } from '../../providers/use-list-page-size';
+import { SEARCH_DEBOUNCE_MS } from '../../components/use-debounced-value';
 
 export interface CatalogRow {
   id: string;
@@ -17,8 +18,6 @@ export interface CatalogOption {
 
 /** Prefix of every catalog query key, so one call refreshes all option lists. */
 const CATALOG_QUERY_KEY = 'catalog-rows';
-/** Lets the user finish a word before a request goes out. */
-const SEARCH_DEBOUNCE_MS = 300;
 /** Used until /auth/me reports the page size set on /settings. */
 const FALLBACK_PAGE_SIZE = 20;
 /** Option lists may be a few seconds old; catalog edits invalidate them explicitly. */

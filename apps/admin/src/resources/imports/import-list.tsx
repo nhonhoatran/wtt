@@ -9,8 +9,8 @@ import { apiFetch } from '../../api/http-client';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { IMPORT_STATUS_COLORS, IMPORT_STATUS_LABELS, IMPORT_STATUS_OPTIONS, type ImportJob } from './import-labels';
+import { SEARCH_DEBOUNCE_MS } from '../../components/use-debounced-value';
 
-const SEARCH_DEBOUNCE_MS = 300;
 const formatTime = (value: string | null) => (value ? dayjs(value).format('HH:mm DD/MM/YYYY') : '—');
 const count = (value: number | null) => value ?? '—';
 
