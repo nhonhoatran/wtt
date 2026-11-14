@@ -1,4 +1,5 @@
 import { isPlayedMatch, type TiebreakCriterion } from '@kamito/shared';
+import { checkGame } from './match-score-validator.js';
 import { DrawParamsError } from './types.js';
 
 export type MatchResultType = 'NORMAL' | 'WALKOVER' | 'RETIRED' | 'DISQUALIFIED' | 'BYE';
@@ -18,7 +19,10 @@ export interface GroupScoringRuleInput {
 export interface MatchFormatInput {
   bestOf: number;
   pointsPerGame: number;
+  winBy?: number;
 }
+
+const DEFAULT_WIN_BY = 2;
 
 export interface GroupMatchInput {
   side1EntryId: string;
@@ -28,6 +32,8 @@ export interface GroupMatchInput {
   winnerSide?: 1 | 2 | null;
   /** Excluded from the table (withdrawal policy VOID_ALL_RESULTS). */
   isVoided?: boolean;
+  /** Format this match is played under (round, draw or sub-event); falls back to the standings input's `format`. */
+  format?: MatchFormatInput;
   games: readonly { score1: number; score2: number }[];
 }
 
@@ -47,7 +53,8 @@ export function isCountedGroupMatch(match: GroupMatchInput): boolean {
   return isPlayedMatch(match);
 }
 
-export function scoreMatch(match: GroupMatchInput, rule: GroupScoringRuleInput, format: MatchFormatInput): MatchContribution {
+export function scoreMatch(match: GroupMatchInput, rule: GroupScoringRuleInput, defaultFormat: MatchFormatInput): MatchContribution {
+  const format = match.format ?? defaultFormat;
   if (match.winnerSide !== 1 && match.winnerSide !== 2) {
     throw new DrawParamsError('INVALID_MATCH_DATA', `Official match ${match.side1EntryId} vs ${match.side2EntryId} has no winner`);
   }
@@ -57,12 +64,16 @@ export function scoreMatch(match: GroupMatchInput, rule: GroupScoringRuleInput, 
   let games2 = 0;
   let points1 = 0;
   let points2 = 0;
-  for (const game of match.games) {
+  const scoreFormat = { bestOf: format.bestOf, pointsPerGame: format.pointsPerGame, winBy: format.winBy ?? DEFAULT_WIN_BY };
+  match.games.forEach((game, index) => {
     points1 += game.score1;
     points2 += game.score2;
+    // An unfinished last game of a retired/disqualified match is not a game won, matching validateMatchScore.
+    const isLast = index === match.games.length - 1;
+    if (resultType !== 'NORMAL' && isLast && checkGame(game, scoreFormat, index + 1)) return;
     if (game.score1 > game.score2) games1++;
     else if (game.score2 > game.score1) games2++;
-  }
+  });
 
   if (resultType !== 'NORMAL' && rule.unfinishedMatchScoring === 'AWARD_REMAINING_TO_WINNER') {
     const needed = Math.floor(format.bestOf / 2) + 1;

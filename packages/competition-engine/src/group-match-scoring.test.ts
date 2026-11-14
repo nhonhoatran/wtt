@@ -68,6 +68,18 @@ describe('scoreMatch', () => {
     expect(c).toMatchObject({ games1: 1, games2: 1, points1: 15, points2: 14 });
   });
 
+  it('a retirement during an unfinished last game does not count that game as won', () => {
+    const played = [{ score1: 11, score2: 3 }, { score1: 3, score2: 7 }];
+    const c = scoreMatch(match({ resultType: 'RETIRED', winnerSide: 1, games: played }), rule, bestOf5);
+    expect(c).toMatchObject({ games1: 1, games2: 0, points1: 14, points2: 10 });
+  });
+
+  it('AWARD_REMAINING_TO_WINNER: an unfinished last game led by the retiring side is not credited to them', () => {
+    const played = [{ score1: 11, score2: 3 }, { score1: 3, score2: 7 }];
+    const c = scoreMatch(match({ resultType: 'RETIRED', winnerSide: 1, games: played }), award(11), bestOf5);
+    expect(c).toMatchObject({ games1: 3, games2: 0 });
+  });
+
   it('AWARD_REMAINING_TO_WINNER: a walkover gives the winner all needed games at pointsPerGame by default', () => {
     const c = scoreMatch(match({ resultType: 'WALKOVER', winnerSide: 2 }), award(null), bestOf5);
     expect(c).toMatchObject({ games1: 0, games2: 3, points1: 0, points2: 33 });
@@ -77,6 +89,12 @@ describe('scoreMatch', () => {
     const played = [{ score1: 11, score2: 3 }, { score1: 11, score2: 6 }, { score1: 2, score2: 11 }];
     const c = scoreMatch(match({ resultType: 'RETIRED', games: played }), award(21), bestOf5);
     expect(c).toMatchObject({ games1: 3, games2: 1, points1: 24 + 21, points2: 20 });
+  });
+
+  it('AWARD_REMAINING_TO_WINNER: a match-level format (round override) wins over the default format', () => {
+    const bestOf3 = { bestOf: 3, pointsPerGame: 21 };
+    const c = scoreMatch(match({ resultType: 'WALKOVER', winnerSide: 2, format: bestOf3 }), award(null), bestOf5);
+    expect(c).toMatchObject({ games1: 0, games2: 2, points1: 0, points2: 42 });
   });
 
   it('AWARD_REMAINING_TO_WINNER leaves a normal match untouched and never over-awards', () => {
