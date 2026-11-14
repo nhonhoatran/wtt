@@ -21,12 +21,19 @@ export interface MatchListItem {
   status: MatchStatus;
   resultType: MatchResultType | null;
   winnerSide: 1 | 2 | null;
-  games1: number;
-  games2: number;
+  /** Null until the match has an official result (SCHEDULED and LIVE rows). */
+  games1: number | null;
+  games2: number | null;
   side1: EntryBrief | null;
   side2: EntryBrief | null;
   ready: boolean;
   version: number;
+  sessionId?: string | null;
+  tableId?: string | null;
+  tableCode?: string | null;
+  tableName?: string | null;
+  orderInSession?: number | null;
+  scheduledAt?: string | null;
 }
 
 export interface MatchDetail extends MatchListItem {
@@ -37,6 +44,24 @@ export interface MatchDetail extends MatchListItem {
 export interface MatchWriteResponse {
   data: MatchDetail;
   warnings?: string[];
+}
+
+export type ReopenEffect = 'CLEAR_SIDE' | 'REVERT_AUTO' | 'RESET_RESULT';
+
+export interface ReopenCell {
+  matchId: string;
+  matchNo: number;
+  side: 1 | 2;
+  entryId: string;
+  entryName: string;
+  status: MatchStatus;
+  effect: ReopenEffect;
+  via: 'ADVANCE' | 'SEAT';
+}
+
+export interface ReopenPreview {
+  affected: ReopenCell[];
+  blocking: ReopenCell[];
 }
 
 export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = { SCHEDULED: 'Chưa đấu', LIVE: 'Đang đấu', OFFICIAL: 'Đã chốt' };
@@ -65,7 +90,7 @@ export const isOpenMatch = (match: Pick<MatchListItem, 'status' | 'ready'>): boo
 export const firstOpenMatch = (rows: readonly MatchListItem[] | undefined): MatchListItem | undefined => rows?.find(isOpenMatch);
 
 export const matchScoreText = (match: Pick<MatchListItem, 'status' | 'resultType' | 'games1' | 'games2'>): string => {
-  if (match.status === 'SCHEDULED') return '';
+  if (match.games1 === null || match.games2 === null) return '';
   const score = `${match.games1}–${match.games2}`;
   return match.resultType && match.resultType !== 'NORMAL' ? `${score} (${RESULT_TYPE_LABELS[match.resultType]})` : score;
 };

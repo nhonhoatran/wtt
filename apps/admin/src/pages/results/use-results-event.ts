@@ -6,7 +6,7 @@ import type { EventRecord } from '../../resources/events/event-labels';
 const STORAGE_KEY = 'kamito.admin.results.eventId';
 const PICKER_PAGE_SIZE = 100;
 
-export type PickerEvent = Pick<EventRecord, 'id' | 'name' | 'lifecycle'>;
+export type PickerEvent = Pick<EventRecord, 'id' | 'name' | 'lifecycle' | 'timezone'>;
 
 const readStored = (): string | null => {
   try {

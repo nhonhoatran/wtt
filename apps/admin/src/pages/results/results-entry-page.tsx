@@ -1,39 +1,39 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Button, Empty, Flex, Input, Result, Select, Skeleton, Table, Tag, Typography } from 'antd';
-import { useEffect, useState } from 'react';
+import { Button, Empty, Flex, Input, Result, Select, Skeleton, Table, Typography } from 'antd';
+import { useMemo, useState } from 'react';
 import { apiFetch } from '../../api/http-client';
+import { useDebouncedValue } from '../../components/use-debounced-value';
 import { useListPageSize } from '../../providers/use-list-page-size';
-import { roundTitle } from '../event-hub/draw-labels';
+import { sessionDatedLabel } from '../event-hub/schedule-types';
 import { subEventsKey, subEventTitle, type SubEventRecord } from '../event-hub/sub-event-labels';
 import { MatchScoreDrawer } from './match-score-drawer';
-import {
-  firstOpenMatch, isOpenMatch, matchScoreText, matchesKey, MATCH_STATUS_COLORS, MATCH_STATUS_LABELS, sideName, STATUS_FILTER_OPTIONS,
-  type MatchListItem, type MatchStatusFilter,
-} from './match-types';
+import { firstOpenMatch, matchesKey, STATUS_FILTER_OPTIONS, type MatchListItem } from './match-types';
+import { nextOnTable, sortBySlot } from './match-slot-order';
+import { resultsColumns } from './results-match-columns';
 import { useResultsEvent } from './use-results-event';
+import { useResultsScheduleFilter } from './use-results-schedule-filter';
+import { useStoredStatusFilter } from './use-stored-status-filter';
 
 const SEARCH_DEBOUNCE_MS = 300;
 const FALLBACK_PAGE_SIZE = 20;
-
-function useDebounced(value: string): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [value]);
-  return debounced;
-}
+const EVENT_SELECT_MIN_WIDTH = 260;
+const SUB_EVENT_SELECT_MIN_WIDTH = 200;
+const SESSION_SELECT_MIN_WIDTH = 220;
+const TABLE_SELECT_MIN_WIDTH = 140;
+const STATUS_SELECT_WIDTH = 150;
+const SEARCH_WIDTH = 260;
 
 export function ResultsEntryPage() {
   const { events, list: eventList, selected, select } = useResultsEvent();
   const pageSize = useListPageSize() ?? FALLBACK_PAGE_SIZE;
-  const [status, setStatus] = useState<MatchStatusFilter>('OPEN');
+  const [status, setStatus] = useStoredStatusFilter();
   const [subEventId, setSubEventId] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
-  const q = useDebounced(search.trim());
+  const q = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const eventId = selected?.id;
+  const schedule = useResultsScheduleFilter(eventId, selected?.lifecycle === 'ONGOING');
 
   const subEvents = useQuery({
     queryKey: subEventsKey(eventId ?? ''),
@@ -41,27 +41,43 @@ export function ResultsEntryPage() {
     queryFn: async () => (await apiFetch<{ data: SubEventRecord[] }>(`/admin/events/${eventId}/sub-events`)).data,
   });
   const matches = useQuery({
-    queryKey: [...matchesKey(eventId), page, pageSize, q, status, subEventId],
+    queryKey: [...matchesKey(eventId), page, pageSize, q, status, subEventId, schedule.sessionId, schedule.tableId],
     enabled: Boolean(eventId),
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sort: 'matchNo', 'filter[status]': status });
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sort: 'matchNo:asc', 'filter[status]': status });
       if (q) params.set('q', q);
       if (subEventId) params.set('filter[subEventId]', subEventId);
+      if (schedule.sessionId) params.set('filter[sessionId]', schedule.sessionId);
+      if (schedule.tableId) params.set('filter[tableId]', schedule.tableId);
       return apiFetch<{ data: MatchListItem[]; total: number }>(`/admin/events/${eventId}/matches?${params}`);
     },
   });
 
-  const rows = matches.data?.data;
+  const tableOrder = useMemo(
+    () => new Map((schedule.sessions.find((row) => row.id === schedule.sessionId)?.tables ?? []).map((table) => [table.tableId, table.order])),
+    [schedule.sessions, schedule.sessionId],
+  );
+  const rows = useMemo(() => {
+    const data = matches.data?.data;
+    return data && schedule.sessionId ? sortBySlot(data, tableOrder) : data;
+  }, [matches.data, schedule.sessionId, tableOrder]);
   const nextId = firstOpenMatch(rows)?.id;
   const resetPage = <T,>(setter: (value: T) => void) => (value: T) => {
     setter(value);
     setPage(1);
   };
 
-  const openNext = async () => {
+  // Players stay at the table they just played on, so its next match comes first; the list order is the fallback.
+  const openNext = async (finishedTableId: string | null) => {
     const fresh = await matches.refetch();
-    setOpenId(firstOpenMatch(fresh.data?.data)?.id ?? null);
+    let sameTable: MatchListItem | undefined;
+    if (finishedTableId && eventId) {
+      sameTable = await nextOnTable({ eventId, tableId: finishedTableId, sessionId: schedule.sessionId, pageSize }).catch(() => undefined);
+    }
+    const freshRows = fresh.data?.data;
+    const fallback = firstOpenMatch(freshRows && schedule.sessionId ? sortBySlot(freshRows, tableOrder) : freshRows);
+    setOpenId((sameTable ?? fallback)?.id ?? null);
   };
 
   if (events.isLoading) return <Skeleton active />;
@@ -83,7 +99,7 @@ export function ResultsEntryPage() {
             setSubEventId(undefined);
             setPage(1);
           }}
-          style={{ minWidth: 260 }}
+          style={{ minWidth: EVENT_SELECT_MIN_WIDTH }}
           showSearch
           optionFilterProp="label"
         />
@@ -94,15 +110,33 @@ export function ResultsEntryPage() {
           value={subEventId}
           options={(subEvents.data ?? []).map((row) => ({ value: row.id, label: subEventTitle(row) }))}
           onChange={resetPage(setSubEventId)}
-          style={{ minWidth: 200 }}
+          style={{ minWidth: SUB_EVENT_SELECT_MIN_WIDTH }}
         />
-        <Select aria-label="Trạng thái" value={status} options={STATUS_FILTER_OPTIONS} onChange={resetPage(setStatus)} style={{ width: 150 }} />
+        <Select
+          aria-label="Session"
+          allowClear
+          placeholder="Tất cả session"
+          value={schedule.sessionId}
+          options={schedule.sessions.map((row) => ({ value: row.id, label: sessionDatedLabel(row) }))}
+          onChange={resetPage(schedule.setSession)}
+          style={{ minWidth: SESSION_SELECT_MIN_WIDTH }}
+        />
+        <Select
+          aria-label="Bàn"
+          allowClear
+          placeholder="Tất cả bàn"
+          value={schedule.tableId}
+          options={schedule.tables}
+          onChange={resetPage(schedule.setTable)}
+          style={{ minWidth: TABLE_SELECT_MIN_WIDTH }}
+        />
+        <Select aria-label="Trạng thái" value={status} options={STATUS_FILTER_OPTIONS} onChange={resetPage(setStatus)} style={{ width: STATUS_SELECT_WIDTH }} />
         <Input.Search
           allowClear
           placeholder="Tên VĐV hoặc số trận"
           value={search}
           onChange={(event) => resetPage(setSearch)(event.target.value)}
-          style={{ width: 260 }}
+          style={{ width: SEARCH_WIDTH }}
         />
       </Flex>
       <Table<MatchListItem>
@@ -119,29 +153,13 @@ export function ResultsEntryPage() {
           tabIndex: 0,
           style: { cursor: 'pointer' },
         })}
-        columns={[
-          { title: '#', dataIndex: 'matchNo', width: 64 },
-          { title: 'Nội dung', render: (_, row) => row.subEventName ?? row.subEventCode },
-          { title: 'Vòng', render: (_, row) => `${roundTitle(row.roundCode)}${row.groupCode ? ` · Bảng ${row.groupCode}` : ''}` },
-          { title: 'Bên 1', render: (_, row) => sideName(row.side1) },
-          { title: 'Bên 2', render: (_, row) => sideName(row.side2) },
-          {
-            title: 'Trạng thái',
-            render: (_, row) => (
-              <>
-                <Tag color={MATCH_STATUS_COLORS[row.status]}>{MATCH_STATUS_LABELS[row.status]}</Tag>
-                {row.id === nextId && isOpenMatch(row) && <Tag color="gold">Trận kế tiếp</Tag>}
-              </>
-            ),
-          },
-          { title: 'Tỷ số', render: (_, row) => matchScoreText(row) },
-        ]}
+        columns={resultsColumns(selected.timezone, nextId)}
       />
       <MatchScoreDrawer
         matchId={openId}
         onClose={() => setOpenId(null)}
         onStarted={() => void matches.refetch()}
-        onConfirmed={() => void openNext()}
+        onConfirmed={(tableId) => void openNext(tableId)}
         onReload={() => void matches.refetch()}
       />
     </Flex>
