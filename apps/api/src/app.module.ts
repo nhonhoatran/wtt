@@ -29,6 +29,8 @@ import { DrawsModule } from './modules/draws/draws.module.js';
 import { GroupsModule } from './modules/groups/groups.module.js';
 import { MatchesModule } from './modules/matches/matches.module.js';
 import { MatchResultsModule } from './modules/match-results/match-results.module.js';
+import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
+import { SessionsModule } from './modules/sessions/sessions.module.js';
 import { RevalidationModule } from './modules/revalidation/revalidation.module.js';
 import { RankingJobsModule } from './modules/ranking-jobs/ranking-jobs.module.js';
 import { RankingListsModule } from './modules/ranking-lists/ranking-lists.module.js';
@@ -68,6 +70,8 @@ import { PublicEventsModule } from './modules/public-events/public-events.module
     ImportsModule,
     ExportsModule,
     MatchesModule,
+    SessionsModule,
+    SchedulingModule,
     DrawsModule,
     GroupsModule,
     MatchResultsModule,

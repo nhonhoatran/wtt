@@ -20,6 +20,10 @@ export function styleHeader(row: ExcelJS.Row): void {
 
 /** A download that fails after the first byte cannot change its status code; cut the connection instead. */
 export function abortDownload(res: Response, error: unknown): void {
-  if (!res.headersSent) throw error;
+  if (!res.headersSent) {
+    // Headers set by startWorkbook would turn the JSON error body into a broken .xlsx download.
+    for (const header of ['Content-Type', 'Content-Disposition', 'Cache-Control']) res.removeHeader(header);
+    throw error;
+  }
   res.destroy(error instanceof Error ? error : undefined);
 }

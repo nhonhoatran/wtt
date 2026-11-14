@@ -16,7 +16,7 @@ export class AdminMatchesController {
   @RequirePermission('matches', 'list')
   async list(@Param('eventId') eventId: string, @Query() raw: Record<string, unknown>) {
     const query = parsePaginationQuery(raw, listRules(EVENT_MATCH_LIST_SPEC), await this.pagination.limits());
-    return this.matches.listForEvent(eventId, query);
+    return this.matches.listForEvent(eventId, query, { includeConflicts: raw.include === 'conflicts' });
   }
 
   @Get('matches/:id')

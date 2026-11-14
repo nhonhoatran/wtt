@@ -8,6 +8,8 @@ export const MATCH_RESULT_INCLUDE = {
   draw: { select: { kind: true, status: true, matchFormat: FORMAT_SELECT } },
   subEvent: { select: { code: true, name: true, matchFormat: FORMAT_SELECT } },
   group: { select: { code: true } },
+  session: { select: { code: true } },
+  table: { select: { code: true, displayName: true } },
   side1Entry: { select: ENTRY_BRIEF_SELECT },
   side2Entry: { select: ENTRY_BRIEF_SELECT },
 } satisfies Prisma.MatchInclude;
@@ -49,6 +51,14 @@ export function toMatchResultItem(m: MatchResultRow) {
     side2: toEntryBrief(m.side2Entry),
     ready: isReadyForResult(m),
     version: m.version,
+    sessionId: m.sessionId,
+    sessionCode: m.session?.code ?? null,
+    tableId: m.tableId,
+    tableCode: m.table?.code ?? null,
+    tableName: m.table ? (m.table.displayName ?? m.table.code) : null,
+    orderInSession: m.orderInSession,
+    scheduledAt: m.scheduledAt?.toISOString() ?? null,
+    scheduleVersion: m.scheduleVersion,
   };
 }
 
