@@ -104,3 +104,29 @@ export function validateMatchScore(input: MatchScoreInput): MatchScoreOutcome {
 
   return { valid: issues.length === 0, issues, winnerSide, games1: wins[1], games2: wins[2] };
 }
+
+/**
+ * Saved-but-unconfirmed games of a live match: every game but the last must be a finished legal game,
+ * the last may still be in play, and nothing may follow a decided match.
+ */
+export function validateProgressGames(games: readonly GameScore[], format: ScoreFormat): ScoreIssue[] {
+  const issues: ScoreIssue[] = [];
+  if (games.length > format.bestOf) issues.push({ code: 'TOO_MANY_GAMES', message: `Thể thức chỉ có tối đa ${format.bestOf} ván` });
+  const need = gamesToWin(format);
+  const wins = { 1: 0, 2: 0 };
+  games.forEach((game, index) => {
+    const number = index + 1;
+    if (wins[1] === need || wins[2] === need) {
+      issues.push({ code: 'GAME_AFTER_DECIDED', game: number, message: `Ván ${number}: trận đã kết thúc ở ván ${number - 1}` });
+      return;
+    }
+    const issue = checkGame(game, format, number);
+    if (issue) {
+      const inPlay = number === games.length && issue.code !== 'GAME_SCORE_INVALID' && issue.code !== 'GAME_OVERRUN';
+      if (!inPlay) issues.push(issue);
+      return;
+    }
+    wins[winnerOfGame(game)] += 1;
+  });
+  return issues;
+}

@@ -32,7 +32,7 @@ describe('fillGroupPlaces', () => {
   it('replaces group places with the entries that earned them', () => {
     const filled = fillGroupPlaces(positions, new Map([['A:1', 'Ann'], ['B:2', 'Bob']]));
     expect(filled.map((p) => p.entryId)).toEqual(['Ann', 'Bob', 'E3', 'E4']);
-    expect(filled[0]?.sourceRef).toBeUndefined();
+    expect(filled[0]?.sourceRef).toEqual({ type: 'GROUP_PLACE', group: 'A', place: 1 });
   });
 
   it('fails when a place has no entry yet', () => {

@@ -2,7 +2,8 @@ import type { Rng } from './seeded-random.js';
 import { DrawParamsError, type BracketPositionData } from './types.js';
 
 function resolved(position: BracketPositionData, entryId: string): BracketPositionData {
-  return { section: position.section, position: position.position, source: 'ENTRY', entryId };
+  // The placeholder label stays so a reopen can restore the slot exactly as it was.
+  return { section: position.section, position: position.position, source: 'ENTRY', entryId, ...(position.sourceRef && { sourceRef: position.sourceRef }) };
 }
 
 /** Draws the qualifiers into the Q1..Qk slots at random (seeded); call deriveMatches afterwards. */

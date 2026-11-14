@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkGame, gamesToWin, validateMatchScore, type GameScore, type ScoreFormat } from './match-score-validator.js';
+import { checkGame, gamesToWin, validateMatchScore, validateProgressGames, type GameScore, type ScoreFormat } from './match-score-validator.js';
 
 const bo5: ScoreFormat = { bestOf: 5, pointsPerGame: 11, winBy: 2 };
 const g = (score1: number, score2: number): GameScore => ({ score1, score2 });
@@ -107,5 +107,26 @@ describe('validateMatchScore', () => {
     it('rejects a retirement after the match was already decided', () => {
       expect(codes([g(11, 1), g(11, 2), g(11, 3)], { resultType: 'RETIRED', winnerSide: 1 })).toEqual(['MATCH_ALREADY_DECIDED']);
     });
+  });
+});
+
+describe('validateProgressGames', () => {
+  it('accepts finished games followed by a game still in play', () => {
+    expect(validateProgressGames([g(11, 7), g(5, 3)], bo5)).toEqual([]);
+    expect(validateProgressGames([], bo5)).toEqual([]);
+  });
+
+  it('rejects an illegal finished game before the last one', () => {
+    expect(validateProgressGames([g(11, 10), g(3, 1)], bo5).map((i) => i.code)).toEqual(['GAME_MARGIN']);
+  });
+
+  it('rejects negative or overrun scores even in the last game', () => {
+    expect(validateProgressGames([g(-1, 3)], bo5).map((i) => i.code)).toEqual(['GAME_SCORE_INVALID']);
+    expect(validateProgressGames([g(14, 9)], bo5).map((i) => i.code)).toEqual(['GAME_OVERRUN']);
+  });
+
+  it('rejects games after the match is decided and more games than the format has', () => {
+    expect(validateProgressGames([g(11, 0), g(11, 0), g(11, 0), g(2, 1)], bo5).map((i) => i.code)).toEqual(['GAME_AFTER_DECIDED']);
+    expect(validateProgressGames(Array.from({ length: 6 }, () => g(1, 0)), bo5).map((i) => i.code)).toContain('TOO_MANY_GAMES');
   });
 });
