@@ -1,77 +1,67 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { cache } from 'react';
-import { publicCacheTags, type PublicBracket, type PublicDrawKindParam } from '@kamito/shared';
+import { PUBLIC_DRAW_KINDS, type PublicDrawKind } from '@kamito/shared';
 import { BracketBoard } from '../../../../../../components/bracket/bracket-board';
-import { getDictionary } from '../../../../../../i18n/get-dictionary';
-import { isLocale, type Locale } from '../../../../../../i18n/locales';
+import { PillNav } from '../../../../../../components/common/pill-nav';
+import { EventShell } from '../../../../../../components/events/event-shell';
+import { SubEventChooser } from '../../../../../../components/events/sub-event-chooser';
 import { pickLocalized } from '../../../../../../i18n/pick-localized';
-import { publicGet } from '../../../../../../lib/api-client';
-import styles from './draw-page.module.css';
+import { loadEventPage, requireSubEvent } from '../../../../../../lib/event-page';
+import { getBracket } from '../../../../../../lib/public-data';
+import { eventPageMetadata } from '../../../../../../lib/page-metadata';
 
 interface DrawPageProps {
   params: Promise<{ locale: string; slug: string; subEventCode: string }>;
   searchParams: Promise<{ draw?: string | string[] }>;
 }
 
-const KIND_PARAMS: Record<string, PublicDrawKindParam> = { MAIN: 'main', QUALIFYING: 'qualifying' };
-
-// No dots: a ".." segment would walk the server-side API URL out of /public.
-const URL_PART = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-/** Parts that cannot form a cache tag are a 404 before any API call. */
-function drawTag(slug: string, subEventCode: string): string | null {
-  return URL_PART.test(slug) && URL_PART.test(subEventCode) ? publicCacheTags.draw(slug, subEventCode) : null;
-}
-
-// The fetch carries a timeout signal, which disables Next's fetch memoization; cache() dedupes metadata + page.
-const fetchBracket = cache((slug: string, subEventCode: string, kind: string, tag: string) =>
-  publicGet<PublicBracket>(`/events/${slug}/draws/${subEventCode}?kind=${kind}`, { tags: [tag], policy: 'matchday' }),
-);
+const KIND_PARAMS: Record<PublicDrawKind, string> = { MAIN: 'main', QUALIFYING: 'qualifying' };
 
 async function loadDraw({ params, searchParams }: DrawPageProps) {
-  const [{ locale, slug, subEventCode }, { draw }] = await Promise.all([params, searchParams]);
-  const kind = draw === undefined ? 'main' : draw;
-  const tag = drawTag(slug, subEventCode);
-  if (!isLocale(locale) || !tag || (kind !== 'main' && kind !== 'qualifying')) notFound();
-  const bracket = await fetchBracket(slug, subEventCode, kind, tag);
+  const [page, { subEventCode }, { draw }] = await Promise.all([loadEventPage(params), params, searchParams]);
+  const subEvent = requireSubEvent(page.event.subEvents, subEventCode);
+  // Without ?draw, the main draw, or the qualifying draw while only that one is published.
+  const kind = draw === undefined ? KIND_PARAMS[subEvent.drawKinds[0] ?? 'MAIN'] : draw;
+  if (typeof kind !== 'string' || !Object.hasOwn(PUBLIC_DRAW_KINDS, kind)) notFound();
+  const bracket = await getBracket(page.event.slug, subEvent.code, kind);
   if (!bracket) notFound();
-  return { locale, bracket, t: getDictionary(locale) };
+  return { ...page, subEvent, bracket };
 }
 
-const titleOf = (locale: Locale, b: PublicBracket) =>
-  `${pickLocalized(locale, b.subEvent.name, b.subEvent.nameEn)} · ${pickLocalized(locale, b.event.name, b.event.nameEn)}`;
-
 export async function generateMetadata(props: DrawPageProps): Promise<Metadata> {
-  const { locale, bracket, t } = await loadDraw(props);
-  return { title: `${t.bracket.title} ${titleOf(locale, bracket)}` };
+  const { locale, event, subEvent, bracket, t } = await loadDraw(props);
+  const query = bracket.draw.kind === 'QUALIFYING' ? '?draw=qualifying' : '';
+  return eventPageMetadata(locale, event, `/draws/${subEvent.code}${query}`, `${t.bracket.title} ${pickLocalized(locale, subEvent.name, subEvent.nameEn)}`);
 }
 
 export default async function DrawPage(props: DrawPageProps) {
-  const { locale, bracket, t } = await loadDraw(props);
-  const base = `/${locale}/events/${bracket.event.slug}/draws/${bracket.subEvent.code}`;
+  const { locale, event, subEvent, bracket, t } = await loadDraw(props);
+  const base = `/${locale}/events/${event.slug}/draws`;
+  const subHref = `${base}/${subEvent.code}`;
   return (
-    <main id="content" className="container">
-      <p className={styles.eyebrow}>{pickLocalized(locale, bracket.event.name, bracket.event.nameEn)}</p>
-      <h1 className={styles.title}>
-        {t.bracket.title} · {pickLocalized(locale, bracket.subEvent.name, bracket.subEvent.nameEn)}
-      </h1>
+    <EventShell event={event} locale={locale} t={t} active="draws">
+      <SubEventChooser
+        subEvents={event.subEvents.filter((s) => s.drawKinds.length > 0)}
+        current={subEvent.code}
+        hrefFor={(code) => `${base}/${code}`}
+        locale={locale}
+        t={t}
+      />
+      <h2 className="section-title">
+        {t.bracket.title} · {pickLocalized(locale, subEvent.name, subEvent.nameEn)}
+        {bracket.availableKinds.length > 1 && ` · ${t.bracket.kind[bracket.draw.kind]}`}
+      </h2>
       {bracket.availableKinds.length > 1 && (
-        <nav className={styles.kinds} aria-label={t.bracket.title}>
-          {bracket.availableKinds.map((kind) => (
-            <Link
-              key={kind}
-              href={kind === 'MAIN' ? base : `${base}?draw=${KIND_PARAMS[kind]}`}
-              className={styles.kind}
-              aria-current={kind === bracket.draw.kind ? 'page' : undefined}
-            >
-              {t.bracket.kind[kind]}
-            </Link>
-          ))}
-        </nav>
+        <PillNav
+          label={t.bracket.title}
+          items={bracket.availableKinds.map((kind) => ({
+            href: kind === bracket.availableKinds[0] ? subHref : `${subHref}?draw=${KIND_PARAMS[kind]}`,
+            label: t.bracket.kind[kind],
+            current: kind === bracket.draw.kind,
+          }))}
+        />
       )}
       <BracketBoard bracket={bracket} locale={locale} t={t.bracket} />
-    </main>
+    </EventShell>
   );
 }

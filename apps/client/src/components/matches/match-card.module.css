@@ -1,0 +1,101 @@
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+.link {
+  display: block;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--color-surface-alt);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--color-data);
+  outline-offset: 2px;
+}
+
+.head,
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.head {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.foot {
+  border-top: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+}
+
+.winner {
+  font-weight: 700;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--color-text-subtle);
+  font-style: italic;
+}
+
+.club,
+.mark {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.games {
+  min-width: 16px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.live {
+  padding: 0 6px;
+  background: var(--color-data);
+  color: var(--color-live);
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+}
+
+.voided {
+  color: var(--color-primary-strong);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

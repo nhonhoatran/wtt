@@ -1,0 +1,10 @@
+.scroller {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.scroller:focus-visible {
+  outline: 2px solid var(--color-data);
+  outline-offset: 2px;
+}

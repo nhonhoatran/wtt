@@ -1,12 +1,42 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { LOCALE_COOKIE, negotiateLocale } from './i18n/negotiate-locale';
+import { isLocale } from './i18n/locales';
 import { isInternalHost } from './lib/internal-request';
+import { clientIp, rateLimitRetryAfter } from './lib/public-rate-limit';
 
-/** Second wall in front of /api/revalidate (the first is the Traefik rule): public hosts get a 404. */
-export function proxy(request: NextRequest) {
-  if (!isInternalHost(request.headers.get('host'))) return new NextResponse(null, { status: 404 });
-  return NextResponse.next();
+const isRevalidatePath = (path: string) => path === '/api/revalidate' || path.startsWith('/api/revalidate/');
+
+export async function proxy(request: NextRequest) {
+  const { pathname, search, searchParams } = request.nextUrl;
+  // Second wall in front of /api/revalidate (the first is the Traefik rule): public hosts get a 404.
+  if (isRevalidatePath(pathname)) {
+    return isInternalHost(request.headers.get('host')) ? NextResponse.next() : new NextResponse(null, { status: 404 });
+  }
+  const retryAfter = await rateLimitRetryAfter(clientIp(request.headers), Boolean(searchParams.get('q')?.trim()));
+  if (retryAfter !== null) {
+    return new NextResponse('Too many requests', { status: 429, headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
+  const first = pathname.split('/')[1] ?? '';
+  if (isLocale(first)) return NextResponse.next();
+  const locale = negotiateLocale(request.cookies.get(LOCALE_COOKIE)?.value, request.headers.get('accept-language'));
+  const target = new URL(`/${locale}${pathname === '/' ? '' : pathname}${search}`, request.url);
+  const response = NextResponse.redirect(target, 307);
+  response.headers.set('Vary', 'Cookie, Accept-Language');
+  return response;
 }
 
 export const config = {
-  matcher: ['/api/revalidate', '/api/revalidate/:path*'],
+  // Everything except other API routes, Next internals and files with an extension (favicon, robots, sitemap).
+  // Link prefetches skip the proxy: they are not page views and would eat a shared venue IP's budget.
+  matcher: [
+    '/api/revalidate',
+    '/api/revalidate/:path*',
+    {
+      source: '/((?!api/|_next/|.*\\..*).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
 };

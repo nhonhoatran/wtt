@@ -1,19 +1,199 @@
 {
-  "site": { "skipToContent": "Skip to content" },
-  "error": { "title": "Something went wrong", "body": "Please try again in a moment.", "retry": "Try again" },
-  "notFound": { "title": "Page not found", "body": "This page does not exist or has not been published yet.", "home": "Back to home" },
+  "site": {
+    "skipToContent": "Skip to content"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "Please try again in a moment.",
+    "retry": "Try again"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page does not exist or has not been published yet.",
+    "home": "Back to home"
+  },
   "bracket": {
     "title": "Draw",
-    "kind": { "MAIN": "Main draw", "QUALIFYING": "Qualifying" },
+    "kind": {
+      "MAIN": "Main draw",
+      "QUALIFYING": "Qualifying"
+    },
     "section": "Section {section}",
     "scrollHint": "Scroll sideways to see the whole draw",
     "empty": "This draw has no matches yet.",
-    "rounds": { "F": "Final", "SF": "Semifinals", "QF": "Quarterfinals", "R": "Round of {n}", "QUAL_FINAL": "Qualifying final", "QUAL": "Round {n}" },
-    "source": { "WINNER_OF": "Winner of match {matchNo}", "QUALIFIER": "Q{index}", "GROUP_PLACE_1": "Group {group} winner", "GROUP_PLACE_2": "Group {group} runner-up", "GROUP_PLACE_N": "Group {group} #{place}", "TBD": "To be decided" },
+    "rounds": {
+      "F": "Final",
+      "SF": "Semifinals",
+      "QF": "Quarterfinals",
+      "R": "Round of {n}",
+      "QUAL_FINAL": "Qualifying final",
+      "QUAL": "Round {n}"
+    },
+    "source": {
+      "WINNER_OF": "Winner of match {matchNo}",
+      "QUALIFIER": "Q{index}",
+      "GROUP_PLACE_1": "Group {group} winner",
+      "GROUP_PLACE_2": "Group {group} runner-up",
+      "GROUP_PLACE_N": "Group {group} #{place}",
+      "TBD": "To be decided"
+    },
     "bye": "BYE",
     "live": "LIVE",
-    "result": { "WALKOVER": "W/O", "RETIRED": "Retired", "DISQUALIFIED": "Disqualified" },
-    "quota": { "WILDCARD": "WC", "QUALIFIER": "Q" },
+    "result": {
+      "WALKOVER": "W/O",
+      "RETIRED": "Retired",
+      "DISQUALIFIED": "Disqualified"
+    },
+    "quota": {
+      "WILDCARD": "WC",
+      "QUALIFIER": "Q"
+    },
     "match": "Match {matchNo}"
+  },
+  "common": {
+    "pagination": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "pageN": "Page {n}",
+    "all": "All",
+    "filter": "Filter",
+    "clearFilters": "Clear filters",
+    "resultCount": "{n} results"
+  },
+  "nav": {
+    "label": "Main menu",
+    "menu": "Menu",
+    "events": "Events",
+    "calendar": "Calendar",
+    "language": "Language",
+    "switchTo": "Tiếng Việt",
+    "switchToCode": "VI"
+  },
+  "strip": {
+    "label": "Latest results",
+    "toggle": "Results"
+  },
+  "home": {
+    "ongoing": "In progress",
+    "upcoming": "Upcoming",
+    "allEvents": "See all events",
+    "empty": "No events have been published yet."
+  },
+  "events": {
+    "title": "Events",
+    "metaDescription": "Table tennis events: schedules, results and draws.",
+    "empty": "No events match these filters.",
+    "status": {
+      "UPCOMING": "Upcoming",
+      "ONGOING": "In progress",
+      "COMPLETED": "Completed"
+    },
+    "filters": {
+      "label": "Filter events",
+      "q": "Search by event name",
+      "tier": "Tier",
+      "type": "Event type",
+      "year": "Year",
+      "status": "Status"
+    }
+  },
+  "calendar": {
+    "title": "{year} calendar",
+    "metaDescription": "Table tennis events by month.",
+    "empty": "No events this year yet.",
+    "year": "Year",
+    "tier": "Tier"
+  },
+  "event": {
+    "tabsLabel": "Event sections",
+    "tabs": {
+      "overview": "Overview",
+      "matches": "Matches",
+      "draws": "Draws",
+      "groups": "Groups",
+      "players": "Players",
+      "info": "Info"
+    },
+    "ticket": "Tickets",
+    "presentedBy": "Presented by {name}",
+    "subEventChooser": "Events",
+    "overview": {
+      "champions": "Champions",
+      "stats": "Facts",
+      "players": "Players",
+      "playedMatches": "Matches played",
+      "subEvents": "Events",
+      "entries": "{n} entries"
+    }
+  },
+  "matches": {
+    "title": "Matches",
+    "statesLabel": "Match status",
+    "states": {
+      "live": "Live",
+      "completed": "Completed",
+      "upcoming": "Upcoming"
+    },
+    "filters": {
+      "label": "Filter matches",
+      "sub": "Event",
+      "date": "Date",
+      "q": "Search player"
+    },
+    "empty": {
+      "live": "No matches in play.",
+      "completed": "No completed matches yet.",
+      "upcoming": "No upcoming matches."
+    },
+    "voided": "Void",
+    "group": "Group {code}"
+  },
+  "match": {
+    "title": "Match {matchNo}",
+    "status": {
+      "SCHEDULED": "Scheduled",
+      "LIVE": "Live",
+      "OFFICIAL": "Final"
+    },
+    "scoreTable": "Game scores",
+    "game": "Game {n}",
+    "games": "Games",
+    "scheduledAt": "Scheduled",
+    "startedAt": "Started",
+    "officialAt": "Finished",
+    "toBracket": "View draw",
+    "toGroups": "View groups",
+    "side": "Side {n}",
+    "voidedNote": "This result does not count because a player withdrew."
+  },
+  "groups": {
+    "title": "Groups",
+    "group": "Group {code}",
+    "standings": "Group {code} standings",
+    "rank": "#",
+    "player": "Player",
+    "wonLost": "W–L",
+    "points": "Pts",
+    "gameDiff": "Games",
+    "qualified": "Qualified",
+    "qualifiedMark": "Q",
+    "matches": "Group matches",
+    "empty": "This event has no group stage."
+  },
+  "players": {
+    "title": "Players",
+    "stagesLabel": "Stage",
+    "stage": {
+      "MAIN": "Main draw",
+      "QUALIFYING": "Qualifying"
+    },
+    "seed": "Seed",
+    "name": "Player",
+    "club": "Club",
+    "empty": "No players yet.",
+    "count": "{n} players"
+  },
+  "info": {
+    "title": "Event information"
   }
 }

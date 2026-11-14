@@ -2,34 +2,16 @@
   margin-top: 32px;
 }
 
-.sectionTitle {
-  margin: 0 0 8px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
 .hint {
   margin: 0 0 8px;
   font-size: 13px;
-  color: #525252;
+  color: var(--color-text-muted);
 }
 
 @media (min-width: 1024px) {
   .hint {
     display: none;
   }
-}
-
-/* Only this frame scrolls sideways; the page itself never overflows. */
-.scroller {
-  max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.scroller:focus-visible {
-  outline: 2px solid var(--color-data);
-  outline-offset: 2px;
 }
 
 .rounds {
@@ -85,7 +67,7 @@
   top: 25%;
   bottom: 25%;
   right: calc(var(--gap) / -2);
-  border-right: 1px solid #a3a3a3;
+  border-right: 1px solid var(--color-line-strong);
 }
 
 .cell {
@@ -102,7 +84,7 @@
   position: absolute;
   top: 50%;
   width: calc(var(--gap) / 2);
-  border-top: 1px solid #a3a3a3;
+  border-top: 1px solid var(--color-line-strong);
 }
 
 .round:not(:last-child) .cell::after {
@@ -119,7 +101,7 @@
   gap: 8px;
   padding: 2px 8px;
   border-bottom: 1px solid var(--color-border);
-  color: #525252;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 
@@ -152,12 +134,12 @@
 }
 
 .placeholder {
-  color: #737373;
+  color: var(--color-text-subtle);
   font-style: italic;
 }
 
 .mark {
-  color: #525252;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 
@@ -165,4 +147,41 @@
   min-width: 16px;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* Landscape sheets for the bracket only: 6 rounds of 150px fit A4 across; each section starts on a new sheet. */
+@page bracket {
+  size: landscape;
+}
+
+@media print {
+  .section {
+    page: bracket;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  .rounds {
+    --cell-w: 150px;
+    --gap: 20px;
+    --cell-h: 56px;
+    --row-gap: 4px;
+  }
+
+  .section + .section {
+    break-before: page;
+    margin-top: 0;
+  }
+
+  .cell {
+    break-inside: avoid;
+    font-size: 10px;
+  }
+
+  .cellHead,
+  .mark {
+    font-size: 9px;
+  }
 }

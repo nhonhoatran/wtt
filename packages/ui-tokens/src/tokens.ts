@@ -9,6 +9,9 @@ export const tokens = {
     // Only on navy/black backgrounds (contrast).
     live: '#E3F42A',
     border: '#E5E5E5',
+    lineStrong: '#A3A3A3',
+    textMuted: '#404040',
+    textSubtle: '#737373',
     surface: '#FFFFFF',
     surfaceAlt: '#FAFAFA',
     surfaceMuted: '#F5F5F5',

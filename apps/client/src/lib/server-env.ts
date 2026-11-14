@@ -13,6 +13,7 @@ const seconds = (name: string): number => {
 /** Read per request, never at build time: the Docker build has no runtime env. */
 export const serverEnv = {
   apiInternalUrl: () => required('API_INTERNAL_URL'),
+  publicSiteUrl: () => required('PUBLIC_SITE_URL'),
   ssrSecret: () => required('SSR_INTERNAL_SECRET'),
   revalidateSecret: () => required('REVALIDATE_SECRET'),
   revalidateHosts: () => required('REVALIDATE_ALLOWED_HOSTS').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean),

@@ -13,3 +13,35 @@ export function formatMatchTime(iso: string, locale: Locale, timeZone: string): 
     hour12: false,
   }).format(new Date(iso));
 }
+
+// Calendar dates (YYYY-MM-DD) carry no zone; formatting them in UTC keeps the day as written.
+const dayFormat = (locale: Locale, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: 'UTC', ...opts });
+
+const asDate = (day: string) => new Date(`${day}T00:00:00Z`);
+
+/** "12/03 – 15/03/2026"; one day prints once. */
+export function formatDateRange(start: string, end: string, locale: Locale): string {
+  const full = dayFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (start === end) return full.format(asDate(start));
+  const short = dayFormat(locale, { day: '2-digit', month: '2-digit' });
+  return `${(start.slice(0, 4) === end.slice(0, 4) ? short : full).format(asDate(start))} – ${full.format(asDate(end))}`;
+}
+
+/** "Tháng 3 năm 2026" / "March 2026" from YYYY-MM. */
+export function formatMonth(month: string, locale: Locale): string {
+  return dayFormat(locale, { month: 'long', year: 'numeric' }).format(asDate(`${month}-01`));
+}
+
+/** Short day label for a date chooser: "T7 14/11" / "Sat 14/11". */
+export function formatDay(day: string, locale: Locale): string {
+  return dayFormat(locale, { weekday: 'short', day: '2-digit', month: '2-digit' }).format(asDate(day));
+}
+
+/** Every calendar day from start to end inclusive (YYYY-MM-DD). */
+export function daysBetween(start: string, end: string): string[] {
+  const days: string[] = [];
+  for (let t = asDate(start).getTime(); t <= asDate(end).getTime() && days.length < 62; t += 86_400_000) {
+    days.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return days;
+}

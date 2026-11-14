@@ -11,6 +11,7 @@
   background: var(--color-surface);
   color: var(--color-ink);
   border-radius: var(--radius-button);
+  outline-color: var(--color-live);
 }
 
 .header {
@@ -62,5 +63,92 @@
 
   .headerInner {
     height: 72px;
+  }
+}
+
+.headerInner {
+  gap: 16px;
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.navList {
+  display: flex;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navList a,
+.locale {
+  color: var(--color-surface);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.navList a:hover,
+.locale:hover {
+  color: var(--color-live);
+}
+
+.navList a:focus-visible,
+.locale:focus-visible,
+.navMenu summary:focus-visible,
+.wordmark:focus-visible {
+  outline: 2px solid var(--color-live);
+  outline-offset: 2px;
+}
+
+.navInline {
+  display: none;
+}
+
+.navMenu {
+  position: relative;
+}
+
+.navMenu summary {
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.navPanel {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  min-width: 200px;
+  padding: 16px;
+  background: var(--color-ink);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+
+.navPanel .navList {
+  flex-direction: column;
+  gap: 16px;
+}
+
+.locale {
+  padding: 4px 8px;
+  border: 1px solid var(--color-surface);
+  border-radius: var(--radius-button);
+  font-size: 12px;
+}
+
+@media (min-width: 768px) {
+  .navInline {
+    display: block;
+  }
+
+  .navMenu {
+    display: none;
   }
 }

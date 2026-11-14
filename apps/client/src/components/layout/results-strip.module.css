@@ -1,0 +1,64 @@
+/* One 40px row under the bar: the toggle floats left, the list beside it scrolls sideways. Collapses to the toggle. */
+.strip {
+  display: flow-root;
+  background: var(--color-data);
+  color: var(--color-surface);
+  font-size: 13px;
+}
+
+.toggle {
+  float: left;
+  padding: 0 var(--layout-gutter-mobile);
+  line-height: 40px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle:focus-visible,
+.item:focus-visible {
+  outline: 2px solid var(--color-live);
+  outline-offset: -2px;
+}
+
+.items {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 40px;
+  margin: 0;
+  padding: 0 var(--layout-gutter-mobile) 0 0;
+  list-style: none;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-surface);
+  text-decoration: none;
+}
+
+.sub {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.score {
+  font-variant-numeric: tabular-nums;
+}
+
+.live {
+  padding: 0 6px;
+  background: var(--color-data-deep);
+  color: var(--color-live);
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+}
+
+@media (min-width: 768px) {
+  .toggle {
+    padding: 0 var(--layout-gutter-desktop);
+  }
+}

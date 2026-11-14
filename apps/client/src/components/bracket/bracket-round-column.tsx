@@ -10,14 +10,16 @@ interface ColumnProps {
   locale: Locale;
   t: Dictionary['bracket'];
   timeZone: string;
+  /** One level below the heading that holds the bracket. */
+  heading: 'h3' | 'h4';
 }
 
-export function BracketRoundColumn({ round, locale, t, timeZone }: ColumnProps) {
+export function BracketRoundColumn({ round, locale, t, timeZone, heading: Heading }: ColumnProps) {
   const pairs = [];
   for (let i = 0; i < round.matches.length; i += 2) pairs.push(round.matches.slice(i, i + 2));
   return (
     <li className={styles.round}>
-      <h3 className={styles.roundTitle}>{roundLabel(t, round.code, round.number)}</h3>
+      <Heading className={styles.roundTitle}>{roundLabel(t, round.code, round.number)}</Heading>
       <div className={styles.roundBody}>
         {pairs.map((pair) => (
           <div key={pair[0]!.matchNo} className={styles.pair}>

@@ -15,8 +15,7 @@ export async function publicGet<T>(path: string, { tags, policy }: PublicGetOpti
   const base = serverEnv.apiInternalUrl().replace(/\/+$/, '');
   const response = await fetch(`${base}/${API_GLOBAL_PREFIX}/${PUBLIC_API_SEGMENT}${path}`, {
     headers: { [SSR_SECRET_HEADER]: serverEnv.ssrSecret() },
-    cache: 'force-cache',
-    next: { tags, revalidate: revalidateSeconds(policy) },
+    ...(policy === 'none' ? { cache: 'no-store' as const } : { cache: 'force-cache' as const, next: { tags, revalidate: revalidateSeconds(policy) } }),
     signal: AbortSignal.timeout(serverEnv.apiTimeoutMs()),
   });
   if (!response.ok) throw new Error(`public API ${path} answered ${response.status}`);

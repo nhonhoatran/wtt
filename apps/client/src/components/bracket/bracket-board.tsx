@@ -1,6 +1,8 @@
 import type { PublicBracket } from '@kamito/shared';
 import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
+import { EmptyState } from '../common/empty-state';
+import { ScrollRegion } from '../common/scroll-region';
 import { BracketRoundColumn } from './bracket-round-column';
 import styles from './bracket.module.css';
 
@@ -12,7 +14,7 @@ interface BoardProps {
 
 /** Server-rendered bracket: one CSS grid column per round, readable without JavaScript. */
 export function BracketBoard({ bracket, locale, t }: BoardProps) {
-  if (!bracket.sections.length) return <p>{t.empty}</p>;
+  if (!bracket.sections.length) return <EmptyState text={t.empty} />;
   const many = bracket.sections.length > 1;
   return (
     <>
@@ -21,14 +23,14 @@ export function BracketBoard({ bracket, locale, t }: BoardProps) {
         const title = many ? format(t.section, { section }) : t.title;
         return (
           <section key={section} className={styles.section}>
-            {many && <h2 className={styles.sectionTitle}>{title}</h2>}
-            <div className={styles.scroller} tabIndex={0} role="region" aria-label={title}>
+            {many && <h3 className="section-title">{title}</h3>}
+            <ScrollRegion label={title}>
               <ol className={styles.rounds}>
                 {rounds.map((round) => (
-                  <BracketRoundColumn key={round.number} round={round} locale={locale} t={t} timeZone={bracket.event.timezone} />
+                  <BracketRoundColumn key={round.number} heading={many ? 'h4' : 'h3'} round={round} locale={locale} t={t} timeZone={bracket.event.timezone} />
                 ))}
               </ol>
-            </div>
+            </ScrollRegion>
           </section>
         );
       })}

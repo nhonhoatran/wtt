@@ -1,19 +1,199 @@
 {
-  "site": { "skipToContent": "Bỏ qua tới nội dung" },
-  "error": { "title": "Đã có lỗi khi tải trang", "body": "Vui lòng thử lại sau ít phút.", "retry": "Thử lại" },
-  "notFound": { "title": "Không tìm thấy trang", "body": "Trang này không tồn tại hoặc chưa được công bố.", "home": "Về trang chủ" },
+  "site": {
+    "skipToContent": "Bỏ qua tới nội dung"
+  },
+  "error": {
+    "title": "Đã có lỗi khi tải trang",
+    "body": "Vui lòng thử lại sau ít phút.",
+    "retry": "Thử lại"
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "body": "Trang này không tồn tại hoặc chưa được công bố.",
+    "home": "Về trang chủ"
+  },
   "bracket": {
     "title": "Nhánh đấu",
-    "kind": { "MAIN": "Nhánh chính", "QUALIFYING": "Vòng loại" },
+    "kind": {
+      "MAIN": "Nhánh chính",
+      "QUALIFYING": "Vòng loại"
+    },
     "section": "Nhánh {section}",
     "scrollHint": "Kéo ngang để xem hết nhánh",
     "empty": "Nhánh đấu chưa có trận nào.",
-    "rounds": { "F": "Chung kết", "SF": "Bán kết", "QF": "Tứ kết", "R": "Vòng {n}", "QUAL_FINAL": "Lượt quyết định", "QUAL": "Lượt {n}" },
-    "source": { "WINNER_OF": "Thắng trận #{matchNo}", "QUALIFIER": "Q{index}", "GROUP_PLACE_1": "Nhất bảng {group}", "GROUP_PLACE_2": "Nhì bảng {group}", "GROUP_PLACE_N": "Hạng {place} bảng {group}", "TBD": "Chờ xác định" },
+    "rounds": {
+      "F": "Chung kết",
+      "SF": "Bán kết",
+      "QF": "Tứ kết",
+      "R": "Vòng {n}",
+      "QUAL_FINAL": "Lượt quyết định",
+      "QUAL": "Lượt {n}"
+    },
+    "source": {
+      "WINNER_OF": "Thắng trận #{matchNo}",
+      "QUALIFIER": "Q{index}",
+      "GROUP_PLACE_1": "Nhất bảng {group}",
+      "GROUP_PLACE_2": "Nhì bảng {group}",
+      "GROUP_PLACE_N": "Hạng {place} bảng {group}",
+      "TBD": "Chờ xác định"
+    },
     "bye": "BYE",
     "live": "LIVE",
-    "result": { "WALKOVER": "W/O", "RETIRED": "Bỏ cuộc", "DISQUALIFIED": "Truất quyền" },
-    "quota": { "WILDCARD": "WC", "QUALIFIER": "Q" },
+    "result": {
+      "WALKOVER": "W/O",
+      "RETIRED": "Bỏ cuộc",
+      "DISQUALIFIED": "Truất quyền"
+    },
+    "quota": {
+      "WILDCARD": "WC",
+      "QUALIFIER": "Q"
+    },
     "match": "Trận #{matchNo}"
+  },
+  "common": {
+    "pagination": "Phân trang",
+    "previous": "Trang trước",
+    "next": "Trang sau",
+    "pageN": "Trang {n}",
+    "all": "Tất cả",
+    "filter": "Lọc",
+    "clearFilters": "Xóa lọc",
+    "resultCount": "{n} kết quả"
+  },
+  "nav": {
+    "label": "Menu chính",
+    "menu": "Menu",
+    "events": "Giải đấu",
+    "calendar": "Lịch thi đấu",
+    "language": "Ngôn ngữ",
+    "switchTo": "English",
+    "switchToCode": "EN"
+  },
+  "strip": {
+    "label": "Kết quả mới",
+    "toggle": "Kết quả"
+  },
+  "home": {
+    "ongoing": "Đang diễn ra",
+    "upcoming": "Sắp diễn ra",
+    "allEvents": "Xem tất cả giải",
+    "empty": "Chưa có giải nào được công bố."
+  },
+  "events": {
+    "title": "Giải đấu",
+    "metaDescription": "Danh sách giải bóng bàn: lịch, kết quả, nhánh đấu.",
+    "empty": "Không có giải nào khớp bộ lọc.",
+    "status": {
+      "UPCOMING": "Sắp diễn ra",
+      "ONGOING": "Đang diễn ra",
+      "COMPLETED": "Đã kết thúc"
+    },
+    "filters": {
+      "label": "Lọc giải",
+      "q": "Tìm theo tên giải",
+      "tier": "Hạng giải",
+      "type": "Nhóm giải",
+      "year": "Năm",
+      "status": "Trạng thái"
+    }
+  },
+  "calendar": {
+    "title": "Lịch thi đấu {year}",
+    "metaDescription": "Lịch các giải bóng bàn theo tháng.",
+    "empty": "Chưa có giải nào trong năm này.",
+    "year": "Năm",
+    "tier": "Hạng giải"
+  },
+  "event": {
+    "tabsLabel": "Mục của giải",
+    "tabs": {
+      "overview": "Tổng quan",
+      "matches": "Trận đấu",
+      "draws": "Nhánh đấu",
+      "groups": "Bảng đấu",
+      "players": "Vận động viên",
+      "info": "Thông tin"
+    },
+    "ticket": "Mua vé",
+    "presentedBy": "Tài trợ bởi {name}",
+    "subEventChooser": "Nội dung thi đấu",
+    "overview": {
+      "champions": "Nhà vô địch",
+      "stats": "Số liệu",
+      "players": "Vận động viên",
+      "playedMatches": "Trận đã đấu",
+      "subEvents": "Nội dung thi đấu",
+      "entries": "{n} đăng ký"
+    }
+  },
+  "matches": {
+    "title": "Trận đấu",
+    "statesLabel": "Trạng thái trận",
+    "states": {
+      "live": "Đang đấu",
+      "completed": "Đã xong",
+      "upcoming": "Sắp tới"
+    },
+    "filters": {
+      "label": "Lọc trận",
+      "sub": "Nội dung",
+      "date": "Ngày",
+      "q": "Tìm VĐV"
+    },
+    "empty": {
+      "live": "Không có trận nào đang đấu.",
+      "completed": "Chưa có trận nào kết thúc.",
+      "upcoming": "Không có trận nào sắp tới."
+    },
+    "voided": "Không tính",
+    "group": "Bảng {code}"
+  },
+  "match": {
+    "title": "Trận #{matchNo}",
+    "status": {
+      "SCHEDULED": "Chưa đấu",
+      "LIVE": "Đang đấu",
+      "OFFICIAL": "Đã kết thúc"
+    },
+    "scoreTable": "Điểm từng ván",
+    "game": "Ván {n}",
+    "games": "Ván thắng",
+    "scheduledAt": "Giờ thi đấu",
+    "startedAt": "Bắt đầu",
+    "officialAt": "Kết thúc",
+    "toBracket": "Xem nhánh đấu",
+    "toGroups": "Xem bảng đấu",
+    "side": "Bên {n}",
+    "voidedNote": "Kết quả trận này không được tính do vận động viên rút lui."
+  },
+  "groups": {
+    "title": "Bảng đấu",
+    "group": "Bảng {code}",
+    "standings": "Bảng xếp hạng bảng {code}",
+    "rank": "#",
+    "player": "VĐV",
+    "wonLost": "T–B",
+    "points": "Điểm",
+    "gameDiff": "Ván",
+    "qualified": "Đi tiếp",
+    "qualifiedMark": "Q",
+    "matches": "Trận trong bảng",
+    "empty": "Nội dung này chưa có bảng đấu."
+  },
+  "players": {
+    "title": "Vận động viên",
+    "stagesLabel": "Vòng",
+    "stage": {
+      "MAIN": "Vòng chính",
+      "QUALIFYING": "Vòng loại"
+    },
+    "seed": "Hạt giống",
+    "name": "VĐV",
+    "club": "CLB",
+    "empty": "Chưa có vận động viên nào.",
+    "count": "{n} vận động viên"
+  },
+  "info": {
+    "title": "Thông tin giải"
   }
 }

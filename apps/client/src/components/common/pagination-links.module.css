@@ -1,0 +1,28 @@
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.link {
+  min-width: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  color: var(--color-ink);
+  text-align: center;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.link[aria-current='page'] {
+  background: var(--color-data);
+  border-color: var(--color-data);
+  color: var(--color-surface);
+}
+
+.gap {
+  color: var(--color-text-subtle);
+}
