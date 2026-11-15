@@ -4,6 +4,7 @@ import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
 import { sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatMatchTime } from '../../lib/format-date-time';
+import { LiveBadge } from '../common/live-badge';
 import styles from './bracket.module.css';
 
 type BracketDict = Dictionary['bracket'];
@@ -48,7 +49,7 @@ export function BracketMatchCell({ match, locale, t, timeZone }: { match: Public
     <div className={styles.cell}>
       <div className={styles.cellHead}>
         <span>{format(t.match, { matchNo: match.matchNo })}</span>
-        {match.status === 'LIVE' ? <span className={styles.live}>{t.live}</span> : <span>{result ?? when ?? ''}</span>}
+        {match.status === 'LIVE' ? <LiveBadge label={t.live} /> : <span>{result ?? when ?? ''}</span>}
       </div>
       <SideRow {...shared} side={match.side1} source={match.side1Source} score={match.games1} isWinner={match.winnerSide === 1} />
       <SideRow {...shared} side={match.side2} source={match.side2Source} score={match.games2} isWinner={match.winnerSide === 2} />

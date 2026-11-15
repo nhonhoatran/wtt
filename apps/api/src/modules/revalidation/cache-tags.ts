@@ -164,6 +164,7 @@ export const CACHE_TAGS = {
   'tier.write': eventCardTags,
   'eventType.write': eventCardTags,
   'venue.write': eventCardTags,
+  'venueTable.write': (c: EventSlugsTagContext) => c.eventSlugs.flatMap((slug) => [t.event(slug), t.schedule(slug)]),
   'media.update': eventCardTags,
   'discipline.write': subEventUsageTags,
   'category.write': subEventUsageTags,

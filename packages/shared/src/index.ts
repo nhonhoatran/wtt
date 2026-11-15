@@ -28,6 +28,7 @@ export * from './public-cache-tag-sets.js';
 export * from './revalidate-job-options.js';
 export * from './with-timeout.js';
 export * from './public-event-contract.js';
+export * from './public-schedule-contract.js';
 export * from './public-site-contract.js';
 export * from './draw-limits.js';
 export * from './match-limits.js';

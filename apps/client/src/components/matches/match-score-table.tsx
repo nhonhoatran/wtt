@@ -5,7 +5,6 @@ import { ScrollRegion } from '../common/scroll-region';
 import { sideName } from './side-name';
 import styles from './match-score-table.module.css';
 
-/** Game-by-game points: one row per side, one column per game, games won last. */
 export function MatchScoreTable({ match, locale, t }: { match: PublicMatchDetail; locale: Locale; t: Dictionary['match'] }) {
   const rows = [
     { side: match.side1, games: match.games1, score: (g: { score1: number }) => g.score1, won: match.winnerSide === 1 },
@@ -18,7 +17,7 @@ export function MatchScoreTable({ match, locale, t }: { match: PublicMatchDetail
         <thead>
           <tr>
             <th scope="col" className={styles.nameCol}>
-              <span className="visually-hidden">{format(t.side, { n: '' })}</span>
+              <span className="visually-hidden">{t.sideColumn}</span>
             </th>
             {match.games.map((g) => (
               <th key={g.number} scope="col">

@@ -45,7 +45,7 @@ export class AdminSettingsController {
     return this.withRefresh({ data: { key, value: def.defaultValue } });
   }
 
-  /** Public pages read some settings (results strip, page size); the API's own 10 s setting cache still applies. */
+  /** Public pages cache some settings; invalidate them after the database write shared by all API replicas. */
   private async withRefresh<T extends object>(result: T) {
     const warnings = await this.revalidation.enqueue(() => CACHE_TAGS['settings.update']());
     return warnings.length > 0 ? { ...result, warnings } : result;

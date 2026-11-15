@@ -13,14 +13,6 @@
   letter-spacing: 0.04em;
 }
 
-.live {
-  padding: 0 6px;
-  background: var(--color-data-deep);
-  color: var(--color-live);
-  font-weight: 700;
-  border-radius: var(--radius-pill);
-}
-
 .sides {
   display: grid;
   gap: 12px;

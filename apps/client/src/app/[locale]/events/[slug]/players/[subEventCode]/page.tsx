@@ -29,7 +29,7 @@ async function loadPlayers({ params, searchParams }: PlayersPageProps) {
   const withEntries = page.event.subEvents.filter((s) => s.entryCount > 0);
   const subEvent = requireSubEvent(withEntries, subEventCode);
   const fetchEntries = (params: SearchParams) =>
-    getEntries(page.event.slug, subEvent.code, toQuery(params, { stage: oneOf(Object.keys(PUBLIC_ENTRY_STAGES)), page: isPageParam }));
+    getEntries(page.event.slug, subEvent.code, toQuery({ ...params, stage: params.stage === 'main' ? undefined : params.stage }, { stage: oneOf(Object.keys(PUBLIC_ENTRY_STAGES)), page: isPageParam }));
   let list = await fetchEntries(query);
   // A sub-event with only qualifying entries opens on them, not on an empty main list.
   const only = list?.stages.length === 1 ? list.stages[0] : undefined;

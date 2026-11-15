@@ -93,6 +93,7 @@
 }
 
 .navList a:hover,
+.navList a[aria-current],
 .locale:hover {
   color: var(--color-live);
 }

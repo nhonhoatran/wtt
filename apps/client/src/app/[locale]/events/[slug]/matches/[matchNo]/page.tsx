@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { sideClubs, sideName } from '../../../../../../components/matches/side-name';
 import { matchStageLabel } from '../../../../../../components/matches/match-card';
 import { MatchScoreTable } from '../../../../../../components/matches/match-score-table';
+import { LiveBadge } from '../../../../../../components/common/live-badge';
 import styles from '../../../../../../components/matches/match-detail.module.css';
 import { format, getDictionary } from '../../../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../../../i18n/locales';
@@ -62,7 +63,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
 
       <section className={styles.board} aria-label={t.match.status[m.status]}>
         <p className={styles.status}>
-          {m.status === 'LIVE' ? <span className={styles.live}>{t.bracket.live}</span> : t.match.status[m.status]}
+          {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} variant="deep" /> : t.match.status[m.status]}
           {m.resultType && m.resultType !== 'NORMAL' && ` · ${t.bracket.result[m.resultType]}`}
         </p>
         <div className={styles.sides}>

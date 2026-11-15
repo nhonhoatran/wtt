@@ -34,6 +34,8 @@ model Player {
   email               String?
   // Lowercase, no diacritics, single spaces; used for matching and search.
   normalizedName      String
+  // Effective public name, maintained by a database trigger; never returned by public serializers.
+  normalizedPublicName String               @default("")
   isPublicProfile     Boolean               @default(true)
   // On until the public-consent question is answered.
   noindex             Boolean               @default(true)
@@ -52,6 +54,7 @@ model Player {
   rankingSnapshotRows RankingSnapshotRow[]
 
   @@index([normalizedName])
+  @@index([normalizedPublicName])
   @@index([club])
   @@index([mergedIntoId])
 }

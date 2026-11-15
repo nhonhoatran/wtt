@@ -5,14 +5,6 @@ import type { z } from 'zod';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// Other API replicas pick up a change within this window; the writing replica sees it at once.
-const CACHE_TTL_MS = 10_000;
-
-interface CacheEntry {
-  value: unknown;
-  expiresAt: number;
-}
-
 export interface EditableSettingView {
   key: string;
   group: string;
@@ -27,19 +19,15 @@ export interface EditableSettingView {
 
 @Injectable()
 export class AppSettingsService {
-  private readonly cache = new Map<string, CacheEntry>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
 
   async get<T extends z.ZodType>(def: AppSettingDefinition<T>): Promise<z.infer<T>> {
-    const cached = this.cache.get(def.key);
-    if (cached && cached.expiresAt > Date.now()) return cached.value as z.infer<T>;
+    // The database is the shared source across replicas; a process-local TTL can re-cache stale public pages.
     const row = await this.prisma.appSetting.findUnique({ where: { key: def.key } });
     const value = resolveAppSetting(def, row?.value);
-    this.cache.set(def.key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
     return value;
   }
 
@@ -83,7 +71,6 @@ export class AppSettingsService {
         tx,
       );
     });
-    this.cache.delete(def.key);
   }
 
   async reset(def: AppSettingDefinition): Promise<void> {
@@ -96,6 +83,5 @@ export class AppSettingsService {
         tx,
       );
     });
-    this.cache.delete(def.key);
   }
 }

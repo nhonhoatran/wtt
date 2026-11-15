@@ -1,10 +1,14 @@
-import path from 'node:path';
 import { expect, test } from './support/fixtures';
 
-const SCREENSHOT_DIR = path.join(import.meta.dirname, '../../../../plans/reports/screenshots-261114-phase-08-batch-3');
 const root = (slug: string) => `/vi/events/${slug}`;
 
 test.describe('locale', () => {
+  test('missing English event retains the English error and home destination', async ({ page }) => {
+    const response = await page.goto('/en/events/nonexistent-e2e-event');
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/en');
+  });
   test('/ redirects to the negotiated locale and sets html lang', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/vi$/);
@@ -29,6 +33,28 @@ test.describe('locale', () => {
 });
 
 test.describe('SEO', () => {
+  test('calendar normalizes invalid and repeated years while preserving canonical years', async ({ page }) => {
+    const current = new Date().getFullYear();
+    for (const query of ['', '?year=invalid', '?year=2025&year=2024']) {
+      await page.goto(`/vi/events/calendar${query}`);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${process.env.E2E_SITE_URL}/vi/events/calendar`);
+    }
+    const other = current + 1;
+    await page.goto(`/vi/events/calendar?year=${other}`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${process.env.E2E_SITE_URL}/vi/events/calendar?year=${other}`);
+  });
+
+  test('navigation distinguishes the exact page and event section location', async ({ page, world, viewport }) => {
+    test.skip(viewport?.width !== 1280, 'Desktop navigation semantics');
+    const nav = page.getByRole('navigation', { name: 'Menu chính' });
+    await page.goto('/vi/events');
+    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'page');
+    await page.goto('/vi/events/calendar');
+    await expect(nav.getByRole('link', { name: 'Lịch thi đấu', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).not.toHaveAttribute('aria-current');
+    await page.goto(root(world.world.slug));
+    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'location');
+  });
   test('overview carries canonical and hreflang alternates', async ({ page, world }) => {
     const site = process.env.E2E_SITE_URL;
     const path = root(world.world.slug);
@@ -58,6 +84,8 @@ test.describe('security headers', () => {
       data: JSON.stringify({ 'csp-report': { 'document-uri': 'http://localhost/vi', 'violated-directive': 'img-src', 'blocked-uri': 'https://example.test/x.png' } }),
     });
     expect(report.status()).toBe(204);
+    const malformed = await request.post('/api/csp-report', { data: [null, { body: null }, { body: 'bad' }, { body: { effectiveDirective: 'img-src' } }] });
+    expect(malformed.status()).toBe(204);
   });
 });
 
@@ -81,7 +109,7 @@ test.describe('mobile layout', () => {
 test.describe('print', () => {
   test.skip(({ viewport }) => viewport?.width !== 1280, 'desktop project only');
 
-  test('draws page prints the bracket without site chrome', async ({ page, world }) => {
+  test('draws page prints the bracket without site chrome', async ({ page, world }, testInfo) => {
     await page.goto(`${root(world.world.slug)}/draws/MS`);
     await expect(page.getByRole('heading', { name: 'Chung kết' })).toBeVisible();
     await page.emulateMedia({ media: 'print' });
@@ -90,6 +118,6 @@ test.describe('print', () => {
     await expect(page.locator('nav').first()).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Chung kết' })).toBeVisible();
     await expect(page.getByText(/^Trận #\d+$/).first()).toBeVisible();
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'draws-ms-print.png'), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath('draws-ms-print.png'), fullPage: true });
   });
 });

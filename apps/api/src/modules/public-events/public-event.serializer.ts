@@ -39,10 +39,10 @@ export function toPublicImage(media: MediaRow | null, baseUrl: string, minWidth:
 export const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
 
 /** Whitelist serializer for an event card; rows are already limited to published, non-cancelled events. */
-export function toPublicEventCard(e: PublicEventCardRow, baseUrl: string, imageMinWidth: number | null = CARD_IMAGE_MIN_WIDTH): PublicEventCard {
+export function toPublicEventCard(e: PublicEventCardRow, baseUrl: string, imageMinWidth: number | null = CARD_IMAGE_MIN_WIDTH, now: Date = new Date()): PublicEventCard {
   const startDate = dateOnly(e.startDate);
   const endDate = dateOnly(e.endDate);
-  const lifecycle = lifecycleFromDates({ startDate, endDate, isCancelled: false, today: todayInTimezone(e.timezone) });
+  const lifecycle = lifecycleFromDates({ startDate, endDate, isCancelled: false, today: todayInTimezone(e.timezone, now) });
   const { tier, ...type } = e.eventType;
   return {
     slug: e.slug,

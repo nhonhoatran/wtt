@@ -36,12 +36,3 @@ export function formatMonth(month: string, locale: Locale): string {
 export function formatDay(day: string, locale: Locale): string {
   return dayFormat(locale, { weekday: 'short', day: '2-digit', month: '2-digit' }).format(asDate(day));
 }
-
-/** Every calendar day from start to end inclusive (YYYY-MM-DD). */
-export function daysBetween(start: string, end: string): string[] {
-  const days: string[] = [];
-  for (let t = asDate(start).getTime(); t <= asDate(end).getTime() && days.length < 62; t += 86_400_000) {
-    days.push(new Date(t).toISOString().slice(0, 10));
-  }
-  return days;
-}

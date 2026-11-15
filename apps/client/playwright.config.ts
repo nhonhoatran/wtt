@@ -7,15 +7,18 @@ const rootEnv = path.join(import.meta.dirname, '../../.env');
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const apiPort = process.env.API_PORT ?? '3000';
-const clientPort = 3001;
+const clientPort = Number(process.env.E2E_CLIENT_PORT ?? 3001);
 const siteUrl = `http://localhost:${clientPort}`;
 process.env.E2E_WORLD_FILE ??= path.join(import.meta.dirname, 'test-results/e2e-world.json');
 process.env.E2E_SITE_URL = siteUrl;
+process.env.API_INTERNAL_URL = `http://localhost:${apiPort}`;
 
 const serverEnv = {
   ...(process.env as Record<string, string>),
   API_FETCH_TIMEOUT_MS: '5000',
-  REVALIDATE_ALLOWED_HOSTS: process.env.REVALIDATE_ALLOWED_HOSTS ?? `localhost:${clientPort}`,
+  PUBLIC_SITE_URL: siteUrl,
+  API_INTERNAL_URL: `http://localhost:${apiPort}`,
+  REVALIDATE_ALLOWED_HOSTS: `localhost:${clientPort}`,
 };
 
 export default defineConfig({
@@ -36,18 +39,20 @@ export default defineConfig({
   webServer: [
     {
       // No --watch: a restart in the middle of a run would drop requests.
-      command: 'pnpm --filter @kamito/api exec node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/main.ts',
+      command: process.env.E2E_API_MODE === 'dist'
+        ? 'pnpm --filter @kamito/api exec node --env-file-if-exists=../../.env dist/main.js'
+        : 'pnpm --filter @kamito/api exec node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/main.ts',
       url: `http://localhost:${apiPort}/api/v1/health/live`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: serverEnv,
     },
     {
-      command: `pnpm exec next dev --port ${clientPort}`,
+      command: `pnpm exec next ${process.env.E2E_NEXT_MODE === 'start' ? 'start' : 'dev'} --port ${clientPort}`,
       url: `${siteUrl}/api/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
-      env: serverEnv,
+      env: { ...serverEnv, NODE_ENV: process.env.E2E_NEXT_MODE === 'start' ? 'production' : 'development' },
     },
   ],
 });

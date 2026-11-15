@@ -6,6 +6,7 @@ import { pageWindow, parsePublicChoice, parsePublicPage } from '../public-scope/
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { PUBLIC_SIDE_SELECT } from './public-bracket.query.js';
 import { subEventNames, toSide } from './public-bracket.serializer.js';
+import { publicEntryPageSql } from './public-entry-page.query.js';
 
 const NAMED = { select: { name: true, nameEn: true } } as const;
 const STAGE_ORDER = Object.values(PUBLIC_ENTRY_STAGES);
@@ -17,7 +18,7 @@ export class PublicEntriesQuery {
     private readonly settings: AppSettingsService,
   ) {}
 
-  /** Confirmed entries only; seeds first, then by competitor name. Contact data and birth dates are never selected. */
+  /** Seeds first, then effective public names, with a stable id tie-breaker; only the requested page is hydrated. */
   async list(slug: string, subEventCode: string, query: { stage?: unknown; page?: unknown }): Promise<PublicEntryList | null> {
     const subEvent = await this.prisma.subEvent.findFirst({
       where: { code: subEventCode, event: publicScope.event(slug) },
@@ -30,20 +31,18 @@ export class PublicEntriesQuery {
     const page = parsePublicPage(query.page);
     const pageSize = await this.settings.get(tournamentSettings.publicListPageSize);
     const where = { subEventId: subEvent.id, stage, ...publicScope.entry };
-    const [total, rows] = await Promise.all([
+    const { skip, take } = pageWindow(page, pageSize);
+    const [total, ids] = await Promise.all([
       this.prisma.entry.count({ where }),
-      this.prisma.entry.findMany({
-        where,
-        select: PUBLIC_SIDE_SELECT.select,
-        orderBy: [{ seed: { sort: 'asc', nulls: 'last' } }, { competitor: { displayName: 'asc' } }, { id: 'asc' }],
-        ...pageWindow(page, pageSize),
-      }),
+      this.prisma.$queryRaw<{ id: string }[]>(publicEntryPageSql(subEvent.id, stage, skip, take)),
     ]);
+    const rows = ids.length ? await this.prisma.entry.findMany({ where: { ...where, id: { in: ids.map(({ id }) => id) } }, select: { ...PUBLIC_SIDE_SELECT.select, id: true } }) : [];
+    const byId = new Map(rows.map((row) => [row.id, row]));
     return {
       subEvent: { code: subEvent.code, ...subEventNames(subEvent) },
       stage,
       stages,
-      items: rows.map((row) => toSide(row)!),
+      items: ids.flatMap(({ id }) => { const row = byId.get(id); return row ? [toSide(row)!] : []; }),
       page,
       pageSize,
       total,

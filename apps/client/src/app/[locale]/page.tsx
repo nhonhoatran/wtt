@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { PublicEventStatusParam } from '@kamito/shared';
 import { EmptyState } from '../../components/common/empty-state';
 import { EventCard } from '../../components/events/event-card';
 import cardStyles from '../../components/events/event-card.module.css';
@@ -9,6 +10,8 @@ import { isLocale } from '../../i18n/locales';
 import { pageMetadata } from '../../lib/page-metadata';
 import { getEventList } from '../../lib/public-data';
 import { getSiteName } from '../../lib/site-name';
+
+const HOME_STATUSES = ['ongoing', 'upcoming'] as const satisfies readonly PublicEventStatusParam[];
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -20,11 +23,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const t = getDictionary(locale);
-  const [ongoing, upcoming, siteName] = await Promise.all([getEventList('?status=ongoing', false), getEventList('?status=upcoming', false), getSiteName(locale)]);
-  const sections = [
-    { key: 'ongoing', title: t.home.ongoing, items: ongoing?.items ?? [] },
-    { key: 'upcoming', title: t.home.upcoming, items: upcoming?.items ?? [] },
-  ].filter((s) => s.items.length > 0);
+  const [lists, siteName] = await Promise.all([
+    Promise.all(HOME_STATUSES.map((status) => getEventList(`?${new URLSearchParams({ status })}`, false))),
+    getSiteName(locale),
+  ]);
+  const sections = HOME_STATUSES.map((key, i) => ({ key, title: t.home[key], items: lists[i]?.items ?? [] })).filter((s) => s.items.length > 0);
 
   return (
     <main id="content" className="container">

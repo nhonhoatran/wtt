@@ -4,6 +4,7 @@ import styles from './filter-form.module.css';
 
 export type FilterField =
   | { kind: 'select'; name: string; label: string; value: string; options: { value: string; label: string }[]; allLabel?: string | null }
+  | { kind: 'date'; name: string; label: string; value: string; min: string; max: string }
   | { kind: 'search'; name: string; label: string; value: string; maxLength: number };
 
 interface FilterFormProps {
@@ -36,6 +37,8 @@ export function FilterForm({ label, action, fields, keep = {}, t }: FilterFormPr
                 </option>
               ))}
             </select>
+          ) : field.kind === 'date' ? (
+            <input type="date" name={field.name} defaultValue={field.value} min={field.min} max={field.max} className={styles.control} />
           ) : (
             <input type="search" name={field.name} defaultValue={field.value} maxLength={field.maxLength} className={styles.control} />
           )}

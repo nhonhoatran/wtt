@@ -44,7 +44,7 @@ export class VenuesService extends CatalogCrudService<VenueRow> {
 
   protected override async publicTags(op: 'create' | 'update' | 'delete', before: Venue | null, after: Venue | null): Promise<string[]> {
     if (op !== 'update') return [];
-    return CACHE_TAGS['venue.write']({ eventSlugs: await loadEventSlugs(this.prisma, { venueId: after!.id }) });
+    return CACHE_TAGS['venue.write']({ eventSlugs: await loadEventSlugs(this.prisma, { OR: [{ venueId: after!.id }, { sessions: { some: { venueId: after!.id } } }] }) });
   }
 
   protected override usage(tx: Tx, row: VenueRow): UsageChecks {

@@ -4,6 +4,7 @@ import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
 import { getResultsStrip } from '../../lib/public-data';
 import { sideName } from '../matches/side-name';
+import { LiveBadge } from '../common/live-badge';
 import styles from './results-strip.module.css';
 
 /** Server-rendered; hidden while the AppSetting is off. A failed fetch hides the strip instead of breaking every page. */
@@ -21,7 +22,7 @@ export async function ResultsStrip({ locale, t }: { locale: Locale; t: Dictionar
               className={styles.item}
               title={pickLocalized(locale, m.event.name, m.event.nameEn)}
             >
-              {m.status === 'LIVE' && <span className={styles.live}>{t.bracket.live}</span>}
+              {m.status === 'LIVE' && <LiveBadge label={t.bracket.live} variant="deep" />}
               <span className={styles.sub}>{m.subEvent.code}</span>
               <span>{sideName(locale, m.side1)}</span>
               <strong className={styles.score}>

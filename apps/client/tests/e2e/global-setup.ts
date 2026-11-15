@@ -11,19 +11,23 @@ async function revalidateSiteCache(): Promise<void> {
     method: 'POST',
     headers: { [REVALIDATE_SECRET_HEADER]: secret, 'content-type': 'application/json' },
     body: JSON.stringify({ tags: ['events', 'settings', 'results-strip'] }),
-  });
+  }).catch((error) => { throw new Error('Global setup POST /api/revalidate failed', { cause: error }); });
   if (!response.ok) throw new Error(`revalidate answered ${response.status}`);
 }
 
 /** `next dev` compiles each route on first hit; do it once, in order, so parallel tests do not race the compiler. */
 async function warmUpRoutes(): Promise<void> {
-  const { world, playedMatchNo } = readWorld();
+  const { world, playedMatchNo, longEvent } = readWorld();
   const root = `/vi/events/${world.slug}`;
   const paths = [
     '/vi', `/vi/events?q=${world.tag}`, root, `${root}/draws/MS`, `${root}/draws`, `${root}/groups/MD`, `${root}/players/MS`,
-    `${root}/matches/${playedMatchNo}`, '/en/events', '/sitemap.xml', '/robots.txt',
+    `${root}/matches/${playedMatchNo}`, `${root}/info`, `/en/events/${world.slug}/info`, '/en/events', '/sitemap.xml', '/robots.txt',
+    `/vi/events/${longEvent.slug}/matches`,
   ];
-  for (const path of paths) await fetch(`${process.env.E2E_SITE_URL}${path}`, { redirect: 'manual' });
+  for (const path of paths) {
+    await fetch(`${process.env.E2E_SITE_URL}${path}`, { redirect: 'manual' })
+      .catch((error) => { throw new Error(`Global setup warmup ${path} failed`, { cause: error }); });
+  }
 }
 
 export default async function globalSetup(): Promise<void> {

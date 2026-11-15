@@ -26,12 +26,7 @@ const ORDER: Record<PublicMatchState, Prisma.MatchOrderByWithRelationInput[]> = 
 type Search = { text: string; normalized: string };
 
 /** A display name hides the legal name, so the legal name must not find that player either. */
-const playerNamed = ({ text, normalized }: Search): Prisma.PlayerWhereInput => ({
-  OR: [
-    { publicDisplayName: null, normalizedName: { contains: normalized } },
-    { publicDisplayName: { contains: text, mode: 'insensitive' } },
-  ],
-});
+const playerNamed = ({ normalized }: Search): Prisma.PlayerWhereInput => ({ normalizedPublicName: { contains: normalized } });
 
 /** Any player of a side (single or either pair member) whose public name contains the search. */
 export function sideNamed(search: Search): Prisma.EntryWhereInput {

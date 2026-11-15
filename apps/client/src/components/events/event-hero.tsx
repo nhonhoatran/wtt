@@ -5,7 +5,6 @@ import { pickLocalized, pickLocalizedOrNull } from '../../i18n/pick-localized';
 import { formatDateRange } from '../../lib/format-date-time';
 import styles from './event-hero.module.css';
 
-/** Event head on the navy data surface: tier, name, dates, place, sponsor line and the ticket link when enabled. */
 export function EventHero({ event, locale, t }: { event: PublicEventDetail; locale: Locale; t: Dictionary }) {
   const place = [event.venue ? pickLocalized(locale, event.venue.name, event.venue.nameEn) : null, event.city].filter(Boolean).join(', ');
   return (

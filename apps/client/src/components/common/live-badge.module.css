@@ -1,0 +1,10 @@
+.badge {
+  padding: 0 6px;
+  background: var(--color-data);
+  color: var(--color-live);
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+}
+
+.deep { background: var(--color-data-deep); }
+.schedule { padding: 2px 6px; }

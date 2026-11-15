@@ -77,14 +77,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.live {
-  padding: 0 6px;
-  background: var(--color-data);
-  color: var(--color-live);
-  font-weight: 700;
-  border-radius: var(--radius-pill);
-}
-
 .voided {
   color: var(--color-primary-strong);
   font-weight: 600;

@@ -7,12 +7,13 @@ let windowStart = 0;
 let logged = 0;
 
 type CspReport = Record<string, unknown>;
+const isReport = (value: unknown): value is CspReport => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Browsers send either `{ "csp-report": {...} }` (report-uri) or an array of `{ type, body }` (Reporting API). */
 function reportsOf(payload: unknown): CspReport[] {
-  if (Array.isArray(payload)) return payload.map((item) => (item as { body?: CspReport }).body).filter((body): body is CspReport => Boolean(body));
-  const legacy = (payload as { 'csp-report'?: CspReport } | null)?.['csp-report'];
-  return legacy ? [legacy] : [];
+  if (Array.isArray(payload)) return payload.filter(isReport).map((item) => item.body).filter(isReport);
+  const legacy = isReport(payload) ? payload['csp-report'] : null;
+  return isReport(legacy) ? [legacy] : [];
 }
 
 const pick = (report: CspReport, ...keys: string[]) => {
@@ -22,6 +23,11 @@ const pick = (report: CspReport, ...keys: string[]) => {
 
 /** The body as text, or null when it passes the cap (stops reading there; Content-Length is not trusted). */
 async function readCapped(request: Request): Promise<string | null> {
+  const length = request.headers.get('content-length');
+  if (length !== null && Number(length) > MAX_BODY_BYTES) {
+    await request.body?.cancel();
+    return null;
+  }
   const reader = request.body?.getReader();
   if (!reader) return null;
   const chunks: Uint8Array[] = [];

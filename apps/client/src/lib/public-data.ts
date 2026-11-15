@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import {
   publicCacheTags as tags,
+  PUBLIC_URL_PART_PATTERN,
   type PublicBracket,
   type PublicEntryList,
   type PublicEventCalendar,
@@ -11,16 +12,14 @@ import {
   type PublicMatchDetail,
   type PublicMatchList,
   type PublicResultsStrip,
+  type PublicSchedule,
   type PublicSiteConfig,
   type PublicSitemap,
 } from '@kamito/shared';
 import { publicGet } from './api-client';
 
-// No dots: a ".." segment would walk the server-side API URL out of /public.
-const URL_PART = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
-
 /** URL parts that cannot form a cache tag or an API path are a 404 before any API call. */
-export const isUrlPart = (value: string) => URL_PART.test(value);
+export const isUrlPart = (value: string) => PUBLIC_URL_PART_PATTERN.test(value);
 
 // The fetch carries a timeout signal, which disables Next's fetch memoization; cache() dedupes metadata + page.
 export const getEventList = cache((query: string, searching: boolean) =>
@@ -34,6 +33,10 @@ export const getEventCalendar = cache((query: string) =>
 export const getEvent = cache((slug: string) => publicGet<PublicEventDetail>(`/events/${slug}`, { tags: [tags.event(slug)], policy: 'matchday' }));
 
 export const getEventInfo = cache((slug: string) => publicGet<PublicEventInfo>(`/events/${slug}/info`, { tags: [tags.event(slug)], policy: 'standard' }));
+
+export const getSchedule = cache((slug: string, query = '') =>
+  publicGet<PublicSchedule>(`/events/${slug}/schedule${query}`, { tags: [tags.schedule(slug), tags.event(slug)], policy: 'matchday' }),
+);
 
 export const getMatches = cache((slug: string, query: string, searching: boolean) =>
   publicGet<PublicMatchList>(`/events/${slug}/matches${query}`, {

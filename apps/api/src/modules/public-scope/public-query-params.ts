@@ -1,4 +1,4 @@
-import { normalizePersonName, PUBLIC_SEARCH_MAX_LENGTH } from '@kamito/shared';
+import { normalizePersonName, PUBLIC_SEARCH_MAX_LENGTH, PUBLIC_URL_PART_PATTERN } from '@kamito/shared';
 
 /**
  * Public query strings come straight from visitors' URLs, so a malformed value is ignored (treated as absent)
@@ -21,7 +21,7 @@ export function parsePublicChoice<T extends Record<string, string>>(raw: unknown
 
 export function parsePublicCode(raw: unknown): string | undefined {
   const value = single(raw);
-  return value && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
+  return value && PUBLIC_URL_PART_PATTERN.test(value) ? value : undefined;
 }
 
 export function parsePublicYear(raw: unknown): number | undefined {
@@ -33,7 +33,8 @@ export function parsePublicYear(raw: unknown): number | undefined {
 export function parsePublicDate(raw: unknown): string | undefined {
   const value = single(raw);
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
-  return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value) ? value : undefined;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(value) ? value : undefined;
 }
 
 /** Plain text search; longer input is cut, not rejected. Returns the raw text and its normalized form. */
@@ -46,24 +47,21 @@ export function parsePublicSearch(raw: unknown): { text: string; normalized: str
 
 export const pageWindow = (page: number, pageSize: number) => ({ skip: (page - 1) * pageSize, take: pageSize });
 
-function zoneOffsetMs(at: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(at);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')) - at.getTime();
-}
-
-/** UTC instants bounding one calendar day in `timeZone`; offset taken at 12:00 UTC, so DST-switch days may be off by an hour. */
+/** Independent local-date boundaries handle short/long DST days, midnight gaps and skipped calendar dates. */
 export function zonedDayRange(date: string, timeZone: string): { gte: Date; lt: Date } {
-  const midnightUtc = Date.parse(`${date}T00:00:00Z`);
-  const start = midnightUtc - zoneOffsetMs(new Date(midnightUtc + 12 * 3_600_000), timeZone);
-  return { gte: new Date(start), lt: new Date(start + 24 * 3_600_000) };
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const boundary = (day: string): Date => {
+    const utc = Date.parse(`${day}T00:00:00Z`);
+    // Technical bracket wider than any IANA UTC offset, including a full calendar-date skip.
+    let low = utc - 48 * 3_600_000;
+    let high = utc + 48 * 3_600_000;
+    while (high - low > 1) {
+      const mid = Math.floor((low + high) / 2);
+      if (formatter.format(new Date(mid)) < day) low = mid;
+      else high = mid;
+    }
+    return new Date(high);
+  };
+  const next = new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  return { gte: boundary(date), lt: boundary(next) };
 }

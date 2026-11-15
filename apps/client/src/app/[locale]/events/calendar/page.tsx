@@ -24,14 +24,17 @@ async function load({ params, searchParams }: CalendarPageProps) {
   if (!isLocale(locale)) notFound();
   const catalog = await getEventList('', false);
   if (!catalog) notFound();
-  const calendar = await getEventCalendar(toQuery(query, { year: isYearParam, tier: oneOf(catalog.filters.tiers.map((row) => row.code)) }));
+  const defaultCalendar = await getEventCalendar('');
+  if (!defaultCalendar) notFound();
+  const calendarQuery = toQuery(query, { year: isYearParam, tier: oneOf(catalog.filters.tiers.map((row) => row.code)) });
+  const calendar = calendarQuery ? await getEventCalendar(calendarQuery) : defaultCalendar;
   if (!calendar) notFound();
-  return { locale, query, calendar, t: getDictionary(locale) };
+  return { locale, query, calendar, defaultYear: defaultCalendar.year, t: getDictionary(locale) };
 }
 
 export async function generateMetadata(props: CalendarPageProps): Promise<Metadata> {
-  const { locale, query, calendar, t } = await load(props);
-  return pageMetadata(locale, query.year ? `/events/calendar?year=${calendar.year}` : '/events/calendar', {
+  const { locale, calendar, defaultYear, t } = await load(props);
+  return pageMetadata(locale, calendar.year !== defaultYear ? `/events/calendar?year=${calendar.year}` : '/events/calendar', {
     title: format(t.calendar.title, { year: calendar.year }),
     description: t.calendar.metaDescription,
   });

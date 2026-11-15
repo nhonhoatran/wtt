@@ -9,6 +9,7 @@ export interface E2eWorldFile {
   hiddenLegalName: string;
   playedMatchNo: number;
   groupMatchNo: number;
+  longEvent: { slug: string; firstDate: string; lastDate: string; lateDate: string; matchNo: number };
 }
 
 export function readWorld(): E2eWorldFile {

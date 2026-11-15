@@ -164,6 +164,7 @@
     "toBracket": "View draw",
     "toGroups": "View groups",
     "side": "Side {n}",
+    "sideColumn": "Side",
     "voidedNote": "This result does not count because a player withdrew."
   },
   "groups": {
@@ -195,5 +196,21 @@
   },
   "info": {
     "title": "Event information"
+  },
+  "schedule": {
+    "title": "Schedule by session / table",
+    "filters": "Filter schedule",
+    "session": "Session",
+    "table": "Table",
+    "tableCode": "Table {code}",
+    "print": "Print schedule",
+    "printHint": "Prints the filtered schedule, starting each session / table on a new page. You can also use your browser's Print command.",
+    "empty": "No matches in the selected schedule yet.",
+    "time": "Time",
+    "match": "Match",
+    "players": "Players",
+    "status": "Status / result",
+    "timePending": "Time to be confirmed",
+    "timezone": "Time zone: {timezone}"
   }
 }

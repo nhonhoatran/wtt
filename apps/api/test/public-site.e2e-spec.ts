@@ -1,16 +1,21 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { appSettingRegistry, publicSiteSettings, SSR_SECRET_HEADER } from '@kamito/shared';
+import { Prisma, type AppSetting } from '@kamito/db';
+import { AppSettingsService } from '../src/modules/settings/app-settings.service.js';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { cleanupFixtures, createEventFixtures, type Fixtures } from './support/entries-fixtures.js';
 import { PUBLIC, publicGet, sortedPaths } from './support/public-api-kit.js';
 
 const SETTINGS = '/api/v1/admin/settings';
 const MAX_REQUESTS_KEY = publicSiteSettings.rateLimitMaxRequests.key;
+const SITE_SETTINGS = [appSettingRegistry.siteName, ...Object.values(publicSiteSettings)];
+const SITE_SETTING_KEYS = SITE_SETTINGS.map((setting) => setting.key);
 
 describe('public site config and sitemap API (real Postgres)', () => {
   let kit: AuthTestKit;
   let cookie: string;
   let secret: string;
+  let savedSettings: AppSetting[] | undefined;
   const fixtures: Record<'published' | 'draft' | 'cancelled', Fixtures | undefined> = { published: undefined, draft: undefined, cancelled: undefined };
   const slugs: Record<string, string> = {};
 
@@ -22,6 +27,10 @@ describe('public site config and sitemap API (real Postgres)', () => {
     kit = await AuthTestKit.start();
     secret = process.env.SSR_INTERNAL_SECRET!;
     cookie = await kit.signIn(await kit.createUser({ role: 'ADMIN' }));
+    // Isolate only this endpoint's settings; restore the original rows even when setup or an assertion fails.
+    savedSettings = await kit.prisma.appSetting.findMany({ where: { key: { in: SITE_SETTING_KEYS } } });
+    // site.name has no admin editor; the service reset also invalidates the in-process setting cache.
+    for (const setting of SITE_SETTINGS) await kit.app.get(AppSettingsService).reset(setting);
     for (const key of ['published', 'draft', 'cancelled'] as const) {
       const fx = await createEventFixtures(kit, cookie, ['MS']);
       fixtures[key] = fx;
@@ -33,8 +42,16 @@ describe('public site config and sitemap API (real Postgres)', () => {
 
   afterAll(async () => {
     if (!kit) return;
-    for (const fx of Object.values(fixtures)) await cleanupFixtures(kit, fx);
-    await kit.close();
+    try {
+      if (savedSettings) {
+        const originals = savedSettings;
+        await kit.prisma.$transaction(async (tx) => {
+          await tx.appSetting.deleteMany({ where: { key: { in: SITE_SETTING_KEYS } } });
+          for (const row of originals) await tx.appSetting.create({ data: { ...row, value: row.value === null ? Prisma.JsonNull : row.value } });
+        });
+      }
+      for (const fx of Object.values(fixtures)) await cleanupFixtures(kit, fx);
+    } finally { await kit.close(); }
   }, 60_000);
 
   it('serves the site name and rate limits with the whitelisted fields', async () => {
@@ -45,8 +62,6 @@ describe('public site config and sitemap API (real Postgres)', () => {
   });
 
   it('returns the setting defaults when nothing is overridden', async () => {
-    const overrides = await kit.prisma.appSetting.count({ where: { key: { in: ['site.name', ...Object.values(publicSiteSettings).map((s) => s.key)] } } });
-    expect(overrides, 'dev DB has /settings overrides; reset them to assert defaults').toBe(0);
     const { data } = (await site().expect(200)).body;
     expect(data.siteName).toEqual(appSettingRegistry.siteName.defaultValue);
     expect(data.rateLimit).toEqual({

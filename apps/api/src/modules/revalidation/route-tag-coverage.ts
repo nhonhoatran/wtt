@@ -16,7 +16,6 @@ const none = (reason: string): RouteTagRule => ({ none: reason });
 const IN_USE_GUARD = 'deletion is refused while an event or sub-event still uses it, so no public page can show it';
 const SCORING_RULE = 'public standings change only when a group is recomputed (group.standings)';
 const FORMAT = 'match formats are not exposed by the public API or rendered by the client';
-const TABLES = 'table names are not exposed by the public API or rendered by the client';
 const DRAFT_DRAW = 'draft draws are not public';
 const IMPORT = 'writes the import tables only; the worker enqueues the refresh when it commits entries';
 const RANKING_DRAFT = 'feeds drafts and the ledger; public rankings change only on snapshot publish';
@@ -38,7 +37,7 @@ export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
   'DELETE /admin/settings/:key': tags('settings.update'),
   'DELETE /admin/tiers/:id': tags('tier.write'),
   'DELETE /admin/venues/:id': none(IN_USE_GUARD),
-  'DELETE /admin/venues/:id/tables/:tableId': none(TABLES),
+  'DELETE /admin/venues/:id/tables/:tableId': none('deletion is refused while a session or match still uses the table'),
   'PATCH /admin/categories/:id': tags('category.write'),
   'PATCH /admin/disciplines/:id': tags('discipline.write'),
   'PATCH /admin/entries/:id': tags('entry.update'),
@@ -58,7 +57,7 @@ export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
   'PATCH /admin/tiers/:id': tags('tier.write'),
   'PATCH /admin/users/:id': none(USERS),
   'PATCH /admin/venues/:id': tags('venue.write'),
-  'PATCH /admin/venues/:id/tables/:tableId': none(TABLES),
+  'PATCH /admin/venues/:id/tables/:tableId': tags('venueTable.write'),
   'POST /admin/categories': none('a new catalog row is unreferenced until an event uses it'),
   'POST /admin/disciplines': none('a new catalog row is unreferenced until an event uses it'),
   'POST /admin/draws/:id/place-group-qualifiers': tags('draw.placeQualifiers'),

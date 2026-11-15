@@ -107,6 +107,8 @@ services:
     environment:
       <<: *common-env
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3000}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL}
+      QUEUE_PREFIX: ${QUEUE_PREFIX:?QUEUE_PREFIX}
       PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?PUBLIC_SITE_URL}
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:?REVALIDATE_SECRET}
       # Must equal host:port of the worker's CLIENT_INTERNAL_URL, else every revalidate call gets 404.

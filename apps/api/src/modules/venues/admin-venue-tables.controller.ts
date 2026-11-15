@@ -35,7 +35,7 @@ export class AdminVenueTablesController {
   @Patch(':tableId')
   @RequirePermission('tournaments', 'update')
   async update(@Param('id') id: string, @Param('tableId') tableId: string, @Body() body: unknown) {
-    return { data: await this.tables.update(id, tableId, parseBody(updateVenueTableBody, body)) };
+    return this.tables.updateRefreshed(id, tableId, parseBody(updateVenueTableBody, body));
   }
 
   @Delete(':tableId')

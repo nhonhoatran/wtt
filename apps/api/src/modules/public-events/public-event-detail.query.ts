@@ -6,6 +6,7 @@ import type { ApiEnv } from '../../common/config/env-schema.js';
 import { mediaPublicBaseUrl } from '../media/media-dtos.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PUBLIC_SIDE_SELECT } from '../public-competition/public-bracket.query.js';
+import { publicScheduledMatch } from '../public-competition/public-schedule.query.js';
 import { subEventNames, toSide } from '../public-competition/public-bracket.serializer.js';
 import { publicScope } from '../public-scope/public-scope.js';
 import { PUBLIC_EVENT_CARD_SELECT, toPublicEventCard } from './public-event.serializer.js';
@@ -53,7 +54,7 @@ export class PublicEventDetailQuery {
     if (!event) return null;
 
     const playedWhere = { ...publicScope.match(slug), status: 'OFFICIAL' as const, isVoided: false };
-    const [realMatches, playedMatches, finals, players] = await Promise.all([
+    const [realMatches, playedMatches, finals, players, scheduledMatches] = await Promise.all([
       this.prisma.match.count({ where: publicScope.match(slug) }),
       this.prisma.match.count({ where: playedWhere }),
       this.prisma.match.findMany({
@@ -61,6 +62,7 @@ export class PublicEventDetailQuery {
         select: { winnerSide: true, subEvent: { select: { code: true } }, side1Entry: PUBLIC_SIDE_SELECT, side2Entry: PUBLIC_SIDE_SELECT },
       }),
       this.countPlayers(event.id),
+      this.prisma.match.count({ where: publicScheduledMatch(slug) }),
     ]);
 
     const subEvents = event.subEvents.map((s) => ({
@@ -89,7 +91,7 @@ export class PublicEventDetailQuery {
         draws: subEvents.some((s) => s.drawKinds.length > 0),
         groups: subEvents.some((s) => s.hasGroups),
         players: subEvents.some((s) => s.entryCount > 0),
-        info: event.showInfoTab && Boolean(sanitizeRichHtmlOrNull(event.infoBody) || sanitizeRichHtmlOrNull(event.infoBodyEn)),
+        info: scheduledMatches > 0 || (event.showInfoTab && Boolean(sanitizeRichHtmlOrNull(event.infoBody) || sanitizeRichHtmlOrNull(event.infoBodyEn))),
       },
       stats: { players, playedMatches },
       champions,

@@ -49,14 +49,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.live {
-  padding: 0 6px;
-  background: var(--color-data-deep);
-  color: var(--color-live);
-  font-weight: 700;
-  border-radius: var(--radius-pill);
-}
-
 @media (min-width: 768px) {
   .toggle {
     padding: 0 var(--layout-gutter-desktop);

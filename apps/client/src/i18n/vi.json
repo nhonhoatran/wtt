@@ -164,6 +164,7 @@
     "toBracket": "Xem nhánh đấu",
     "toGroups": "Xem bảng đấu",
     "side": "Bên {n}",
+    "sideColumn": "Bên thi đấu",
     "voidedNote": "Kết quả trận này không được tính do vận động viên rút lui."
   },
   "groups": {
@@ -195,5 +196,21 @@
   },
   "info": {
     "title": "Thông tin giải"
+  },
+  "schedule": {
+    "title": "Lịch theo buổi / bàn",
+    "filters": "Lọc lịch thi đấu",
+    "session": "Buổi thi đấu",
+    "table": "Bàn",
+    "tableCode": "Bàn {code}",
+    "print": "In lịch thi đấu",
+    "printHint": "Bản in dùng lịch đang lọc, mỗi buổi / bàn bắt đầu trên trang riêng. Có thể dùng chức năng In của trình duyệt.",
+    "empty": "Chưa có trận nào trong lịch đã chọn.",
+    "time": "Giờ",
+    "match": "Trận đấu",
+    "players": "Vận động viên",
+    "status": "Trạng thái / kết quả",
+    "timePending": "Chờ xếp giờ",
+    "timezone": "Múi giờ: {timezone}"
   }
 }

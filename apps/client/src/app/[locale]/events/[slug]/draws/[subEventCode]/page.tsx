@@ -19,7 +19,7 @@ const KIND_PARAMS: Record<PublicDrawKind, string> = { MAIN: 'main', QUALIFYING: 
 
 async function loadDraw({ params, searchParams }: DrawPageProps) {
   const [page, { subEventCode }, { draw }] = await Promise.all([loadEventPage(params), params, searchParams]);
-  const subEvent = requireSubEvent(page.event.subEvents, subEventCode);
+  const subEvent = requireSubEvent(page.event.subEvents.filter((s) => s.drawKinds.length > 0), subEventCode);
   // Without ?draw, the main draw, or the qualifying draw while only that one is published.
   const kind = draw === undefined ? KIND_PARAMS[subEvent.drawKinds[0] ?? 'MAIN'] : draw;
   if (typeof kind !== 'string' || !Object.hasOwn(PUBLIC_DRAW_KINDS, kind)) notFound();

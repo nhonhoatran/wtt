@@ -24,7 +24,7 @@ test.describe('event overview', () => {
     for (const name of ['Tổng quan', 'Trận đấu', 'Nhánh đấu', 'Bảng đấu', 'Vận động viên']) {
       await expect(tabs.getByRole('link', { name, exact: true })).toBeVisible();
     }
-    await expect(tabs.getByRole('link', { name: 'Thông tin' })).toHaveCount(0);
+    await expect(tabs.getByRole('link', { name: 'Thông tin' })).toBeVisible();
 
     const stat = (label: string) => page.locator('dl dt', { hasText: new RegExp(`^${label}$`) }).locator('xpath=following-sibling::dd[1]');
     await expect(stat('Vận động viên')).toHaveText('16');
@@ -73,7 +73,7 @@ test.describe('groups tab', () => {
     await page.goto(`${base(world.world.slug)}/matches/${world.playedMatchNo}`);
     await expect(page.getByRole('heading', { name: 'Điểm từng ván' })).toBeVisible();
     const table = page.getByRole('table', { name: 'Điểm từng ván' });
-    await expect(table.locator('thead th')).toHaveText([/^Bên\s*$/, 'Ván 1', 'Ván 2', 'Ván 3', 'Ván thắng']);
+    await expect(table.locator('thead th')).toHaveText(['Bên thi đấu', 'Ván 1', 'Ván 2', 'Ván 3', 'Ván thắng']);
     await expect(table.locator('tbody tr').first().locator('td')).toHaveText(['11', '11', '11', '3']);
     await expect(table.locator('tbody tr').nth(1).locator('td')).toHaveText(['5', '5', '5', '0']);
   });

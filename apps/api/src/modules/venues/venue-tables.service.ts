@@ -9,6 +9,8 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { PaginationQueryShape } from '@kamito/shared';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 
 export const VENUE_TABLE_LIST_SPEC = {
   sortable: ['order', 'code', 'createdAt'],
@@ -32,6 +34,7 @@ export class VenueTablesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly settings: AppSettingsService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   async list(venueId: string, query: PaginationQueryShape) {
@@ -60,6 +63,18 @@ export class VenueTablesService {
         return row;
       }),
     );
+  }
+
+  /** Table labels and codes appear in public schedule filters, including at a session-specific venue. */
+  async updateRefreshed(venueId: string, tableId: string, input: object) {
+    const data = await this.update(venueId, tableId, input);
+    const warnings = await this.revalidation.enqueue(async () => {
+      const events = await this.prisma.event.findMany({
+        where: { matches: { some: { tableId } } }, select: { slug: true },
+      });
+      return CACHE_TAGS['venueTable.write']({ eventSlugs: events.map(({ slug }) => slug) });
+    });
+    return warnings.length ? { data, warnings } : { data };
   }
 
   async remove(venueId: string, tableId: string): Promise<{ id: string }> {

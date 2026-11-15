@@ -1,0 +1,41 @@
+.schedule { margin: 24px 0; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.toolbar h2 { margin: 0; }
+.printButton { padding: 10px 20px; border: 0; border-radius: var(--radius-button); background: var(--color-ink); color: var(--color-surface); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.printButton:hover { background: var(--color-primary-strong); }
+.printButton:focus-visible { outline: 2px solid var(--color-data); outline-offset: 2px; }
+.hint { margin: 12px 0 24px; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
+.sheet { margin-top: 24px; }
+.sheetHead { margin-bottom: 12px; }
+.sheetHead h3 { margin: 0 0 6px; font-size: 18px; }
+.sheetHead h4 { margin: 12px 0 0; font-size: 16px; }
+.sheetHead p { margin: 4px 0; color: var(--color-text-muted); font-size: 13px; }
+.printEvent, .printContext { display: none; }
+.table { width: 100%; min-width: 620px; border-collapse: collapse; table-layout: fixed; font-size: 14px; line-height: 1.45; }
+.table th { text-align: left; background: var(--color-data); color: var(--color-surface); font-weight: 600; }
+.table th, .table td { padding: 12px; border-bottom: 1px solid var(--color-border); vertical-align: top; overflow-wrap: anywhere; }
+.table th:nth-child(1) { width: 16%; }
+.table th:nth-child(2) { width: 25%; }
+.table th:nth-child(3) { width: 39%; }
+.table th:nth-child(4) { width: 20%; }
+.time { font-variant-numeric: tabular-nums; }
+.detail { display: block; margin-top: 3px; color: var(--color-text-muted); font-size: 12px; }
+.side + .side { margin-top: 8px; }
+.winner { font-weight: 700; }
+@page schedule { size: portrait; }
+@media print {
+  :global(main):has(.schedule) > section { display: none; }
+  .schedule { margin: 0; }
+  .toolbar, .hint { display: none; }
+  .sheet { page: schedule; margin: 0; }
+  .sheet + .sheet { break-before: page; }
+  .sheetHead { break-inside: avoid; break-after: avoid; }
+  .printEvent { display: block; font-weight: 700; font-size: 16px !important; color: var(--color-ink) !important; }
+  .printContext { display: table-row; }
+  .printContext th { background: none; color: var(--color-ink); font-size: 10px; }
+  .table { min-width: 0; font-size: 10px; }
+  .table thead { display: table-header-group; }
+  .table tr { break-inside: avoid; }
+  .table th, .table td { padding: 6px; }
+  .detail { font-size: 9px; }
+}

@@ -4,7 +4,6 @@ import { getDictionary } from '../i18n/get-dictionary';
 import { isLocale } from '../i18n/locales';
 import { getEvent, isUrlPart } from './public-data';
 
-/** Shared first step of every event tab: valid locale + slug, the event exists and is public, else 404. */
 export async function loadEventPage(params: Promise<{ locale: string; slug: string }>) {
   const { locale, slug } = await params;
   if (!isLocale(locale) || !isUrlPart(slug)) notFound();

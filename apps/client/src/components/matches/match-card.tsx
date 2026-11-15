@@ -5,6 +5,7 @@ import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
 import { roundLabel, sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatMatchTime } from '../../lib/format-date-time';
+import { LiveBadge } from '../common/live-badge';
 import { sideClubs, sideName } from './side-name';
 import styles from './match-card.module.css';
 
@@ -38,7 +39,7 @@ export function MatchCard({ match: m, eventSlug, locale, timeZone, t, showSubEve
             {format(t.bracket.match, { matchNo: m.matchNo })}
             {showSubEvent && ` · ${pickLocalized(locale, m.subEvent.name, m.subEvent.nameEn)}`} · {matchStageLabel(m, t)}
           </span>
-          {m.status === 'LIVE' ? <span className={styles.live}>{t.bracket.live}</span> : <span>{m.status === 'SCHEDULED' ? when : result}</span>}
+          {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} /> : <span>{m.status === 'SCHEDULED' ? when : result}</span>}
         </div>
         {sides.map(({ side, source, games, won }, i) => (
           <div key={i} className={`${styles.side} ${won ? styles.winner : ''}`}>

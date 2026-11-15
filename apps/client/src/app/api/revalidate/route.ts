@@ -1,6 +1,7 @@
 import { revalidateTag } from 'next/cache';
 import { isValidCacheTag, REVALIDATE_MAX_TAGS, REVALIDATE_SECRET_HEADER } from '@kamito/shared';
 import { isInternalHost, isRevalidateSecret } from '../../../lib/internal-request';
+import { invalidatePublicResponses } from '../../../lib/public-response-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'invalid tags' }, { status: 400 });
   }
   const unique = new Set(tags);
+  // Tag versions persist: changing TTL settings must never resurrect an older response.
+  try { await invalidatePublicResponses([...unique]); }
+  catch { return new Response(null, { status: 503, headers: { 'Retry-After': '1', 'Cache-Control': 'no-store' } }); }
   for (const tag of unique) revalidateTag(tag, { expire: 0 });
   return Response.json({ revalidated: unique.size });
 }

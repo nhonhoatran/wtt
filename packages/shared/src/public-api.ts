@@ -2,6 +2,9 @@
 export const API_GLOBAL_PREFIX = 'api/v1';
 export const PUBLIC_API_SEGMENT = 'public';
 
+/** Technical path/cache-key bound; includes composed catalog codes (40 + separator + 40), and forbids traversal dots. */
+export const PUBLIC_URL_PART_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
 /** Header carrying SSR_INTERNAL_SECRET from the client's server renderer to the public API. */
 export const SSR_SECRET_HEADER = 'x-internal-secret';
 /** Header carrying REVALIDATE_SECRET from the worker to the client's /api/revalidate. */

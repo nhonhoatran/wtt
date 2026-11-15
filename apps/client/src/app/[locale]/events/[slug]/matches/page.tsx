@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { PUBLIC_MATCH_STATES, PUBLIC_SEARCH_MAX_LENGTH, type PublicEventDetail, type PublicMatchState } from '@kamito/shared';
+import { PUBLIC_MATCH_STATES, PUBLIC_SEARCH_MAX_LENGTH, type PublicMatchState } from '@kamito/shared';
 import { EmptyState } from '../../../../../components/common/empty-state';
 import { FilterForm } from '../../../../../components/common/filter-form';
 import { PaginationLinks } from '../../../../../components/common/pagination-links';
@@ -10,9 +10,9 @@ import { MatchCard } from '../../../../../components/matches/match-card';
 import cardStyles from '../../../../../components/matches/match-card.module.css';
 import { pickLocalized } from '../../../../../i18n/pick-localized';
 import { loadEventPage } from '../../../../../lib/event-page';
-import { daysBetween, formatDay } from '../../../../../lib/format-date-time';
+import { loadMatchList } from '../../../../../lib/load-match-list';
 import { getMatches } from '../../../../../lib/public-data';
-import { anyText, isPageParam, oneOf, toQuery } from '../../../../../lib/public-query';
+import { anyText, dateWithin, isPageParam, oneOf, toQuery } from '../../../../../lib/public-query';
 import { eventPageMetadata } from '../../../../../lib/page-metadata';
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -24,10 +24,6 @@ interface MatchesPageProps {
 
 const one = (value: string | string[] | undefined) => (typeof value === 'string' ? value : '');
 
-/** Without a choice in the URL, open on what a visitor most likely wants for the event's stage. */
-const defaultState = (event: PublicEventDetail): PublicMatchState =>
-  event.lifecycle === 'ONGOING' ? 'live' : event.lifecycle === 'UPCOMING' ? 'upcoming' : 'completed';
-
 export async function generateMetadata({ params }: MatchesPageProps): Promise<Metadata> {
   const { locale, event, t } = await loadEventPage(params);
   return eventPageMetadata(locale, event, '/matches', t.matches.title);
@@ -38,20 +34,13 @@ export default async function EventMatchesPage({ params, searchParams }: Matches
   if (!event.tabs.matches) notFound();
   const rules = {
     sub: oneOf(event.subEvents.map((s) => s.code)),
-    date: oneOf(daysBetween(event.startDate, event.endDate)),
+    date: dateWithin(event.startDate, event.endDate),
     q: anyText,
   };
   const searching = Boolean(one(query.q).trim());
   const fetchState = (s: PublicMatchState) =>
     getMatches(event.slug, toQuery({ ...query, state: s }, { state: anyText, ...rules, page: isPageParam }), searching);
-  const raw = one(query.state);
-  let state = (PUBLIC_MATCH_STATES as readonly string[]).includes(raw) ? (raw as PublicMatchState) : defaultState(event);
-  let list = await fetchState(state);
-  // Between sessions of an ongoing event nothing is live: open on the results instead of an empty tab.
-  if (list && !raw && state === 'live' && list.total === 0) {
-    state = 'completed';
-    list = await fetchState(state);
-  }
+  const { state, list } = await loadMatchList(event.lifecycle, query.state, fetchState);
   if (!list) notFound();
 
   const base = `/${locale}/events/${event.slug}/matches`;
@@ -82,11 +71,12 @@ export default async function EventMatchesPage({ params, searchParams }: Matches
             options: event.subEvents.map((s) => ({ value: s.code, label: pickLocalized(locale, s.name, s.nameEn) })),
           },
           {
-            kind: 'select',
+            kind: 'date',
             name: 'date',
             label: t.matches.filters.date,
-            value: one(query.date),
-            options: daysBetween(event.startDate, event.endDate).map((day) => ({ value: day, label: formatDay(day, locale) })),
+            value: filters.get('date') ?? '',
+            min: event.startDate,
+            max: event.endDate,
           },
           { kind: 'search', name: 'q', label: t.matches.filters.q, value: one(query.q), maxLength: PUBLIC_SEARCH_MAX_LENGTH },
         ]}

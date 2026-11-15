@@ -7,7 +7,6 @@ import { formatDateRange } from '../../lib/format-date-time';
 import { TierBadge } from './tier-badge';
 import styles from './event-card.module.css';
 
-/** One event in a list: banner, tier, name, dates and place; the whole card is one link. */
 export function EventCard({ event, locale, t }: { event: PublicEventCard; locale: Locale; t: Dictionary }) {
   const name = pickLocalized(locale, event.name, event.nameEn);
   const place = [event.venue ? pickLocalized(locale, event.venue.name, event.venue.nameEn) : null, event.city].filter(Boolean).join(', ');

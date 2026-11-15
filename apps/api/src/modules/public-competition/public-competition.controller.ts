@@ -7,6 +7,7 @@ import { PublicEntriesQuery } from './public-entries.query.js';
 import { PublicGroupsQuery } from './public-groups.query.js';
 import { PublicMatchesQuery, type PublicMatchListQuery } from './public-matches.query.js';
 import { PublicResultsStripQuery } from './public-results-strip.query.js';
+import { PublicScheduleQuery, type PublicScheduleQueryParams } from './public-schedule.query.js';
 
 /**
  * Missing or unpublished content answers 200 with `data: null`, never 404: Next.js only caches 200
@@ -22,6 +23,7 @@ export class PublicCompetitionController {
     private readonly groupsQuery: PublicGroupsQuery,
     private readonly entries: PublicEntriesQuery,
     private readonly resultsStrip: PublicResultsStripQuery,
+    private readonly schedules: PublicScheduleQuery,
   ) {}
 
   @Get('events/:slug/draws/:subEventCode')
@@ -52,5 +54,10 @@ export class PublicCompetitionController {
   @Get('results/strip')
   async strip() {
     return { data: await this.resultsStrip.strip() };
+  }
+
+  @Get('events/:slug/schedule')
+  async schedule(@Param('slug') slug: string, @Query() query: PublicScheduleQueryParams) {
+    return { data: await this.schedules.schedule(slug, query) };
   }
 }
