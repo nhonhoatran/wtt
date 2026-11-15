@@ -19,12 +19,13 @@
 ```
 api (sau commit)  ──> queue `revalidate`, job `revalidate-tags` {tags}, jobId `reval-<uuid>`
 worker            ──> POST {CLIENT_INTERNAL_URL}/api/revalidate, header x-revalidate-secret
-client            ──> kiểm Host, secret, body; revalidateTag(tag, {expire: 0}) cho từng tag
+client            ──> kiểm Host, secret, body; vô hiệu tag trong Redis response cache dùng chung
 ```
 
 - Tag gửi **sau commit**, ngoài transaction. Lỗi enqueue không rollback thao tác đã ghi. Response mang `warnings: ["PUBLIC_REFRESH_DELAYED"]`.
 - Import Excel: worker gửi tag sau khi commit một lượt import (`import-revalidate-tags.ts`). Tag lấy từ `entryChangeTags` (cùng hàm với API) và danh sách VĐV.
 - Client, route `/api/revalidate` và các bước kiểm: [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08).
+- Bổ sung 2026-11-15: response API public đặt `fetch no-store`, TTL/tag nằm trong Redis dùng chung. Invalidation tăng generation và phiên bản tag nguyên tử; request bắt đầu trước invalidation không được ghi dữ liệu cũ trở lại. Redis lỗi đọc bỏ cache; invalidation lỗi trả 503 để worker retry. Hai Next production local đã kiểm invalidation qua một replica làm mới cả hai.
 
 ## Quy tắc phủ route
 
@@ -198,7 +199,7 @@ Mutation có thể trả `warnings`. Admin hiện qua `apps/admin/src/api/write-
 
 | Mục | Hiện trạng | Hướng xử lý |
 |---|---|---|
-| Cache handler dùng chung khi scale client | Chưa có. Mỗi instance có cache riêng | Trước khi nhiều replica client |
+| Redis không sẵn sàng | Đọc API trực tiếp; rate limit fallback RAM cục bộ; invalidation trả 503 | Theo dõi Redis và queue retry; không coi fallback là bảo đảm hạn mức toàn cụm |
 | Nhãn `PUBLIC_REFRESH_DELAYED` dùng cho nút "Làm mới" | Nhãn nói "Đã lưu" | Tách nhãn hoặc đổi nội dung |
 
 Đã đóng 2026-11-14 (commit `a80dfb2`): `place-qualifiers` và `place-group-qualifiers` trên nhánh MAIN đã công bố gửi `draw.placeQualifiers`, nhãn coverage đổi từ `none` sang `tags`; `draw.publish` có tag `match-*`; rút và thay entry sau công bố có tag `player-*` của VĐV cũ và mới. Test: `apps/api/test/draw-publish-edit-tags.e2e-spec.ts`.

@@ -1,7 +1,34 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-14. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-15. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-15 — Phase 08: hoàn tất nợ code còn lại (đã commit)
+
+Commit triển khai: `a26f833` — `feat(public): complete schedules and resolve public site review debts`.
+
+- Sửa timezone/DST bằng SQL phía server trước phân trang; chuẩn hóa tên công khai và sort đơn/cặp theo tên hiển thị. Migration `20261115032757_add_player_public_name_key` đã review/áp dụng DB dev local, 16/16 migration; staging chưa.
+- Bộ lọc ngày dùng input có min/max, bỏ giới hạn 62 ngày; trạng thái trận tự chọn nhóm có dữ liệu. Home typed status và tách contract sự kiện/thi đấu, giữ tương thích import.
+- Cache JSON/tag và rate limit Redis chung, generation fence; API settings đọc DB, không còn RAM riêng. Hai Next production local đã kiểm invalidation và hạn mức dùng chung.
+- Kiểm local cuối: 41 unit client; full Playwright 51 đạt/7 bỏ qua; 6 ca mới chạy production JavaScript bật đạt; build/typecheck/lint đạt, API tổng hợp 50 ca/8 file đạt. Ghi rõ lượt focused dev từng navigation lặp, chưa khẳng định nguyên nhân; không thay thế bằng test tắt JavaScript.
+- Còn staging/M1/M2 và preflight/header trust trên hạ tầng thật. Báo cáo `plans/reports/tester-261115-phase08-remaining-debts.md` và các báo cáo chuyên phần liên kết trong đó.
+
+## 2026-11-15 — Phase 08: rà ghi nợ review cũ (chưa commit; trạng thái tại lượt rà trước)
+
+- Đối chiếu review lát cắt và đợt 1–3 với code hiện tại. Nguồn mới: `plans/reports/reviewer-261115-phase08-review-debt-audit.md`; giữ các báo cáo cũ làm lịch sử.
+- Sửa chuẩn hóa IP, bộ đếm theo IP, redirect locale, payload CSP sai kiểu; cô lập settings trong test. Nav có trạng thái hiện tại, 404 theo locale, badge LIVE dùng chung, canonical năm lịch và nhãn cột điểm đúng; bỏ query stage mặc định khỏi cached fetch.
+- Không gộp toàn bộ ô nhánh/thẻ trận; giữ select GET, timeout env bootstrap và hằng bảo vệ có lý do. Đối chiếu tương phản nút vé đạt cho cỡ chữ lớn hiện tại.
+- Còn mở: timezone/DST, tìm/sort tên công khai, bộ lọc tối đa 62 ngày, staging/edge và nhiều replica. Kết quả kiểm chứng cuối nằm trong báo cáo; không tuyên bố đã đóng mọi ghi nợ.
+- Kiểm chứng cuối: unit client 20/20; toàn bộ Playwright 45 đạt/7 bỏ qua theo viewport/0 lỗi, có rate limit HTTP thật; client build/typecheck/lint src/tests/config đạt. Validator mã URL shared 2 ca và API parser 6 ca đạt. Báo cáo `plans/reports/tester-261115-phase08-review-debts.md`.
+
+## 2026-11-15 — Phase 08: lịch công khai theo session/bàn và bản in lịch (đã commit `a26f833`)
+
+- Thêm `GET /public/events/:slug/schedule?session&table`, hợp đồng `PublicSchedule` dùng chung. Chỉ hiển thị trận thuộc giải và draw công khai; bỏ BYE và ô không có trận công khai. Bộ lọc dùng mã session/bàn, không dùng ID nội bộ.
+- Tab Thông tin có lịch SSR vi/en, form GET, giờ theo múi giờ giải, tên VĐV/CLB, trạng thái/kết quả và liên kết trang trận. Tab vẫn có lịch khi không có rich text.
+- Bản in dùng lịch đang lọc: mỗi session/bàn mở trang dọc riêng, lặp ngữ cảnh trong đầu bảng khi dài, xuống dòng tên VĐV. Nút in chỉ mở hộp thoại trình duyệt.
+- Cache lịch gắn tag `schedule-<slug>` và `event-<slug>`; không đổi schema/migration.
+- Kiểm chứng: typecheck và lint client đạt; API typecheck đạt. API tích hợp đạt: 24 ca hồi quy, 18 ca lịch/cache và 11 ca sau cập nhật mutation map; Playwright lịch 5 đạt/1 bỏ qua PDF mobile; client build/typecheck/lint đạt. Lỗi kết nối local ban đầu đã xử lý bằng cách bật dịch vụ dev. Chưa deploy staging, M1/M2 còn mở. Chi tiết và cập nhật kiểm chứng tiếp theo: [public-site](./public-site.md).
+- Review 9,5/10, không còn critical/high/medium sau sửa tag đổi tên bàn và địa điểm riêng session. PDF thường 1 trang, lịch dài 3 trang đều giữ ngữ cảnh. Lượt toàn bộ có 2 lỗi locator mới, đã sửa và chạy lại riêng lịch đạt; chưa báo toàn bộ suite xanh sau sửa. Báo cáo: `plans/reports/{reviewer,tester}-261115-phase08-public-schedule.md`.
 
 ## 2026-11-14 — Đóng ghi nợ review (c449c75..608d948)
 

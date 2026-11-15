@@ -178,7 +178,7 @@ Hai API:
 | DELETE | `/api/v1/admin/settings/:key` | `settings.update` | Xóa dòng DB, quay về mặc định. Audit `setting.reset` |
 
 - Key không có hoặc không cho sửa → 404 `SETTING_NOT_FOUND`.
-- Cache trong từng replica 10 giây. Replica ghi thấy thay đổi ngay, replica khác thấy sau tối đa 10 giây.
+- `AppSettingsService.get()` đọc DB mỗi lần, không còn cache RAM 10 giây riêng từng replica (bổ sung 2026-11-15). Hai instance service đã kiểm cùng thấy thay đổi mà không cần chờ TTL.
 
 **Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`, `public-site-settings.ts`, `ranking-settings.ts`, `player-settings.ts`, `import-operational-settings.ts`). Cột "Nhóm" là tên nhóm trong code:
 

@@ -1,6 +1,6 @@
 # Site công khai — Kamito (phase 08)
 
-> Cập nhật: 2026-11-14 · Trạng thái: đợt 1 đến 3 xong (đã commit, chưa deploy staging). Chưa có: lịch theo session/bàn công khai và bản in lịch (chưa có endpoint `GET /public/events/:slug/schedule`), mốc M1 và M2 (cần staging).
+> Cập nhật: 2026-11-15 · Trạng thái: đã triển khai lịch/bản in và xử lý nợ code trong working tree, gồm timezone/DST, tên công khai, bộ lọc ngày dài và runtime Redis dùng chung. Kiểm cuối local: Playwright 51 đạt/7 bỏ qua, unit client 41 đạt; chưa deploy staging, M1/M2 và xác nhận hạ tầng thật vẫn mở.
 > Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/public-events/`, `apps/api/src/modules/public-competition/`, `apps/client/tests/e2e/`.
 > Kiến trúc chung xem [system-architecture.md](./system-architecture.md#site-công-khai-phase-08). Biến môi trường và chạy Playwright xem [deployment-guide.md](./deployment-guide.md#playwright-e2e-client). Kế hoạch: `plans/261111-1512-kamito-table-tennis-tournament-platform/phase-08-public-site-shell-event-pages-and-bracket-ui.md`.
 
@@ -30,18 +30,18 @@ Nguyên tắc:
 
 | Hạng mục | Đợt | Trạng thái |
 |---|---|---|
-| API public: events, calendar, event, info, matches, match, groups, entries, results/strip (đợt 1); draws (lát cắt 2026-11-13); site, sitemap (đợt 3) | 1, 3 | Xong. Thiếu `events/:slug/schedule` (chưa làm, xem [scheduling](./scheduling.md)) |
+| API public: events, calendar, event, info, matches, match, groups, entries, results/strip; draws; site, sitemap; schedule | 1, 3, bổ sung 2026-11-15 | Đã triển khai; API lịch dùng whitelist `PublicSchedule`, phạm vi công khai và bộ lọc phía server |
 | i18n vi/en, chuyển hướng locale, `proxy.ts` | 1 | Xong |
 | Header, footer, dải kết quả, locale switcher | 2 | Xong |
 | Danh sách giải, lịch giải (theo tháng) | 2 | Xong |
-| Trang giải: `EventShell` (hero + tab) và 6 tab | 2 | Xong. Tab Thông tin chỉ hiện `infoBody` |
+| Trang giải: `EventShell` (hero + tab) và 6 tab | 2 | Xong. Tab Thông tin hiện lịch session/bàn và `infoBody` khi có; lịch vẫn hiện khi không có rich text |
 | Trang trận | 2 | Xong. Đứng ngoài `EventShell` |
 | Trang chủ (đang và sắp diễn ra) | 2 | Xong, là bản tạm (phase 11 hoàn thiện) |
 | Bản in nhánh (`@media print`, `@page bracket`) | 3 | Xong |
 | Metadata, canonical, hreflang, OG, sitemap, robots | 3 | Xong |
-| Rate limit công khai, CSP report-only | 3 | Xong (một instance) |
-| Playwright e2e | 3 | Có spec và cấu hình. Chưa có số liệu chạy được ghi lại trong tài liệu này |
-| Lịch theo session/bàn, bản in lịch | — | Chưa làm. Dữ liệu `EventSession` đã có ([scheduling](./scheduling.md)) |
+| Rate limit công khai, CSP report-only | 3 + bổ sung | Redis atomic dùng chung; bộ đếm cục bộ dự phòng khi Redis lỗi |
+| Playwright e2e | 3 + bổ sung | Lượt cuối 51 đạt/7 bỏ qua theo viewport; xem báo cáo hoàn tất nợ còn lại |
+| Lịch theo session/bàn, bản in lịch | Bổ sung 2026-11-15 | Đã triển khai trên dữ liệu phase 07. API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile) ([scheduling](./scheduling.md)) |
 | Mốc M1 (deploy staging, Playwright trên staging) | — | Chưa làm |
 
 ## Route
@@ -54,7 +54,7 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 | `/events` | `q`, `tier`, `type`, `year`, `status`, `page` | `getEventList` | `q` có → không cache |
 | `/events/calendar` | `year`, `tier` | `getEventCalendar` | Nhóm theo tháng |
 | `/events/:slug` | — | `getEvent` | Tab Tổng quan |
-| `/events/:slug/info` | — | `getEventInfo` | Tab Thông tin |
+| `/events/:slug/info` | `session`, `table` (mã công khai) | `getEventInfo`, `getSchedule` | Form GET, lọc lịch phía server |
 | `/events/:slug/matches` | `state` (live, completed, upcoming), `sub`, `date`, `q`, `page` | `getMatches` | `q` có → không cache |
 | `/events/:slug/matches/:matchNo` | — | `getMatch` | Trang trận |
 | Dải kết quả (header, mọi trang) | — | `getResultsStrip` | `GET /results/strip` |
@@ -71,7 +71,7 @@ Quy tắc chung:
 - Slug và mã nội dung phải khớp `^[A-Za-z0-9][A-Za-z0-9_-]*$`. Sai thì 404 trước khi gọi API.
 - Slug `calendar` là slug dành riêng (API chặn tạo giải có slug này).
 - Trang không có dữ liệu hoặc chưa công bố thì `notFound()`.
-- Trang giải mở tab mặc định: tab Trận mở "đang đấu" nếu có, không thì "đã xong". Nội dung chỉ có vòng loại thì mở thẳng vòng loại.
+- Tab Trận tự chọn trạng thái có dữ liệu: giải đang diễn ra thử live → upcoming → completed, dừng ngay khi có trận; URL chọn state rõ ràng được giữ kể cả rỗng. Bộ lọc ngày là date input có min/max theo giải, server bỏ ngày sai/lặp/ngoài biên trước khi tạo cached query; không còn giới hạn 62 ngày. Nội dung chỉ có vòng loại thì mở thẳng vòng loại.
 
 ## API công khai
 
@@ -83,6 +83,7 @@ Tiền tố `/api/v1/public`. Chỉ `GET`, `@Public()`, kiểm secret bằng `Ss
 | `events/calendar` | Nhóm theo tháng |
 | `events/:slug` | Giải, nội dung, tab khả dụng, nhà vô địch, số trận đã đấu |
 | `events/:slug/info` | `infoBody` đã sanitize lại khi trả |
+| `events/:slug/schedule` | `session`, `table`; session → bàn → trận. Chỉ trả ô đủ session + bàn + giờ, trận công khai, không BYE; mã lạ hợp lệ cho danh sách rỗng |
 | `events/:slug/matches` | Lọc `state`, `sub`, `date`, `q`. Không trả trận BYE |
 | `events/:slug/matches/:matchNo` | Chi tiết trận |
 | `events/:slug/draws/:subEventCode` | `kind=main` (mặc định) hoặc `qualifying` |
@@ -110,16 +111,16 @@ Luồng:
 Trình duyệt ──> proxy.ts (locale, rate limit, chặn /api/revalidate)
              ──> trang Server Component (SSR)
                    └─ publicGet()  (lib/api-client.ts, chỉ server)
-                        header x-internal-secret, next.tags, next.revalidate
+                        header x-internal-secret, Redis response cache + tag versions
                    ──> api: /api/v1/public/* (API_INTERNAL_URL)
 ```
 
-`publicGet()` là điểm duy nhất gọi API công khai. Nó gắn header secret, tag và TTL theo `policy`:
+`publicGet()` là điểm duy nhất gọi API công khai. Nó dùng Redis response cache với tag và TTL theo `policy`; request upstream đặt `cache: 'no-store'` và timeout trực tiếp, không còn stale revalidation do Next bỏ signal:
 
 | `policy` | TTL | Dùng cho |
 |---|---|---|
 | `standard` | `PUBLIC_REVALIDATE_SECONDS` | Danh sách, lịch, thông tin, VĐV, sitemap, site |
-| `matchday` | `MATCHDAY_REVALIDATE_SECONDS` | Trang giải đang đấu: trang giải, trận, nhánh, bảng, dải kết quả |
+| `matchday` | `MATCHDAY_REVALIDATE_SECONDS` | Trang giải đang đấu: trang giải, trận, nhánh, bảng, dải kết quả; lịch theo session/bàn |
 | `none` | không cache | Trang có `q` (tìm kiếm tự do) |
 
 TTL chỉ là dự phòng. Làm mới chính là revalidate theo tag khi có thay đổi (xem [system-architecture](./cache-revalidation.md)).
@@ -142,7 +143,9 @@ Tag (`packages/shared/src/public-cache-tags.ts`, không dùng wildcard):
 
 Bảng này tóm tắt. Mutation đầy đủ và route không gửi tag: [cache-revalidation](./cache-revalidation.md#mutation-và-tag). Thay đổi nào chưa có tag thì chỉ hiện trên trang sau khi cache hết TTL. Tính đến 2026-11-14, xếp suất vòng loại và nhất, nhì bảng đã có tag.
 
-Cache theo instance: mỗi instance client có cache riêng. Nhiều replica cần cache handler dùng chung trước khi scale.
+Cache JSON dùng chung Redis (`public-response-cache.ts`), khóa có `QUEUE_PREFIX`. Lua kiểm phiên bản tag và generation nguyên tử để phản hồi tải trước invalidation không ghi dữ liệu cũ trở lại. Redis lỗi thì đọc thẳng API; route invalidation trả 503 để worker thử lại. Hai tiến trình Next production local đã kiểm cùng cache và invalidation; không suy ra đã deploy production.
+
+Lịch đọc `getSchedule(slug, query)` có cả tag `schedule-<slug>` và `event-<slug>`: thay lịch/kết quả, tên địa điểm hoặc thông tin entry đều làm mới dữ liệu. Đổi tên/mã bàn gửi lại tag lịch + giải; đổi tên địa điểm chỉ dùng riêng cho session cũng tìm đúng giải để vô hiệu cache. Danh sách mã lọc chỉ gồm session/bàn có trận công khai; query cache chỉ giữ các mã thuộc danh sách này.
 
 ## Proxy: locale, chặn revalidate, rate limit
 
@@ -158,12 +161,12 @@ Cơ chế (`apps/client/src/lib/public-rate-limit.ts`):
 
 | Mục | Quy định |
 |---|---|
-| Bộ đếm | Cửa sổ cố định, trong bộ nhớ của instance. Một instance thì đủ, nhiều instance thì mỗi instance đếm riêng |
+| Bộ đếm | Cửa sổ cố định, Lua atomic trong Redis dùng chung; fallback RAM cục bộ khi Redis lỗi |
 | Khóa | IP. IPv6 gom theo `/64` (một người dùng không đếm thành nhiều IP) |
 | IP thật | Header `X-Real-Ip`; nếu không có thì phần tử cuối của `X-Forwarded-For` |
 | Hai bucket | `page` (mọi trang) và `search` (thêm khi có `q`) |
 | Vượt ngưỡng | 429, header `Retry-After` (giây), `Cache-Control: no-store` |
-| Bộ nhớ | Quá `maxTrackedIps` thì IP mới không bị giới hạn tới khi cửa sổ hết (fail open) |
+| Bộ nhớ | Trần `maxTrackedIps` dùng chung; fallback cục bộ cũng có trần. Khi Redis lỗi fallback không bảo đảm tổng hạn mức toàn cụm |
 | Cấu hình | Lấy từ `GET /public/site`, giữ trong bộ nhớ một chu kỳ `MATCHDAY_REVALIDATE_SECONDS` |
 
 Thông số nằm ở `/settings`, nhóm **Truy cập site công khai** (`packages/shared/src/public-site-settings.ts`):
@@ -199,7 +202,11 @@ Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. N�
 |---|---|---|
 | Toàn site | `app/[locale]/global.css`, `@media print` | Ẩn header, footer, nav, form. Giữ màu nền (`print-color-adjust: exact`) để bảng navy và điểm vẫn đọc được. `@page` lề 10 mm |
 | Nhánh đấu | `components/bracket/bracket.module.css`, `@page bracket` | Khổ ngang (landscape) |
-| Lịch theo session/bàn | — | Chưa làm (dữ liệu `EventSession` đã có) |
+| Lịch theo session/bàn | `components/schedule/session-table-schedule.module.css`, `@page schedule` | Khổ dọc; mỗi session/bàn bắt đầu trang mới. `thead` lặp tên giải, session, bàn, múi giờ khi bảng dài; tên VĐV xuống dòng. In lịch đang lọc, ẩn rich text và hero khi có lịch |
+
+Nút `PrintScheduleButton` chỉ gọi `window.print()`; lịch và bộ lọc hoạt động bằng HTML server khi tắt JavaScript. Có thể dùng lệnh In của trình duyệt. Tên session/địa điểm có fallback vi/en; giờ hiển thị theo múi giờ của giải.
+
+Kiểm chứng 2026-11-15: API tích hợp hồi quy 24 ca đạt; lịch/cache 18 ca đạt; sau cập nhật mutation map 11 ca đạt. Client build/typecheck/lint đạt. Playwright lịch với DB/API thật: 5 đạt/1 bỏ qua (PDF chỉ chạy desktop), kiểm SSR không JavaScript, form GET, vi/en, lịch rỗng, múi giờ, phạm vi riêng tư, 390/1280 px. PDF lịch thường 1 trang; lịch dài 3 trang đều lặp ngữ cảnh giải/buổi/bàn/múi giờ. Lượt toàn bộ trước sửa locator có 37 đạt/5 bỏ qua/2 lỗi mới; đã sửa locator và kiểm lại riêng lịch đạt, chưa chạy lại toàn bộ suite sau sửa. Báo cáo: [kiểm thử](../plans/reports/tester-261115-phase08-public-schedule.md), [review](../plans/reports/reviewer-261115-phase08-public-schedule.md) (9,5/10, không còn critical/high/medium).
 
 ## Content-Security-Policy
 
@@ -209,20 +216,25 @@ Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. N�
 
 ## Việc còn mở
 
+Nguồn hiện tại sau rà ngày 2026-11-15: [đối chiếu nợ review](../plans/reports/reviewer-261115-phase08-review-debt-audit.md). Các báo cáo đợt 1–3 là lịch sử; chỉ mục còn mở trong bản đối chiếu mới được dùng để theo dõi. Những mục đã sửa hoặc quyết định giữ có lý do không tiếp tục ghi như lỗi chưa xử lý.
+
 | Việc | Nguồn | Hướng xử lý |
 |---|---|---|
-| Lịch theo session và bàn, bản in lịch | Phase 08 mục 10 | Thêm `GET /public/events/:slug/schedule` và trang lịch. Dữ liệu `EventSession` đã có |
+| Kiểm lịch trên staging | Phase 08 mục 10, bổ sung 2026-11-15 | API tích hợp và Playwright lịch local đã đạt; tiếp tục kiểm trên staging |
 | Mốc M1: deploy staging, chạy Playwright trên staging | Phase 08 bước 4 | Chờ staging (phase 01 và 02) |
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
-| Cách render `infoBody` công khai (sanitize lại ở Next hay API trả HTML đã sanitize) | Phase 04 sync | API đã sanitize lại khi trả. Client chưa sanitize; chủ repo chốt |
-| `API_FETCH_TIMEOUT_MS` nằm ở env, không ở `/settings` | Phase 08 câu hỏi 4 | Chủ repo quyết: chuyển sang setting hoặc nêu lý do giữ env |
-| Nhiều replica client: cache theo instance, rate limit theo instance | Changelog phase 08 lát cắt | Cache handler dùng chung trước khi scale |
-| Tương phản nút "Mua vé" khoảng 4,4:1 | Đợt 2 | Đổi màu nút |
-| Tab Trận chọn nội dung bằng `<select>`, các tab khác dùng viên (pill) | Đợt 2 | Thống nhất khi làm `pill-nav` |
-| Nhãn LIVE và ô trận chưa là component chung | Đợt 2 | Tách khi làm bản in lịch |
-| Nav chính chưa có `aria-current` | Đợt 2 | Thêm `aria-current="page"` |
 | Trang chủ tạm; giải nổi bật và tin, video, nhà tài trợ | Phase 08 và 11 | Phase 11 |
 | Bảng xếp hạng theo vòng trong tab Thông tin | Phase 10 | Phase 10 |
+
+Đã sửa/đối chiếu: nav có `aria-current`; `LiveBadge` dùng chung ở 5 vị trí; 404 theo locale; canonical năm lịch chuẩn hóa; query `stage=main` dùng chung cache mặc định; nội dung không có draw bị chặn trước fetch. Nút vé hiện 20px/700, màu trắng/primary có tỷ lệ 4,3954:1, đạt ngưỡng chữ lớn 3:1.
+
+Giữ có lý do: API sanitize HTML trước khi trả; `API_FETCH_TIMEOUT_MS` là cấu hình bootstrap ở env để giới hạn chính request đọc API/settings; `<select>` trong form GET phù hợp danh sách nội dung động; ô nhánh và thẻ trận dùng payload khác nhau nên không gộp toàn bộ. Hằng CSP là chốt kỹ thuật report-only, phase 12 rà lại khi enforce. Wordmark KAMITO là nhận diện tạm theo plan.
+
+Kiểm chứng đợt rà ghi nợ 2026-11-15: unit client 20/20; Playwright toàn bộ 45 đạt/7 bỏ qua theo viewport/0 lỗi, gồm nav, canonical năm, 404 tiếng Anh và nhãn cột điểm. Typecheck và lint src/tests đạt; test rate limit qua HTTP thật đạt. PDF lịch dài 3 trang giữ ngữ cảnh từng trang. Báo cáo: [tester](../plans/reports/tester-261115-phase08-review-debts.md). Lượt này thay cho giới hạn “chưa chạy lại toàn bộ suite” của lượt lịch trước đó.
+
+Lượt hoàn tất sau đó đã đóng nợ timezone/DST, tìm/sort tên công khai, giới hạn ngày, trạng thái tự chọn, contract dài và cache nhiều replica. Migration `20261115032757_add_player_public_name_key` đã áp dụng DB dev local (16/16); staging chưa áp dụng. Bằng chứng: [timezone/DST](../plans/reports/reviewer-261115-phase08-timezone-and-dst.md), [tên công khai](../plans/reports/tester-261115-phase08-public-player-names.md), [runtime hai replica](../plans/reports/reviewer-261115-phase08-shared-public-runtime.md), [kiểm cuối](../plans/reports/tester-261115-phase08-remaining-debts.md). Kết quả cuối 51 đạt/7 bỏ qua thay cho số 45 của lượt rà trước.
+
+Kiểm cuối chạy toàn bộ trên Next production và API đã build, port cô lập, JavaScript bật: 51 đạt/7 bỏ qua, 31,3 giây, không retry. Ảnh date input mobile đã mở kiểm. Lượt dev từng navigation lặp và lượt API source mất kết nối được ghi trong báo cáo; không quy kết nguyên nhân khi chưa có bằng chứng.
 
 ## Liên quan
 

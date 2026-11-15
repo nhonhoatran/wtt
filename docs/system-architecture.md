@@ -1,6 +1,6 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-14 · Trạng thái: phase 01 (khung), phase 03 (đăng nhập, RBAC, users, /settings, nhật ký, khung admin), phase 04 (dữ liệu gốc giải đấu, danh mục cấu hình, upload ảnh), phase 05 (VĐV, cặp đôi, đăng ký, import và export Excel, gộp VĐV), phase 06 (bốc thăm, hạt giống, vòng bảng, sinh nhánh), phase 07 (nhập, chốt, sửa và mở lại tỷ số; session, xếp lịch, phiếu trận, xuất lịch và kết quả; revalidate cache cho mọi route ghi), phase 08 đợt 1 đến 3 (site công khai). Các phase này đã commit, chưa deploy staging. Chưa có: lịch công khai và bản in lịch (phase 08), bảng xếp hạng điểm (phase 09, trạng thái xem [roadmap](./development-roadmap.md)).
+> Cập nhật: 2026-11-15 · Trạng thái: phase 01 (khung), phase 03–07 và phase 08 đợt 1 đến 3 đã commit, chưa deploy staging. Phase 08 bổ sung lịch công khai theo session/bàn và bản in lịch trong working tree; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile). Bảng xếp hạng điểm phase 09: trạng thái xem [roadmap](./development-roadmap.md).
 > Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
@@ -174,6 +174,7 @@ Migration theo thứ tự:
 13. `packages/db/prisma/migrations/20261113091336_add_ranking_ledger_and_snapshots` (phase 09: sổ điểm và snapshot)
 14. `packages/db/prisma/migrations/20261114064027_add_sessions_and_match_scheduling` (phase 07: `EventSession`, `EventSessionTable`, cột lịch của `Match`)
 15. `packages/db/prisma/migrations/20261114071907_add_match_schedule_indexes` (phase 07: index lịch)
+16. `packages/db/prisma/migrations/20261115032757_add_player_public_name_key` (phase 08: khóa tên công khai, trigger/backfill/index; DB dev local đã áp dụng, staging chưa)
 
 Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`, `players-and-entries.prisma`, `imports.prisma`, `draws-and-matches.prisma`, `groups-and-standings.prisma`, `sessions.prisma`.
 
@@ -571,7 +572,7 @@ Tag gửi sau commit qua queue `revalidate` (job `revalidate-tags`, tối đa 20
 | 3. Secret | Header `x-revalidate-secret` so với `REVALIDATE_SECRET` (SHA-256, `timingSafeEqual`) | 403 |
 | 4. Body | `{tags}`: 1 đến `REVALIDATE_MAX_TAGS` (200) tag, mỗi tag qua `isValidCacheTag` | 400 `invalid tags` |
 
-Thành công: gọi `revalidateTag(tag, { expire: 0 })` cho từng tag duy nhất, trả `{revalidated}`. Lớp Host là phòng thủ nhiều lớp. Quy tắc chặn ở Traefik nằm ở cấu hình triển khai, không có trong repo (chưa kiểm chứng). Secret là ranh giới thật.
+Thành công: vô hiệu phiên bản tag trong Redis response cache dùng chung, trả `{revalidated}`. Redis lỗi trả 503 để worker retry. Lớp Host là phòng thủ nhiều lớp. Quy tắc chặn ở Traefik cần kiểm trên hạ tầng thật; secret vẫn được kiểm trước invalidation.
 
 ## Site công khai (phase 08)
 
@@ -584,14 +585,16 @@ Tóm tắt:
 
 ```
 Browser ──> client (Next SSR, proxy.ts: locale, rate limit, chặn /api/revalidate)
-              publicGet(): header x-internal-secret, next.tags, next.revalidate (TTL theo policy)
+              publicGet(): header x-internal-secret, Redis response/tag cache (TTL theo policy), upstream no-store + timeout
 client ──> api: GET /api/v1/public/*  (API_INTERNAL_URL, không qua Traefik)
 api:   @Public + SsrInternalGuard ──> publicScope ──> serializer whitelist
 ```
 
 Cache: tag chính xác theo mutation (`packages/shared/src/public-cache-tags.ts`), TTL dự phòng (`PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS`), trang có `q` không cache. Bảng tag và mutation: [public-site.md](./public-site.md#dữ-liệu-và-cache).
 
-Rate limit công khai ở `proxy.ts` của client (bộ đếm trong bộ nhớ, một instance), không ở api. Thông số ở `/settings`, nhóm "Truy cập site công khai".
+Lịch công khai: `PublicScheduleQuery` trong `public-competition` đọc lịch phase 07, áp phạm vi công khai, gom session → bàn → trận và lọc bằng mã `session`/`table`. Hợp đồng `packages/shared/src/public-schedule-contract.ts`; client render ở tab Thông tin, gắn tag lịch và giải, in từng session/bàn trên trang riêng. Không thay đổi schema. Kiểm local đạt: API tích hợp, Playwright lịch (5 đạt/1 bỏ qua PDF mobile), client build/typecheck/lint (2026-11-15).
+
+Rate limit công khai ở `proxy.ts` của client, Lua atomic trong Redis dùng chung giữa replica; Redis lỗi chuyển bộ đếm RAM cục bộ có trần. Thông số ở `/settings`, nhóm "Truy cập site công khai". Cache JSON công khai cũng dùng Redis chung với generation fence; hai Next production local đã kiểm cache/invalidation/hạn mức chung, chưa thay thế staging.
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -646,7 +649,7 @@ Quy tắc chung:
 | Public scope | `modules/public-scope/public-scope.ts` | Điều kiện công khai duy nhất: event `PUBLISHED` và không hủy, draw `PUBLISHED`. Mọi truy vấn công khai dựng `where` từ đây |
 | Origin check | `common/security/trusted-origin.ts` | `TrustedOriginMiddleware` cho ghi dưới `admin/*`, `auth/*`. Dùng lại trong bull-board |
 | Users | `modules/users/` | CRUD user (không xóa), reset mật khẩu, thu hồi phiên, ràng buộc ADMIN cuối |
-| Settings | `modules/settings/` | `AppSettingsService`: đọc (cache 10 giây), sửa, reset, audit |
+| Settings | `modules/settings/` | `AppSettingsService`: đọc DB mỗi lần, không giữ cache RAM riêng từng replica; sửa, reset, audit |
 | Audit log (đọc) | `modules/audit-logs/` | Chỉ GET. Lọc theo actor, entity, action (tiền tố), khoảng thời gian |
 | Danh mục và địa điểm | `modules/tiers/`, `event-types/`, `categories/`, `disciplines/`, `match-formats/`, `group-scoring-rules/`, `venues/` | Mỗi module: controller + service kế thừa `CatalogCrudService`. Venue có thêm `admin/venues/:id/tables` (tạo nhanh nhiều bàn) |
 | Giải và nội dung thi đấu | `modules/events/`, `modules/sub-events/` | Slug (`event-slug.ts`), publish/unpublish, cancel/uncancel, delete có chặn, lọc `lifecycle`/`year`/`eventTypeId`/`publishStatus`. Sub-event đơn và bulk (tối đa 50 mục mỗi lần) |
@@ -707,7 +710,6 @@ Code phía admin (`apps/admin/src`):
 
 | Hạng mục | Phase | Trạng thái |
 |---|---|---|
-| Lịch công khai theo session và bàn (`GET /public/events/:slug/schedule`), bản in lịch cho khách | 08 | Chưa có endpoint và trang. Dữ liệu đã có (`EventSession`, xếp lịch, phiếu trận nội bộ), xem [scheduling](./scheduling.md) |
 | Chuyển hướng 301 slug VĐV đã gộp | 10 | Mới lưu `mergedIntoId`, chưa có route công khai |
 | Hiện năm sinh hoặc tuổi trên site công khai (`player.showAge`) | 08, 10 | Setting đã khai báo, chưa có nơi đọc |
 | Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job), `media`, `import` và `revalidate` (đang dùng) |
@@ -752,7 +754,7 @@ Code phía admin (`apps/admin/src`):
 | 31 | Revalidate sau commit, ngoài transaction; lỗi enqueue không rollback thao tác | Transaction không chờ Redis. Cache công khai tái tạo được: một lần xóa thất bại không làm sai dữ liệu gốc, chỉ làm trang cũ lâu hơn. Job có `jobId` duy nhất vì BullMQ có thể bỏ job mới khi trùng id |
 | 32 | Nội dung công khai không có hoặc chưa công bố trả 200 `{data: null}`, không 404 | Next chỉ cache 200. Với 404, trang đã gỡ vẫn nằm trong cache. Đổi lại, slug sai cũng là 200: client phải kiểm `data` |
 | 33 | Site công khai đọc API bằng secret nội bộ (`x-internal-secret`), không bằng phiên | API không có domain công khai nên secret là ranh giới thật. Host allowlist ở `/api/revalidate` là lớp phụ |
-| 34 | Rate limit công khai ở `proxy.ts` của client, bộ đếm trong bộ nhớ, ngưỡng ở `/settings` | API chỉ thấy IP container, còn client thấy IP thật qua header. Bộ đếm trong bộ nhớ đủ cho một instance; nhiều instance cần bộ đếm dùng chung |
+| 34 | Rate limit công khai ở `proxy.ts`, Redis atomic chung, ngưỡng ở `/settings` | Hai Next chia sẻ hạn mức theo IP; Redis lỗi dùng fallback cục bộ có trần, không bảo đảm tổng hạn mức toàn cụm. Header IP vẫn cần xác nhận Traefik thật |
 | 35 | CSP `Content-Security-Policy-Report-Only` từ phase 08, enforce ở phase 12 | Đo vi phạm trước khi chặn. Báo cáo gửi về `/api/csp-report` có giới hạn kích thước và số lần ghi log |
 | 36 | `sitemap` và `robots` sinh lúc chạy (`force-dynamic`) | Build Docker không gọi được API nên không sinh lúc build |
 | 37 | Lịch: thứ tự khóa `SubEvent` → `Draw` → `Group` → `EventSession` → `Match`. `scheduleVersion` tách khỏi `Match.version`, nên sửa lịch không làm trượt khóa kết quả và ngược lại | Thứ tự chung ngăn vòng chờ giữa xếp lịch, đổi giờ session và nhập tỷ số. Chi tiết: [scheduling](./scheduling.md#khóa-và-đồng-thời) |

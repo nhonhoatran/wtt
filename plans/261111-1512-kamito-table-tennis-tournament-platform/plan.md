@@ -26,7 +26,7 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 <!-- Debt fixes sync — 2026-11-14 -->
 - Đã đóng (commit `c449c75`..`608d948`, kiểm trong code): tag `match-*` và `player-*` khi công bố, gỡ, rút/đổi entry sau công bố; `place-qualifiers` và `place-group-qualifiers` trên MAIN đã công bố gửi tag (`draw.placeQualifiers`); L6 import (kiểm draw trong transaction từng lô, phase 05); L8 thể thức theo vòng (`pickMatchFormat`); L11 path con của `CLIENT_INTERNAL_URL`; L13 picker giải tìm kiếm phía server; L12 quyết định giữ fix cứng cho hằng độ tin cậy nội bộ (có comment lý do); engine: ván dở cuối của RETIRED/DISQUALIFIED không tính là ván thắng trong BXH; e2e RETIRED có ván dở và Redis tắt → `PUBLIC_REFRESH_DELAYED`.
 - Còn mở: đo và deploy staging; G1b; file Excel thật; mục thiết kế (màu focus, chữ "session", nhảy 76 px khi mở hộp thoại, cảm biến bàn phím cho kéo thả); e2e Q → BYE → R2 khi reopen (hiện chỉ unit).
- Phase 08 đã xong lát cắt bước 1–3 (2026-11-13) và phần không bị chặn của đợt 1–3 (2026-11-14); M1 và M2 chưa đạt vì thiếu staging (Playwright đã có). Phần còn lại phase 08 làm sau. Sync phase 04–07: 2026-11-14; phase 03 và 08: 2026-11-13.
+ Phase 08 đã xong lát cắt bước 1–3 (2026-11-13), đợt 1–3 (2026-11-14) và triển khai lịch session/bàn + bản in lịch (2026-11-15, working tree). Typecheck/lint client đạt; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile). M1/M2 chưa đạt vì thiếu staging. Sync phase 04–07: 2026-11-14; phase 08: 2026-11-15. Rà toàn bộ phase: chỉ phase 08 có công việc hoàn thành trong lần bổ sung này, không đổi trạng thái phase khác.
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -37,7 +37,7 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 | 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: file Excel thật, staging + pilot) |
 | 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; màn admin browser-tested 2026-11-14; còn mở: deploy staging, nhánh đấu và vòng bảng chưa hiệu chỉnh UI) |
 | 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Hoàn thành (chưa deploy staging; xong 2026-11-14; còn: đo staging, deploy staging, Q → BYE → R2 khi reopen (e2e), mục thiết kế UI) |
-| 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (phần không bị chặn xong 2026-11-14: bản in, SEO, rate limit, CSP report-only, Playwright 34 pass; còn bước 4 staging → M1/M2 chưa đạt; còn lịch session/bàn + bản in lịch chờ phase 07; chưa deploy staging) |
+| 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (đợt 1–3 xong 2026-11-14, Playwright 34 pass tại thời điểm đó; lịch session/bàn + bản in lịch triển khai 2026-11-15; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile); còn staging → M1/M2 chưa đạt) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | Pending |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | Pending |
 | 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | Pending |
@@ -47,6 +47,12 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 | | **Dự phòng**: tuần 9 (1,5) · tuần 13 (3,5) · tuần 18–19 (10) | | **15** | |
 
 ## Mốc và cổng
+
+Hoàn tất nợ code phase 08 ngày 2026-11-15: `plans/reports/tester-261115-phase08-remaining-debts.md` và báo cáo chuyên phần thay cho các mục “chưa làm” lịch sử. Timezone/DST, tìm/sort tên công khai, ngày dài và runtime Redis nhiều replica đã triển khai/kiểm local. M1/M2/staging và preflight hạ tầng thật chưa hoàn thành. Không đổi trạng thái phase khác.
+
+Kiểm local cuối đợt rà: unit client 20/20, toàn bộ Playwright 45 đạt/7 bỏ qua theo viewport/0 lỗi; client build/typecheck/lint đạt. Báo cáo `plans/reports/tester-261115-phase08-review-debts.md`; không dùng kết quả local để đóng cổng staging.
+
+Lượt hoàn tất tiếp theo: client 41 unit, Playwright 51 đạt/7 bỏ qua, 6 ca mới chạy Next production local với JavaScript bật đạt; API tổng hợp 8 file/50 ca đạt. Migration tên công khai `20261115032757_add_player_public_name_key` đã áp dụng local dev (16/16), chưa staging. Hai Next production local chia sẻ invalidation/hạn mức đạt; không phải triển khai production.
 
 | Mốc / cổng | Hạn | Điều kiện |
 |---|---|---|

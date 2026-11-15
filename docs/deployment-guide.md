@@ -67,14 +67,25 @@ pnpm --filter @kamito/client test:e2e
 |---|---|---|
 | Điều kiện | Stack dev đang chạy (Postgres 5433, Redis 6380, xem [Chạy dev local](#chạy-dev-local)). `.env` ở root có đủ biến | `apps/client/playwright.config.ts` |
 | Trước khi chạy | Kiểm đích DB: `pnpm db:print-target`. Seed ghi dữ liệu vào DB mà `.env` trỏ tới | `scripts/print-db-target.mjs` |
-| Web server | Playwright tự chạy API (`apps/api/src/main.ts`, cổng `API_PORT`, mặc định 3000) và `next dev` cổng 3001. Khi không có biến `CI`, nếu cổng đã có server đang chạy thì Playwright dùng lại server đó (`reuseExistingServer`) | `playwright.config.ts` |
-| Biến ghi đè | `REVALIDATE_ALLOWED_HOSTS` mặc định `localhost:3001`; `API_FETCH_TIMEOUT_MS=5000` | `playwright.config.ts` |
+| Web server | Mặc định API source cổng `API_PORT` (3000), Next dev cổng `E2E_CLIENT_PORT` (3001). `E2E_NEXT_MODE=start` chạy Next production; `E2E_API_MODE=dist` chạy API đã build. `CI=1` không tái dùng server cũ | `playwright.config.ts` |
+| Biến ghi đè | Địa chỉ API HTTP, site canonical và allowed Host lấy theo port test; `API_FETCH_TIMEOUT_MS=5000`. Không đổi `DATABASE_URL` | `playwright.config.ts` |
 | Dữ liệu | `global-setup` dọn world cũ, seed giải công khai (`apps/api/test/playwright/public-world.seed.ts`, gọi `setupPublicWorld`), gọi `/api/revalidate`, warm up route. `global-teardown` dọn lại | `tests/e2e/global-setup.ts`, `global-teardown.ts` |
 | Project | `desktop` 1280×800; `mobile` 390×844 | `playwright.config.ts` |
 | Spec | `event-pages.spec.ts` (danh sách, trang giải, nhánh, bảng đấu, VĐV); `site-chrome-and-seo.spec.ts` (locale, SEO, CSP report-only, 390 px không tràn ngang, in nhánh) | `tests/e2e/` |
 | Đầu ra | `apps/client/test-results/` và `apps/client/playwright-report/` (đều gitignore) | `.gitignore` |
 
-Nếu trình duyệt Playwright chưa được cài, chạy `pnpm exec playwright install` (bước chuẩn của Playwright, chưa kiểm trên máy này). Số liệu chạy cụ thể chưa được ghi trong tài liệu này. Ghi lại khi chạy.
+Kiểm phát hành local nên build API/client trước, rồi chạy với `E2E_NEXT_MODE=start`, `E2E_API_MODE=dist`, cặp port riêng và `CI=1`. Ngày 2026-11-15: client 3115/API 3215 đạt 51 Playwright/7 bỏ qua theo viewport, JavaScript bật; xem `plans/reports/tester-261115-phase08-remaining-debts.md`. Đây là production build chạy local, không phải staging.
+
+```powershell
+pnpm --filter @kamito/api build
+pnpm --filter @kamito/client build
+$env:E2E_NEXT_MODE = 'start'
+$env:E2E_API_MODE = 'dist'
+$env:E2E_CLIENT_PORT = '3115'
+$env:API_PORT = '3215'
+$env:CI = '1'
+pnpm --filter @kamito/client test:e2e
+```
 
 Cổng dev:
 
@@ -143,10 +154,11 @@ Quy tắc:
 | `IMPORT_MAX_FILE_BYTES`, `IMPORT_MAX_UNZIPPED_BYTES`, `IMPORT_MAX_ROWS` | api, worker | có | Trần import (phase 05). Thời hạn giữ file (`import.retentionDays`) và hạn chờ tải file (`import.uploadTtlHours`) chỉnh ở `/settings` |
 | `WORKER_HEALTH_PORT` | worker | cố định | `3010` |
 | `API_INTERNAL_URL` | client | có | Code không có mặc định (`lib/server-env.ts`). Compose mặc định `http://api:3000` |
+| `REDIS_URL`, `QUEUE_PREFIX` | client | có khi dùng cache/hạn mức chung | Redis response cache và Lua rate limit giữa replica. Compose đã truyền; giữ namespace tách môi trường. Redis lỗi đọc API trực tiếp, invalidation 503 để worker thử lại |
 | `SSR_INTERNAL_SECRET` | client | có | Gửi trong header `x-internal-secret` khi đọc API công khai. Code không có mặc định |
 | `PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS` | client | có | TTL dự phòng của cache công khai (số nguyên dương). Client đọc theo request. Làm mới chính là revalidate theo tag. Compose bắt buộc khai (`:?`) |
 | `REVALIDATE_ALLOWED_HOSTS` | client | có (compose mặc định `client:3000`) | Danh sách Host (`host:port`, cách nhau bằng dấu phẩy) được gọi `/api/revalidate`. Phải bằng `host:port` của `CLIENT_INTERNAL_URL` của worker. Sai thì mọi lần revalidate nhận 404 và job failed. Domain công khai không đưa vào danh sách |
-| `API_FETCH_TIMEOUT_MS` | client | có (compose mặc định 5000) | Timeout khi client gọi API công khai, đơn vị ms, số nguyên dương. Hết giờ thì trang báo lỗi và không được cache. Đang nằm ở env, chưa ở `/settings` (xem [việc còn mở](#việc-còn-mở)) |
+| `API_FETCH_TIMEOUT_MS` | client | có (compose mặc định 5000) | Timeout khi client gọi API công khai, đơn vị ms, số nguyên dương. Giữ ở env vì cần trước request bootstrap API/settings và phải giới hạn chính request đó (quyết định rà 2026-11-15). Hết giờ thì trang báo lỗi và không cache |
 | `API_BASE_PATH` | admin | không | Mặc định `/api/v1`. Ghi vào `/config.json` |
 
 `MEDIA_INTENT_TTL_MINUTES` đã bỏ (2026-11-12): thời gian chờ tải ảnh là setting `media.intentTtlMinutes`, thời gian tối đa xử lý ảnh là `media.processingTimeoutMinutes`, số ngày kết thúc mặc định của giải là `event.defaultDurationDays`, đều sửa ở `/settings`.
@@ -381,7 +393,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 403 `PASSWORD_CHANGE_REQUIRED` | Tài khoản đang có mật khẩu tạm | Đổi mật khẩu ở màn `/change-password`. Quá hạn tạm thì quản trị reset lại |
 | 401 `SESSION_IDLE_TIMEOUT` hoặc `SESSION_EXPIRED` | Hết `auth.session.idleMinutes` hoặc `auth.session.maxAgeHours` | Đăng nhập lại |
 | 409 `LAST_ACTIVE_ADMIN` | Thao tác sẽ làm hệ thống không còn ADMIN đang hoạt động | Cấp ADMIN khác trước, rồi mới hạ hoặc khóa |
-| Đổi setting, replica khác chưa thấy | Cache 10 giây trong từng replica | Chờ tối đa 10 giây |
+| Đổi setting, replica khác chưa thấy | Kiểm request/DB và tag invalidation | API đọc DB mỗi lần, không còn cache RAM 10 giây; client JSON cache dùng Redis chung |
 | Log `login rate limit unavailable` hoặc `lockout ... unavailable` | Redis lỗi. Đăng nhập đang fail-open (không đếm, không khóa) | Khôi phục Redis. Đây là cửa mở, xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
 | `complete` ảnh trả 503 `QUEUE_UNAVAILABLE` | api không đưa được job vào Redis | Ảnh trở về `AWAITING_UPLOAD`. Khôi phục Redis rồi bấm lại |
 | Ảnh `FAILED` với `PROCESSING_TIMEOUT` | Worker chết hoặc không chạy, hoặc Redis mất job | Xem worker health và log. Tải lại ảnh. Ngưỡng ở `/settings` (`media.processingTimeoutMinutes`) |
@@ -416,7 +428,7 @@ Staging phải có 4 service `healthy`, client và admin mở được qua domai
 | 19 | Route `/api/revalidate` ở client đã có (phase 08 lát cắt, đã commit). Chưa kiểm trên staging: worker gọi `client` qua mạng `internal` và Host khớp `REVALIDATE_ALLOWED_HOSTS` | [system-architecture](./system-architecture.md#route-apirevalidate-ở-client-phase-08), review phase 08 | Deploy staging, chốt một trận hoặc bỏ công bố một nhánh, rồi xem job `revalidate` trong bull-board và trang công khai |
 | 20 | Phase 08 chưa lên staging (mốc M1): Playwright mới chạy trên máy dev, chưa chạy trên staging | [public-site](./public-site.md#việc-còn-mở) | Sau khi deploy: kiểm trang giải, nhánh, `robots.txt`, `sitemap.xml`, header CSP report-only trên domain staging |
 | 21 | Rate limit công khai và `forwardedHeaders` của Traefik chưa kiểm | Mục Traefik ở [Preflight hạ tầng](#preflight-hạ-tầng-trạng-thái) | Trên staging: gửi `X-Forwarded-For` giả từ client và xem IP mà client thấy. Chỉnh Traefik nếu nó tin header client |
-| 22 | `API_FETCH_TIMEOUT_MS` nằm ở env. Luật dự án yêu cầu tham số vận hành ở `/settings` | Phase 08, câu hỏi 4 | Chủ repo quyết: chuyển sang setting hoặc nêu lý do giữ env |
+| 22 | `API_FETCH_TIMEOUT_MS` giữ ở env vì giới hạn request bootstrap API/settings | Đã đối chiếu 2026-11-15 | Không còn chờ quyết định; xem `plans/reports/reviewer-261115-phase08-review-debt-audit.md`. Timeout của revalidation nền do Next điều khiển vẫn là giới hạn riêng |
 
 ## Liên quan
 

@@ -1,6 +1,6 @@
 # Xếp lịch thi đấu (phase 07, đợt 2)
 
-> Cập nhật: 2026-11-14 · Trạng thái: đã commit (`4c7124b`, `a356255`, `f3c78ce`, `07f2500`, `856cac9`), chưa deploy staging. Chưa có lịch công khai (`GET /public/events/:slug/schedule`) và bản in lịch cho khách.
+> Cập nhật: 2026-11-15 · Trạng thái: phase 07 đã commit (`4c7124b`, `a356255`, `f3c78ce`, `07f2500`, `856cac9`), chưa deploy staging. Phase 08 đã bổ sung lịch công khai (`GET /public/events/:slug/schedule`) và bản in lịch trong working tree; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile).
 > Nguồn đối chiếu: `apps/api/src/modules/{sessions,scheduling,exports}/`, `apps/api/src/modules/matches/match-query.service.ts`, `packages/db/prisma/schema/sessions.prisma`, `packages/shared/src/tournament-settings.ts`, `apps/admin/src/pages/event-hub/` (tab "Lịch & kết quả").
 > Hợp đồng API theo màn admin: [plans/261111-1512-kamito-table-tennis-tournament-platform/ui/phase-07-api-contract.md](../plans/261111-1512-kamito-table-tennis-tournament-platform/ui/phase-07-api-contract.md). Tài liệu này là bản mô tả hành vi thực tế; khi hai bên lệch thì code thắng.
 > Nhập và mở lại tỷ số: [match-results](./match-results.md). Revalidate cache: [cache-revalidation](./cache-revalidation.md).
@@ -261,7 +261,7 @@ Thông báo cảnh báo `warnings` được hiện qua `apps/admin/src/api/write
 
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
-| Lịch công khai theo session và bàn (`GET /public/events/:slug/schedule`) | Chưa có | Trang công khai chưa có lịch theo bàn. Bản in lịch cho khách cũng chưa làm. Xem [public-site](./public-site.md#việc-còn-mở) |
+| Kiểm tích hợp lịch công khai theo session/bàn | Đã triển khai và kiểm local (2026-11-15) | Endpoint `GET /public/events/:slug/schedule?session&table`, trang `/:locale/events/:slug/info`, bản in theo lịch đang lọc. Chỉ dùng mã công khai, không nhận ID nội bộ. Xem [public-site](./public-site.md#in-ấn) |
 | Nhãn session ở màn nhập tỷ số thiếu ngày | Chưa xong | Giải nhiều ngày thì không phân biệt được session cùng giờ (`ui-verifier-261114-phase-07`, mục F) |
 | Panel chưa xếp: thông báo khi lọc không ra kết quả | Chưa xong | Hiện "Đã xếp hết trận" dù đang lọc (mục D) |
 | Kéo thả chỉ có `PointerSensor` | Chưa xong | Bàn phím vẫn xếp được bằng hai cú bấm. Checklist ghi có `KeyboardSensor` (mục C) |
