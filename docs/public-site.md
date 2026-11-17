@@ -1,7 +1,7 @@
-# Site công khai — Kamito (phase 08)
+# Site công khai — Kamito (phase 08 và 10)
 
-> Cập nhật: 2026-11-15 · Trạng thái: đã triển khai lịch/bản in và xử lý nợ code trong working tree, gồm timezone/DST, tên công khai, bộ lọc ngày dài và runtime Redis dùng chung. Kiểm cuối local: Playwright 51 đạt/7 bỏ qua, unit client 41 đạt; chưa deploy staging, M1/M2 và xác nhận hạ tầng thật vẫn mở.
-> Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/public-events/`, `apps/api/src/modules/public-competition/`, `apps/client/tests/e2e/`.
+> Cập nhật: 2026-11-17 · Trạng thái: đã thêm bảng xếp hạng, danh sách và hồ sơ VĐV công khai ở phase 10; chưa deploy staging. M1/M2 và xác nhận hạ tầng thật vẫn mở. Kết quả kiểm thử theo đợt ở [changelog](./project-changelog.md).
+> Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/{public-events,public-competition,public-rankings,public-players}/`, `apps/client/tests/e2e/`.
 > Kiến trúc chung xem [system-architecture.md](./system-architecture.md#site-công-khai-phase-08). Biến môi trường và chạy Playwright xem [deployment-guide.md](./deployment-guide.md#playwright-e2e-client). Kế hoạch: `plans/261111-1512-kamito-table-tennis-tournament-platform/phase-08-public-site-shell-event-pages-and-bracket-ui.md`.
 
 ## Contents
@@ -9,6 +9,7 @@
 - [Trạng thái](#trạng-thái)
 - [Route](#route)
 - [API công khai](#api-công-khai)
+- [Xếp hạng và hồ sơ VĐV (phase 10)](#xếp-hạng-và-hồ-sơ-vđv-phase-10)
 - [Dữ liệu và cache](#dữ-liệu-và-cache)
 - [Proxy: locale, chặn revalidate, rate limit](#proxy-locale-chặn-revalidate-rate-limit)
 - [SEO: metadata, sitemap, robots](#seo-metadata-sitemap-robots)
@@ -18,7 +19,7 @@
 
 ## Tổng quan
 
-Site công khai là phần người xem thấy: danh sách và lịch giải, trang giải (6 tab), trang trận, nhánh đấu, bảng đấu, danh sách VĐV, thông tin giải. Toàn bộ trang là Server Component trong Next.js (App Router), render HTML ở server. Dữ liệu chỉ đọc qua API `/api/v1/public/*` bằng secret nội bộ. Trình duyệt không gọi API.
+Site công khai gồm danh sách và lịch giải, trang giải (6 tab), trận, nhánh và bảng đấu, bảng xếp hạng, danh sách và hồ sơ VĐV. Toàn bộ trang là Server Component trong Next.js (App Router), render HTML ở server. Dữ liệu chỉ đọc qua API `/api/v1/public/*` bằng secret nội bộ. Trình duyệt không gọi API.
 
 Nguyên tắc:
 - Lọc, tìm kiếm, phân trang đều do server xử lý. Lọc là `<form method="get">`, phân trang là link thật. Không tải toàn bộ danh sách về trình duyệt.
@@ -42,6 +43,8 @@ Nguyên tắc:
 | Rate limit công khai, CSP report-only | 3 + bổ sung | Redis atomic dùng chung; bộ đếm cục bộ dự phòng khi Redis lỗi |
 | Playwright e2e | 3 + bổ sung | Lượt cuối 51 đạt/7 bỏ qua theo viewport; xem báo cáo hoàn tất nợ còn lại |
 | Lịch theo session/bàn, bản in lịch | Bổ sung 2026-11-15 | Đã triển khai trên dữ liệu phase 07. API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile) ([scheduling](./scheduling.md)) |
+| Bảng xếp hạng, danh sách và hồ sơ VĐV | Phase 10, 2026-11-17 | Đã triển khai SSR, lọc/phân trang ở server, chi tiết điểm native `<details>`, URL hồ sơ không chứa tên thật |
+| Điểm xếp hạng theo vòng ở tab Thông tin | Phase 10, 2026-11-17 | Lấy phiên bản quy tắc có hiệu lực tại ngày kết thúc giải, chỉ cho nội dung gắn bảng đang bật |
 | Mốc M1 (deploy staging, Playwright trên staging) | — | Chưa làm |
 
 ## Route
@@ -54,7 +57,7 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 | `/events` | `q`, `tier`, `type`, `year`, `status`, `page` | `getEventList` | `q` có → không cache |
 | `/events/calendar` | `year`, `tier` | `getEventCalendar` | Nhóm theo tháng |
 | `/events/:slug` | — | `getEvent` | Tab Tổng quan |
-| `/events/:slug/info` | `session`, `table` (mã công khai) | `getEventInfo`, `getSchedule` | Form GET, lọc lịch phía server |
+| `/events/:slug/info` | `session`, `table` (mã công khai) | `getEventInfo`, `getSchedule`, `getEventRankingPoints` | Lịch và điểm theo vòng; vẫn mở khi chỉ có bảng điểm |
 | `/events/:slug/matches` | `state` (live, completed, upcoming), `sub`, `date`, `q`, `page` | `getMatches` | `q` có → không cache |
 | `/events/:slug/matches/:matchNo` | — | `getMatch` | Trang trận |
 | Dải kết quả (header, mọi trang) | — | `getResultsStrip` | `GET /results/strip` |
@@ -64,22 +67,26 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 | `/events/:slug/groups` | — | — | Chỉ chuyển hướng |
 | `/events/:slug/players/:subEventCode` | `stage`, `page` | `getEntries` | Danh sách VĐV |
 | `/events/:slug/players` | — | — | Chỉ chuyển hướng |
+| `/rankings` | `kind` (`singles`, `doubles`) | `getRankings` | Top N theo bảng đang bật, N lấy từ setting |
+| `/rankings/:listCode` | `q`, `club`, `page` | `getRankingList` | Kỳ đã công bố mới nhất, giữ hạng gốc khi lọc; `q` có → không cache |
+| `/players` | `q`, `gender`, `club`, `page`, `sort=name|rank` | `getPlayerList` | Chỉ hồ sơ đang hoạt động, công khai và chưa gộp; `q` có → không cache |
+| `/players/:slug` | `page` (kết quả) | `getPlayerProfile`, `getPlayerResults` | URL chuẩn `p-<UUID>`; slug cũ/đã gộp chuyển 301 tới hồ sơ đích công khai |
 | `not-found.tsx`, `error.tsx` | — | — | Trang lỗi theo locale |
 
 Quy tắc chung:
 - Tham số URL đi qua `toQuery` (`lib/public-query.ts`) trước khi gọi API. Giá trị không hợp lệ bị bỏ, không gửi đi. Nhờ vậy URL rác không tạo ra mục cache mới.
-- Slug và mã nội dung phải khớp `^[A-Za-z0-9][A-Za-z0-9_-]*$`. Sai thì 404 trước khi gọi API.
+- Slug và mã nội dung qua `PUBLIC_URL_PART_PATTERN` (1–128 ký tự chữ, số, `_`, `-`). Sai thì 404 trước khi gọi API.
 - Slug `calendar` là slug dành riêng (API chặn tạo giải có slug này).
 - Trang không có dữ liệu hoặc chưa công bố thì `notFound()`.
 - Tab Trận tự chọn trạng thái có dữ liệu: giải đang diễn ra thử live → upcoming → completed, dừng ngay khi có trận; URL chọn state rõ ràng được giữ kể cả rỗng. Bộ lọc ngày là date input có min/max theo giải, server bỏ ngày sai/lặp/ngoài biên trước khi tạo cached query; không còn giới hạn 62 ngày. Nội dung chỉ có vòng loại thì mở thẳng vòng loại.
 
 ## API công khai
 
-Tiền tố `/api/v1/public`. Chỉ `GET`, `@Public()`, kiểm secret bằng `SsrInternalGuard`. Nguồn: `apps/api/src/modules/public-events/public-events.controller.ts`, `apps/api/src/modules/public-competition/public-competition.controller.ts`.
+Tiền tố `/api/v1/public`. Chỉ `GET`, `@Public()`, kiểm secret bằng `SsrInternalGuard`. Controller nằm trong các module `public-events`, `public-competition`, `public-rankings`, `public-players`.
 
 | Đường dẫn | Ghi chú |
 |---|---|
-| `events` | Danh sách thẻ gọn. `pageSize` tối đa 24 (setting `public.listPageSize`). Sắp xếp `startDate:desc` |
+| `events` | Danh sách thẻ gọn. Cỡ trang lấy từ `public.listPageSize` (mặc định 24, admin đổi được). Giải sắp tới xếp ngày tăng; các danh sách khác ngày giảm |
 | `events/calendar` | Nhóm theo tháng |
 | `events/:slug` | Giải, nội dung, tab khả dụng, nhà vô địch, số trận đã đấu |
 | `events/:slug/info` | `infoBody` đã sanitize lại khi trả |
@@ -92,16 +99,32 @@ Tiền tố `/api/v1/public`. Chỉ `GET`, `@Public()`, kiểm secret bằng `Ss
 | `results/strip` | Trận `LIVE` và `OFFICIAL` gần nhất của giải đang diễn ra |
 | `site` | Tên site (`site.name`) và cấu hình rate limit |
 | `sitemap` | Danh sách URL giải và trang giải cho sitemap |
+| `rankings` | Bảng đang bật và top N của kỳ `PUBLISHED` mới nhất; overview không tải breakdown |
+| `rankings/:listCode` | `page`, `pageSize` (trần kỹ thuật 100), `q`, `club`; trả đủ breakdown của các dòng trong trang |
+| `players` | `q`, `gender`, `club`, `page`, `sort=name|rank`; tìm, sắp xếp trước phân trang ở PostgreSQL |
+| `players/:slug` | Hồ sơ và hạng hiện tại; slug cũ/đã gộp trả `{redirectTo}` là slug chuẩn |
+| `players/:slug/results` | `page`; chỉ trận `OFFICIAL`, không BYE, không void, trong giải và draw công khai |
+| `events/:slug/ranking-points` | Quy tắc điểm theo vòng có `effectiveFrom <= endDate`, chọn phiên bản mới nhất cho từng ô |
 
 Quy tắc phạm vi và trả về:
 - Mọi query đi qua một predicate dùng chung `publicScope` (`modules/public-scope/public-scope.ts`): giải `PUBLISHED` và không hủy, draw `PUBLISHED`, entry `CONFIRMED`, trận thuộc draw đã công bố.
 - Số liệu và danh sách trận dùng `isRealMatch`, `isPlayedMatch` (`packages/shared/src/match-predicates.ts`).
-- Không công khai: 200 `{data: null}` (giải nháp, giải hủy, slug lạ, draw chưa công bố). Lý do không dùng 404: Next chỉ cache response 200 (xem [system-architecture](./system-architecture.md#site-công-khai-phase-08)).
+- Không công khai: 200 `{data: null}` (giải nháp/hủy, slug lạ, draw chưa công bố, hồ sơ ẩn). `publicGet` lưu cả kết quả null trong cache chung; trang Next chuyển thành HTTP 404, nên trạng thái gỡ nội dung thay được bản đã cache.
 - Serializer là whitelist. Test snapshot toàn bộ tên trường của mỗi endpoint. Thêm trường phải sửa snapshot có chủ đích.
-- Tra cứu theo slug và mã, không nhận id thô từ URL công khai.
+- Tra cứu theo slug và mã công khai. VĐV dùng namespace `p-<UUID>` được kiểm bởi helper dùng chung; không xuất `Player.slug` có thể chứa tên thật.
 - Tham số URL sai ở API được bỏ qua (`public-query-params.ts`), không trả 400.
 - Trận hủy kết quả (`isVoided`) có cờ `voided` ở tab trận và bảng đấu, không vào dải kết quả.
-- Tìm VĐV chỉ theo tên hiển thị (`publicDisplayName`), không theo tên thật.
+- Tìm VĐV theo `normalizedPublicName`, tương ứng `publicDisplayName ?? fullName`. Khi có tên thay thế, tên thật và tên thật tiếng Anh không xuất hiện trong dữ liệu hoặc khóa tìm kiếm công khai.
+
+## Xếp hạng và hồ sơ VĐV (phase 10)
+
+- **Kỳ công bố là nguồn điểm:** hạng, biến động, số kết quả tính và breakdown lấy từ `RankingSnapshotRow` của kỳ `PUBLISHED` mới nhất theo `asOfDate`, rồi `publishedAt`. Sửa sổ điểm sống không đổi dữ liệu của kỳ đang công khai. Bảng bị tắt không hiện.
+- **Top N là cấu hình:** `ranking.overviewTopN` trong `/settings`, mặc định mẫu 10, cho phép 1–100. Danh sách dùng `public.listPageSize`, tách biệt cỡ trang quản trị. `<details>` chứa đủ điểm trong HTML nên mở được khi tắt JavaScript; không fetch mỗi dòng.
+- **Giữ phạm vi:** breakdown nội bộ mới lưu thêm `eventId` ổn định để kiểm đúng giải nguồn; tên và điểm vẫn là giá trị đã chốt, link dùng slug công khai hiện tại của chính id đó. Giải ẩn/hủy hoặc snapshot cũ thiếu `eventId` thì che tên, URL, mã hạng giải; điểm và ngày vẫn hiện. Không dùng slug cũ để cấp quyền vì slug có thể được giải khác dùng lại. Không trả `eventId`, `ledgerId`, ghi chú nội bộ hay entity thô; không sửa snapshot đã công bố, cần kỳ mới để có đủ nhãn cho dữ liệu cũ.
+- **Riêng tư hồ sơ:** serializer whitelist không trả SĐT, email, ngày/năm sinh hoặc `Player.slug`. Link công khai là `p-<UUID>` từ `publicPlayerSlug()`. Hồ sơ ẩn, ngừng hoạt động hoặc đã gộp vẫn có thể hiện tên trên bảng/nhánh nhưng không có link hay ảnh hồ sơ. Slug cũ và chuỗi gộp chuyển 301 tới định danh chuẩn khi đích còn công khai; đích ẩn trả 404.
+- **Thông tin tổng hợp:** hồ sơ đọc thông tin + setting, hạng hiện tại và giải đã đăng ký bằng 3 truy vấn SQL; lịch sử kết quả là endpoint phân trang riêng. `sort=rank` của danh sách dùng hạng tốt nhất trong các kỳ mới nhất của bảng đang bật, chưa có hạng ở cuối. Tuổi chỉ hiện khi `player.showAge` bật, tính từ ngày sinh, thiếu thì dùng năm sinh, theo múi giờ cấu hình.
+- **Bảng điểm giải:** tab Thông tin dùng quy tắc mới nhất cho mỗi `(competitorKind, drawKind, stageCode)` có hiệu lực tại `endDate`; chỉ nội dung gắn bảng đang bật mới hiện. Tab vẫn có khi chưa có rich text hoặc lịch.
+- **Ngân sách truyền tải:** mốc 80 KiB là số byte body HTTP đã gzip, không phải JSON thô. `sendPublicJson` dùng gzip của Node cho `/rankings` và `/rankings/:listCode` khi client chấp nhận; SSR gửi `Accept-Encoding: gzip`. Kiểm HTTP thật 50 dòng × 20 khoản = 1.000 khoản giữ đầy đủ: JSON 377.129 byte, gzip 9.307 byte. JSON thô vượt mốc 80 KiB; không cắt điểm để đạt mốc. Bằng chứng: `apps/api/test-results/public-ranking-payload-budget.json`, suite `public-ranking-payload.e2e-spec.ts`.
 
 ## Dữ liệu và cache
 
@@ -129,8 +152,6 @@ Tag (`packages/shared/src/public-cache-tags.ts`, không dùng wildcard):
 
 | Tag | Trang dùng | Mutation gửi tag (api) |
 |---|---|---|
-| Tag | Trang dùng | Mutation gửi tag (api) |
-|---|---|---|
 | `events` | Danh sách giải, lịch giải, sitemap | `event.*`, và đổi thông tin hiển thị trên thẻ giải: `tier.write`, `eventType.write`, `venue.write`, `media.update`, `discipline.write`, `category.write` |
 | `settings` | Danh sách, dải kết quả, VĐV, site | `settings.update` |
 | `event-<slug>` | Tổng quan, thông tin, VĐV | Hầu hết mutation có ngữ cảnh giải: `event.*`, `subEvent.*`, nhánh, trận, lịch, đăng ký |
@@ -139,7 +160,8 @@ Tag (`packages/shared/src/public-cache-tags.ts`, không dùng wildcard):
 | `groups-<slug>-<code>` | Bảng đấu | Trận bảng, nhánh có bảng, `group.standings`, đăng ký |
 | `match-<slug>-<matchNo>` | Trang trận | Trận, lịch (trận có giờ đổi), `event.refresh` |
 | `results-strip` | Dải kết quả | `match.confirm`, `match.amend`, `match.reopen`, `event.publish`, `event.unpublish`, `event.cancel`, `event.uncancel`, `event.refresh` |
-| `players`, `player-<slug>` | Danh sách VĐV, hồ sơ VĐV | `player.*`, `ranking.publish`. Import (worker) cũng gửi khi có VĐV mới |
+| `players`, `player-<slug>` | Danh sách VĐV, hồ sơ, tên/link trên nhánh và trận | `player.*`, `ranking.publish`; trận/nhánh/entry gửi tag hồ sơ liên quan. Import cũng gửi khi có VĐV mới |
+| `rankings`, `ranking-<code>` | Tổng quan, từng bảng, hạng hiện tại trong danh sách/hồ sơ, sitemap bảng | Công bố kỳ, đổi bảng, sửa/gộp VĐV; đổi ảnh/nhóm tuổi cũng làm mới |
 
 Bảng này tóm tắt. Mutation đầy đủ và route không gửi tag: [cache-revalidation](./cache-revalidation.md#mutation-và-tag). Thay đổi nào chưa có tag thì chỉ hiện trên trang sau khi cache hết TTL. Tính đến 2026-11-14, xếp suất vòng loại và nhất, nhì bảng đã có tag.
 
@@ -147,13 +169,16 @@ Cache JSON dùng chung Redis (`public-response-cache.ts`), khóa có `QUEUE_PREF
 
 Lịch đọc `getSchedule(slug, query)` có cả tag `schedule-<slug>` và `event-<slug>`: thay lịch/kết quả, tên địa điểm hoặc thông tin entry đều làm mới dữ liệu. Đổi tên/mã bàn gửi lại tag lịch + giải; đổi tên địa điểm chỉ dùng riêng cho session cũng tìm đúng giải để vô hiệu cache. Danh sách mã lọc chỉ gồm session/bàn có trận công khai; query cache chỉ giữ các mã thuộc danh sách này.
 
+Bảng xếp hạng và hồ sơ dùng thêm các tag chung `players`, `rankings`, `events`, `settings` phù hợp với dữ liệu: gỡ giải làm mới phần breakdown, ẩn VĐV gỡ link/ảnh, sửa setting làm mới tuổi và top N. Loader tag của trận, nhánh, entry, import và công bố kỳ gửi cả slug cũ lẫn `p-<UUID>`. `rankingRules.write` sau khi lưu ma trận gửi `events` và tag các giải bị ảnh hưởng để tab Thông tin đổi ngay, không chờ TTL.
+
 ## Proxy: locale, chặn revalidate, rate limit
 
 File `apps/client/src/proxy.ts`. Thứ tự xử lý:
 
 1. Path `/api/revalidate`: nếu `Host` không nằm trong `REVALIDATE_ALLOWED_HOSTS` thì trả 404. Đây là lớp thứ hai, lớp chính là quy tắc Traefik (chưa kiểm trên staging).
-2. Rate limit (chỉ với trang, không áp cho `/api/*`, `/_next/*`, file có đuôi, và request prefetch của Next).
-3. Locale: nếu path đã có `vi` hoặc `en` thì qua. Nếu không thì chuyển hướng 307 theo thứ tự: cookie `locale`, header `Accept-Language`, mặc định `vi`.
+2. Locale: nếu thiếu `vi` hoặc `en` thì chuyển 307 theo cookie `locale`, header `Accept-Language`, mặc định `vi`.
+3. Rate limit trang theo IP; bỏ qua route framework/API và request prefetch theo matcher trong code.
+4. Route hồ sơ đọc kết quả tra cứu an toàn; khi API trả `redirectTo`, proxy gửi 301, `Cache-Control: private, no-store`, giữ locale và query. RSC navigation có fallback `permanentRedirect` của Next (308).
 
 ### Rate limit
 
@@ -189,12 +214,14 @@ Lưu ý:
 | `pageMetadata()` | `lib/page-metadata.ts` | Title, description, canonical, `alternates.languages` gồm `vi`, `en`, `x-default`, Open Graph |
 | `eventPageMetadata()` | `lib/page-metadata.ts` | Như trên, cho trang thuộc giải (dùng banner giải làm ảnh OG) |
 | `metadataBase` | `app/[locale]/layout.tsx` | Lấy từ `PUBLIC_SITE_URL` |
-| `app/sitemap.ts` | Route | `dynamic = 'force-dynamic'`. Dữ liệu từ `GET /public/sitemap`. Sinh lúc chạy, không lúc build (Docker build không gọi được API) |
+| `app/sitemap.ts` | Route | `dynamic = 'force-dynamic'`. Dữ liệu giải từ `GET /public/sitemap`, bảng đang bật từ `GET /public/rankings`. Sinh lúc chạy; không chứa URL VĐV |
 | `app/robots.ts` | Route | `dynamic = 'force-dynamic'`. Cho phép `/`, chặn `/api/`, trỏ tới `sitemap.xml` |
 
 Quy ước: mọi trang hiển thị nội dung gọi `pageMetadata` hoặc `eventPageMetadata`. Trang chỉ chuyển hướng (`draws`, `groups`, `players` ở cấp giải) và `not-found` được miễn.
 
 Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. Nếu API lỗi thì dùng default của `appSettingRegistry.siteName`. Logo chính thức chưa có, header dùng wordmark chữ theo token.
+
+Metadata bảng có tên và ngày kỳ chốt. Hồ sơ lấy ảnh công khai làm OG, `noindex` quyết định `robots.index`; chưa xuất JSON-LD `Person` và chưa đưa VĐV vào sitemap cho tới khi chốt đồng ý công khai. Next.js đã ghim 16.4.5 trong phase 10; đây là bản vá được [advisory chính chủ GHSA-mfr8-8qww-v76h](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h) chỉ định.
 
 ## In ấn
 
@@ -224,7 +251,6 @@ Nguồn hiện tại sau rà ngày 2026-11-15: [đối chiếu nợ review](../p
 | Mốc M1: deploy staging, chạy Playwright trên staging | Phase 08 bước 4 | Chờ staging (phase 01 và 02) |
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
 | Trang chủ tạm; giải nổi bật và tin, video, nhà tài trợ | Phase 08 và 11 | Phase 11 |
-| Bảng xếp hạng theo vòng trong tab Thông tin | Phase 10 | Phase 10 |
 
 Đã sửa/đối chiếu: nav có `aria-current`; `LiveBadge` dùng chung ở 5 vị trí; 404 theo locale; canonical năm lịch chuẩn hóa; query `stage=main` dùng chung cache mặc định; nội dung không có draw bị chặn trước fetch. Nút vé hiện 20px/700, màu trắng/primary có tỷ lệ 4,3954:1, đạt ngưỡng chữ lớn 3:1.
 

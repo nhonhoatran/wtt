@@ -242,7 +242,8 @@ Ma trận test
 - [x] Seed ví dụ — đã chạy trên dev local (thấy "(mẫu)" trong browser test); staging chưa, theo mục deploy
 - [x] Màn Bảng XH, Quy tắc điểm (ma trận có phiên bản), Sổ điểm, Kỳ chốt — gói 5, 2026-11-16 (chưa commit); browser 7 flow PASS
 - [x] Gợi ý hạt giống (đơn + cặp) + rankingAtEntry/pointsAtEntry — API `ranking-merge-and-seeds.e2e-spec.ts:66` pass; UI 2026-11-16 (chưa commit); wizard vòng loại chưa thử
-- [ ] ui-consistency: verifying; deploy staging — verifying xong 2026-11-16 (`ui/phase-09-ui-plan.md`); deploy staging **parked**: chờ cổng phase 01
+- [x] ui-consistency: verifying — xong 2026-11-16 (`ui/phase-09-ui-plan.md`); tách khỏi bước staging khi sync-back 2026-11-17
+- [ ] Deploy staging — **parked**: chờ cổng phase 01
 
 ## Success Criteria
 
@@ -269,4 +270,4 @@ Rollback: bảng/cột mới; tắt enqueue bằng revert; snapshot đã công b
 
 ## Next Steps
 
-- Phase 10: trang xếp hạng + hồ sơ VĐV đọc snapshot (kèm breakdown).
+- Phase 10 đã nối trang xếp hạng + hồ sơ VĐV đọc snapshot (2026-11-17). Kỳ mới lưu thêm `eventId` sẵn có vào JSON breakdown nội bộ để kiểm đúng giải khi slug đổi/tái sử dụng; không migration, không sửa điểm hoặc kỳ đã công bố. Legacy thiếu id che nhãn/link tới kỳ mới. Snapshot regression 11/11 và publish thật → BullMQ → SSR 644 ms local; [QA phase 10](../reports/tester-261117-phase-10-public-rankings-players.md). G2 và staging vẫn còn mở.

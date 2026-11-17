@@ -1,6 +1,6 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-16 · Trạng thái: phase 01 (khung), phase 03–08 đã commit (phase 08 đến `a26f833`), chưa deploy staging. Phase 09: lõi đã commit; màn admin xếp hạng và thay đổi API nhỏ nằm trong working tree (chưa commit). Trạng thái từng phase: xem [roadmap](./development-roadmap.md).
+> Cập nhật: 2026-11-17 · Trạng thái: đã có mã nguồn công khai xếp hạng và hồ sơ VĐV của phase 10 trong working tree, chưa deploy staging. Trạng thái từng phase: xem [roadmap](./development-roadmap.md).
 > Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
@@ -17,6 +17,7 @@
 - [Bốc thăm và vòng bảng (phase 06)](#bốc-thăm-và-vòng-bảng-phase-06)
 - [Nhập, lịch và revalidate (phase 07)](#nhập-lịch-và-revalidate-phase-07)
 - [Site công khai (phase 08)](#site-công-khai-phase-08)
+- [Xếp hạng và hồ sơ công khai (phase 10)](#xếp-hạng-và-hồ-sơ-công-khai-phase-10)
 - [Xác thực và phân quyền (phase 03)](#xác-thực-và-phân-quyền-phase-03)
 - [Dịch vụ dùng chung trong api](#dịch-vụ-dùng-chung-trong-api)
 - [Packages dùng chung](#packages-dùng-chung)
@@ -39,7 +40,7 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
-| `apps/client` | Next.js 16.4.3, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Site công khai `[locale]` (vi, en): trang chủ tạm, danh sách và lịch giải, trang giải 6 tab, trang trận, nhánh đấu, SSR đọc `api` công khai. Route `/api/revalidate`, `/api/csp-report`, `/api/health`, `sitemap.ts`, `robots.ts`, `proxy.ts`. Chi tiết: [public-site.md](./public-site.md) |
+| `apps/client` | Next.js 16.4.5, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Site công khai `[locale]` (vi, en): trang chủ tạm, danh sách và lịch giải, trang giải 6 tab, trận, nhánh, bảng xếp hạng, danh sách và hồ sơ VĐV; SSR đọc API nội bộ. Route `/api/revalidate`, `/api/csp-report`, `/api/health`, `sitemap.ts`, `robots.ts`, `proxy.ts`. Chi tiết: [public-site.md](./public-site.md) |
 | `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text, VĐV, cặp đôi, tab Danh sách đăng ký, wizard import, gộp VĐV, tab Bốc thăm (wizard sinh nhánh, bảng sơ đồ, vòng bảng, thao tác sau công bố), trang Nhập tỷ số `/results`, tab Lịch & kết quả (session, lưới xếp lịch, panel chưa xếp), in phiếu trận |
 | `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05), bốc thăm, nhánh, vòng bảng, trận, đọc (phase 06), nhập, chốt, sửa và mở lại tỷ số, session và xếp lịch, phiếu trận, xuất lịch và kết quả, revalidation (phase 07), API công khai `/public/*` (phase 08) |
 | `apps/worker` | Node, ioredis, BullMQ 6.5.1, sharp 0.35.5 | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP, media worker: job `process-image` và job dọn định kỳ `cleanup-expired-intents`. Import worker (queue `import`): `validate-import`, `commit-import`, dọn file import định kỳ. Revalidate worker (queue `revalidate`): job `revalidate-tags`, gọi `client` `/api/revalidate` |
@@ -338,7 +339,7 @@ Lý do `failureReason` (`MEDIA_FAILURE` trong `packages/shared/src/media/media-c
 
 ## Vận động viên và đăng ký (phase 05)
 
-Phạm vi: hồ sơ VĐV, cặp đôi, đăng ký vào nội dung thi đấu (`Entry`), import và export Excel, gộp hồ sơ trùng. Bốc thăm đã có ở phase 06 (xem [mục riêng](#bốc-thăm-và-vòng-bảng-phase-06)). Chưa có bảng điểm (phase 09) và trang công khai VĐV (phase 10).
+Phạm vi: hồ sơ VĐV, cặp đôi, đăng ký vào nội dung thi đấu (`Entry`), import và export Excel, gộp hồ sơ trùng. Bốc thăm ở phase 06, lõi xếp hạng ở phase 09, hồ sơ công khai ở phase 10.
 
 ### Mô hình dữ liệu
 
@@ -475,7 +476,7 @@ Phase 06 chèn `Draw` và `Group` sau `SubEvent`, trước `Player`. Xem [Bốc 
    - Làm mới `displayName` của Competitor đích.
    - Hồ sơ nguồn: `mergedIntoId`, `mergedAt`, `isActive = false`.
    - Ghi audit `player.merge` kèm lý do.
-4. **Sau gộp.** Sửa hồ sơ đã gộp trả 409 `PLAYER_MERGED`. Đăng ký bằng mã đã gộp cũng trả `PLAYER_MERGED`. Chuyển hướng 301 từ slug cũ sang đích **chưa làm** (phase 10).
+4. **Sau gộp.** Sửa hồ sơ đã gộp trả 409 `PLAYER_MERGED`. Đăng ký bằng mã đã gộp cũng trả `PLAYER_MERGED`. Phase 10 chuyển hướng HTTP GET/HEAD từ slug cũ/đã gộp bằng 301 tới URL `p-<UUID>` khi đích công khai; đích ẩn trả trang 404.
 
 ### Export
 
@@ -486,7 +487,7 @@ Phase 06 chèn `Draw` và `Group` sau `SubEvent`, trước `Player`. Xem [Bốc 
 - SĐT, email và ngày sinh chỉ trả khi người xem có `players.update` (`canSeePlayerPii` trong `player-views.ts`). `RESULTS_OPERATOR` chỉ có `players.list` và `read`, nên không thấy các trường này.
 - Năm sinh, CLB và mã VĐV vẫn hiện cho cả hai vai trò.
 - Dữ liệu dòng import và file export không chứa ngày sinh, SĐT hay email.
-- `GET /public/*` có từ phase 08 (đợt 1 đến 3), xem [Site công khai](#site-công-khai-phase-08). `player.showAge` vẫn chưa có nơi đọc (phase 08 đợt 2, 10).
+- `GET /public/*` có từ phase 08. Phase 10 đọc `player.showAge` trong query hồ sơ; chỉ xuất tuổi khi bật, không xuất ngày/năm sinh. Xem [hồ sơ công khai](#xếp-hạng-và-hồ-sơ-công-khai-phase-10).
 
 ## Bốc thăm và vòng bảng (phase 06)
 
@@ -595,6 +596,14 @@ Cache: tag chính xác theo mutation (`packages/shared/src/public-cache-tags.ts`
 Lịch công khai: `PublicScheduleQuery` trong `public-competition` đọc lịch phase 07, áp phạm vi công khai, gom session → bàn → trận và lọc bằng mã `session`/`table`. Hợp đồng `packages/shared/src/public-schedule-contract.ts`; client render ở tab Thông tin, gắn tag lịch và giải, in từng session/bàn trên trang riêng. Không thay đổi schema. Kiểm local đạt: API tích hợp, Playwright lịch (5 đạt/1 bỏ qua PDF mobile), client build/typecheck/lint (2026-11-15).
 
 Rate limit công khai ở `proxy.ts` của client, Lua atomic trong Redis dùng chung giữa replica; Redis lỗi chuyển bộ đếm RAM cục bộ có trần. Thông số ở `/settings`, nhóm "Truy cập site công khai". Cache JSON công khai cũng dùng Redis chung với generation fence; hai Next production local đã kiểm cache/invalidation/hạn mức chung, chưa thay thế staging.
+
+## Xếp hạng và hồ sơ công khai (phase 10)
+
+`public-rankings` đọc bảng đang bật và kỳ `PUBLISHED` mới nhất; hạng, điểm, biến động và breakdown dùng `RankingSnapshotRow`, không tính lại từ sổ điểm sống. Breakdown mới lưu `eventId` nội bộ ổn định: kiểm phạm vi theo id, link theo slug hiện tại, tên/điểm giữ giá trị chốt; snapshot cũ thiếu id che nhãn/link, không sửa kỳ đã công bố. Overview giới hạn bằng setting `ranking.overviewTopN`; trang bảng lấy đủ breakdown của dòng trong trang bằng một truy vấn rows, cùng các truy vấn metadata/count/bộ lọc. API rankings hỗ trợ gzip của Node, SSR gửi `Accept-Encoding: gzip`. Ngân sách 80 KiB đo body HTTP đã nén; JSON thô có thể vượt, không cắt khoản điểm. Chi tiết phép đo: [public-site](./public-site.md#xếp-hạng-và-hồ-sơ-vđv-phase-10).
+
+`public-players` lọc và sắp xếp tên/hạng tại PostgreSQL trước phân trang. Hồ sơ chuẩn dùng `p-<UUID>` (`publicPlayerSlug` trong shared), không lộ slug sinh từ tên thật. Query đệ quy giải chuỗi gộp có chống vòng lặp; slug cũ hoặc hồ sơ đã gộp trả `{redirectTo}` khi đích công khai. Proxy Next chuyển 301; đích ẩn/ngừng hoạt động trả null và trang Next 404. Hồ sơ chuẩn có 3 truy vấn SQL: thông tin + setting, hạng, giải đã đăng ký; lịch sử kết quả phân trang ở endpoint riêng, chỉ trận `OFFICIAL` không BYE/void trong giải và draw công khai.
+
+Serializer whitelist tôn trọng tên thay thế; hồ sơ ẩn không có link/ảnh. Không trả SĐT, email, ngày/năm sinh. Tuổi lấy từ `player.showAge`, metadata theo `noindex`; không có JSON-LD `Person` hoặc URL VĐV trong sitemap. Cache gắn tag hồ sơ và tag chung `players`, `rankings`, `events`, `settings`; loader mutation gửi cả slug cũ và định danh chuẩn. Điểm theo vòng ở tab Thông tin lấy phiên bản có hiệu lực tại `endDate`; `rankingRules.write` làm mới tab sau khi lưu ma trận. Không thêm schema hay migration. Hợp đồng: `packages/shared/src/public-ranking-contract.ts`.
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -714,10 +723,8 @@ Code phía admin (`apps/admin/src`):
 
 | Hạng mục | Phase | Trạng thái |
 |---|---|---|
-| Chuyển hướng 301 slug VĐV đã gộp | 10 | Mới lưu `mergedIntoId`, chưa có route công khai |
-| Hiện năm sinh hoặc tuổi trên site công khai (`player.showAge`) | 08, 10 | Setting đã khai báo, chưa có nơi đọc |
 | Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job), `media`, `import` và `revalidate` (đang dùng) |
-| Bảng xếp hạng công khai, hồ sơ VĐV công khai, tin, video, nhà tài trợ | 10–11 | Trang công khai chưa có. Bảng xếp hạng công khai thuộc phase 10 ([public-site](./public-site.md)) |
+| CMS: tin, video, nhà tài trợ và trang tĩnh | 11 | Chưa triển khai. Bảng xếp hạng và hồ sơ VĐV công khai đã có ở phase 10 ([public-site](./public-site.md)) |
 | Sửa `site.name` trên `/settings` | — | Key có trong registry, chưa có editor |
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | — | Không còn dùng (đã chọn thiết kế (b)). Vẫn nằm trong `env-schema.ts`, compose và `.env.example`. Gỡ ở lần dọn env |
 
@@ -756,7 +763,7 @@ Code phía admin (`apps/admin/src`):
 | 29 | Xem trước (`dryRun`) chạy đúng luồng thật rồi rollback | Không có hai bản logic có thể lệch nhau |
 | 30 | `expectedVersion` cho nhánh và bảng, cộng khóa `SubEvent` → `Draw` → `Group` | Hai admin cùng sửa không ghi đè nhau. Dữ liệu đổi giữa lúc xem và lúc ghi bị phát hiện |
 | 31 | Revalidate sau commit, ngoài transaction; lỗi enqueue không rollback thao tác | Transaction không chờ Redis. Cache công khai tái tạo được: một lần xóa thất bại không làm sai dữ liệu gốc, chỉ làm trang cũ lâu hơn. Job có `jobId` duy nhất vì BullMQ có thể bỏ job mới khi trùng id |
-| 32 | Nội dung công khai không có hoặc chưa công bố trả 200 `{data: null}`, không 404 | Next chỉ cache 200. Với 404, trang đã gỡ vẫn nằm trong cache. Đổi lại, slug sai cũng là 200: client phải kiểm `data` |
+| 32 | Nội dung công khai không có hoặc chưa công bố trả 200 `{data: null}` | `publicGet` lưu null cùng dữ liệu trong Redis dùng chung để thay nội dung đã gỡ; trang Next kiểm `data` và trả 404 ra trình duyệt |
 | 33 | Site công khai đọc API bằng secret nội bộ (`x-internal-secret`), không bằng phiên | API không có domain công khai nên secret là ranh giới thật. Host allowlist ở `/api/revalidate` là lớp phụ |
 | 34 | Rate limit công khai ở `proxy.ts`, Redis atomic chung, ngưỡng ở `/settings` | Hai Next chia sẻ hạn mức theo IP; Redis lỗi dùng fallback cục bộ có trần, không bảo đảm tổng hạn mức toàn cụm. Header IP vẫn cần xác nhận Traefik thật |
 | 35 | CSP `Content-Security-Policy-Report-Only` từ phase 08, enforce ở phase 12 | Đo vi phạm trước khi chặn. Báo cáo gửi về `/api/csp-report` có giới hạn kích thước và số lần ghi log |
@@ -771,7 +778,7 @@ Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của ch�
 
 - [draws-and-groups.md](./draws-and-groups.md): bốc thăm, hạt giống, vòng bảng, walkover treo, mã lỗi (phase 06).
 - [match-results.md](./match-results.md): nhập và chốt tỷ số, API trận, quy tắc tỷ số, tag revalidate (phase 07).
-- [public-site.md](./public-site.md): site công khai (phase 08): route, API public, cache, proxy, SEO, in ấn, CSP.
+- [public-site.md](./public-site.md): site công khai (phase 08 và 10): route, API public, xếp hạng/hồ sơ, cache, proxy, SEO, in ấn, CSP.
 - [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API, danh mục và upload.
 - [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành, seed.
 - [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.

@@ -1,22 +1,22 @@
 # Development Roadmap — Kamito
 
-> Cập nhật: 2026-11-16. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase, đối chiếu với lịch sử git (`git log`) và code.
+> Cập nhật: 2026-11-17. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase, đối chiếu với lịch sử git (`git log`) và code.
 > Lịch sử thay đổi: [project-changelog.md](./project-changelog.md).
 
 ## Trạng thái phase
 
-| Phase | Nội dung | Trạng thái (2026-11-15) | Ghi chú |
+| Phase | Nội dung | Trạng thái (2026-11-17) | Ghi chú |
 |---|---|---|---|
 | 01 | Nền móng: monorepo, compose, Dokploy, design token | Code xong, cổng ra chưa đạt | Plan: không sang phase 03 cho tới khi đủ 4 điều kiện: staging chạy; Redis riêng `noeviction`; chọn thiết kế upload (đã chọn (b), 2026-11-12); chủ sở hữu sao lưu và RPO |
 | 02 | Spike: Refine, Better Auth, Dokploy, revalidate Next.js | B, C, E đạt cục bộ. D chờ staging | Kết quả trong `plans/reports/spike-*` |
 | 03 | Đăng nhập admin, RBAC, người dùng, khung admin | Code xong, đã commit. Chờ deploy staging | Test API 87/87 (gồm e2e) tại thời điểm phase 03. Xem [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) |
 | 04 | Dữ liệu gốc giải đấu, cấu hình, upload ảnh | Xong, đã commit (`3539792`..`01ab716`, 2026-11-12). Chờ deploy staging | 3 migration, seed danh mục, upload ảnh qua API. Tester và review 13:29 không có lỗi Critical. Còn nợ ghi ở [Việc kế tiếp](#việc-kế-tiếp). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-04-dữ-liệu-gốc-giải-đấu-cấu-hình-upload-ảnh-đã-commit) |
-| 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong, đã commit (`9d10ac3`..`e17dd87`, 2026-11-12). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ). Tag cho đăng ký và VĐV đã có từ phase 07 đợt 2. Chưa làm: 301 (phase 10). Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-đã-commit) |
+| 05 | VĐV, cặp đôi, đăng ký, import/export Excel, gộp VĐV | Xong, đã commit (`9d10ac3`..`e17dd87`, 2026-11-12). Chưa deploy staging | Test API 254/254 ở ba lần chạy đầy đủ sau khi thêm test, một lần crash native trong sáu lần (xem [việc còn mở](./deployment-guide.md#việc-còn-mở) mục 16). Sau sửa N1 đến N3: API 257/257 (một lần chạy đầy đủ). Tag cho đăng ký và VĐV có từ phase 07 đợt 2; redirect 301 đã bổ sung ở phase 10. Chi tiết: [changelog](./project-changelog.md#2026-11-12--phase-05-vđv-đăng-ký-import-excel-đã-commit) |
 | 06 | Bốc thăm, hạt giống, vòng bảng, sinh nhánh | Xong, đã commit (`2a44de1`..`919a014`, 2026-11-13). Chưa deploy staging | Gate G1a và G1b chưa được BTC xác nhận. Chi tiết: [draws-and-groups](./draws-and-groups.md). Changelog: [phase 06](./project-changelog.md#2026-11-13--phase-06-bốc-thăm-hạt-giống-vòng-bảng-sinh-nhánh-đã-commit) |
 | 07 | Xếp lịch, session, bàn, nhập và sửa tỷ số | Đợt 1 (nhập và chốt tỷ số, revalidate) đã commit (`4d64837`..`baf28a1`, 2026-11-13). Đợt 2 (lịch, sửa và mở lại tỷ số, revalidate mọi route ghi) đã commit (`4c7124b`..`3853154`, 2026-11-14). Chưa deploy staging | Lịch công khai và bản in lịch đã triển khai ở phase 08 (2026-11-15, đã commit `a26f833`). Còn mở: chuỗi Q → BYE → R2 khi reopen (chỉ unit), các mục UI trong báo cáo `ui-verifier-261114-phase-07`. Ghi nợ tag, thể thức, L11, L12, L13 và e2e RETIRED đã đóng 2026-11-14 ([changelog](./project-changelog.md#2026-11-14--đóng-ghi-nợ-review-c449c75608d948)). Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md), [changelog](./project-changelog.md#2026-11-14--phase-07-đợt-2-lịch-session-sửa-và-mở-lại-tỷ-số-revalidate-mọi-route-ghi-đã-commit) |
 | 08 | Site công khai: khung, i18n, trang giải, nhánh đấu, bảng đấu, trận, bản in | Đợt 1 đến 3 đã commit (`88777db`, `998f3f1`..`57be6b9`, 2026-11-13 và 11-14). Chưa lên staging | Bổ sung 2026-11-15 (đã commit `a26f833`): lịch theo session/bàn và bản in lịch. Typecheck/lint client đạt; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile). Còn mốc M1/M2. Đã có: 13 endpoint public (gồm `schedule`), i18n vi/en, khung và header, danh sách và lịch giải, trang giải 6 tab, trang trận, nhánh và bảng đấu, bản in nhánh, metadata, sitemap, robots, rate limit công khai, CSP report-only, Playwright cuối 51 đạt/7 bỏ qua, xem báo cáo hoàn tất nợ code. Chi tiết: [public-site](./public-site.md), [changelog](./project-changelog.md#2026-11-14--phase-08-site-công-khai-đợt-1-đến-3-đã-commit) |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng, màn admin xếp hạng | Code xong ở local. Lõi (`packages/ranking-engine`, migration, API) đã commit (`b59fffb`..`478ad88`). Màn admin và thay đổi API nhỏ chưa commit (2026-11-16). Chưa deploy staging | Staging chờ cổng phase 01. Chờ G2 (BTC trả lời quy chế điểm), nên số điểm hiện là dữ liệu mẫu để thử. Test API 571/571 (chạy lại sau vòng sửa review). Chưa có unit test cho admin. Chi tiết và việc còn mở: [changelog](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit) |
-| 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Pending | |
+| 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Mã nguồn đã triển khai và kiểm chứng ở local, chưa commit/staging | SSR bảng và hồ sơ; điểm từ kỳ công bố; chi tiết native không cần JS; URL VĐV `p-<UUID>`, slug cũ/đã gộp 301; quyền riêng tư/noindex; bảng điểm giải. Không có migration. 111 API test trên 15 file, 24 browser test sau sửa review đạt; build API/worker/client đạt. Xem [changelog](./project-changelog.md#2026-11-17--phase-10-xếp-hạng-và-hồ-sơ-vđv-công-khai-chưa-commit) |
 | 11 | CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ | Pending | |
 | 12 | Tiếng Anh, SEO, hardening, ra mắt | Pending | |
 
@@ -57,7 +57,7 @@
    - Các mục L của review chưa đối chiếu.
 5. **Phase 05 và 06, nợ còn lại** (theo đối chiếu code):
    - Nginx admin giới hạn 2m cho route upload import (xem [deployment-guide](./deployment-guide.md#giới-hạn-import-excel)).
-   - Chuyển hướng 301 slug VĐV đã gộp. Thuộc phase 10.
+   - Chuyển hướng slug VĐV cũ/đã gộp đã triển khai ở phase 10; còn kiểm lại trên staging.
    - Chưa thử file xlsx do Excel thật tạo.
    - Phase 06: gate G1a và G1b chưa được BTC xác nhận. Quyết định chờ chủ giải: người thắng vòng loại đã rút có dùng lucky loser không (hiện tự walkover). Chi tiết: [draws-and-groups](./draws-and-groups.md#chưa-làm).
 6. **Phase 07, nợ còn lại** (chi tiết: [scheduling](./scheduling.md#chưa-làm-và-việc-còn-mở), [match-results](./match-results.md#chưa-làm-và-việc-còn-mở)):
@@ -80,3 +80,8 @@
    - Đưa ràng buộc ngày vào API: không hồi tố quy tắc, không ghi nhận điểm hay chốt kỳ chốt với ngày tương lai. Hiện chỉ admin chặn.
    - Múi giờ phía admin: ngày mặc định và tag "Hết hạn" còn dùng ngày của máy (xem [code-standards](./code-standards.md#xếp-hạng-phase-09)).
    - Admin chưa có unit test (API đã chạy lại toàn bộ sau vòng sửa: 571/571).
+9. **Phase 10, việc vận hành còn mở:**
+   - Chờ hạ tầng phase 01 để deploy staging; kiểm công bố kỳ mới và tag revalidation trong môi trường thật.
+   - Xác nhận đồng ý công khai hồ sơ, nhất là VĐV nhỏ tuổi; giữ mặc định `noindex`, không JSON-LD `Person` và không sitemap VĐV.
+   - Snapshot cũ thiếu `eventId` vẫn giữ điểm/ngày nhưng che nhãn/link giải nguồn. Tạo và công bố kỳ mới khi cần đầy đủ nhãn; không sửa dữ liệu kỳ đã công bố.
+   - Thống kê thắng–thua theo mùa ngoài phạm vi phase 10; quy chế điểm G2 vẫn chờ BTC.

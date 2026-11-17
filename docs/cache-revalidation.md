@@ -1,6 +1,6 @@
 # Revalidate cache công khai
 
-> Cập nhật: 2026-11-14 · Trạng thái: đã commit (`dba2f2f`, `fc73052`, `6a91d27`, `4cdfa23`, `07f2500`, `8173f28`, `856cac9`, `d0b8e8a`), chưa deploy staging.
+> Cập nhật: 2026-11-17 · Trạng thái: bổ sung cache cho xếp hạng và hồ sơ công khai ở phase 10 trong working tree; chưa deploy staging. Các phần phase 07–09 đã có trong lịch sử git.
 > Nguồn đối chiếu: `apps/api/src/modules/revalidation/` (`cache-tags.ts`, `route-tag-coverage.ts`, `revalidation-enqueue.service.ts`), `apps/api/test/cache-tags-coverage.e2e-spec.ts`, `packages/shared/src/{public-cache-tags,public-cache-tag-sets,revalidate-job-options,with-timeout}.ts`, `apps/worker/src/{revalidate-worker,processors/revalidate-processor}.ts`, `apps/worker/src/import/import-revalidate-tags.ts`, `apps/admin/src/api/write-warnings.ts`.
 > Tổng quan kiến trúc: [system-architecture](./system-architecture.md#nhập-lịch-và-revalidate-phase-07). Cách thêm route mới: [code-standards](./code-standards.md#route-ghi-admin-mới-phải-đăng-ký-tag).
 
@@ -44,7 +44,7 @@ Mọi route ghi dưới `/admin` (POST, PUT, PATCH, DELETE) phải có một dò
 
 Test này chỉ kiểm có dòng hay không và có gọi mutation hay không. Nó **không** kiểm lý do `none` có đúng hay không. Xem [Khe hở đã biết](#khe-hở-đã-biết).
 
-Thống kê hiện tại (2026-11-14): 93 route ghi admin, 52 route `tags`, 41 route `none`.
+Thống kê lịch sử ngày 2026-11-14: 93 route ghi admin, 52 route `tags`, 41 route `none`. Phase 10 thêm `rankingRules.write`; danh sách hiện tại lấy từ `ROUTE_TAG_RULES` và test coverage, không dùng số lịch sử để kiểm đủ route.
 
 ## Tag công khai
 
@@ -60,10 +60,12 @@ Tag được dựng từ `publicCacheTags` (`packages/shared/src/public-cache-ta
 | `match(slug, matchNo)` | `match-<slug>-<matchNo>` | Trang trận |
 | `resultsStrip()` | `results-strip` | Dải kết quả trên đầu trang |
 | `players()` / `player(slug)` | `players`, `player-<slug>` | Danh sách VĐV, hồ sơ VĐV |
-| `rankings()` / `ranking(code)` | `rankings`, `ranking-<code>` | Bảng xếp hạng (phase 09) |
+| `rankings()` / `ranking(code)` | `rankings`, `ranking-<code>` | Bảng xếp hạng công khai, hạng hiện tại trong hồ sơ/danh sách, sitemap bảng (phase 10) |
 | `settings()` | `settings` | Cấu hình ảnh hưởng nhiều trang |
 
 Entry dùng `entryChangeTags` (`packages/shared/src/public-cache-tag-sets.ts`): tag giải, `draw-*`, `groups-*` của các nội dung bị ảnh hưởng, `players` khi có VĐV mới, và `player-*` của các VĐV liên quan. Hàm này dùng chung cho API và worker.
+
+Phase 10: mọi loader ngữ cảnh VĐV gửi cả `Player.slug` cũ và `publicPlayerSlug(id)` dạng `p-<UUID>`. Áp cho entry, sửa/gộp VĐV, chốt/sửa trận, thay đổi nhánh, công bố kỳ và commit import. Trang bảng/hồ sơ còn dùng tag chung `players`, `rankings`, `events`, `settings` theo `apps/client/src/lib/public-data.ts`, nên đổi quyền công khai/tên/ảnh, gỡ giải nguồn hoặc đổi tuổi/top N không giữ dữ liệu cũ tới hết TTL. Phạm vi breakdown kiểm bằng `eventId` nội bộ ổn định, không tin slug được tái sử dụng; snapshot cũ thiếu id che nhãn/link, vẫn giữ điểm/ngày.
 
 ## Mutation và tag
 
@@ -83,10 +85,12 @@ Entry dùng `entryChangeTags` (`packages/shared/src/public-cache-tag-sets.ts`): 
 | `event.refresh` | Mọi tag của giải, gồm `player-*` của VĐV trong giải (nút "Làm mới trang công khai") |
 | Nội dung thi đấu | `subEvent.create`, `subEvent.update`, `subEvent.delete` | `event-*`, `schedule-*`, `draw-*`, `groups-*` |
 | Đăng ký | `entry.create`, `entry.update`, `entry.bulk` | Giải, `draw-*`, `groups-*`, `player-*` của VĐV liên quan |
-| VĐV | `player.create`, `player.update`, `player.merge` | `players`, `player-*`, và tag giải và nội dung có đăng ký của VĐV |
-| Danh mục | `tier.write`, `eventType.write`, `venue.write`, `media.update` | `events`, `event-*` của các giải dùng mục đó |
+| VĐV | `player.create`, `player.update`, `player.merge` | `players`, `rankings`, `player-*`, và tag giải và nội dung có đăng ký của VĐV |
+| Danh mục | `tier.write`, `eventType.write`, `venue.write` | `events`, `event-*` của các giải dùng mục đó |
+| Ảnh | `media.update` | `events`, `event-*`, `players`, `rankings` để ảnh và alt text của hồ sơ được làm mới |
 | Danh mục | `discipline.write`, `category.write` | `events`, các giải và trận dùng môn hoặc nhóm đó |
 | Xếp hạng | `rankingList.write`, `ranking.publish` | `rankings`, `ranking-<code>`, `players`, `player-*` đổi thứ hạng |
+| Quy tắc điểm | `rankingRules.write` | `events` và `event-*` của giải thuộc các hạng giải bị sửa; bảng điểm trong tab Thông tin đọc quy tắc theo ngày kết thúc giải |
 | Cấu hình | `settings.update` | `settings` |
 
 Tag theo từng mutation không dùng wildcard. Tên mutation dùng camelCase có dấu chấm (`match.unStart`), không dùng kebab-case.
@@ -95,7 +99,7 @@ Tag theo từng mutation không dùng wildcard. Tên mutation dùng camelCase c�
 
 Bảng dưới đây liệt kê route theo mutation (cột "route") và theo lý do không gửi tag (cột "lý do"). Nguồn đầy đủ: `route-tag-coverage.ts`.
 
-### Route gửi tag (52)
+### Route gửi tag
 
 | Mutation | Route |
 |---|---|
@@ -134,30 +138,32 @@ Bảng dưới đây liệt kê route theo mutation (cột "route") và theo lý
 | `tier.write` | `POST /admin/tiers`, `PATCH /admin/tiers/:id`, `DELETE /admin/tiers/:id` |
 | `eventType.write` | `POST /admin/event-types`, `PATCH /admin/event-types/:id`, `DELETE /admin/event-types/:id` |
 | `venue.write` | `PATCH /admin/venues/:id` |
+| `venueTable.write` | `PATCH /admin/venues/:id/tables/:tableId` |
 | `category.write` | `PATCH /admin/categories/:id` |
 | `discipline.write` | `PATCH /admin/disciplines/:id` |
 | `media.update` | `PATCH /admin/media/:id` |
 | `rankingList.write` | `POST /admin/ranking-lists`, `PATCH /admin/ranking-lists/:id`, `DELETE /admin/ranking-lists/:id` |
 | `ranking.publish` | `POST /admin/ranking-snapshots/:id/publish` |
+| `rankingRules.write` | `PUT /admin/ranking-rules/matrix` |
 | `settings.update` | `PUT /admin/settings/:key`, `DELETE /admin/settings/:key` |
 
-### Route không gửi tag (41)
+### Route không gửi tag
 
 | Lý do trong code | Route |
 |---|---|
 | Xóa khi đang được dùng, nên không có trang công khai nào hiển thị | `DELETE /admin/categories/:id`, `DELETE /admin/disciplines/:id`, `DELETE /admin/venues/:id` |
 | Bảng điểm chỉ đổi khi tính lại (`group.standings`), không phải khi đổi thang | `PATCH` và `DELETE /admin/group-scoring-rules/:id` |
 | Thể thức không được API công khai và client hiển thị | `POST`, `PATCH`, `DELETE /admin/match-formats...`, `PATCH /admin/rounds/:id` |
-| Tên bàn không được API công khai và client hiển thị | `PATCH` và `DELETE /admin/venues/:id/tables/:tableId` |
+| Bàn đang được dùng trong phiên hoặc trận thì không được xóa | `DELETE /admin/venues/:id/tables/:tableId` |
 | Mới tạo, chưa có giải nào dùng | `POST /admin/categories`, `POST /admin/disciplines`, `POST /admin/group-scoring-rules`, `POST /admin/match-formats`, `POST /admin/venues`, `POST /admin/venues/:id/tables`, `POST /admin/venues/:id/tables/bulk` |
 | Chỉ đọc hoặc chỉ là gợi ý | `POST /admin/sub-events/:id/draws/preview`, `POST /admin/sub-events/:id/entries/suggest-seeds` |
 | Nhánh nháp, chưa công bố | `DELETE /admin/draws/:id`, `POST /admin/sub-events/:id/draws`, `POST /admin/draws/:id/swap` |
 | Ghi bảng import, chưa đổi dữ liệu công khai (worker gửi tag khi commit) | `POST /admin/imports`, `PUT /admin/imports/:id/file`, `POST .../uploaded`, `POST .../validate`, `POST .../commit`, `PATCH .../rows/:rowNo` |
 | Upload, tạo phiên tải ảnh; ảnh chỉ công khai khi giải tham chiếu tới | `POST /admin/media/intents`, `PUT /admin/media/:id/content`, `POST /admin/media/:id/complete` |
 | Người dùng không hiển thị công khai | `POST`, `PATCH /admin/users...`, `POST /admin/users/:id/reset-password`, `POST /admin/users/:id/revoke-sessions` |
-| Ranking nháp, chưa publish | `POST`, `DELETE /admin/ranking-points...`, `POST /admin/ranking-snapshots/drafts`, `DELETE /admin/ranking-snapshots/:id`, `POST /admin/ranking/recompute`, `PUT /admin/ranking-rules/matrix` |
+| Ranking nháp, chưa publish | `POST`, `DELETE /admin/ranking-points...`, `POST /admin/ranking-snapshots/drafts`, `DELETE /admin/ranking-snapshots/:id`, `POST /admin/ranking/recompute` |
 
-Lý do ghi trong bảng là lý do trong code. Ngày 2026-11-14 đã rà lại từng lý do `none` và khớp với hành vi thật.
+Lý do ghi trong bảng theo `route-tag-coverage.ts`. Phase 10 đã chuyển lưu ma trận điểm sang `rankingRules.write`; không được coi thay đổi quy tắc chỉ ảnh hưởng dữ liệu nháp nữa.
 
 ## Hàng đợi và thử lại
 

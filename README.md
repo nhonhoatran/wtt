@@ -17,9 +17,9 @@ Nền tảng quản lý giải bóng bàn, điều hành trận đấu và công
 
 </div>
 
-WTT tập trung công việc của ban tổ chức vào một hệ thống: quản lý vận động viên, nhận danh sách đăng ký, bốc thăm, xếp lịch, nhập kết quả và tính điểm xếp hạng. Người xem theo dõi giải qua website công khai với lịch thi đấu, nhánh đấu, bảng đấu và kết quả.
+WTT tập trung công việc của ban tổ chức vào một hệ thống: quản lý vận động viên, nhận danh sách đăng ký, bốc thăm, xếp lịch, nhập kết quả và tính điểm xếp hạng. Người xem theo dõi giải, bảng xếp hạng và hồ sơ vận động viên qua website công khai.
 
-**Trạng thái:** đang phát triển, đã triển khai mã nguồn đến phần quản trị xếp hạng của phase 09. Staging và production chưa được triển khai; phạm vi tiếp theo nằm trong [lộ trình](docs/development-roadmap.md).
+**Trạng thái:** đang phát triển, đã triển khai mã nguồn đến trang xếp hạng và hồ sơ vận động viên công khai của phase 10. Staging và production chưa được triển khai; kết quả kiểm chứng và phần còn mở nằm trong [lộ trình](docs/development-roadmap.md).
 
 ## Tính năng
 
@@ -30,10 +30,10 @@ WTT tập trung công việc của ban tổ chức vào một hệ thống: qu�
 | **Bốc thăm** | Loại trực tiếp, vòng loại, chia bảng, hạt giống, BYE và xếp hạng vòng bảng |
 | **Điều hành** | Nhập, chốt, sửa và mở lại tỷ số; lịch theo phiên và bàn; in phiếu trận, xuất lịch và kết quả |
 | **Xếp hạng** | Ma trận quy tắc có phiên bản, sổ điểm, điểm thủ công, dựng và công bố kỳ chốt, gợi ý hạt giống |
-| **Website công khai** | Danh sách và lịch giải, trang giải và trận đấu, nhánh và bảng đấu, lịch bàn, bản in, route Việt/Anh và nền tảng SEO |
+| **Website công khai** | Danh sách và lịch giải, nhánh và kết quả, lịch bàn và bản in, bảng xếp hạng với chi tiết điểm của kỳ đã công bố, danh sách và hồ sơ vận động viên, route Việt/Anh và nền tảng SEO |
 | **Quản trị hệ thống** | Đăng nhập bằng session, phân quyền, xác nhận lại mật khẩu cho thao tác nhạy cảm, nhật ký và hàng đợi nền |
 
-Trang xếp hạng công khai, hồ sơ vận động viên công khai và CMS là các phần tiếp theo trong lộ trình. Quy chế điểm chính thức còn chờ xác nhận; dữ liệu seed xếp hạng hiện phục vụ thử nghiệm.
+CMS là phần tiếp theo trong lộ trình. Quy chế điểm chính thức còn chờ xác nhận; dữ liệu seed xếp hạng hiện phục vụ thử nghiệm. Hồ sơ công khai tôn trọng tên thay thế, cờ ẩn hồ sơ và `noindex`; chưa đưa VĐV vào sitemap hoặc JSON-LD `Person`.
 
 ### Một góc giao diện
 

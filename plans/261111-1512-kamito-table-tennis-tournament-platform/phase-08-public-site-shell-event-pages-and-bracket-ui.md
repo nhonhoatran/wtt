@@ -87,19 +87,19 @@ Trang công khai so với "trang nội dung site công khai" — tham chiếu `a
 
 Theme: `packages/ui-tokens/src/tokens.ts` → biến CSS `--color-*`, `--radius-*`, `--space-section-*`, `--layout-*`. Không có `DESIGN.md`, không có thang cỡ chữ/khoảng cách trong theme. Đã chốt thêm 3 token: `textMuted #404040`, `textSubtle #737373` (brand §7), `lineStrong #A3A3A3` — thay mọi `#525252`/`#737373`/`#a3a3a3` viết tay (sửa luôn L8).
 
-Checklist dùng chung cho mọi trang mới:
-- [ ] Khung trang — `<main id="content" className="container">` như tham chiếu; header/footer từ `[locale]/layout.tsx`, không trang nào tự vẽ.
-- [ ] Đầu trang giải — eyebrow (tên giải, 14/600, `--color-text-muted`) + `h1` (24 → 32 từ 768px, 800) như tham chiếu; trên trang giải phần này chuyển vào `events/[slug]/layout.tsx` (hero + tab), các tab không tự viết lại.
-- [ ] Bậc heading — `h1` một lần/trang; khối trong trang dùng `h2` (16/700 như `.sectionTitle`), tiêu đề cột/thẻ `h3`.
-- [ ] Nav dạng viên (tab, chọn nội dung, chọn vòng, trạng thái trận) — `<nav aria-label>` + `<Link aria-current="page">`, kiểu `.kind` của tham chiếu (viên bo `--radius-pill`, chọn = nền `--color-data` chữ `--color-surface`), cuộn ngang trong khung; tách thành `components/common/pill-nav` (plan đã nêu `tab-scroller.tsx`).
-- [ ] Bảng số liệu (BXH, bảng điểm ván) — `<table>` thật, hàng đầu nền `--color-data` chữ `--color-surface` như `.roundTitle`; số `tabular-nums`; khung cuộn ngang riêng (`overflow-x:auto`, `tabIndex=0`, `role=region`) như `.scroller`.
-- [ ] Ô/thẻ — viền 1px `--color-border`, bo `--radius-button` (ô trận) / `--radius-card` (thẻ giải), nền `--color-surface`.
-- [ ] Nhãn LIVE — nền `--color-data`, chữ `--color-live`, bo `--radius-pill` (`.live`), không đặt `--color-live` trên nền sáng.
-- [ ] Chữ phụ (giờ, CLB, ghi chú) — `--color-text-muted` / `--color-text-subtle`; không literal xám.
-- [ ] Lọc — `<form method="get">` thật, nút submit, không JS; phân trang = link thật (`?page=`).
-- [ ] Rỗng — `<p>` câu từ từ điển (như `t.bracket.empty`); không dữ liệu/không công bố → `notFound()`.
-- [ ] Chữ hiển thị qua `getDictionary` + `pickLocalized`; giờ qua `format-date-time.ts` theo `event.timezone`.
-- [ ] Không chép từ tham chiếu: chữ tiêu đề, `--cell-w/--cell-h` của nhánh, gợi ý cuộn `.hint`, `#525252` viết tay.
+Checklist dùng chung cho mọi trang mới (sync-back 2026-11-17): mẫu đã triển khai, đối chiếu [verifier đợt 2–3](../reports/ui-verifier-261114-phase-08-batch-2.md), component hiện tại và hồi quy trang giải 18/18 trong [QA phase 10](../reports/tester-261117-phase-10-public-rankings-players.md). Tích chọn xác nhận mẫu đã có, không đóng các nợ giao diện/bản in hay staging đã ghi riêng. Các ngoại lệ đã phân xử được giữ nguyên: `EventShell` thay layout riêng, trang trận có đầu trang riêng, select nội dung ở tab Trận, LIVE trên nền navy sâu.
+- [x] Khung trang — `<main id="content" className="container">` hoặc `EventShell` dùng `main#content > div.container`; header/footer từ `[locale]/layout.tsx`, không trang nào tự vẽ.
+- [x] Đầu trang giải — hero + `h1.page-title` dùng chung trong `EventShell`; các tab không tự viết lại. Trang trận giữ đầu trang riêng theo ngoại lệ đã phân xử.
+- [x] Bậc heading — `h1` một lần/trang; tiêu đề khối `.section-title` 16/700; thẻ và section con dùng bậc thấp hơn (nhánh h3/h4 sau sửa verifier).
+- [x] Nav dạng viên — `<nav aria-label>` + `<Link aria-current="page">`; `PillNav` dùng `--radius-pill`, chọn nền `--color-data` chữ `--color-surface`, cuộn ngang trong khung. Tab Trận giữ select nội dung theo ngoại lệ đã phân xử.
+- [x] Bảng số liệu — `<table>` thật, đầu bảng nền `--color-data` chữ `--color-surface`, số `tabular-nums`; `ScrollRegion` cuộn ngang riêng với `tabIndex=0`, `role=region`.
+- [x] Ô/thẻ — viền 1px `--color-border`, bo `--radius-button` (ô trận) / `--radius-card` (thẻ giải), nền `--color-surface`.
+- [x] Nhãn LIVE — `LiveBadge` nền `--color-data` hoặc `--color-data-deep` theo nền cha, chữ `--color-live`, bo `--radius-pill`; không chữ vàng trên nền sáng.
+- [x] Chữ phụ (giờ, CLB, ghi chú) — `--color-text-muted` / `--color-text-subtle`; không literal xám.
+- [x] Lọc — `FilterForm` dùng `<form method="get">` và nút submit; `PaginationLinks` dùng link thật, hoạt động không JS.
+- [x] Rỗng — `EmptyState` render `<p>` từ từ điển; không dữ liệu/không công bố → `notFound()`.
+- [x] Chữ hiển thị qua `getDictionary` + `pickLocalized`; giờ qua `format-date-time.ts` theo `event.timezone`.
+- [x] Không chép quy tắc riêng nhánh vào các loại trang khác; kích thước ô/hint giữ ở component tương ứng; màu xám dùng token thay `#525252` viết tay.
 
 Task trang (đợt 2–3; mỗi task: đọc lại checklist trước khi viết → báo xong cho người điều phối gửi agent `ui-consistency:verifying` không phải người viết → báo `done` hoặc `parked — <lý do>`):
 

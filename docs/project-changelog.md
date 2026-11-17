@@ -1,7 +1,36 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-16. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-17. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-17 — Phase 10: xếp hạng và hồ sơ VĐV công khai (chưa commit)
+
+### Thêm
+
+- Bốn route SSR vi/en: `/rankings`, `/rankings/:listCode`, `/players`, `/players/:slug`. Lọc, tìm, sắp xếp và phân trang tại server. Tổng quan có tab đơn/đôi, nhóm giới tính/nhóm tuổi; top N lấy từ `ranking.overviewTopN` (giá trị mẫu 10, admin đổi được).
+- API nội bộ có `SsrInternalGuard` cho bảng, VĐV, kết quả VĐV và điểm theo vòng của giải. Kỳ `PUBLISHED` mới nhất là nguồn hạng/biến động/điểm; chi tiết từ breakdown snapshot, hiển thị native `<details>` không cần JavaScript.
+- Hồ sơ có thông tin, hạng từng bảng, tiểu sử vi/en, giải đã đăng ký và kết quả `OFFICIAL` phân trang, bỏ BYE/void và giải/draw chưa công khai. Phần hồ sơ dùng 3 SQL reads; kết quả là endpoint riêng.
+- Tab Thông tin của giải có bảng điểm theo vòng cho nội dung gắn bảng đang bật, chọn quy tắc hiệu lực tại `endDate`. Link hồ sơ cá nhân có trên nhánh, trận, đăng ký, bảng đấu, lịch và dải kết quả.
+
+### Quyền riêng tư và tương thích
+
+- URL chuẩn `p-<UUID>` dùng chung ở serializer, resolver, canonical và revalidate; không xuất slug cũ sinh từ tên thật. Có alias thì che tên thật vi/en và tìm theo `normalizedPublicName`. Hồ sơ ẩn/ngừng hoạt động không có link/ảnh, API trả 200 null để trang Next trả 404.
+- Slug cũ/đã gộp chuyển 301 tới định danh chuẩn khi đích công khai. Trên RSC prefetch bỏ qua proxy, fallback của Next dùng 308; đây là giới hạn khác với HTTP GET/HEAD thông thường.
+- Breakdown nội bộ mới giữ `eventId` ổn định để kiểm đúng giải nguồn; tên và điểm vẫn là giá trị đã chốt, link dùng slug hiện tại của cùng id. Snapshot cũ thiếu id che nhãn/link nhưng giữ điểm/ngày, tránh tin slug bị giải khác tái sử dụng. Public contract không xuất id, không thêm schema hay migration; không sửa kỳ đã công bố.
+
+### Cache và dung lượng
+
+- Tag đọc gồm tag riêng của bảng/hồ sơ và tag chung `rankings`, `players`, `events`, `settings`. Loader cho trận/nhánh/entry/import/công bố kỳ gửi cả slug cũ và định danh chuẩn. Sửa ảnh/nhóm tuổi làm mới bảng/hồ sơ; `rankingRules.write` làm mới tab điểm giải sau khi lưu ma trận.
+- Overview không tải breakdown không dùng. Trang bảng giữ đủ chi tiết; `sendPublicJson` gzip bằng Node, SSR yêu cầu gzip. Ngân sách 80 KiB được làm rõ là body HTTP đã nén. Fixture 50 dòng × 20 khoản = 1.000 khoản: JSON thô 377.129 byte, gzip 9.307 byte; raw vượt mốc, gzip đạt, không cắt khoản điểm. Bằng chứng: `apps/api/test-results/public-ranking-payload-budget.json` và `public-ranking-payload.e2e-spec.ts`.
+- Next.js 16.4.3 → 16.4.5, đồng bộ lockfile; bản 16.4.5 vá [GHSA-mfr8-8qww-v76h của Next.js](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h). Lượt build cuối của API, worker và client đều exit 0.
+
+### Kiểm chứng và việc còn mở
+
+- API tích hợp: 111 test duy nhất đạt trên 15 file, gồm rankings 16, players 14, payload 1, snapshot 11 và hồi quy 69; API unit revalidation đạt 16/16. Ranking-engine 36/36, worker 39/39, client unit 45/45, shared 101/101 trên 22 file (gồm 2 unit test định danh VĐV công khai mới). Không suy từ các lượt này thành toàn bộ test suite của monorepo.
+- Playwright sau sửa phạm vi snapshot F4: 24/24 trên desktop và mobile, không bỏ qua test. Lượt kết hợp trang giải trước F4 đạt 40/40 là bằng chứng hồi quy bổ sung, không thay cho lượt cuối. Typecheck/lint và build API/worker/client đạt.
+- Thử công bố thật qua admin → BullMQ worker → HTML SSR đã làm nóng: cập nhật kỳ/điểm sau 644 ms, 1 job revalidate hoàn tất, dưới mốc 10 giây. Bằng chứng: `apps/api/test-results/public-ranking-publish-refresh.json`.
+- Lệnh, log, ảnh desktop/mobile và giới hạn kiểm chứng: [báo cáo QA phase 10](../plans/reports/tester-261117-phase-10-public-rankings-players.md).
+- Chưa commit, chưa deploy staging do cổng hạ tầng phase 01. G2 và đồng ý công khai hồ sơ vẫn mở; thống kê thắng–thua theo mùa ngoài phạm vi.
 
 ## 2026-11-16 — Phase 09: màn admin xếp hạng (chưa commit)
 

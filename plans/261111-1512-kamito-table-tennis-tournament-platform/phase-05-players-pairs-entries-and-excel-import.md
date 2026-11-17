@@ -179,7 +179,7 @@ Hợp đồng đã chốt khi code (2026-11-12)
 - `ImportRow.chosenPlayerId` → `decisions Json` (`{"1": playerId | "NEW", "2": …}`) vì dòng đôi có 2 VĐV cần xác nhận. `ImportJob` thêm `fileName`, `fileSize`, `failureReason`, `committedRows`, `overrideReason`, `attemptNo`, `fileDeletedAt`. `Entry` thêm `updatedAt`. `Player` thêm `mergedAt`.
 - Mã VĐV: sequence Postgres `player_code_seq` (SQL tay trong migration 1) + CHECK `Pair_ordered_distinct_players`, `Competitor_type_matches_reference`.
 - Helper dùng chung API + worker: `@kamito/shared` (`normalizePersonName`, `stripDiacritics`, `ageOnEvent`, `checkEntryEligibility`, `ENTRY_IMPORT_COLUMNS`, `playerSettings`, `importSettings`) và `@kamito/db` (`allocatePlayerIdentity`, `findOrCreateCompetitor`, `refreshCompetitorNames`, `lockSubEvent`, `advisoryLock`, `playersAlreadyEntered`, `confirmedEntryCount`, `entriesInLockedDraw`, `subEventsWithLockedDraw` — 2 hàm cuối trả rỗng tới phase 06).
-- Draw (phase 06, 2026-11-13): chặn rút/import theo draw đi qua 2 hook trên (đã nối); số trận trong xem trước gộp đã đếm trận thật, loại BYE (`player-merge-preview.ts:86`). Chuyển hướng 301 slug VĐV đã gộp làm ở trang công khai (phase 10); ở đây chỉ lưu `mergedIntoId`.
+- Draw (phase 06, 2026-11-13): chặn rút/import theo draw đi qua 2 hook trên (đã nối); số trận trong xem trước gộp đã đếm trận thật, loại BYE (`player-merge-preview.ts:86`). Chuyển hướng slug VĐV đã gộp đã hoàn tất ở phase 10 (2026-11-17): GET/HEAD thường trả 301 tới opaque URL của đích còn active/public; đích ẩn trả 404. Ở phase 05 chỉ lưu `mergedIntoId`.
 - Lỗi hợp lệ trả 422 `{ code: 'ENTRY_INELIGIBLE', message, issues: [{code, message, playerId?, overridable}] }`; `overrideReason` (ADMIN) bỏ qua các issue `overridable` + vượt `maxEntries`.
 
 <!-- Phase 05 sync — 2026-11-12: bổ sung hợp đồng khi code -->
@@ -250,7 +250,7 @@ Phần còn lại (tuần 8–9)
 - [x] Import: chặn draw khác DRAFT — test cấp import có (`apps/api/test/imports-commit-guards.e2e-spec.ts`, 3 ca; 2026-11-14)
 - [x] Import: kiểm draw khóa trong transaction của từng lô, dưới khóa SubEvent (review phase 06 L6) — đóng 2026-11-14: `apps/worker/src/import/commit-batch.ts`; e2e `imports-worker.e2e-spec.ts`
 - [x] Export stream đồng bộ (`exports` module; test xuất > 1 trang 1000 dòng)
-- [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug chuyển phase 10
+- [x] Gộp VĐV + cờ công khai + tên hiển thị thay thế — `mergedIntoId`, `isPublicProfile`, `noindex`, `publicDisplayName`; 301 slug đã kiểm ở phase 10 ngày 2026-11-17
 - [x] Màn admin VĐV, cặp, tab Danh sách, wizard, gộp — `apps/admin` (tests 4/4, build OK)
 - [x] Đăng ký tag revalidate cho entry/VĐV/gộp/import — 2026-11-14: `cache-tags.ts` (`entry.create/update/bulk`, `player.create/update/merge`); import: `apps/worker/src/import/import-revalidate-tags.ts`, gọi sau commit
 - [x] ui-consistency: verifying — 2 vòng kiểm độc lập trên UI ban đầu (kết quả trong `plans/reports/ui-261112-1436-phase-05-admin-ui.md`, checklist ở `ui/`); các chỉnh UI sau review (nút "Thử lại"/"Kiểm tra lại" trang import, ẩn thẻ liên hệ riêng tư trên form VĐV, nhãn "Từ vòng loại") chưa qua verifying lại; chưa chạy trên trình duyệt
@@ -323,11 +323,11 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 | Sửa giữa validate và commit không nhân đôi | Đạt | `imports-worker.e2e-spec.ts:124` |
 | Commit dở → thử lại chỉ chạy dòng còn lại | Đạt | `imports-worker.e2e-spec.ts:225` |
 | Trùng seed cùng nội dung/giai đoạn bị DB chặn | Đạt | `apps/api/test/entries.e2e-spec.ts:113` |
-| Gộp: xung đột chặn; cặp trùng gộp, entry chuyển | Đạt một phần | `player-merge.e2e-spec.ts:129, 141`; 301 chờ phase 10 |
+| Gộp: xung đột chặn; cặp trùng gộp, entry chuyển; 301 hồ sơ đích | Đạt local | `player-merge.e2e-spec.ts:129, 141`; phase 10 kiểm chuỗi gộp/đích private và HTTP 301 trong `rankings-and-players.spec.ts`; [QA 2026-11-17](../reports/tester-261117-phase-10-public-rankings-players.md) |
 | Rút entry trong draw đã công bố → 409 | Đạt (sync 2026-11-13) | `draws.e2e-spec.ts:217`, `draw-review-guards.e2e-spec.ts:68, 70` |
 | Import vào draw PUBLISHED bị từ chối, kể cả draw công bố giữa chừng | Đạt (sync 2026-11-14) | `apps/api/test/imports-commit-guards.e2e-spec.ts`; `apps/api/test/imports-worker.e2e-spec.ts` (draw công bố sau lô 1); kiểm trong transaction của lô đã đóng (L6) |
 | Thêm VĐV đơn: 2 click + gõ tên | Chưa đo | cần kiểm tay trên staging |
-| `GET /public/*` không trả phone/email/birthDate | Chưa | phase 08 |
+| `GET /public/*` không trả phone/email/birthDate | Đạt trong phạm vi endpoint đã kiểm | Whitelist phase 08 và hồi quy public 2026-11-17; phase 10 kiểm thêm alias vi/en, opaque URL và trường hồ sơ; [QA](../reports/tester-261117-phase-10-public-rankings-players.md) |
 
 **Quyết định đã chốt 2026-11-12 (chủ repo):**
 - Làm trọn phase, không tách lát cắt.
@@ -348,7 +348,7 @@ Rollback: migrations chỉ thêm bảng/cột; revert app về phase 04.
 **Việc còn mở:**
 1. ~~Chặn import theo draw: test cấp import~~ **Đã đóng 2026-11-14**. ~~Kiểm tra lại draw trong tx (review phase 06 L6)~~ **Đã đóng 2026-11-14** (`commit-batch.ts`, e2e draw công bố giữa hai lô).
 2. ~~Tag revalidate cho entry/VĐV/gộp/import~~ **Đã đóng 2026-11-14** (`cache-tags.ts`, `import-revalidate-tags.ts`).
-3. 301 slug VĐV đã gộp — phase 10.
+3. ~~301 slug VĐV đã gộp — phase 10~~ **Đã đóng local 2026-11-17**: GET/HEAD 301 giữ query tới opaque URL; đích private/inactive trả 404. RSC prefetch dùng fallback Next 308; [QA](../reports/tester-261117-phase-10-public-rankings-players.md).
 4. Deploy staging + migrate + pilot — chờ cổng phase 01 (chủ hạ tầng).
 5. Thử file do Excel thật lưu trước pilot. Hiện mới test bằng file exceljs và file dựng tay.
 6. Crash ngẫu nhiên tiến trình test trên Windows (mã `0xC0000409`), khoảng 1/6 lần chạy full API, cả hai pool; nguyên nhân chưa rõ; không có assertion lỗi. Cùng mã lỗi đã gặp ở phase 04 (việc còn mở 4) — chưa chắc cùng nguyên nhân.

@@ -31,6 +31,13 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 <!-- Phase 09 sync — 2026-11-16 -->
 Phase 09: gói 1–4 backend commit (`b59fffb`..`07f2500`, reflog 2026-11-14); gói 5 admin UI xong 2026-11-16, chưa commit. Kiểm: API 571/571, ranking-engine coverage 100 % / 98.09 %, browser 7 flow PASS. Sai lệch G2: làm với dữ liệu mẫu từ 2026-11-13. Còn mở: G2, deploy staging (chặn bởi phase 01), admin chưa có unit test. Chi tiết: `phase-09-ranking-rules-points-ledger-and-snapshots.md`. Không đổi trạng thái phase khác.
 
+<!-- Full-plan sync — 2026-11-17 -->
+Phase 10 hoàn tất code, kiểm thử và verifying local: bốn route SSR, tìm/lọc/phân trang phía server, breakdown native, hồ sơ opaque/private 404/slug cũ và gộp 301, điểm theo vòng, link hồ sơ toàn site, cache/metadata/sitemap. Kỳ mới dùng eventId nội bộ trong JSON snapshot để kiểm đúng giải khi slug đổi hoặc tái sử dụng; không migration hoặc sửa kỳ đã công bố. Legacy thiếu id che nhãn/link, giữ nguyên điểm/vòng/ngày. Ngân sách 80 KiB đo body HTTP gzip: mẫu 50 × 20 khoản giữ đủ 1.000 khoản, 377.129 byte JSON / 9.307 byte gzip; JSON thô vượt ngưỡng, chưa bảo đảm mọi lịch sử.
+
+[QA phase 10](../reports/tester-261117-phase-10-public-rankings-players.md): API tích hợp 111/111 ở 15 file, API unit 16/16, client 45/45, shared 101/101, ranking-engine 36/36, worker 39/39; Playwright sau F4 24/24, hồi quy trước F4 40/40. Publish admin thật → BullMQ → SSR đã có cache đổi trong 644 ms local. Build API/worker/client đạt, Next đã vá 16.4.5; [review](../reports/code-reviewer-261117-phase-10-public-rankings-players.md) 9,5/10, không còn Critical/P1/P2 mở trong phạm vi review. Chưa deploy/đo staging.
+
+Đã rà đủ 12 phase cấp trên cùng: **117/154 checkbox (76,0 %), 37 còn mở**; tỷ lệ theo checkbox, không theo ngày công hay cổng nghiệm thu. Backfill phase 05 (301 và whitelist đã kiểm), 12 mẫu UI phase 08 theo verifier và nguồn hiện tại, verifying phase 09; tách verifying khỏi staging ở phase 09/10. Phase 10 đạt 8/9, giữ `in-progress` do staging; các cổng G1/G2, M1/M2, pilot và phần phase 11/12 chưa đạt vẫn mở. [Báo cáo sweep và việc còn mở](../reports/pm-261117-phase-10-sync.md).
+
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
 | 1 | [Nền móng: monorepo, compose, Dokploy, staging, design token](./phase-01-foundation-monorepo-compose-dokploy-design-tokens.md) | 1–2 | 6 | In progress (code xong; chờ hạ tầng; chưa qua cổng ra) |
@@ -42,7 +49,7 @@ Phase 09: gói 1–4 backend commit (`b59fffb`..`07f2500`, reflog 2026-11-14); g
 | 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Hoàn thành (chưa deploy staging; xong 2026-11-14; còn: đo staging, deploy staging, Q → BYE → R2 khi reopen (e2e), mục thiết kế UI) |
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (đợt 1–3 xong 2026-11-14, Playwright 34 pass tại thời điểm đó; lịch session/bàn + bản in lịch triển khai 2026-11-15; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile); còn staging → M1/M2 chưa đạt) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | In progress (gói 1–4 commit; gói 5 UI xong 2026-11-16, chưa commit; chờ G2 và staging) |
-| 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | Pending |
+| 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | In progress (code/test/verifying local xong 2026-11-17; 8/9 checkbox; chờ deploy và đo staging) |
 | 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | Pending |
 | 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | Pending |
 | — | Pilot với BTC trên dữ liệu một giải cũ (staging) | 9 | 1 | Pending (chặn: chưa có staging, xem Phụ thuộc) |
@@ -74,8 +81,8 @@ Lượt hoàn tất tiếp theo: client 41 unit, Playwright 51 đạt/7 bỏ qua
 
 - Chuỗi (1 người): 1 ∥ 2 → 3 → 4 (xong) → lát cắt (5 → 6 → 7 → 8) → M1 → 5 → pilot → [G1b] 6 → 7 → 8 → M2 → [G2] 9 → 10 → 11 → 12. Spike E quyết định revalidate ở 7, 8, 10.
 - Phase 03 code trước khi cổng phase 01 đạt: chờ chủ repo chốt tiếp tục hay dừng deploy (xem phase 03).
-- **Blocker (cập nhật 2026-11-14, vẫn chưa gỡ):** phase 02–08 đều chưa deploy staging vì cổng phase 01 chưa đạt; phase 04–07 đã xong code và verifying nhưng không deploy được (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
-- Điều kiện ngoài: chủ repo chốt tài khoản GitHub, email, tên repo; chủ hạ tầng trả lời preflight; tên miền; brand + logo vector; BTC trả lời G1a/G1b/G2; ngày bắt đầu + lịch Tết.
+- **Blocker (rà lại 2026-11-17, chưa gỡ):** phase 02–10 chưa deploy staging vì cổng phase 01 chưa đạt; code/verifying local không thay nghiệm thu staging (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
+- Điều kiện ngoài: tên repo trước lần push đầu (tài khoản/email đã chốt trong phase 01 ngày 2026-11-12); chủ hạ tầng trả lời preflight; tên miền; brand + logo vector; BTC trả lời G1a/G1b/G2; ngày bắt đầu + lịch Tết.
 
 ## Ràng buộc cứng (áp dụng mọi phase)
 

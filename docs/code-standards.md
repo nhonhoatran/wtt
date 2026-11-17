@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-14 · Phạm vi: phase 01 (monorepo, api, worker, client, admin, packages), phase 03 (auth, RBAC, users, /settings, nhật ký, khung admin), phase 04 (danh mục, giải, ảnh, sanitizer), phase 05 (VĐV, đăng ký, import), phase 06 (bốc thăm, vòng bảng, engine), phase 07 (nhập và sửa tỷ số, lịch, revalidate cho mọi route ghi), phase 08 (site công khai: query, metadata, cache công khai).
+> Cập nhật: 2026-11-17 · Phạm vi: phase 01, 03–10: hạ tầng, nghiệp vụ giải, xếp hạng, site công khai và quyền riêng tư hồ sơ.
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`, `apps/api/src/common/*`, `apps/worker/src/*`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -22,6 +22,7 @@
 - [Route ghi admin phải đăng ký tag](#route-ghi-admin-mới-phải-đăng-ký-tag)
 - [Cảnh báo ghi (warnings) ở admin](#cảnh-báo-ghi-warnings)
 - [Frontend](#frontend)
+- [Xếp hạng và hồ sơ công khai (phase 10)](#xếp-hạng-và-hồ-sơ-công-khai-phase-10)
 - [Kiểm thử](#kiểm-thử)
 - [Git và commit](#git-và-commit)
 - [Thư viện mới](#thư-viện-mới)
@@ -42,7 +43,7 @@
 | sharp | 0.35.5 | `apps/api`, `apps/worker` (xử lý ảnh) |
 | sanitize-html | 2.18.1 | `apps/api` (rich text giải) |
 | Prisma + adapter | 7.10.1 | `packages/db/package.json` (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) |
-| Next.js / React | 16.4.3 / 19.3.1 | `apps/client/package.json` |
+| Next.js / React | 16.4.5 / 19.3.1 | `apps/client/package.json`; vá bảo mật ở phase 10 |
 | Vite / antd | 8.3.5 / 5.29.3 | `apps/admin/package.json` |
 | Refine | core 5.0.12, antd 6.0.3, router 2.0.4 | `apps/admin/package.json` |
 | `@dnd-kit` | core 6.3.1, sortable 10.0.0, utilities 3.2.2 | `apps/admin/package.json` (kéo thả trận trên lưới lịch, sắp thứ tự trong danh sách) |
@@ -77,14 +78,15 @@ apps/
               modules/{draws,groups,matches,match-results,revalidation}/   (phase 06: nhánh, vòng bảng, đọc trận; phase 07: nhập tỷ số, revalidate)
               modules/{sessions,scheduling}/   (phase 07: session, xếp lịch, phiếu trận)
               modules/public-competition/, modules/public-scope/, common/guards/   (phase 08: API nhánh đấu công khai, SsrInternalGuard)
+              modules/{public-rankings,public-players}/   (phase 10: kỳ chốt và hồ sơ công khai)
               cli/      create-admin.ts (chạy tay, không nằm trong luồng HTTP)
     test/     *.e2e-spec.ts (dùng dependency thật), support/
   worker/     Node + ioredis + BullMQ. Health HTTP nội bộ. Media worker (queue `media`).
     src/      main.ts, worker-env.ts, redis-eviction-guard.ts, worker-health-server.ts
               media-worker.ts (khởi động worker, scheduler dọn), processors/ (process-image, cleanup)
   client/     Next.js App Router. Segment [locale], i18n vi/en.
-    src/      app/[locale]/ (events/[slug]/draws/[subEventCode], phase 08), app/api/revalidate, proxy.ts,
-              lib/ (api-client, server-env, internal-request), i18n/, components/ (bracket, layout)
+    src/      app/[locale]/ (events/, rankings/, players/), app/api/revalidate, proxy.ts,
+              lib/ (api-client, server-env, internal-request), i18n/, components/ (bracket, layout, rankings, players)
   admin/      Vite + React + antd + Refine. Runtime config từ /config.json.
     src/      main.tsx, app.tsx, runtime-config.ts
               api/ (http-client), providers/ (auth, access control, data, current-user)
@@ -103,6 +105,7 @@ packages/
               slugify-vietnamese, lifecycle-from-dates, tiebreak-criteria, https-url,
               media/ (contract, storage-env), object-storage/ (local, s3, create-object-storage)
               public-api (prefix và tên header dùng chung), public-bracket-contract (phase 08)
+              public-ranking-contract, public-player-slug (phase 10)
   competition-engine/  hàm thuần cho nhánh, vòng loại, vòng bảng, BXH (phase 06). Chỉ phụ thuộc `@kamito/shared`
   ranking-engine/  hàm thuần cho quy tắc điểm theo ngày, điểm theo vòng, snapshot và xếp hạng (phase 09). Chỉ phụ thuộc `@kamito/shared`
   ui-tokens/  tokens.ts -> tokens.css, antd-theme.ts
@@ -228,7 +231,7 @@ Giữ dạng env (chốt trong plan phase 04):
   - Controller có `@Public()` và `@UseGuards(SsrInternalGuard)`. Test "guards every /public controller" quét metadata và báo lỗi nếu thiếu guard.
   - Điều kiện công khai lấy từ `publicScope` (`modules/public-scope/public-scope.ts`). Không viết lại `where` trong từng query.
   - Serializer là whitelist: liệt kê từng trường (`toPublicBracket`), không spread entity. Thêm hoặc bớt trường thì cập nhật `EXPECTED_FIELDS` trong `public-bracket.e2e-spec.ts` (field snapshot).
-  - Nội dung không có, chưa công bố, hoặc query lạ: 200 `{data: null}`, không 404. Lý do: Next chỉ cache 200 ([system-architecture](./public-site.md#api-công-khai)).
+  - Nội dung không có hoặc chưa công khai: 200 `{data: null}`. `publicGet` cache cả null trong Redis; trang Next gọi `notFound()` và trả 404. Tham số query sai được chuẩn hóa/bỏ qua trước truy vấn ([public-site](./public-site.md#api-công-khai)).
 - Thư mục: `common/` cho hạ tầng dùng chung, `modules/<feature>/` cho nghiệp vụ.
 - **Lỗi** trả về một dạng duy nhất:
   ```json
@@ -448,6 +451,16 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
 - **"Hôm nay" của nghiệp vụ** lấy từ `rankingToday(settings)` (`apps/api/src/modules/ranking-jobs/ranking-today.ts`), theo `event.defaultTimezone`. Không lấy ngày theo UTC của server, cũng không lấy ngày của máy. Admin còn dùng ngày máy ở vài chỗ (ngày mặc định, tag "Hết hạn"). Đó là nợ đã ghi trong [changelog 2026-11-16](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit). Không thêm chỗ mới theo cách đó.
 - **Ràng buộc nghiệp vụ kiểm ở API.** `disabledDate` của admin chỉ là gợi ý trên giao diện. Ràng buộc ngày (quy tắc không hồi tố, điểm và kỳ chốt không ở tương lai) phải có kiểm ở API. Hiện chưa có.
 
+## Xếp hạng và hồ sơ công khai (phase 10)
+
+- Điểm công khai chỉ đọc kỳ `PUBLISHED` mới nhất của bảng đang bật. Dùng breakdown đã lưu trong snapshot; không đọc ledger sống để dựng chi tiết điểm, không cắt khoản điểm theo ngân sách payload.
+- Breakdown nội bộ giữ `eventId` để kiểm phạm vi giải nguồn theo định danh ổn định. Public không xuất id; tên/điểm giữ giá trị đã chốt, link theo slug hiện tại của cùng id. Snapshot cũ thiếu id phải che nhãn/link thay vì tin slug có thể được tái sử dụng; không sửa kỳ đã công bố.
+- URL hồ sơ sinh từ `publicPlayerSlug(playerId)`, dạng `p-<UUID>`; parser dùng `publicPlayerIdFromSlug`. Không xuất `Player.slug` ra public vì slug cũ có thể chứa tên thật. Whitelist tên tôn trọng `publicDisplayName`; tên thật tiếng Anh bị che khi có tên thay thế.
+- `isActive && isPublicProfile && !mergedIntoId` mới có link và ảnh hồ sơ. Hồ sơ ẩn trả null; slug cũ/đã gộp chỉ redirect khi đích còn công khai. Profile không có SĐT/email/ngày/năm sinh. Tuổi chỉ khi setting bật; `noindex` phải vào metadata. Chưa có JSON-LD `Person` và sitemap VĐV.
+- Phân trang và `sort=name|rank` chạy ở DB trước LIMIT/OFFSET; lọc tên qua `normalizedPublicName`. `q` tối đa `PUBLIC_SEARCH_MAX_LENGTH`; CLB dùng chung `PLAYER_CLUB_MAX_LENGTH` (200) ở DTO và API, tránh cắt khác nhau giữa nơi ghi và nơi lọc.
+- Loader revalidate VĐV phải chứa cả slug cũ và định danh `p-<UUID>` cho entry, trận, nhánh, import, kỳ công bố; giữ tag chung theo `lib/public-data.ts`. Lưu ma trận quy tắc gửi `rankingRules.write` vì tab điểm theo vòng đọc quy tắc trực tiếp.
+- `sendPublicJson` dùng gzip gốc của Node cho rankings; SSR yêu cầu gzip. Ngân sách 80 KiB áp cho body HTTP sau nén, kiểm cả bytes và đủ breakdown bằng HTTP thật; không coi fixture một khoản điểm là bằng chứng cho hồ sơ nhiều giải.
+
 ## Frontend
 
 - **Client (Next.js):**
@@ -455,7 +468,7 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
   - Danh sách, tìm kiếm, lọc, phân trang: render ở server (Server Component + `searchParams`). Không tải toàn bộ dữ liệu về trình duyệt rồi lọc bằng JS.
   - `next.config.ts` dùng `output: 'standalone'`, `outputFileTracingRoot` là root monorepo.
   - Dữ liệu công khai chỉ đọc qua `publicGet()` (`lib/api-client.ts`, chỉ chạy trên server). Tham số đưa vào URL phải qua regex trước khi gọi API, để `..` hay `/` không đi ra khỏi `/public`.
-  - Tham số query công khai (lọc, trang, năm) đi qua `toQuery()` (`lib/public-query.ts`) trước khi gọi fetch có cache. Chỉ giá trị được luật của khóa chấp nhận mới vào URL gọi API, theo thứ tự khóa cố định. Lý do: Next cache trên đĩa không giới hạn kích thước, bot không được tạo vô hạn mục cache bằng giá trị bịa.
+  - Tham số query công khai (lọc, trang, năm) đi qua `toQuery()` (`lib/public-query.ts`) trước khi gọi fetch có cache. Chỉ giá trị được luật của khóa chấp nhận mới vào URL gọi API, theo thứ tự khóa cố định. Cache phản hồi/tag nằm ở Redis dùng chung; query rác không được tạo vô hạn khóa.
   - Mọi trang hiển thị nội dung gọi `pageMetadata()` hoặc `eventPageMetadata()` (`lib/page-metadata.ts`). Trang chỉ chuyển hướng và `not-found` được miễn. Không tự viết `metadata` lẻ trong từng trang.
   - Trang có `q` (tìm kiếm tự do) dùng policy `none`, không cache. Trang còn lại chọn `standard` hoặc `matchday` trong `publicGet()`.
   - Env client đọc theo request (`lib/server-env.ts`), không lúc build: Docker build không có env runtime.

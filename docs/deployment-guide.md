@@ -1,6 +1,6 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-14 · Trạng thái: phase 01, code phase 03 đến 08 (đã commit, chưa deploy). Staging và production chưa được dựng trên Dokploy.
+> Cập nhật: 2026-11-17 · Trạng thái: đã có mã nguồn đến phase 10. Staging và production chưa được dựng trên Dokploy.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
@@ -373,6 +373,13 @@ wget -qO- http://127.0.0.1:3000/api/v1/health/ready      # status: ready hoặc 
 Trong container worker: `wget -qO- http://127.0.0.1:3010/health`.
 
 Staging phải có 4 service `healthy`, client và admin mở được qua domain, api không có domain công khai.
+
+Kiểm bổ sung cho phase 10 sau khi có staging:
+
+- Công bố kỳ mới ở admin, theo dõi queue `revalidate`, mở `/vi/rankings/:listCode` và kiểm ngày/thứ tự mới; thử tìm tên không dấu và mở chi tiết điểm khi tắt JavaScript.
+- Mở hồ sơ chuẩn `p-<UUID>`, thử slug cũ/đã gộp nhận 301 và đích ẩn nhận 404. Kiểm `robots` theo `noindex`, không có URL VĐV trong sitemap hay JSON-LD `Person`.
+- Nội dung gắn bảng đang bật phải có điểm theo vòng ở tab Thông tin, theo phiên bản tại ngày kết thúc giải. Đổi quy tắc phải làm mới tab qua `rankingRules.write`.
+- Phase 10 không thêm migration. Snapshot cũ không có `eventId` trong breakdown che nhãn/link giải nguồn nhưng vẫn giữ điểm; tạo kỳ mới nếu cần nhãn đầy đủ, không sửa kỳ đã công bố. Ngân sách 80 KiB của rankings đo body HTTP gzip; không áp cho JSON thô hay HTML trang.
 
 ## Xử lý sự cố
 
