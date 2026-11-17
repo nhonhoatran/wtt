@@ -1,7 +1,12 @@
+import { RANKING_REASON_MAX_LENGTH, RANKING_REASON_MIN_LENGTH } from '@kamito/shared';
 import { z } from 'zod';
 import { isoDateField } from '../../common/validation/iso-date-field.js';
 
-const reasonField = z.string().trim().min(3, 'Nhập lý do (tối thiểu 3 ký tự)').max(500);
+const reasonField = z
+  .string()
+  .trim()
+  .min(RANKING_REASON_MIN_LENGTH, `Nhập lý do (tối thiểu ${RANKING_REASON_MIN_LENGTH} ký tự)`)
+  .max(RANKING_REASON_MAX_LENGTH);
 
 // Typo guard for manual adjustments, not a business limit.
 const MAX_POINTS = 1_000_000;

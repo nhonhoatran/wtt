@@ -112,7 +112,7 @@ export abstract class CatalogCrudService<Row extends { id: string }> {
     return this.withUniqueCheck(() =>
       this.prisma.$transaction(async (tx) => {
         if (this.config.defaultLockName) await lockDefault(tx, this.config.defaultLockName);
-        const existing = await this.delegate(tx).findUnique({ where: { id } });
+        const existing = await this.delegate(tx).findUnique({ where: { id }, include: this.config.include });
         if (!existing) throw notFound(this.config.notFoundCode);
         const data = await this.prepare(tx, input, existing);
         const row = await this.delegate(tx).update({ where: { id }, data, include: this.config.include });
@@ -130,7 +130,7 @@ export abstract class CatalogCrudService<Row extends { id: string }> {
     try {
       await this.prisma.$transaction(async (tx) => {
         if (this.config.defaultLockName) await lockDefault(tx, this.config.defaultLockName);
-        const existing = await this.delegate(tx).findUnique({ where: { id } });
+        const existing = await this.delegate(tx).findUnique({ where: { id }, include: this.config.include });
         if (!existing) throw notFound(this.config.notFoundCode);
         this.assertDeletable(existing);
         await assertNotInUse(this.usage(tx, existing));

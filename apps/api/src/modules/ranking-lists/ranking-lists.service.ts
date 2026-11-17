@@ -39,6 +39,7 @@ export class RankingListsService extends CatalogCrudService<RankingList> {
     notFoundCode: 'RANKING_LIST_NOT_FOUND',
     uniqueField: 'code',
     listSpec: RANKING_LIST_SPEC,
+    include: { category: { select: { id: true, code: true, name: true } } },
   };
 
   constructor(

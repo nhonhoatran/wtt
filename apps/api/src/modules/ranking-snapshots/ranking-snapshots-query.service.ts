@@ -15,6 +15,8 @@ export const RANKING_ROWS_RULES = { sortable: ['rank', 'points', 'movement', 're
 
 const INCLUDE = { rankingList: { select: { id: true, code: true, name: true } }, _count: { select: { rows: true } } } as const;
 
+type Publisher = { id: string; name: string };
+
 @Injectable()
 export class RankingSnapshotsQueryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -25,17 +27,31 @@ export class RankingSnapshotsQueryService {
     const listIds = [...new Set(page.data.map((row) => row.rankingListId))];
     const dirty = new Map<string, number>();
     for (const listId of listIds) dirty.set(listId, (await findDirtySubEventIds(this.prisma, listId)).length);
-    return { ...page, data: page.data.map((row) => ({ ...row, dirtySubEvents: dirty.get(row.rankingListId) ?? 0 })) };
+    const publishers = await this.publishersOf(page.data.map((row) => row.publishedById));
+    return {
+      ...page,
+      data: page.data.map((row) => ({ ...row, dirtySubEvents: dirty.get(row.rankingListId) ?? 0, publishedBy: (row.publishedById && publishers.get(row.publishedById)) || null })),
+    };
+  }
+
+  /** publishedById has no FK, so a deleted user simply resolves to no name. */
+  private async publishersOf(ids: (string | null)[]): Promise<Map<string, Publisher>> {
+    const distinct = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    if (!distinct.length) return new Map();
+    const users = await this.prisma.user.findMany({ where: { id: { in: distinct } }, select: { id: true, name: true } });
+    return new Map(users.map((user) => [user.id, user]));
   }
 
   async get(id: string) {
     const row = await this.prisma.rankingSnapshot.findUnique({ where: { id }, include: INCLUDE });
     if (!row) throw new NotFoundException({ code: 'RANKING_SNAPSHOT_NOT_FOUND', message: 'Không tìm thấy bản chốt' });
-    return { ...row, dirtySubEvents: (await findDirtySubEventIds(this.prisma, row.rankingListId)).length };
+    const publisher = (await this.publishersOf([row.publishedById])).get(row.publishedById ?? '') ?? null;
+    return { ...row, dirtySubEvents: (await findDirtySubEventIds(this.prisma, row.rankingListId)).length, publishedBy: publisher };
   }
 
   async rows(snapshotId: string, query: PaginationQueryShape) {
-    await this.get(snapshotId);
+    const exists = await this.prisma.rankingSnapshot.findUnique({ where: { id: snapshotId }, select: { id: true } });
+    if (!exists) throw new NotFoundException({ code: 'RANKING_SNAPSHOT_NOT_FOUND', message: 'Không tìm thấy bản chốt' });
     const q = query.q;
     const where = {
       snapshotId,

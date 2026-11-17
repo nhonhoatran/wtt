@@ -15,6 +15,7 @@ import { AdminLayout } from './layout/admin-layout';
 import { ChangePasswordPage } from './pages/change-password-page';
 import { LoginPage } from './pages/login-page';
 import { ResultsEntryPage } from './pages/results/results-entry-page';
+import { rankingResources, rankingRoutes } from './pages/ranking/ranking-routes';
 import { RoleHomePage } from './pages/role-home-page';
 import { SettingsPage } from './pages/settings-page';
 import { accessControlProvider } from './providers/access-control-provider';
@@ -45,6 +46,7 @@ const resources = [
   { name: 'players', list: '/players', create: '/players/create', edit: '/players/:id/edit', meta: { label: 'Danh sách VĐV' } },
   { name: 'pairs', list: '/pairs', meta: { label: 'Cặp đôi' } },
   { name: 'imports', list: '/imports', show: '/imports/:id', meta: { label: 'Lịch sử import' } },
+  ...rankingResources,
   { name: 'audit-logs', list: '/audit-logs', meta: { label: 'Nhật ký thao tác' } },
 ];
 
@@ -79,6 +81,7 @@ export function App() {
                     <Route path="/events/:id/:tab?" element={<RequireAccess resource="tournaments" action="read"><EventHubPage /></RequireAccess>} />
                     <Route path="/results" element={<RequireAccess resource="matches" action="list"><ResultsEntryPage /></RequireAccess>} />
                     {catalogRoutes}
+                    {rankingRoutes}
                     <Route path="/players" element={<RequireAccess resource="players" action="list"><PlayerList /></RequireAccess>} />
                     <Route path="/players/create" element={<RequireAccess resource="players" action="create"><PlayerCreate /></RequireAccess>} />
                     <Route path="/players/:id/edit" element={<RequireAccess resource="players" action="read"><PlayerEdit /></RequireAccess>} />

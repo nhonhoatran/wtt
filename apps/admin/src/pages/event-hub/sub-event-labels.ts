@@ -9,10 +9,12 @@ export interface SubEventRecord {
   maxEntries: number | null;
   matchFormatId: string;
   groupScoringRuleId: string | null;
-  discipline: { id: string; code: string; name: string };
+  rankingListId: string | null;
+  discipline: { id: string; code: string; name: string; competitorKind: 'SINGLES' | 'DOUBLES'; genderRule: 'MEN' | 'WOMEN' | 'MIXED' | 'OPEN' };
   category: { id: string; code: string; name: string } | null;
   matchFormat: { id: string; name: string };
   groupScoringRule: { id: string; name: string } | null;
+  rankingList: { id: string; code: string; name: string } | null;
 }
 
 export const SUB_EVENT_FORMAT_LABELS: Record<SubEventFormat, string> = {

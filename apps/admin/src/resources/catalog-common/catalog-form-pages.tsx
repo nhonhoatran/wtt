@@ -12,12 +12,20 @@ interface CreatePageProps {
   initialValues?: Record<string, unknown>;
   /** Where to go after saving; venues continue to their edit page to add tables. */
   redirect?: 'list' | 'edit';
+  /** Called with the API response after a successful save, e.g. to show write warnings. */
+  onSaved?: (response: unknown) => void;
   children: ReactNode;
 }
 
-export function CatalogCreatePage({ resource, title, saveText, initialValues, redirect = 'list', children }: CreatePageProps) {
+export function CatalogCreatePage({ resource, title, saveText, initialValues, redirect = 'list', onSaved, children }: CreatePageProps) {
   const invalidateOptions = useInvalidateCatalogOptions();
-  const { formProps, saveButtonProps } = useForm({ resource, action: 'create', redirect, onMutationSuccess: () => void invalidateOptions() });
+  const { formProps, saveButtonProps } = useForm({ resource, action: 'create',
+    redirect,
+    onMutationSuccess: (response) => {
+      void invalidateOptions();
+      onSaved?.(response);
+    },
+  });
   return (
     <Create title={title} saveButtonProps={{ ...saveButtonProps, children: saveText }}>
       <Form {...formProps} layout="vertical" initialValues={{ isActive: true, ...initialValues }} style={{ maxWidth: FORM_MAX_WIDTH }}>
@@ -33,11 +41,19 @@ interface EditPageProps<T> {
   children: (record?: T) => ReactNode;
   /** Rendered below the form, e.g. venue tables. */
   footer?: (record?: T) => ReactNode;
+  /** Called with the API response after a successful save, e.g. to show write warnings. */
+  onSaved?: (response: unknown) => void;
 }
 
-export function CatalogEditPage<T extends object>({ resource, title, children, footer }: EditPageProps<T>) {
+export function CatalogEditPage<T extends object>({ resource, title, children, footer, onSaved }: EditPageProps<T>) {
   const invalidateOptions = useInvalidateCatalogOptions();
-  const { formProps, saveButtonProps, query } = useForm<T>({ resource, action: 'edit', redirect: 'list', onMutationSuccess: () => void invalidateOptions() });
+  const { formProps, saveButtonProps, query } = useForm<T>({ resource, action: 'edit',
+    redirect: 'list',
+    onMutationSuccess: (response) => {
+      void invalidateOptions();
+      onSaved?.(response);
+    },
+  });
   const record = query?.data?.data;
   return (
     <Edit title={title(record)} saveButtonProps={saveButtonProps} deleteButtonProps={{ hidden: true }}>

@@ -1,9 +1,10 @@
 import { Body, Controller, Get, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { todayIso } from '../../common/validation/iso-date-field.js';
 import { parseBody } from '../../common/validation/parse-body.js';
 import { RequirePermission } from '../access-control/access-decorators.js';
 import { requireAuthContext } from '../auth/auth-context.js';
+import { rankingToday } from '../ranking-jobs/ranking-today.js';
+import { AppSettingsService } from '../settings/app-settings.service.js';
 import { impactQuery, matrixQuery, saveMatrixBody } from './ranking-rule-dtos.js';
 import { RankingRulesQueryService } from './ranking-rules-query.service.js';
 import { RankingRulesSaveService } from './ranking-rules-save.service.js';
@@ -13,6 +14,7 @@ export class AdminRankingRulesController {
   constructor(
     private readonly queries: RankingRulesQueryService,
     private readonly saves: RankingRulesSaveService,
+    private readonly settings: AppSettingsService,
   ) {}
 
   @Get()
@@ -23,7 +25,7 @@ export class AdminRankingRulesController {
       data: await this.queries.matrix({
         competitorKind: query['filter[competitorKind]'],
         drawKind: query['filter[drawKind]'],
-        asOf: query['filter[asOf]'] ?? todayIso(),
+        asOf: query['filter[asOf]'] ?? (await rankingToday(this.settings)),
       }),
     };
   }

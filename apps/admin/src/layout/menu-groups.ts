@@ -38,7 +38,16 @@ export const MENU_GROUPS: MenuGroupDef[] = [
       { key: 'imports', label: 'Lịch sử import', path: '/imports', resource: 'tournaments' },
     ],
   },
-  { key: 'rankings', label: 'Xếp hạng', items: [] },
+  {
+    key: 'rankings',
+    label: 'Xếp hạng',
+    items: [
+      { key: 'ranking-lists', label: 'Bảng xếp hạng', path: '/ranking-lists', resource: 'rankings' },
+      { key: 'ranking-rules', label: 'Quy tắc điểm', path: '/ranking-rules', resource: 'rankings' },
+      { key: 'ranking-points', label: 'Sổ điểm', path: '/ranking-points', resource: 'rankings' },
+      { key: 'ranking-snapshots', label: 'Kỳ chốt', path: '/ranking-snapshots', resource: 'rankings' },
+    ],
+  },
   { key: 'content', label: 'Nội dung', items: [] },
   { key: 'sponsors', label: 'Nhà tài trợ', items: [] },
   {

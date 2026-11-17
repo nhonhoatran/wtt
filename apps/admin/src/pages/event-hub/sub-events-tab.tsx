@@ -52,6 +52,7 @@ export function SubEventsTab({ event, canCreate, canUpdate, canDelete, onChanged
         <Table.Column<SubEventRecord> dataIndex="format" title="Thể thức thi đấu" render={(format: SubEventRecord['format']) => SUB_EVENT_FORMAT_LABELS[format]} />
         <Table.Column<SubEventRecord> title="Thể thức trận" render={(_, row) => row.matchFormat.name} />
         <Table.Column<SubEventRecord> title="Luật vòng bảng" render={(_, row) => row.groupScoringRule?.name ?? '—'} />
+        <Table.Column<SubEventRecord> title="Bảng xếp hạng" render={(_, row) => row.rankingList?.name ?? '—'} />
         <Table.Column<SubEventRecord> dataIndex="maxEntries" title="Tối đa" align="right" render={(value: number | null) => value ?? '—'} />
         {(canUpdate || canDelete) && (
           <Table.Column<SubEventRecord>

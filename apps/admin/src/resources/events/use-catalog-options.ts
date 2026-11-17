@@ -28,8 +28,14 @@ interface ListResponse {
   total: number;
 }
 
-const listUrl = (resource: string, params: Record<string, string>) =>
-  `/admin/${resource}?${new URLSearchParams({ 'filter[isActive]': 'true', ...params })}`;
+/** `filter[isActive]` defaults to true; an explicit empty value (filters `{ isActive: '' }`) lists hidden rows too. */
+const listUrl = (resource: string, params: Record<string, string>) => {
+  const search = new URLSearchParams({ 'filter[isActive]': 'true', ...params });
+  if (search.get('filter[isActive]') === '') search.delete('filter[isActive]');
+  return `/admin/${resource}?${search}`;
+};
+
+const filterParams = (filters: Record<string, string>) => Object.fromEntries(Object.entries(filters).map(([key, value]) => [`filter[${key}]`, value]));
 
 export const invalidateCatalogOptions = (client: QueryClient) => client.invalidateQueries({ queryKey: [CATALOG_QUERY_KEY] });
 
@@ -39,15 +45,16 @@ export function useInvalidateCatalogOptions() {
   return () => invalidateCatalogOptions(client);
 }
 
-/** Every active row, fetched page by page, for pickers that show all choices at once (checkbox lists). */
-export function useCatalogRows(resource: string) {
+/** Every active row, fetched page by page, for pickers that show all choices at once. `filters` adds `filter[key]=value` to the request. */
+export function useCatalogRows(resource: string, filters: Record<string, string> = {}, enabled = true) {
   const pageSize = useListPageSize() ?? FALLBACK_PAGE_SIZE;
   return useQuery({
-    queryKey: [CATALOG_QUERY_KEY, resource, 'all', pageSize],
+    queryKey: [CATALOG_QUERY_KEY, resource, 'all', pageSize, filters],
+    enabled,
     queryFn: async () => {
       const rows: CatalogRow[] = [];
       for (let page = 1; ; page += 1) {
-        const res = await apiFetch<ListResponse>(listUrl(resource, { page: String(page), pageSize: String(pageSize) }));
+        const res = await apiFetch<ListResponse>(listUrl(resource, { ...filterParams(filters), page: String(page), pageSize: String(pageSize) }));
         rows.push(...res.data);
         if (res.data.length === 0 || rows.length >= res.total) return rows;
       }

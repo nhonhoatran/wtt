@@ -10,6 +10,8 @@ const DEPENDANT_LABELS: Record<string, string> = {
   tables: 'bàn',
   matches: 'trận đấu',
   registrations: 'lượt đăng ký',
+  pointsEarned: 'dòng điểm',
+  snapshots: 'kỳ chốt',
 };
 
 export interface ConfirmActionOptions {

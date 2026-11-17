@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { addDays } from '@kamito/ranking-engine';
 import { AuditService } from '../../common/audit/audit.service.js';
-import { dateFromIso, toIsoDate, todayIso } from '../../common/validation/iso-date-field.js';
+import { dateFromIso, toIsoDate } from '../../common/validation/iso-date-field.js';
 import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { rankingToday } from '../ranking-jobs/ranking-today.js';
+import { AppSettingsService } from '../settings/app-settings.service.js';
 import type { CreateManualPointsBody } from './ranking-points-dtos.js';
 
 const snapshotOf = (row: { id: string; rankingListId: string; playerId: string; points: number; earnedAt: Date; expiresAt: Date; reason: string | null }) => ({
@@ -22,9 +24,11 @@ export class RankingPointsManualService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly settings: AppSettingsService,
   ) {}
 
   async create(body: CreateManualPointsBody, actorUserId: string) {
+    const today = await rankingToday(this.settings);
     return this.prisma.$transaction(async (tx) => {
       const list = await tx.rankingList.findUnique({ where: { id: body.rankingListId }, select: { validityDays: true } });
       if (!list) throw fieldError('rankingListId', 'Bảng xếp hạng không tồn tại');
@@ -32,7 +36,7 @@ export class RankingPointsManualService {
       if (!player || player.mergedIntoId) throw fieldError('playerId', 'VĐV không tồn tại hoặc đã được gộp');
       if (!player.isActive) throw fieldError('playerId', 'VĐV đang bị ẩn');
 
-      const earnedAt = body.earnedAt ?? todayIso();
+      const earnedAt = body.earnedAt ?? today;
       const expiresAt = body.expiresAt ?? addDays(earnedAt, list.validityDays);
       if (expiresAt <= earnedAt) throw fieldError('expiresAt', 'Ngày hết hạn phải sau ngày ghi nhận');
       const row = await tx.rankingPointsEarned.create({

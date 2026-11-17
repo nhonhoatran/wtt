@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { SubEventFormatFields } from './sub-event-format-fields';
+import { SubEventRankingField } from './sub-event-ranking-field';
 import { subEventTitle, type SubEventFormat, type SubEventRecord } from './sub-event-labels';
 
 interface SubEventEditModalProps {
@@ -19,6 +20,7 @@ interface EditValues {
   groupScoringRuleId?: string | null;
   hasQualifying: boolean;
   maxEntries?: number | null;
+  rankingListId?: string | null;
 }
 
 export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEventEditModalProps) {
@@ -36,6 +38,7 @@ export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEv
           ...values,
           name: values.name?.trim() || null,
           maxEntries: values.maxEntries ?? null,
+          rankingListId: values.rankingListId ?? null,
           groupScoringRuleId: values.format === 'GROUP_KNOCKOUT' ? values.groupScoringRuleId : null,
         },
       });
@@ -71,6 +74,11 @@ export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEv
             <Input maxLength={200} />
           </Form.Item>
           <SubEventFormatFields form={form} />
+          <SubEventRankingField
+            form={form}
+            targets={[{ kind: subEvent.discipline.competitorKind, genderRule: subEvent.discipline.genderRule, categoryId: subEvent.category?.id ?? null }]}
+            current={subEvent.rankingList}
+          />
           <Form.Item name="maxEntries" label="Số lượng tối đa" extra="Để trống nếu không giới hạn.">
             <InputNumber min={1} precision={0} style={{ width: '100%' }} />
           </Form.Item>

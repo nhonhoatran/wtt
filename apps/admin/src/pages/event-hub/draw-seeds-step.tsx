@@ -1,7 +1,8 @@
 import { useTable } from '@refinedev/antd';
 import { Button, Flex, Table, Tooltip, Typography } from 'antd';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useListPageSize } from '../../providers/use-list-page-size';
+import { DrawSeedSuggestionModal } from './draw-seed-suggestion-modal';
 import type { DrawKind } from './draw-types';
 import type { EntryRecord, EntrySubEvent } from './entry-labels';
 import { EntrySeedCell } from './entry-seed-cell';
@@ -15,6 +16,7 @@ interface DrawSeedsStepProps {
 /** Seeds are saved cell by cell (blur / Enter), the same cell as the Đăng ký tab. */
 export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
   const pageSize = useListPageSize();
+  const [suggesting, setSuggesting] = useState(false);
   const seedInputs = useRef(new Map<string, HTMLInputElement>());
   const stage = subEvent.hasQualifying ? [{ field: 'stage', operator: 'eq' as const, value: kind === 'QUALIFYING' ? 'QUALIFYING' : 'MAIN' }] : [];
   const { tableProps } = useTable<EntryRecord>({
@@ -24,6 +26,8 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
     filters: { permanent: [{ field: 'status', operator: 'eq', value: 'CONFIRMED' }, ...stage] },
     sorters: { initial: [{ field: 'seed', order: 'asc' }] },
   });
+  const suggestBlockedReason =
+    kind === 'QUALIFYING' ? 'Gợi ý theo BXH áp cho nhánh chính' : subEvent.rankingList ? undefined : 'Nội dung chưa gắn bảng xếp hạng';
   const rows = tableProps.dataSource ?? [];
 
   const moveFocus = (entry: EntryRecord, backwards: boolean) => {
@@ -38,9 +42,11 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
     <Flex vertical gap="small">
       <Flex justify="space-between" align="center" wrap gap="small">
         <Typography.Text type="secondary">Nhập số hạt giống cho từng VĐV (để trống nếu không là hạt giống).</Typography.Text>
-        <Tooltip title="Có khi có bảng xếp hạng">
+        <Tooltip title={suggestBlockedReason}>
           <span>
-            <Button disabled>Gợi ý theo BXH</Button>
+            <Button disabled={suggestBlockedReason !== undefined} onClick={() => setSuggesting(true)}>
+              Gợi ý theo BXH
+            </Button>
           </span>
         </Tooltip>
       </Flex>
@@ -62,6 +68,7 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
           render={(_, entry) => [...new Set(entry.competitor.players.map((player) => player.club).filter(Boolean))].join(', ') || '—'}
         />
       </Table>
+      <DrawSeedSuggestionModal subEventId={subEvent.id} open={suggesting} onClose={() => setSuggesting(false)} />
     </Flex>
   );
 }

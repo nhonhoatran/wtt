@@ -1,3 +1,4 @@
+import { RANKING_NOTE_MAX_LENGTH } from '@kamito/shared';
 import { z } from 'zod';
 import { isoDateField } from '../../common/validation/iso-date-field.js';
 
@@ -30,7 +31,7 @@ export const saveMatrixBody = z.object({
   competitorKind: kindField,
   drawKind: drawKindField,
   effectiveFrom: isoDateField,
-  note: z.string().trim().max(500).optional(),
+  note: z.string().trim().max(RANKING_NOTE_MAX_LENGTH).optional(),
   cells: z
     .array(
       z.object({

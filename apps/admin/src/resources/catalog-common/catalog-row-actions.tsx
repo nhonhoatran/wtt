@@ -15,14 +15,16 @@ export interface CatalogRowActionsProps {
   name: string;
   /** Rows that can be the single default show "Đặt làm mặc định". */
   supportsDefault?: boolean;
+  /** Permission resource checked for edit/hide/delete; defaults to "tournaments". */
+  permission?: string;
 }
 
-export function CatalogRowActions({ resource, record, name, supportsDefault }: CatalogRowActionsProps) {
+export function CatalogRowActions({ resource, record, name, supportsDefault, permission }: CatalogRowActionsProps) {
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   const invalidateOptions = useInvalidateCatalogOptions();
   const confirm = useConfirmAction();
-  const { canUpdate, canDelete } = useCatalogAccess();
+  const { canUpdate, canDelete } = useCatalogAccess(permission);
   const path = `/admin/${resource}/${record.id}`;
 
   const refresh = () => Promise.all([invalidate({ resource, invalidates: ['list', 'detail'], id: record.id }), invalidateOptions()]);
