@@ -135,6 +135,9 @@ describe('admin catalogs (real Postgres + Redis)', () => {
       expect(typeBlocked.body.error).toMatchObject({ code: 'IN_USE', dependants: { events: 1 } });
 
       await patch(`event-types/${eventType.id}`, { isActive: false }).expect(200);
+      const [typeAudit] = await kit.prisma.auditLog.findMany({ where: { action: 'eventType.update', entityId: eventType.id } });
+      expect(typeAudit?.before).toMatchObject({ tier: { id: tier.id, code: tier.code } });
+      expect(typeAudit?.after).toMatchObject({ tier: { id: tier.id } });
       const hiddenTypes = await kit.get(`${API}/event-types?filter[tierId]=${tier.id}&filter[isActive]=false`, admin).expect(200);
       expect(hiddenTypes.body.total).toBe(1);
 

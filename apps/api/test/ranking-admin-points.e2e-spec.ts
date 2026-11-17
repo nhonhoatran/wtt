@@ -69,6 +69,10 @@ describe('admin ranking points ledger', () => {
     expect((await list('sort=points:desc')).body).toMatchObject({ total: 3, page: 1 });
     expect((await list('sort=points:desc')).body.data.map((r: { points: number }) => r.points)).toEqual([1000, 120, -30]);
     expect((await list('filter[source]=MANUAL')).body.total).toBe(2);
+    const autoRow = (await list('filter[source]=AUTO')).body.data[0];
+    expect(autoRow).toMatchObject({ subEvent: { id: w.subEventId, code: expect.any(String) } });
+    expect(autoRow.subEvent).toHaveProperty('name');
+    expect((await list('filter[source]=MANUAL')).body.data.map((r: { subEvent: unknown }) => r.subEvent)).toEqual([null, null]);
     expect((await list('filter[active]=false')).body.data.map((r: { points: number }) => r.points)).toEqual([-30]);
     expect((await list('filter[active]=true')).body.total).toBe(2);
     expect((await list(`filter[eventId]=${w.eventId}`)).body.total).toBe(1);

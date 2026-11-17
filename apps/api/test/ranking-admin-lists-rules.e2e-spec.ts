@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { rankingSettings } from '@kamito/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppSettingsService } from '../src/modules/settings/app-settings.service.js';
@@ -34,6 +35,7 @@ describe('admin ranking lists and rules', () => {
     const res = await kit.write('post', `${API}/ranking-lists`, cookie, body).expect(201);
     extraListIds.push(res.body.data.id);
     expect(res.body.data.validityDays).toBe(await kit.app.get(AppSettingsService).get(rankingSettings.defaultValidityDays));
+    expect(res.body.data.category).toBeNull();
     expect((await audits('ranking.list.create', res.body.data.id)).length).toBe(1);
 
     expect((await kit.write('post', `${API}/ranking-lists`, cookie, body).expect(422)).body.error.fields.code).toBeDefined();
@@ -45,6 +47,21 @@ describe('admin ranking lists and rules', () => {
     await kit.get(`${API}/ranking-lists?filter[nope]=1`, cookie).expect(400);
     await kit.write('delete', `${API}/ranking-lists/${res.body.data.id}`, cookie).expect(200);
     extraListIds.length = 0;
+  });
+
+  it('returns the linked age category on list reads and records it in the update audit before and after', async () => {
+    const category = await kit.prisma.category.create({ data: { kind: 'OPEN', code: `LC${randomUUID().slice(0, 6).toUpperCase()}`, name: 'List category' } });
+    const listId = (await kit.write('post', `${API}/ranking-lists`, cookie, { code: `LCL-${Date.now()}`, name: 'Category list', competitorKind: 'SINGLES', genderRule: 'MEN' }).expect(201)).body.data.id;
+    extraListIds.push(listId);
+    const linked = { id: category.id, code: category.code, name: category.name };
+
+    expect((await kit.write('patch', `${API}/ranking-lists/${listId}`, cookie, { categoryId: category.id }).expect(200)).body.data.category).toEqual(linked);
+    expect((await kit.get(`${API}/ranking-lists/${listId}`, cookie).expect(200)).body.data.category).toEqual(linked);
+    expect((await audits('ranking.list.update', listId))[0]).toMatchObject({ before: { category: null }, after: { category: linked } });
+
+    await kit.write('delete', `${API}/ranking-lists/${listId}`, cookie).expect(200);
+    extraListIds.length = 0;
+    await kit.prisma.category.delete({ where: { id: category.id } });
   });
 
   it('changing validityDays re-freezes the ledger through the queue; kind change and delete are blocked while in use', async () => {

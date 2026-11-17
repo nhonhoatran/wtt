@@ -14,6 +14,7 @@ describe('admin sub-events (real Postgres)', () => {
   let category: { id: string; code: string };
   let disciplines: { id: string; code: string }[];
   const tag = `S${randomUUID().slice(0, 6)}`;
+  const rankingListIds: string[] = [];
   const base = () => `${EVENTS}/${eventId}/sub-events`;
   const items = (...codes: string[]) => codes.map((code) => ({ disciplineId: disciplines.find((row) => row.code === code)!.id }));
 
@@ -37,6 +38,7 @@ describe('admin sub-events (real Postgres)', () => {
     const subEvents = await kit.prisma.subEvent.findMany({ where: { eventId }, select: { id: true } });
     await kit.prisma.auditLog.deleteMany({ where: { entityId: { in: [eventId, ...subEvents.map((row) => row.id)] } } });
     await kit.prisma.event.deleteMany({ where: { id: eventId } });
+    await kit.prisma.rankingList.deleteMany({ where: { id: { in: rankingListIds } } });
     await kit.prisma.category.deleteMany({ where: { id: category.id } });
     await kit.close();
   });
@@ -53,13 +55,15 @@ describe('admin sub-events (real Postgres)', () => {
       .write('post', `${base()}/bulk`, adminCookie, { items: items('MS', 'WS', 'MD', 'WD', 'XD'), defaults: { format: 'GROUP_KNOCKOUT', hasQualifying: true, maxEntries: 32 } })
       .expect(201);
     expect(res.body.data.map((row: { code: string }) => row.code)).toEqual(['MS', 'WS', 'MD', 'WD', 'XD']);
+    const ms = await kit.prisma.discipline.findUniqueOrThrow({ where: { id: items('MS')[0]!.disciplineId } });
     expect(res.body.data[0]).toMatchObject({
       format: 'GROUP_KNOCKOUT',
       hasQualifying: true,
       maxEntries: 32,
       matchFormatId: defaultFormatId,
       groupScoringRuleId: defaultRuleId,
-      discipline: { code: 'MS' },
+      discipline: { code: 'MS', competitorKind: ms.competitorKind, genderRule: ms.genderRule },
+      rankingList: null,
     });
     expect(res.body.data.map((row: { order: number }) => row.order)).toEqual([0, 1, 2, 3, 4]);
     const audit = await kit.prisma.auditLog.findFirstOrThrow({ where: { entityId: eventId, action: 'subEvent.bulkCreate' } });
@@ -71,6 +75,21 @@ describe('admin sub-events (real Postgres)', () => {
     const res = await kit.write('post', `${base()}/bulk`, adminCookie, { items: mixed, defaults: { format: 'KNOCKOUT' } }).expect(422);
     expect(res.body.error.code).toBe('DUPLICATE_CODES');
     expect(await kit.prisma.subEvent.count({ where: { eventId } })).toBe(5);
+  });
+
+  it('links a ranking list and returns it with the discipline rules on sub-event reads, then unlinks it', async () => {
+    const ms = await kit.prisma.discipline.findUniqueOrThrow({ where: { id: items('MS')[0]!.disciplineId } });
+    const list = await kit.prisma.rankingList.create({
+      data: { code: `RL-${tag}`, name: `Ranking ${tag}`, competitorKind: ms.competitorKind, genderRule: ms.genderRule, validityDays: 365 },
+    });
+    rankingListIds.push(list.id);
+    const sub = await kit.prisma.subEvent.findFirstOrThrow({ where: { eventId, disciplineId: ms.id } });
+    const linked = { id: list.id, code: list.code, name: list.name };
+
+    expect((await kit.write('patch', `${base()}/${sub.id}`, adminCookie, { rankingListId: list.id }).expect(200)).body.data.rankingList).toEqual(linked);
+    const rows = (await kit.get(base(), adminCookie).expect(200)).body.data as { id: string }[];
+    expect(rows.find((row) => row.id === sub.id)).toMatchObject({ rankingList: linked, discipline: { competitorKind: ms.competitorKind, genderRule: ms.genderRule } });
+    expect((await kit.write('patch', `${base()}/${sub.id}`, adminCookie, { rankingListId: null }).expect(200)).body.data.rankingList).toBeNull();
   });
 
   it('creates a categorised sub-event, with a code from discipline and category and no scoring rule for KNOCKOUT', async () => {

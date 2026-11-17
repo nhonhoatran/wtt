@@ -50,7 +50,8 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
 
     const list = await kit.get(`${API}/ranking-snapshots?filter[listId]=${w.listId}&filter[status]=DRAFT`, cookie).expect(200);
     expect(list.body.data).toHaveLength(1);
-    expect(list.body.data[0]).toMatchObject({ id: draftId, status: 'DRAFT', dirtySubEvents: 0, _count: { rows: 2 }, rankingList: { id: w.listId } });
+    expect(list.body.data[0]).toMatchObject({ id: draftId, status: 'DRAFT', dirtySubEvents: 0, _count: { rows: 2 }, rankingList: { id: w.listId }, publishedBy: null });
+    expect((await kit.get(`${API}/ranking-snapshots/${draftId}`, cookie).expect(200)).body.data.publishedBy).toBeNull();
 
     const preview = await rows(draftId, 'sort=rank:asc');
     expect(preview.data.map((r: { rank: number; points: number }) => [r.rank, r.points])).toEqual([[1, 1000], [2, 700]]);
@@ -90,6 +91,11 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     expect(stored.publishedAt).toBeInstanceOf(Date);
     const [audit] = await kit.prisma.auditLog.findMany({ where: { action: 'ranking.snapshot.publish', entityId: draftId } });
     expect(audit).toMatchObject({ actorId: admin.id, before: { status: 'DRAFT' }, after: { status: 'PUBLISHED', rows: 2, changedPlayers: 2 } });
+
+    const publisher = { id: admin.id, name: (await kit.prisma.user.findUniqueOrThrow({ where: { id: admin.id }, select: { name: true } })).name };
+    expect((await kit.get(`${API}/ranking-snapshots/${draftId}`, cookie).expect(200)).body.data.publishedBy).toEqual(publisher);
+    const published = await kit.get(`${API}/ranking-snapshots?filter[listId]=${w.listId}&filter[status]=PUBLISHED`, cookie).expect(200);
+    expect(published.body.data.find((row: { id: string }) => row.id === draftId)).toMatchObject({ publishedBy: publisher });
 
     expect((await kit.write('post', `${API}/ranking-snapshots/${draftId}/publish`, cookie).expect(409)).body.error.code).toBe('RANKING_SNAPSHOT_NOT_DRAFT');
     expect((await kit.write('delete', `${API}/ranking-snapshots/${draftId}`, cookie).expect(409)).body.error.code).toBe('RANKING_SNAPSHOT_PUBLISHED');
