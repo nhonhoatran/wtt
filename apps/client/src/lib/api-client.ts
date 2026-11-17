@@ -27,7 +27,7 @@ export async function publicGet<T>(path: string, { tags, policy }: PublicGetOpti
     } catch { warnPublicRedis(); }
   }
   const response = await fetch(`${base}/${API_GLOBAL_PREFIX}/${PUBLIC_API_SEGMENT}${path}`, {
-    headers: { [SSR_SECRET_HEADER]: serverEnv.ssrSecret() },
+    headers: { [SSR_SECRET_HEADER]: serverEnv.ssrSecret(), 'Accept-Encoding': 'gzip' },
     cache: 'no-store',
     signal: AbortSignal.timeout(serverEnv.apiTimeoutMs()),
   });

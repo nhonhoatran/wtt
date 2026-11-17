@@ -1,4 +1,5 @@
 import type { Prisma } from '@kamito/db';
+import { publicPlayerSlug } from '@kamito/shared';
 import type { DrawTagContext } from '../revalidation/cache-tags.js';
 import { loadPlayerIdsOfEntries } from '../revalidation/public-tag-context.js';
 
@@ -26,8 +27,8 @@ export async function loadDrawTagContext(db: Db, drawId: string, options: DrawTa
   }
   if (options.entryIds?.length) {
     const playerIds = await loadPlayerIdsOfEntries(db, options.entryIds);
-    const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { slug: true } });
-    context.playerSlugs = players.map((player) => player.slug);
+    const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, slug: true } });
+    context.playerSlugs = players.flatMap((player) => [player.slug, publicPlayerSlug(player.id)]);
   }
   return context;
 }

@@ -140,7 +140,7 @@ export class MediaService {
       );
       return updated;
     });
-    // Alt text is public only through event banners.
+    // Alt text appears in event banners and public player portraits.
     const warnings = await this.revalidation.enqueue(async () => CACHE_TAGS['media.update']({ eventSlugs: await loadEventSlugs(this.prisma, { bannerMediaId: id }) }));
     return { data: toMediaView(asset, this.publicBaseUrl()), ...(warnings.length > 0 && { warnings }) };
   }

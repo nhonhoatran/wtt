@@ -61,6 +61,7 @@ export interface LedgerRowInput {
   stageCode: string | null;
   earnedAt: IsoDate;
   expiresAt: IsoDate;
+  eventId: string | null;
   eventSlug: string | null;
   eventName: string | null;
   eventNameEn: string | null;
@@ -69,6 +70,8 @@ export interface LedgerRowInput {
 
 export interface BreakdownItem {
   ledgerId: string;
+  /** Stable internal identity for public-scope checks, never included in public responses. */
+  eventId: string | null;
   eventSlug: string | null;
   eventName: string | null;
   eventNameEn: string | null;

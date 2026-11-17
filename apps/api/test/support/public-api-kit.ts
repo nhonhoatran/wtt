@@ -23,7 +23,7 @@ export function fieldPaths(value: unknown, prefix = '', out = new Set<string>())
 
 export const sortedPaths = (value: unknown) => [...fieldPaths(value)].sort();
 
-const side = (s: string) => [s, `${s}.seed`, `${s}.quota`, `${s}.players`, `${s}.players[].name`, `${s}.players[].nameEn`, `${s}.players[].club`];
+const side = (s: string) => [s, `${s}.seed`, `${s}.quota`, `${s}.players`, `${s}.players[].name`, `${s}.players[].nameEn`, `${s}.players[].club`, `${s}.players[].slug`];
 
 /** Match card keys without the placeholder-source sub-keys (those depend on the match, see MATCH_SOURCE_KEYS). */
 export const MATCH_CARD_KEYS = [
@@ -34,7 +34,7 @@ export const MATCH_CARD_KEYS = [
 ];
 export const MATCH_SOURCE_KEYS = ['side1Source.type', 'side1Source.matchNo', 'side2Source.type', 'side2Source.matchNo'];
 export const MATCH_DETAIL_KEYS = ['event', 'event.slug', 'event.name', 'event.nameEn', 'event.timezone', 'startedAt', 'officialAt'];
-export const ENTRY_ITEM_KEYS = ['seed', 'quota', 'players', 'players[].name', 'players[].nameEn', 'players[].club'];
+export const ENTRY_ITEM_KEYS = ['seed', 'quota', 'players', 'players[].name', 'players[].nameEn', 'players[].club', 'players[].slug'];
 
 export function publicGet(kit: AuthTestKit, secret: string, path: string) {
   return kit.http.get(`${PUBLIC}/${path}`).set(SSR_SECRET_HEADER, secret);

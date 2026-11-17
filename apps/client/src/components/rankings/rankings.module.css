@@ -1,0 +1,75 @@
+.intro {
+  max-width: 68ch;
+  margin: -4px 0 24px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.groupTitle {
+  margin: 32px 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 24px;
+}
+
+.topCard {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.cardHead { padding: 20px 16px 16px; }
+.cardHead h3 { margin: 0 0 8px; font-size: 18px; }
+.cardHead a { color: var(--color-ink); text-decoration: none; }
+.cardHead a:hover { text-decoration: underline; }
+.note { margin: 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.6; }
+.viewAll { display: block; padding: 14px 16px; color: var(--color-data); font-size: 14px; font-weight: 600; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table thead th {
+  padding: 12px;
+  background: var(--color-data);
+  color: var(--color-surface);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table td, .table tbody th { padding: 12px; border-bottom: 1px solid var(--color-border); text-align: center; vertical-align: top; }
+.table .playerCol { min-width: 145px; text-align: left; font-weight: 400; }
+.rankCell { width: 80px; }
+.rankCell strong { font-size: 18px; }
+.movement { display: block; margin-top: 5px; color: var(--color-data); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.down { color: var(--color-primary-strong); }
+.pointsCell > strong { font-size: 18px; white-space: nowrap; }
+
+.details { margin-top: 6px; font-weight: 400; }
+.details summary { min-height: 32px; padding: 4px 0; color: var(--color-data); font-size: 12px; white-space: nowrap; cursor: pointer; }
+.details summary:hover { text-decoration: underline; }
+.details summary:focus-visible { outline: 2px solid var(--color-data); outline-offset: 2px; }
+.details[open] { min-width: 280px; }
+.breakdownTable { margin-top: 12px; border-collapse: collapse; font-size: 12px; line-height: 1.6; }
+.breakdownTable thead th { background: var(--color-surface-muted); color: var(--color-ink); white-space: normal; }
+.table .breakdownTable td, .table .breakdownTable th { padding: 8px; text-align: left; }
+.table .breakdownTable td:last-child { white-space: nowrap; }
+.breakdownTable tbody th { min-width: 160px; font-weight: 500; }
+
+@media (max-width: 599px) {
+  .secondaryCol { display: none; }
+  .table td, .table tbody th, .table thead th { padding: 10px 8px; }
+  .rankCell { width: 52px; }
+}

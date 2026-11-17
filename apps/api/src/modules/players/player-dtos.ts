@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PLAYER_CLUB_MAX_LENGTH } from '@kamito/shared';
 import { isRealDateOnly } from '../events/date-only.js';
 
 const MAX_NAME = 120;
@@ -38,7 +39,7 @@ const profileFields = {
   publicDisplayName: optionalText(MAX_NAME),
   birthDate,
   birthYear,
-  club: optionalText(MAX_SHORT),
+  club: optionalText(PLAYER_CLUB_MAX_LENGTH),
   city: optionalText(MAX_SHORT),
   handedness: z.enum(['LEFT', 'RIGHT'], { message: 'Chọn tay thuận' }).nullable().optional(),
   gripStyle: optionalText(MAX_SHORT),

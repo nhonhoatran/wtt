@@ -3,7 +3,8 @@ import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { ScrollRegion } from '../common/scroll-region';
 import tableStyles from '../matches/match-score-table.module.css';
-import { sideClubs, sideName } from '../matches/side-name';
+import { sideClubs } from '../matches/side-name';
+import { SidePlayers } from '../players/side-players';
 import styles from './group-standings.module.css';
 
 export function GroupStandings({ group, locale, t }: { group: PublicGroup; locale: Locale; t: Dictionary['groups'] }) {
@@ -28,7 +29,7 @@ export function GroupStandings({ group, locale, t }: { group: PublicGroup; local
               <td>{row.rank ?? '–'}</td>
               <th scope="row" className={tableStyles.nameCol}>
                 {row.side.seed != null && <span className={styles.club}>[{row.side.seed}] </span>}
-                {sideName(locale, row.side)}
+                <SidePlayers side={row.side} locale={locale} />
                 {sideClubs(row.side) && <span className={styles.club}> · {sideClubs(row.side)}</span>}
               </th>
               <td>{row.won}–{row.lost}</td>

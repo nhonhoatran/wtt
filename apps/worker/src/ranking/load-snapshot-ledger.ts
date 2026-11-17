@@ -15,6 +15,7 @@ export async function loadSnapshotLedger(prisma: PrismaClient, listId: string, a
     select: {
       id: true,
       playerId: true,
+      eventId: true,
       points: true,
       stageCode: true,
       earnedAt: true,
@@ -25,6 +26,7 @@ export async function loadSnapshotLedger(prisma: PrismaClient, listId: string, a
   const rows: LedgerRowInput[] = ledger.map((row) => ({
     id: row.id,
     playerId: row.playerId,
+    eventId: row.eventId,
     points: row.points,
     stageCode: row.stageCode,
     earnedAt: toIsoDate(row.earnedAt),

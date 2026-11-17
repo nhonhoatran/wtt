@@ -1,10 +1,10 @@
 import type { PublicBracketMatch, PublicSide, PublicSideSource } from '@kamito/shared';
 import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
-import { pickLocalized } from '../../i18n/pick-localized';
 import { sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatMatchTime } from '../../lib/format-date-time';
 import { LiveBadge } from '../common/live-badge';
+import { SidePlayers } from '../players/side-players';
 import styles from './bracket.module.css';
 
 type BracketDict = Dictionary['bracket'];
@@ -27,12 +27,11 @@ function SideRow({ side, source, score, isWinner, isBye, locale, t }: SideRowPro
       </div>
     );
   }
-  const name = side.players.map((p) => pickLocalized(locale, p.name, p.nameEn)).join(' / ');
   const clubs = [...new Set(side.players.map((p) => p.club).filter(Boolean))].join(' / ');
   return (
     <div className={`${styles.side} ${isWinner ? styles.winner : ''}`} title={clubs || undefined}>
       {side.seed !== null && <span className={styles.mark}>[{side.seed}]</span>}
-      <span className={styles.name}>{name}</span>
+      <span className={styles.name}><SidePlayers side={side} locale={locale} /></span>
       {side.quota && <span className={styles.mark}>({t.quota[side.quota]})</span>}
       <span className={styles.score}>{score ?? ''}</span>
     </div>

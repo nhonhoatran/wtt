@@ -3,7 +3,8 @@ import type { Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { ScrollRegion } from '../common/scroll-region';
 import tableStyles from '../matches/match-score-table.module.css';
-import { sideClubs, sideName } from '../matches/side-name';
+import { sideClubs } from '../matches/side-name';
+import { SidePlayers } from './side-players';
 
 export function EntryTable({ items, locale, caption, t }: { items: PublicSide[]; locale: Locale; caption: string; t: Dictionary['players'] }) {
   return (
@@ -21,7 +22,7 @@ export function EntryTable({ items, locale, caption, t }: { items: PublicSide[];
           {items.map((side, i) => (
             <tr key={i}>
               <td>{side.seed ?? ''}</td>
-              <th scope="row" className={tableStyles.nameCol}>{sideName(locale, side)}</th>
+              <th scope="row" className={tableStyles.nameCol}><SidePlayers side={side} locale={locale} /></th>
               <td className={tableStyles.nameCol}>{sideClubs(side)}</td>
             </tr>
           ))}

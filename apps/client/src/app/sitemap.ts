@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { DEFAULT_LOCALE, LOCALES } from '../i18n/locales';
-import { getSitemap } from '../lib/public-data';
+import { getRankings, getSitemap } from '../lib/public-data';
 import { serverEnv } from '../lib/server-env';
 
 // Built per request: the Docker build cannot reach the API (Spike E).
@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(lastModified ? { lastModified } : {}),
     alternates: { languages: { ...Object.fromEntries(LOCALES.map((l) => [l, `${base}/${l}${path}`])), 'x-default': `${base}/${DEFAULT_LOCALE}${path}` } },
   });
-  const data = await getSitemap();
-  return [entry(''), entry('/events'), entry('/events/calendar'), ...(data?.events ?? []).map((e) => entry(`/events/${e.slug}`, e.updatedAt))];
+  const [data, rankings] = await Promise.all([getSitemap(), getRankings()]);
+  return [entry(''), entry('/events'), entry('/events/calendar'), entry('/rankings'), ...(data?.events ?? []).map((e) => entry(`/events/${e.slug}`, e.updatedAt)),
+    ...(rankings?.items ?? []).map((row) => entry(`/rankings/${row.list.code}`, row.publishedAt ?? undefined))];
 }

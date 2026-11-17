@@ -25,7 +25,7 @@ function fieldPaths(value: unknown, prefix = '', out = new Set<string>()): Set<s
   return out;
 }
 
-const SIDE_FIELDS = (side: string) => [side, `${side}.seed`, `${side}.quota`, `${side}.players`, `${side}.players[].name`, `${side}.players[].nameEn`, `${side}.players[].club`];
+const SIDE_FIELDS = (side: string) => [side, `${side}.seed`, `${side}.quota`, `${side}.players`, `${side}.players[].name`, `${side}.players[].nameEn`, `${side}.players[].club`, `${side}.players[].slug`];
 const M = 'sections[].rounds[].matches[]';
 
 /** Changing this list is a deliberate decision about what the public site exposes. */

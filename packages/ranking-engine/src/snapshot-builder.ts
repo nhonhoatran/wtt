@@ -12,6 +12,7 @@ export interface BuildSnapshotInput {
 function toBreakdown(row: LedgerRowInput): BreakdownItem {
   return {
     ledgerId: row.id,
+    eventId: row.eventId,
     eventSlug: row.eventSlug,
     eventName: row.eventName,
     eventNameEn: row.eventNameEn,

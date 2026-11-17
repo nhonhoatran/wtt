@@ -9,7 +9,8 @@ import { EmptyState } from '../common/empty-state';
 import { ScrollRegion } from '../common/scroll-region';
 import { LiveBadge } from '../common/live-badge';
 import { matchStageLabel } from '../matches/match-card';
-import { sideClubs, sideName } from '../matches/side-name';
+import { sideClubs } from '../matches/side-name';
+import { SidePlayers } from '../players/side-players';
 import { PrintScheduleButton } from './print-schedule-button';
 import styles from './session-table-schedule.module.css';
 
@@ -58,7 +59,7 @@ export function SessionTableSchedule({ schedule, locale, t }: { schedule: Public
                       </td>
                       <td>{[match.side1, match.side2].map((side, i) => (
                         <div key={i} className={styles.side}>
-                          <span className={match.winnerSide === i + 1 ? styles.winner : undefined}>{side ? sideName(locale, side) : sideSourceLabel(t.bracket, i === 0 ? match.side1Source : match.side2Source)}</span>
+                          <span className={match.winnerSide === i + 1 ? styles.winner : undefined}>{side ? <SidePlayers side={side} locale={locale} /> : sideSourceLabel(t.bracket, i === 0 ? match.side1Source : match.side2Source)}</span>
                           {side && sideClubs(side) && <span className={styles.detail}>{sideClubs(side)}</span>}
                         </div>
                       ))}</td>

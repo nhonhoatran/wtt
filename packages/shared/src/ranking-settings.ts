@@ -3,6 +3,16 @@ import { defineAppSetting, defineNumberSetting } from './app-setting-definition.
 
 /** Defaults are examples; admins change them on /settings. */
 export const rankingSettings = {
+  overviewTopN: defineNumberSetting({
+    key: 'ranking.overviewTopN',
+    group: 'ranking',
+    label: 'Số VĐV mỗi bảng ở trang tổng quan xếp hạng',
+    description: 'Số dòng đầu của kỳ chốt đã công bố trên trang tổng quan xếp hạng công khai.',
+    unit: 'VĐV',
+    min: 1,
+    max: 50,
+    defaultValue: 10,
+  }),
   defaultValidityDays: defineNumberSetting({
     key: 'ranking.defaultValidityDays',
     group: 'ranking',

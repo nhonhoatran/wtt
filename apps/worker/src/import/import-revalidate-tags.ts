@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@kamito/db';
-import { entryChangeTags, isValidCacheTag } from '@kamito/shared';
+import { entryChangeTags, isValidCacheTag, publicPlayerSlug } from '@kamito/shared';
 import type { CreatedEntities } from './commit-types.js';
 import type { ImportDeps } from './import-deps.js';
 
@@ -11,12 +11,12 @@ export async function importRevalidateTags(prisma: PrismaClient, eventId: string
   const playerIds = [...new Set(committed.flatMap((item) => item.playerIds))];
   const [entries, players] = await Promise.all([
     prisma.entry.findMany({ where: { id: { in: entryIds } }, distinct: ['subEventId'], select: { subEvent: { select: { code: true } } } }),
-    prisma.player.findMany({ where: { id: { in: playerIds } }, select: { slug: true } }),
+    prisma.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, slug: true } }),
   ]);
   const tags = entryChangeTags({
     eventSlug: event.slug,
     subEventCodes: entries.map((entry) => entry.subEvent.code),
-    playerSlugs: players.map((player) => player.slug),
+    playerSlugs: players.flatMap((player) => [player.slug, publicPlayerSlug(player.id)]),
     includePlayersList: true,
   });
   return tags.filter(isValidCacheTag);

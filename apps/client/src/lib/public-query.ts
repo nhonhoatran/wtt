@@ -1,3 +1,5 @@
+import { PUBLIC_SEARCH_MAX_LENGTH } from '@kamito/shared';
+
 /** A query value is kept only when its rule accepts it. */
 export type QueryRules = Record<string, (value: string) => boolean>;
 
@@ -8,8 +10,10 @@ export type QueryRules = Record<string, (value: string) => boolean>;
 export function toQuery(params: Record<string, string | string[] | undefined>, rules: QueryRules): string {
   const search = new URLSearchParams();
   for (const [key, accept] of Object.entries(rules)) {
-    const value = params[key];
-    if (typeof value === 'string' && value.trim() && accept(value.trim())) search.set(key, value.trim());
+    const raw = params[key];
+    if (typeof raw !== 'string') continue;
+    const value = key === 'q' ? raw.trim().slice(0, PUBLIC_SEARCH_MAX_LENGTH) : raw.trim();
+    if (value && accept(value)) search.set(key, value);
   }
   const text = search.toString();
   return text ? `?${text}` : '';

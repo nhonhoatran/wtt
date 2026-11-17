@@ -4,6 +4,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { AuthTestKit } from '../support/auth-test-kit.js';
 import { privateProfile, setupPublicWorld, type PublicWorld } from '../support/public-api-kit.js';
 import { createLongEventFixture, type LongEventFixture } from './long-event-fixture.js';
+import { createRankingBrowserFixture, type RankingBrowserFixture } from './ranking-browser-fixture.js';
 
 /** What the Playwright specs need to know about the seeded world. */
 export interface E2eWorldFile {
@@ -16,6 +17,7 @@ export interface E2eWorldFile {
   groupMatchNo: number;
   scheduleVenueId: string;
   longEvent: LongEventFixture;
+  ranking: RankingBrowserFixture;
 }
 
 const target = process.env.E2E_WORLD_FILE;
@@ -78,6 +80,7 @@ it('builds the public world and writes its description', async () => {
     groupMatchNo: groupMatch.matchNo,
     scheduleVenueId: venue.id,
     longEvent: await createLongEventFixture(kit, cookie),
+    ranking: await createRankingBrowserFixture(kit),
   };
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, JSON.stringify(file, null, 2));

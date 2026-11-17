@@ -35,3 +35,5 @@ export * from './match-limits.js';
 export * from './ranking-limits.js';
 export * from './public-bracket-contract.js';
 export * from './public-api.js';
+export * from './public-ranking-contract.js';
+export * from './public-player-slug.js';

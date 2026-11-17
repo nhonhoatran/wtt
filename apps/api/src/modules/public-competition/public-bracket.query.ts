@@ -5,7 +5,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { publicScope } from '../public-scope/public-scope.js';
 import { toPublicBracket } from './public-bracket.serializer.js';
 
-const PLAYER_SELECT = { select: { fullName: true, fullNameEn: true, publicDisplayName: true, club: true } } as const;
+const PLAYER_SELECT = {
+  select: { id: true, fullName: true, fullNameEn: true, publicDisplayName: true, club: true, isPublicProfile: true, isActive: true, mergedIntoId: true },
+} as const;
 
 export const PUBLIC_SIDE_SELECT = {
   select: {

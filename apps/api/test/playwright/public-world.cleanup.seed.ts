@@ -6,6 +6,7 @@ import { cleanupPublicWorld, type PublicWorld } from '../support/public-api-kit.
 import type { E2eWorldFile } from './public-world.seed.js';
 import { cleanupDraws } from '../support/draw-play-helpers.js';
 import { cleanupFixtures } from '../support/entries-fixtures.js';
+import { cleanupRankingBrowserFixture } from './ranking-browser-fixture.js';
 
 const target = process.env.E2E_WORLD_FILE;
 let kit: AuthTestKit;
@@ -21,7 +22,8 @@ afterAll(async () => {
 it('removes the seeded public world and its description file', async () => {
   if (!target) throw new Error('E2E_WORLD_FILE is required');
   if (!existsSync(target)) return;
-  const { world, scheduleVenueId, longEvent } = JSON.parse(await readFile(target, 'utf8')) as E2eWorldFile;
+  const { world, scheduleVenueId, longEvent, ranking } = JSON.parse(await readFile(target, 'utf8')) as E2eWorldFile;
+  if (ranking) await cleanupRankingBrowserFixture(kit, ranking);
   await cleanupPublicWorld(kit, world as PublicWorld);
   if (scheduleVenueId) await kit.prisma.venue.deleteMany({ where: { id: scheduleVenueId } });
   if (longEvent) {

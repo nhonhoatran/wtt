@@ -39,6 +39,8 @@ import { RankingRulesModule } from './modules/ranking-rules/ranking-rules.module
 import { RankingSnapshotsModule } from './modules/ranking-snapshots/ranking-snapshots.module.js';
 import { PublicCompetitionModule } from './modules/public-competition/public-competition.module.js';
 import { PublicEventsModule } from './modules/public-events/public-events.module.js';
+import { PublicRankingsModule } from './modules/public-rankings/public-rankings.module.js';
+import { PublicPlayersModule } from './modules/public-players/public-players.module.js';
 
 @Module({
   imports: [
@@ -77,6 +79,8 @@ import { PublicEventsModule } from './modules/public-events/public-events.module
     MatchResultsModule,
     PublicCompetitionModule,
     PublicEventsModule,
+    PublicRankingsModule,
+    PublicPlayersModule,
     RankingJobsModule,
     RankingListsModule,
     RankingRulesModule,

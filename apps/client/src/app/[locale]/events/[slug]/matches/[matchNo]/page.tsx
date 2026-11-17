@@ -5,6 +5,7 @@ import { sideClubs, sideName } from '../../../../../../components/matches/side-n
 import { matchStageLabel } from '../../../../../../components/matches/match-card';
 import { MatchScoreTable } from '../../../../../../components/matches/match-score-table';
 import { LiveBadge } from '../../../../../../components/common/live-badge';
+import { SidePlayers } from '../../../../../../components/players/side-players';
 import styles from '../../../../../../components/matches/match-detail.module.css';
 import { format, getDictionary } from '../../../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../../../i18n/locales';
@@ -71,7 +72,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
             <div key={i} className={`${styles.side} ${won ? styles.winner : ''}`}>
               <p className={styles.name}>
                 {side?.seed != null && <span className={styles.seed}>[{side.seed}] </span>}
-                {side ? sideName(locale, side) : sideSourceLabel(t.bracket, source)}
+                {side ? <SidePlayers side={side} locale={locale} /> : sideSourceLabel(t.bracket, source)}
               </p>
               {side && sideClubs(side) && <p className={styles.club}>{sideClubs(side)}</p>}
               <p className={styles.games}>{m.status === 'SCHEDULED' ? '–' : (games ?? 0)}</p>

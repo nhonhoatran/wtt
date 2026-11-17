@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EventShell } from '../../../../components/events/event-shell';
 import styles from '../../../../components/events/event-overview.module.css';
-import { sideClubs, sideName } from '../../../../components/matches/side-name';
+import { sideClubs } from '../../../../components/matches/side-name';
+import { SidePlayers } from '../../../../components/players/side-players';
 import { format } from '../../../../i18n/get-dictionary';
 import { pickLocalized } from '../../../../i18n/pick-localized';
 import { loadEventPage } from '../../../../lib/event-page';
@@ -37,7 +38,7 @@ export default async function EventOverviewPage({ params }: OverviewProps) {
             {event.champions.map((c) => (
               <li key={c.subEventCode} className={styles.champion}>
                 <span className={styles.championSub}>{subName.get(c.subEventCode) ?? c.subEventCode}</span>
-                <strong className={styles.championName}>{sideName(locale, c.side)}</strong>
+                <strong className={styles.championName}><SidePlayers side={c.side} locale={locale} /></strong>
                 {sideClubs(c.side) && <span className={styles.club}>{sideClubs(c.side)}</span>}
               </li>
             ))}

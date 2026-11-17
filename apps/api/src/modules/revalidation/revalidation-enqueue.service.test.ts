@@ -71,7 +71,7 @@ describe('CACHE_TAGS', () => {
 
   it('maps a player merge to the players list, both profiles and the entered events', () => {
     const tags = CACHE_TAGS['player.merge']({ playerSlugs: ['a', 'b'], events: [{ eventSlug: 'g', subEventCodes: ['MS'], matchNos: [3, 8] }] });
-    expect(tags).toEqual(['players', 'player-a', 'player-b', 'event-g', 'draw-g-MS', 'groups-g-MS', 'schedule-g', 'match-g-3', 'match-g-8']);
+    expect(tags).toEqual(['players', 'rankings', 'player-a', 'player-b', 'event-g', 'draw-g-MS', 'groups-g-MS', 'schedule-g', 'match-g-3', 'match-g-8']);
   });
 
   it('adds the results strip and match pages to publish, unpublish and cancel flips only', () => {

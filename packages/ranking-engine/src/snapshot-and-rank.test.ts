@@ -11,6 +11,7 @@ function ledger(over: Partial<LedgerRowInput> & { id: string; playerId: string }
     stageCode: 'W',
     earnedAt: '2026-01-10',
     expiresAt: '2027-01-10',
+    eventId: 'event-a',
     eventSlug: 'ev',
     eventName: 'Giai',
     eventNameEn: 'Event',
@@ -62,6 +63,7 @@ describe('buildSnapshotRows', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ playerId: 'p1', points: 400, resultsCounted: 1, rank: 1 });
     expect(rows[0]!.breakdown.map((b) => b.ledgerId)).toEqual(['l1']);
+    expect(rows[0]!.breakdown[0]!.eventId).toBe('event-a');
   });
 
   it('treats expiresAt as exclusive and earnedAt as inclusive', () => {

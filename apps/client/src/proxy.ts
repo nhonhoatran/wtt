@@ -3,6 +3,7 @@ import { LOCALE_COOKIE, negotiateLocale } from './i18n/negotiate-locale';
 import { isLocale } from './i18n/locales';
 import { isInternalHost } from './lib/internal-request';
 import { clientIp, rateLimitRetryAfter } from './lib/public-rate-limit';
+import { getPlayerProfile, isUrlPart } from './lib/public-data';
 
 const isRevalidatePath = (path: string) => path === '/api/revalidate' || path.startsWith('/api/revalidate/');
 
@@ -23,6 +24,15 @@ export async function proxy(request: NextRequest) {
   const retryAfter = await rateLimitRetryAfter(clientIp(request.headers), Boolean(searchParams.get('q')?.trim()));
   if (retryAfter !== null) {
     return new NextResponse('Too many requests', { status: 429, headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
+  const profileRoute = /^\/(vi|en)\/players\/([^/]+)\/?$/.exec(pathname);
+  if (profileRoute && (request.method === 'GET' || request.method === 'HEAD') && isUrlPart(profileRoute[2]!)) {
+    const profile = await getPlayerProfile(profileRoute[2]!);
+    if (profile && 'redirectTo' in profile && isUrlPart(profile.redirectTo)) {
+      const response = NextResponse.redirect(new URL(`/${first}/players/${profile.redirectTo}${search}`, request.url), 301);
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
   }
   return NextResponse.next();
 }

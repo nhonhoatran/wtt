@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import type { Dictionary } from '../../i18n/get-dictionary';
+import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
 import { getResultsStrip } from '../../lib/public-data';
-import { sideName } from '../matches/side-name';
+import { SidePlayers } from '../players/side-players';
 import { LiveBadge } from '../common/live-badge';
 import styles from './results-strip.module.css';
 
@@ -17,19 +17,20 @@ export async function ResultsStrip({ locale, t }: { locale: Locale; t: Dictionar
       <ul className={styles.items} aria-label={t.strip.label}>
         {strip.items.map((m) => (
           <li key={`${m.event.slug}-${m.matchNo}`}>
-            <Link
-              href={`/${locale}/events/${m.event.slug}/matches/${m.matchNo}`}
+            <div
               className={styles.item}
               title={pickLocalized(locale, m.event.name, m.event.nameEn)}
             >
               {m.status === 'LIVE' && <LiveBadge label={t.bracket.live} variant="deep" />}
               <span className={styles.sub}>{m.subEvent.code}</span>
-              <span>{sideName(locale, m.side1)}</span>
-              <strong className={styles.score}>
+              <span>{m.side1 && <SidePlayers side={m.side1} locale={locale} />}</span>
+              <Link href={`/${locale}/events/${m.event.slug}/matches/${m.matchNo}`} className={styles.score} aria-label={format(t.bracket.match, { matchNo: m.matchNo })}>
+                <strong>
                 {m.games1 ?? 0}–{m.games2 ?? 0}
-              </strong>
-              <span>{sideName(locale, m.side2)}</span>
-            </Link>
+                </strong>
+              </Link>
+              <span>{m.side2 && <SidePlayers side={m.side2} locale={locale} />}</span>
+            </div>
           </li>
         ))}
       </ul>

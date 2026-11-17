@@ -7,6 +7,8 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { SaveMatrixBody } from './ranking-rule-dtos.js';
 import { findAffectedSubEvents } from './ranking-rules-impact.js';
 
@@ -18,6 +20,7 @@ export class RankingRulesSaveService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly enqueuer: RankingEnqueueService,
+    private readonly revalidation: RevalidationEnqueueService,
   ) {}
 
   /** One save = the changed cells under one effective date; saving the same date again edits that version. */
@@ -67,7 +70,15 @@ export class RankingRulesSaveService {
       { timeout: 60_000 },
     );
 
-    const warnings = await this.enqueuer.enqueueRecompute(recompute);
+    const warnings = [
+      ...(await this.enqueuer.enqueueRecompute(recompute)),
+      ...(await this.revalidation.enqueue(async () => CACHE_TAGS['rankingRules.write']({
+        eventSlugs: (await this.prisma.event.findMany({
+          where: { eventTypeId: { in: eventTypeIds }, endDate: { gte: dateFromIso(effectiveFrom) }, subEvents: { some: { rankingListId: { not: null }, discipline: { competitorKind } } } },
+          select: { slug: true },
+        })).map((event) => event.slug),
+      }))),
+    ];
     return { data: { saved: cells.length, effectiveFrom, recomputeSubEvents: recompute.length }, ...(warnings.length > 0 && { warnings }) };
   }
 }

@@ -3,12 +3,13 @@ import { notFound } from 'next/navigation';
 import { EventShell } from '../../../../../components/events/event-shell';
 import { FilterForm } from '../../../../../components/common/filter-form';
 import { SessionTableSchedule } from '../../../../../components/schedule/session-table-schedule';
+import { RankingPointsByRoundTable } from '../../../../../components/events/ranking-points-by-round-table';
 import styles from '../../../../../components/events/event-info.module.css';
 import { pickLocalizedOrNull } from '../../../../../i18n/pick-localized';
 import { format } from '../../../../../i18n/get-dictionary';
 import { formatDay } from '../../../../../lib/format-date-time';
 import { loadEventPage } from '../../../../../lib/event-page';
-import { getEventInfo, getSchedule } from '../../../../../lib/public-data';
+import { getEventInfo, getSchedule, getEventRankingPoints } from '../../../../../lib/public-data';
 import { oneOf, toQuery } from '../../../../../lib/public-query';
 import { eventPageMetadata } from '../../../../../lib/page-metadata';
 
@@ -25,11 +26,11 @@ export async function generateMetadata({ params }: InfoPageProps): Promise<Metad
 export default async function EventInfoPage({ params, searchParams }: InfoPageProps) {
   const { locale, event, t } = await loadEventPage(params);
   if (!event.tabs.info) notFound();
-  const [info, allSchedule, query] = await Promise.all([getEventInfo(event.slug), getSchedule(event.slug), searchParams]);
+  const [info, allSchedule, rankingPoints, query] = await Promise.all([getEventInfo(event.slug), getSchedule(event.slug), getEventRankingPoints(event.slug), searchParams]);
   // Either language beats a 404: the tab shows whenever one of them is set.
   const html = info && (pickLocalizedOrNull(locale, info.infoBody, info.infoBodyEn) ?? info.infoBodyEn);
   const hasSchedule = Boolean(allSchedule?.filters.sessions.length);
-  if (!html && !hasSchedule) notFound();
+  if (!html && !hasSchedule && !rankingPoints?.items.length) notFound();
   const rules = {
     session: oneOf(allSchedule?.filters.sessions.map((session) => session.code) ?? []),
     table: oneOf(allSchedule?.filters.tables.map((table) => table.code) ?? []),
@@ -52,6 +53,7 @@ export default async function EventInfoPage({ params, searchParams }: InfoPagePr
         />
       )}
       {hasSchedule && schedule && <SessionTableSchedule schedule={schedule} locale={locale} t={t} />}
+      {rankingPoints && <RankingPointsByRoundTable data={rankingPoints} endDate={event.endDate} locale={locale} t={t} />}
       {/* Safe: the API re-sanitizes infoBody with the rich-text allowlist on the way out. */}
       {html && <div className={`${styles.body} ${hasSchedule ? styles.screenOnly : ''}`} dangerouslySetInnerHTML={{ __html: html }} />}
     </EventShell>

@@ -43,6 +43,7 @@ export class PublicEventDetailQuery {
             name: true,
             nameEn: true,
             format: true,
+            rankingList: { select: { isActive: true } },
             discipline: NAMED,
             category: NAMED,
             draws: { where: publicScope.draw, select: { kind: true } },
@@ -91,7 +92,9 @@ export class PublicEventDetailQuery {
         draws: subEvents.some((s) => s.drawKinds.length > 0),
         groups: subEvents.some((s) => s.hasGroups),
         players: subEvents.some((s) => s.entryCount > 0),
-        info: scheduledMatches > 0 || (event.showInfoTab && Boolean(sanitizeRichHtmlOrNull(event.infoBody) || sanitizeRichHtmlOrNull(event.infoBodyEn))),
+        info: scheduledMatches > 0 || (event.showInfoTab && Boolean(
+          sanitizeRichHtmlOrNull(event.infoBody) || sanitizeRichHtmlOrNull(event.infoBodyEn) || event.subEvents.some((sub) => sub.rankingList?.isActive),
+        )),
       },
       stats: { players, playedMatches },
       champions,

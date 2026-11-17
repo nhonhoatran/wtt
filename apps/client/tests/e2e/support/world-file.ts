@@ -10,6 +10,12 @@ export interface E2eWorldFile {
   playedMatchNo: number;
   groupMatchNo: number;
   longEvent: { slug: string; firstDate: string; lastDate: string; lateDate: string; matchNo: number };
+  ranking: {
+    code: string; name: string; nameEn: string; doublesCode: string; doublesName: string;
+    eventSlug: string; eventName: string; playerSlug: string; legacyPlayerSlug: string; playerName: string; hiddenName: string; club: string;
+    privateSlug: string; privateName: string; mergedSlug: string; emptySlug: string;
+    currentPoints: number; playedMatchNo: number; byeMatchNo: number;
+  };
 }
 
 export function readWorld(): E2eWorldFile {

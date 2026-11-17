@@ -1,8 +1,11 @@
 import type { Prisma } from '@kamito/db';
-import type { EntryChangeTagContext } from '@kamito/shared';
+import { publicPlayerSlug, type EntryChangeTagContext } from '@kamito/shared';
 import type { PlayerTagContext } from './cache-tags.js';
 
 type Db = Pick<Prisma.TransactionClient, 'subEvent' | 'entry' | 'player' | 'match'>;
+
+/** Refresh both legacy links and the opaque public profile identifier. */
+const profileSlugs = (player: { id: string; slug: string }) => [player.slug, publicPlayerSlug(player.id)];
 
 const entriesOfPlayers = (playerIds: string[]): Prisma.EntryWhereInput => ({
   competitor: { OR: [{ playerId: { in: playerIds } }, { pair: { OR: [{ playerAId: { in: playerIds } }, { playerBId: { in: playerIds } }] } }] },
@@ -20,8 +23,8 @@ export async function loadEventMatchNos(db: Db, eventId: string): Promise<number
 
 export async function loadEntryTagContext(db: Db, subEventId: string, playerIds: string[]): Promise<EntryChangeTagContext> {
   const subEvent = await db.subEvent.findUniqueOrThrow({ where: { id: subEventId }, select: { code: true, event: { select: { slug: true } } } });
-  const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { slug: true } });
-  return { eventSlug: subEvent.event.slug, subEventCodes: [subEvent.code], playerSlugs: players.map((player) => player.slug) };
+  const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, slug: true } });
+  return { eventSlug: subEvent.event.slug, subEventCodes: [subEvent.code], playerSlugs: players.flatMap(profileSlugs) };
 }
 
 export async function loadPlayerIdsOfEntries(db: Db, entryIds: string[]): Promise<string[]> {
@@ -36,7 +39,7 @@ export async function loadPlayerIdsOfEntries(db: Db, entryIds: string[]): Promis
 export async function loadPlayerTagContext(db: Db, playerIds: string[]): Promise<PlayerTagContext> {
   const entryFilter = entriesOfPlayers(playerIds);
   const [players, entries, matches] = await Promise.all([
-    db.player.findMany({ where: { id: { in: playerIds } }, select: { slug: true } }),
+    db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, slug: true } }),
     db.entry.findMany({ where: entryFilter, select: { subEvent: { select: { code: true, event: { select: { slug: true } } } } } }),
     db.match.findMany({
       where: { OR: [{ side1Entry: entryFilter }, { side2Entry: entryFilter }] },
@@ -48,16 +51,16 @@ export async function loadPlayerTagContext(db: Db, playerIds: string[]): Promise
   for (const { subEvent } of entries) slot(subEvent.event.slug).codes.add(subEvent.code);
   for (const match of matches) slot(match.event.slug).matchNos.add(match.matchNo);
   return {
-    playerSlugs: players.map((player) => player.slug),
+    playerSlugs: players.flatMap(profileSlugs),
     events: [...byEvent].map(([eventSlug, { codes, matchNos }]) => ({ eventSlug, subEventCodes: [...codes], matchNos: [...matchNos] })),
   };
 }
 
 export async function loadEventPlayerSlugs(db: Pick<Prisma.TransactionClient, 'entry'>, eventId: string): Promise<string[]> {
-  const slug = { select: { slug: true } } as const;
+  const slug = { select: { id: true, slug: true } } as const;
   const rows = await db.entry.findMany({
     where: { subEvent: { eventId } },
     select: { competitor: { select: { player: slug, pair: { select: { playerA: slug, playerB: slug } } } } },
   });
-  return [...new Set(rows.flatMap(({ competitor: c }) => (c.player ? [c.player.slug] : c.pair ? [c.pair.playerA.slug, c.pair.playerB.slug] : [])))];
+  return [...new Set(rows.flatMap(({ competitor: c }) => (c.player ? profileSlugs(c.player) : c.pair ? [...profileSlugs(c.pair.playerA), ...profileSlugs(c.pair.playerB)] : [])))];
 }

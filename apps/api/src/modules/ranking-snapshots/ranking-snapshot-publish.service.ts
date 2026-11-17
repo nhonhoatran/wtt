@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { findDirtySubEventIds, type Prisma } from '@kamito/db';
+import { publicPlayerSlug } from '@kamito/shared';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { toIsoDate } from '../../common/validation/iso-date-field.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -33,7 +34,7 @@ export class RankingSnapshotPublishService {
 
   async publish(id: string, actorUserId: string) {
     const outcome = await this.prisma.$transaction((tx) => this.publishLocked(tx, id, actorUserId), { timeout: 60_000 });
-    const warnings = await this.revalidate(outcome.listCode, outcome.playerSlugs);
+    const warnings = await this.revalidate(outcome.listCode, [...outcome.playerSlugs, ...outcome.publicPlayerSlugs]);
     return { data: { id, status: 'PUBLISHED', publishedAt: outcome.publishedAt, changedPlayers: outcome.playerSlugs.length }, ...(warnings.length > 0 && { warnings }) };
   }
 
@@ -90,7 +91,7 @@ export class RankingSnapshotPublishService {
       },
       tx,
     );
-    return { listCode: snapshot.rankingList.code, playerSlugs: slugs.map((row) => row.slug), publishedAt };
+    return { listCode: snapshot.rankingList.code, playerSlugs: slugs.map((row) => row.slug), publicPlayerSlugs: changed.map(publicPlayerSlug), publishedAt };
   }
 
   private async revalidate(listCode: string, playerSlugs: string[]): Promise<string[]> {

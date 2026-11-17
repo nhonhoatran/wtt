@@ -1,10 +1,11 @@
 import type { Prisma } from '@kamito/db';
+import { publicPlayerSlug } from '@kamito/shared';
 import type { MatchDetailRow } from '../matches/match-result-view.js';
 import type { MatchTagContext } from '../revalidation/cache-tags.js';
 
 type Tx = Prisma.TransactionClient;
 
-const SLUG = { select: { slug: true } } as const;
+const SLUG = { select: { id: true, slug: true } } as const;
 
 /**
  * Reads, inside the write transaction, the public identifiers the cache tags of a match are built from.
@@ -22,7 +23,8 @@ export async function loadMatchTagContext(
     where: { id: { in: entryIds } },
     select: { competitor: { select: { player: SLUG, pair: { select: { playerA: SLUG, playerB: SLUG } } } } },
   });
-  const playerSlugs = entries.flatMap(({ competitor: c }) => (c.player ? [c.player.slug] : c.pair ? [c.pair.playerA.slug, c.pair.playerB.slug] : []));
+  const players = entries.flatMap(({ competitor: c }) => (c.player ? [c.player] : c.pair ? [c.pair.playerA, c.pair.playerB] : []));
+  const playerSlugs = players.flatMap((player) => [player.slug, publicPlayerSlug(player.id)]);
   return {
     eventSlug: event.slug,
     subEventCode: match.subEvent.code,

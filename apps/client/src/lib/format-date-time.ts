@@ -36,3 +36,8 @@ export function formatMonth(month: string, locale: Locale): string {
 export function formatDay(day: string, locale: Locale): string {
   return dayFormat(locale, { weekday: 'short', day: '2-digit', month: '2-digit' }).format(asDate(day));
 }
+
+/** Full calendar date, independent of the server's time zone. */
+export function formatFullDate(day: string, locale: Locale): string {
+  return dayFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(asDate(day));
+}

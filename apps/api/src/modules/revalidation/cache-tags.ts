@@ -91,6 +91,7 @@ const subEventTags = (c: SubEventTagContext) => [
 
 const playerTags = (c: PlayerTagContext) => [
   t.players(),
+  t.rankings(),
   ...c.playerSlugs.map(t.player),
   ...c.events.flatMap((event) => [
     ...entryChangeTags({ eventSlug: event.eventSlug, subEventCodes: event.subEventCodes, playerSlugs: [] }),
@@ -103,10 +104,11 @@ const eventCardTags = (c: EventSlugsTagContext) => [t.events(), ...c.eventSlugs.
 
 const subEventUsageTags = (c: SubEventUsageTagContext) => [
   t.events(),
+  t.rankings(),
   ...c.events.flatMap((e) => eventVisibilityTags({ eventSlugs: [e.eventSlug], subEventCodes: e.subEventCodes, matchNos: e.matchNos })),
 ];
 
-const rankingListTags = (c: RankingListTagContext) => [t.rankings(), ...c.codes.map(t.ranking)];
+const rankingListTags = (c: RankingListTagContext) => [t.rankings(), t.players(), ...c.codes.map(t.ranking)];
 
 const scheduleTags = (c: ScheduleTagContext) => [
   t.event(c.eventSlug),
@@ -165,10 +167,11 @@ export const CACHE_TAGS = {
   'eventType.write': eventCardTags,
   'venue.write': eventCardTags,
   'venueTable.write': (c: EventSlugsTagContext) => c.eventSlugs.flatMap((slug) => [t.event(slug), t.schedule(slug)]),
-  'media.update': eventCardTags,
+  'media.update': (c: EventSlugsTagContext) => [...eventCardTags(c), t.players(), t.rankings()],
   'discipline.write': subEventUsageTags,
   'category.write': subEventUsageTags,
   'rankingList.write': rankingListTags,
+  'rankingRules.write': eventCardTags,
   'event.create': eventTags,
   'event.update': eventTags,
   'event.publish': eventVisibilityTags,

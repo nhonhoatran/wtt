@@ -13,6 +13,8 @@ export interface PublicPlayerName {
   name: string;
   nameEn: string | null;
   club: string | null;
+  /** Null when the profile is private, inactive or merged. */
+  slug: string | null;
 }
 
 export interface PublicSide {

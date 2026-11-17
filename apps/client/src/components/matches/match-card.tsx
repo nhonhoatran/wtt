@@ -6,7 +6,8 @@ import { pickLocalized } from '../../i18n/pick-localized';
 import { roundLabel, sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatMatchTime } from '../../lib/format-date-time';
 import { LiveBadge } from '../common/live-badge';
-import { sideClubs, sideName } from './side-name';
+import { sideClubs } from './side-name';
+import { SidePlayers } from '../players/side-players';
 import styles from './match-card.module.css';
 
 interface MatchCardProps {
@@ -33,19 +34,18 @@ export function MatchCard({ match: m, eventSlug, locale, timeZone, t, showSubEve
   ];
   return (
     <article className={styles.card}>
-      <Link href={`/${locale}/events/${eventSlug}/matches/${m.matchNo}`} className={styles.link}>
-        <div className={styles.head}>
+        <Link href={`/${locale}/events/${eventSlug}/matches/${m.matchNo}`} className={`${styles.link} ${styles.head}`}>
           <span>
             {format(t.bracket.match, { matchNo: m.matchNo })}
             {showSubEvent && ` · ${pickLocalized(locale, m.subEvent.name, m.subEvent.nameEn)}`} · {matchStageLabel(m, t)}
           </span>
           {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} /> : <span>{m.status === 'SCHEDULED' ? when : result}</span>}
-        </div>
+        </Link>
         {sides.map(({ side, source, games, won }, i) => (
           <div key={i} className={`${styles.side} ${won ? styles.winner : ''}`}>
             {side?.seed != null && <span className={styles.mark}>[{side.seed}]</span>}
             <span className={side ? styles.name : `${styles.name} ${styles.placeholder}`}>
-              {side ? sideName(locale, side) : sideSourceLabel(t.bracket, source)}
+              {side ? <SidePlayers side={side} locale={locale} /> : sideSourceLabel(t.bracket, source)}
               {side && sideClubs(side) && <span className={styles.club}> · {sideClubs(side)}</span>}
             </span>
             <span className={styles.games}>{m.status === 'SCHEDULED' ? '' : (games ?? '')}</span>
@@ -57,7 +57,6 @@ export function MatchCard({ match: m, eventSlug, locale, timeZone, t, showSubEve
             {m.voided && <span className={styles.voided}>{t.matches.voided}</span>}
           </div>
         )}
-      </Link>
     </article>
   );
 }

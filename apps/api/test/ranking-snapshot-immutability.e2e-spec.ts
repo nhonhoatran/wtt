@@ -50,7 +50,7 @@ describe('ranking snapshots (real Postgres)', () => {
     const result = await rows(snapshotId);
     expect(result.map((r) => [r.points, r.rank])).toEqual([[1000, 1], [700, 2], [400, 3], [400, 3]]);
     expect(result.every((r) => r.previousRank === null && r.movement === null && r.resultsCounted === 1)).toBe(true);
-    expect(result[0]!.breakdown).toMatchObject([{ stageCode: 'W', points: 1000, earnedAt: '2099-05-02', expiresAt: '2100-05-02', eventSlug: `rank-${w.tag}` }]);
+    expect(result[0]!.breakdown).toMatchObject([{ eventId: w.eventId, stageCode: 'W', points: 1000, earnedAt: '2099-05-02', expiresAt: '2100-05-02', eventSlug: `rank-${w.tag}` }]);
     expect(await kit.prisma.rankingSnapshot.findUniqueOrThrow({ where: { id: snapshotId } })).toMatchObject({ status: 'DRAFT' });
   });
 

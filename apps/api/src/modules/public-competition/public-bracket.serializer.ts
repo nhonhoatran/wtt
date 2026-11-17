@@ -1,5 +1,5 @@
 import type { Prisma } from '@kamito/db';
-import { PUBLIC_DRAW_KINDS } from '@kamito/shared';
+import { PUBLIC_DRAW_KINDS, publicPlayerSlug } from '@kamito/shared';
 import type { PublicBracket, PublicBracketMatch, PublicBracketSection, PublicDrawKind, PublicPlayerName, PublicSide, PublicSideSource } from '@kamito/shared';
 import type { PUBLIC_ROUND_INCLUDE, PUBLIC_SIDE_SELECT } from './public-bracket.query.js';
 
@@ -8,7 +8,10 @@ const KIND_ORDER = Object.values(PUBLIC_DRAW_KINDS);
 type RoundRow = Prisma.RoundGetPayload<{ include: typeof PUBLIC_ROUND_INCLUDE }>;
 type MatchRow = RoundRow['matches'][number];
 type SideRow = Prisma.EntryGetPayload<typeof PUBLIC_SIDE_SELECT>;
-type PlayerRow = { fullName: string; fullNameEn: string | null; publicDisplayName: string | null; club: string | null };
+type PlayerRow = {
+  fullName: string; fullNameEn: string | null; publicDisplayName: string | null; club: string | null;
+  id: string; isPublicProfile: boolean; isActive: boolean; mergedIntoId: string | null;
+};
 
 interface NamedRow {
   name: string;
@@ -42,7 +45,12 @@ export function subEventNames({ name, nameEn, discipline, category }: Pick<SubEv
 
 /** A display name replaces the legal name everywhere, so it also suppresses the English legal name. */
 function toPlayerName(p: PlayerRow): PublicPlayerName {
-  return { name: p.publicDisplayName ?? p.fullName, nameEn: p.publicDisplayName ? null : p.fullNameEn, club: p.club };
+  return {
+    name: p.publicDisplayName ?? p.fullName,
+    nameEn: p.publicDisplayName ? null : p.fullNameEn,
+    club: p.club,
+    slug: p.isPublicProfile && p.isActive && !p.mergedIntoId ? publicPlayerSlug(p.id) : null,
+  };
 }
 
 export function toSide(entry: SideRow | null): PublicSide | null {

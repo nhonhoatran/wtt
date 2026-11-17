@@ -113,6 +113,6 @@ export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
   'POST /admin/venues/:id/tables/bulk': none('new tables are unused until a session uses them'),
   'PUT /admin/imports/:id/file': none(IMPORT),
   'PUT /admin/media/:id/content': none('upload body, nothing public until referenced'),
-  'PUT /admin/ranking-rules/matrix': none(RANKING_DRAFT),
+  'PUT /admin/ranking-rules/matrix': tags('rankingRules.write'),
   'PUT /admin/settings/:key': tags('settings.update'),
 };

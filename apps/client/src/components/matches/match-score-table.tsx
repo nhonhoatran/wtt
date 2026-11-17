@@ -2,7 +2,7 @@ import type { PublicMatchDetail } from '@kamito/shared';
 import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { ScrollRegion } from '../common/scroll-region';
-import { sideName } from './side-name';
+import { SidePlayers } from '../players/side-players';
 import styles from './match-score-table.module.css';
 
 export function MatchScoreTable({ match, locale, t }: { match: PublicMatchDetail; locale: Locale; t: Dictionary['match'] }) {
@@ -31,7 +31,7 @@ export function MatchScoreTable({ match, locale, t }: { match: PublicMatchDetail
           {rows.map((row, i) => (
             <tr key={i} className={row.won ? styles.winner : undefined}>
               <th scope="row" className={styles.nameCol}>
-                {sideName(locale, row.side) || format(t.side, { n: i + 1 })}
+                {row.side ? <SidePlayers side={row.side} locale={locale} /> : format(t.side, { n: i + 1 })}
               </th>
               {match.games.map((g) => (
                 <td key={g.number}>{row.score(g)}</td>
