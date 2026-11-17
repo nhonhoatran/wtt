@@ -1,7 +1,56 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-15. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-16. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-16 — Phase 09: màn admin xếp hạng (chưa commit)
+
+Phần này nằm trong working tree, chưa commit. Lõi phase 09 (`packages/ranking-engine`, migration `20261113091254_add_ranking_lists_and_rules`, `20261113091336_add_ranking_ledger_and_snapshots`, API nền) đã có trong git từ `b59fffb`..`478ad88`. Mục này chỉ ghi phần admin và thay đổi API nhỏ thêm vào.
+
+### Thêm
+- **Nhóm menu Xếp hạng** (resource `rankings`, bốn màn):
+
+| Màn | Đường dẫn | Nội dung |
+|---|---|---|
+| Bảng xếp hạng | `/ranking-lists` | Tạo, sửa, lọc, ẩn/hiện. Để trống thời hạn thì dùng `ranking.defaultValidityDays` |
+| Quy tắc điểm | `/ranking-rules` | Ma trận điểm theo nội dung và vòng. Lưu thành phiên bản có ngày áp dụng. Xem phiên bản cũ ở chế độ chỉ đọc. Sao chép cột. Xem ảnh hưởng trước khi lưu. Chặn rời trang khi còn thay đổi chưa lưu |
+| Sổ điểm | `/ranking-points` | Lọc theo bảng, VĐV, giải, nguồn, hiệu lực. Thêm và xóa điểm thủ công (cần step-up) |
+| Kỳ chốt | `/ranking-snapshots`, `/ranking-snapshots/:id` | Tạo bản nháp, xem trước (bảng hạng, biến động, chi tiết điểm), tính lại, xóa nháp, công bố (cần step-up, không sửa được sau khi công bố) |
+
+- **Tab Nội dung thi đấu:** cột và ô "Bảng xếp hạng" trong form sửa và tạo hàng loạt. Tự điền khi chỉ có đúng một bảng khớp giới tính và nhóm tuổi của nội dung.
+- **Wizard bốc thăm, bước Hạt giống:** nút "Gợi ý theo BXH" mở modal xem trước hạt giống theo bảng đã công bố. Nút tắt khi nội dung chưa gắn bảng, và tắt ở vòng loại vì gợi ý chỉ áp cho nhánh chính.
+
+### API
+- Response thêm field, field cũ giữ nguyên:
+  - Nội dung thi đấu: `rankingList: { id, code, name } | null`. `discipline` có thêm `competitorKind`, `genderRule`.
+  - Bảng xếp hạng: `category: { id, code, name } | null`.
+  - Sổ điểm: `subEvent: { id, code, name } | null` (dòng thủ công là `null`).
+  - Kỳ chốt (list và detail): `publishedBy: { id, name } | null`. `publishedById` giữ nguyên. Người dùng đã bị xóa thì `null`.
+- Audit danh mục: update ghi quan hệ ở cả `before` và `after` cùng dạng (ví dụ `before.tier = {id, code}` ở `eventType.update`, `category` ở `ranking.list.update`). `remove()` đọc `existing` với cùng `include`.
+- "Hôm nay" của xếp hạng lấy từ `rankingToday()` (`apps/api/src/modules/ranking-jobs/ranking-today.ts`), theo `event.defaultTimezone`, không theo UTC của server. Dùng cho `asOf` mặc định của ma trận, ngày ghi nhận mặc định của điểm thủ công, lọc còn hạn của sổ điểm, và `asOfDate` mặc định khi dựng bản nháp.
+- Hằng dùng chung trong `@kamito/shared` (`ranking-limits.ts`): `RANKING_REASON_MIN_LENGTH` (3), `RANKING_REASON_MAX_LENGTH` (500), `RANKING_NOTE_MAX_LENGTH` (500). API DTO và form admin cùng dùng.
+
+### Quyết định
+- Không tạo phiên bản quy tắc có ngày áp dụng trước hôm nay. Admin chặn ở ô ngày. API hiện chưa chặn (xem Còn mở).
+- Không ghi nhận điểm thủ công hay chốt kỳ chốt với ngày tương lai. Admin chặn ở form điểm và hộp dựng bản nháp. API hiện chưa chặn.
+- "Tính lại ngay" ở trang xem trước dựng lại bản nháp qua `POST /admin/ranking-snapshots/drafts`, không gọi `POST /admin/ranking/recompute`. Endpoint đó cần `subEventId` hoặc `eventTypeId`, còn chi tiết kỳ chốt chỉ trả số nội dung chưa tính lại, không trả id.
+- Admin không dùng `useBlocker` vì app dùng `BrowserRouter`. Chặn rời trang nằm trong `ranking-rules-unsaved-guard.ts`. Nút Back của trình duyệt chưa chặn được.
+
+### Kiểm chứng
+- API unit và e2e: 91 file, 571/571 test, exit 0, trên DB dev local (`localhost:5433/kamito_tt_dev`). Chạy lại toàn bộ sau vòng sửa review và browser test (2026-11-16 17:3x): 91/91 file, 571/571 test, exit 0.
+- `packages/ranking-engine`: 36/36 test. Statements, functions, lines 100%. Branches 98,09%.
+- Typecheck và lint đạt: api, admin, worker, ranking-engine.
+- Admin chưa có unit test. Màn mới kiểm bằng typecheck, lint và trình duyệt (7 luồng, không có lỗi runtime ở trang mới). Chưa thử gợi ý hạt giống ở wizard vòng loại trên trình duyệt.
+- Sửa theo code review: H1 và M1–M5, M7, L9 đã có trong code; M6 mới sửa phía API và nút "Hiện hành" (phần còn lại xem Còn mở).
+- Sửa theo browser test: B1 (Enter trong hộp lưu quy tắc không còn lưu luôn, bỏ `Form onFinish`), B4 (breakdown điểm thủ công ở kỳ chốt có nhãn "Điểm thủ công"), B6 (form điểm thủ công điền sẵn bảng đang lọc).
+- Báo cáo: `plans/reports/tester-261116-phase-09-ui-and-api-changes.md`, `code-reviewer-261116-phase-09-ui.md`, `ui-browser-test-261116-phase-09-ranking.md`, `ui-verifier-261116-phase-09-pages.md`, `ui-verifier-261116-phase-09-calibration.md`.
+
+### Còn mở
+- **Ràng buộc ngày chỉ có ở admin:** API chưa kiểm `effectiveFrom`, `earnedAt`, `asOfDate`. Cần thêm kiểm ở API trước khi coi là quy tắc.
+- **Múi giờ phía admin (review M6):** ngày mặc định của điểm thủ công và kỳ chốt, cùng tag "Hết hạn" ở sổ điểm, vẫn dùng `dayjs()` theo máy. Nút "Hiện hành" và chế độ sửa đã không còn dựa vào ngày máy.
+- **Nhãn và hiển thị (phần lớn có từ trước):** toast Refine ra `ranking-lists.ranking-lists` (`apps/admin/src/i18n/vi.ts:43`, ảnh hưởng mọi danh mục); để trống "Thứ tự hiển thị" thì lưu `0` và bảng xếp đầu danh sách; ở 375px nút menu đè tiêu đề và link quay lại.
+- **Kiểm thử:** admin chưa có unit test. Chưa có test cho user đã xóa trong `publishedBy` và cho nội dung bị xóa trong sổ điểm. `packages/ranking-engine` còn 2 nhánh chưa phủ (`src/stage-code-rows.ts:19`, `src/stage-reached.ts:19`). Lần chạy full đầu tiên bị dừng giữa chừng, nguyên nhân chưa rõ, lần chạy lại sạch.
+- **Chờ:** G2 (BTC trả lời quy chế điểm) và deploy staging. Xem [development-roadmap](./development-roadmap.md).
 
 ## 2026-11-15 — Phase 08: hoàn tất nợ code còn lại (đã commit)
 

@@ -11,7 +11,7 @@
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. Tuần 14–15 (≈7 ngày công, gồm ui-consistency ≈0,5 ngày).
+- Priority: P1. Status: in progress (2026-11-16, xem sync). Tuần 14–15 (≈7 ngày công, gồm ui-consistency ≈0,5 ngày).
 - **Cổng G2 (cứng):** BTC trả lời quy chế điểm xếp hạng (hạng giải, điểm từng vòng, thời hạn điểm, chu kỳ chốt, walkover, cách tính hạt giống cặp đôi) trước khi bắt đầu phase này. Câu hỏi gửi từ tuần 1; chưa có trả lời tới đầu tuần 14 → làm phase 10/11 trước, dùng dự phòng.
 - Bảng xếp hạng (đơn/đôi, theo giới/nhóm tuổi), quy tắc điểm hạng giải × vòng đạt được có ngày hiệu lực (admin sửa dạng ma trận), sổ điểm `RankingPointsEarned` có ngày hết hạn và **điểm đóng băng** khi giải kết thúc, dấu "bẩn" bền + job tính lại tuần tự theo nội dung, bản nháp → công bố snapshot kèm breakdown, gợi ý hạt giống theo BXH.
 
@@ -39,6 +39,20 @@
 - Rút entry khỏi nhánh: phase 06 KHÔNG đặt `rankingDirtyAt` (không có trong `apps/api/src/modules/draws`). Trigger "rút khỏi nhánh" trong danh sách trên phải thêm khi làm phase này.
 - `GroupStanding.rank` và `qualified` đã có (`packages/db/prisma/schema/groups-and-standings.prisma`); hạng bảng chưa có quy tắc điểm (chờ G2).
 - `POST /sub-events/:id/entries/suggest-seeds` đã có và trả `{available: false, suggestions: []}` cho tới khi phase này nối dữ liệu BXH.
+
+<!-- Phase 09 sync — 2026-11-16 -->
+- Trạng thái: in progress. Gói 1–4 (backend) commit `b59fffb`..`07f2500` (reflog ghi 2026-11-14). Gói 5 (admin UI) xong 2026-11-16, **chưa commit**. Sửa API cùng ngày (sub-event-items, ranking-lists/points/snapshots service, catalog-crud) cũng chưa commit (`git status`).
+- **Sai lệch G2 (ghi 2026-11-13):** BTC chưa trả lời quy chế điểm. Làm phase 09 trước với dữ liệu mẫu vô địch 1000/400/125. Mọi điểm, thời hạn, cờ walkover sửa được trên admin. Khi BTC trả lời chỉ đổi dữ liệu, không đổi code, trừ khi mô hình hạng giải × vòng sai. Lệch khỏi cổng cứng G2 trong `plan.md`.
+- **Bước 5 (BullMQ) xong:** bản cài `bullmq` 6.5.1 (`apps/worker/package.json`). Chốt: id duy nhất mỗi lần enqueue (`rank-se-{subEventId}-{uuid}`, `rank-snap-{uuid}`) + `removeOnComplete`; không dùng dedupe/debounce; tuần tự hóa bằng advisory lock trong processor (theo `reports/implementation-plan-261113-1540-phase-09-task-breakdown.md`). Bằng chứng: `apps/api/test/ranking-recompute-race.e2e-spec.ts:41` (lần 2 chạy sau khi lần 1 completed và còn được giữ), pass trong full suite (`reports/tester-261116-phase-09-ui-and-api-changes.md`).
+- **Kiểm 2026-11-16:** API full 91 file / 571 test pass; ranking-engine 36/36, coverage lines 100 %, branches 98.09 %; worker 39/39; recompute 128 entry 107 ms; snapshot 5.000 VĐV 722 ms; typecheck/lint api, admin, worker sạch. Browser 7 flow PASS (`reports/ui-browser-test-261116-phase-09-ranking.md`); B1, B4, B6 đã sửa; B2, B3, B5 là nợ có sẵn, ngoài phase 09.
+- **Trigger:** đã nối đủ theo spec (đánh dấu bẩn trong transaction, enqueue sau commit). Gồm chốt, mở lại, sửa tỷ số qua `MatchWriteRunner` (`match-write-runner.ts:38`, `match-reopen.service.ts:103`). Follow-up "match-reopen chưa tồn tại" trong báo cáo task breakdown đã lỗi thời.
+- **Còn mở:**
+  - Deploy + migrate staging: chặn bởi cổng phase 01 (xem `plan.md`, Phụ thuộc).
+  - BTC trả lời G2.
+  - Seed: dữ liệu mẫu "(mẫu)" đã thấy trên DB dev local `localhost:5433/kamito_tt_dev` (browser test). Target staging chưa xác nhận.
+  - Gợi ý hạt giống trong wizard vòng loại chưa thử trên trình duyệt.
+  - `suggest-seeds` với `apply:false` vẫn ghi `rankingAtEntry/pointsAtEntry` + audit (`reports/fullstack-developer-261116-phase-09-ui-agent-3.md`). Chưa quyết giữ hay tách preview.
+  - Admin chưa có unit test (chỉ typecheck, lint, browser test).
 
 ## Requirements
 
@@ -219,16 +233,16 @@ Ma trận test
 
 ## Todo List
 
-- [ ] Cổng G2: câu trả lời BTC về quy chế điểm
-- [ ] ui-consistency: finding-patterns → planning
-- [ ] ranking-engine + test ma trận (gồm `QF-n`, `GROUP-n`, quy tắc theo ngày hiệu lực)
-- [ ] Migrations ranking lists/rules, ledger/snapshots + trigger bất biến
-- [ ] Kiểm ngữ nghĩa job id/dedupe trên bản BullMQ đã cài
-- [ ] API + queue ranking + `rankingDirtyAt` + mọi trigger + job quét
-- [ ] Seed ví dụ
-- [ ] Màn Bảng XH, Quy tắc điểm (ma trận có phiên bản), Sổ điểm, Kỳ chốt
-- [ ] Gợi ý hạt giống (đơn + cặp) + rankingAtEntry/pointsAtEntry
-- [ ] ui-consistency: verifying; deploy staging
+- [ ] Cổng G2: câu trả lời BTC về quy chế điểm — **parked**: chờ BTC; làm trước với dữ liệu mẫu (xem sync)
+- [x] ui-consistency: finding-patterns → planning — 2026-11-16 (`ui/phase-09-ui-checklists.md`, `ui/phase-09-ui-plan.md`)
+- [x] ranking-engine + test ma trận (gồm `QF-n`, `GROUP-n`, quy tắc theo ngày hiệu lực) — gói 1; 36/36, coverage lines 100 %, branches 98.09 %
+- [x] Migrations ranking lists/rules, ledger/snapshots + trigger bất biến — gói 2 (`b59fffb`); `migrate:status` 16 migration đã áp; trigger `migration.sql:146`
+- [x] Kiểm ngữ nghĩa job id/dedupe trên bản BullMQ đã cài — chốt id duy nhất, không dedupe; `ranking-recompute-race.e2e-spec.ts:41` pass
+- [x] API + queue ranking + `rankingDirtyAt` + mọi trigger + job quét — gói 3–4; trigger nối đủ (xem sync); job quét `ranking-dirty-mark.e2e-spec.ts` pass
+- [x] Seed ví dụ — đã chạy trên dev local (thấy "(mẫu)" trong browser test); staging chưa, theo mục deploy
+- [x] Màn Bảng XH, Quy tắc điểm (ma trận có phiên bản), Sổ điểm, Kỳ chốt — gói 5, 2026-11-16 (chưa commit); browser 7 flow PASS
+- [x] Gợi ý hạt giống (đơn + cặp) + rankingAtEntry/pointsAtEntry — API `ranking-merge-and-seeds.e2e-spec.ts:66` pass; UI 2026-11-16 (chưa commit); wizard vòng loại chưa thử
+- [ ] ui-consistency: verifying; deploy staging — verifying xong 2026-11-16 (`ui/phase-09-ui-plan.md`); deploy staging **parked**: chờ cổng phase 01
 
 ## Success Criteria
 

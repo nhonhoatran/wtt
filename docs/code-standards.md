@@ -104,14 +104,13 @@ packages/
               media/ (contract, storage-env), object-storage/ (local, s3, create-object-storage)
               public-api (prefix và tên header dùng chung), public-bracket-contract (phase 08)
   competition-engine/  hàm thuần cho nhánh, vòng loại, vòng bảng, BXH (phase 06). Chỉ phụ thuộc `@kamito/shared`
+  ranking-engine/  hàm thuần cho quy tắc điểm theo ngày, điểm theo vòng, snapshot và xếp hạng (phase 09). Chỉ phụ thuộc `@kamito/shared`
   ui-tokens/  tokens.ts -> tokens.css, antd-theme.ts
 docker/       Dockerfile x4, admin-nginx.conf, admin-api-proxy.conf, admin-security-headers.conf,
               admin-entrypoint.sh, migrate-entrypoint.sh
 scripts/      print-db-target.mjs (+ test)
 docs/         tài liệu dự án
 ```
-
-Chưa có: `packages/ranking-engine` (phase 09).
 
 ## Module và TypeScript
 
@@ -443,6 +442,12 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
 - Mã mới thêm vào `WARNING_LABELS`. Mã chưa có nhãn thì hiện đúng chuỗi mã, nên nhãn nên được thêm trước khi đưa route ra.
 - Nhãn nói "Đã lưu". Chỉ dùng cho thao tác có ghi dữ liệu. Thao tác chỉ gửi lệnh (ví dụ "Làm mới trang công khai") cần nhãn riêng.
 
+## Xếp hạng (phase 09)
+
+- **Hằng độ dài lý do và ghi chú** nằm trong `@kamito/shared` (`packages/shared/src/ranking-limits.ts`): `RANKING_REASON_MIN_LENGTH`, `RANKING_REASON_MAX_LENGTH`, `RANKING_NOTE_MAX_LENGTH`. API DTO và form admin cùng import, không viết lại số.
+- **"Hôm nay" của nghiệp vụ** lấy từ `rankingToday(settings)` (`apps/api/src/modules/ranking-jobs/ranking-today.ts`), theo `event.defaultTimezone`. Không lấy ngày theo UTC của server, cũng không lấy ngày của máy. Admin còn dùng ngày máy ở vài chỗ (ngày mặc định, tag "Hết hạn"). Đó là nợ đã ghi trong [changelog 2026-11-16](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit). Không thêm chỗ mới theo cách đó.
+- **Ràng buộc nghiệp vụ kiểm ở API.** `disabledDate` của admin chỉ là gợi ý trên giao diện. Ràng buộc ngày (quy tắc không hồi tố, điểm và kỳ chốt không ở tương lai) phải có kiểm ở API. Hiện chưa có.
+
 ## Frontend
 
 - **Client (Next.js):**
@@ -462,6 +467,7 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
   - Danh sách sắp thứ tự dùng `SortableListField` (`components/sortable-list-field.tsx`), ô tìm kiếm có trễ dùng `useDebouncedValue` (`components/use-debounced-value.ts`). `AuthGate` (`components/auth-gate.tsx`) chỉ đẩy về `/login` khi `/auth/me` trả 401; lỗi khác hiện nút thử lại.
   - Lựa chọn lọc được nhớ trong localStorage theo khóa `kamito.admin.<khu vực>.<tên>` (ví dụ `kamito.admin.results.status`). Storage bị chặn thì lựa chọn chỉ không được nhớ, trang vẫn dùng được.
   - CSS in ấn nằm trong module riêng của trang (`match-sheets-print.module.css`), không đặt global, để không làm đổi kiểu của các trang admin khác.
+  - Danh mục có quyền khác `tournaments` gọi `useCatalogAccess(permission)`. Lọc phụ của danh sách chọn gọi `useCatalogRows(resource, filters)`. Mặc định chỉ lấy dòng đang hiện, `isActive: ''` thì lấy cả dòng đã ẩn.
 - **Design token:** sửa màu, bo góc, khoảng cách ở `packages/ui-tokens/src/tokens.ts`. Không hard-code hex trong component.
   - `tokens.css` sinh bởi `scripts/write-tokens-css.mjs` lúc build. Client import qua `@kamito/ui-tokens/tokens.css`.
   - Theme antd lấy từ `@kamito/ui-tokens/antd-theme`.
@@ -473,7 +479,7 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
 |---|---|---|---|
 | api, worker, shared, ui-tokens | Vitest 5 | `pnpm test` (qua turbo) | Không dùng Jest |
 | api (Nest) | Vitest + `unplugin-swc` | `pnpm --filter @kamito/api test` | SWC để giữ decorator metadata; esbuild không làm được |
-| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (67 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Chạy 2026-11-14 (dev worker đã dừng): 67/67 file, 420 test. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
+| api e2e | Vitest, `apps/api/test/*.e2e-spec.ts` (72 file) | như trên | Dùng dependency thật từ `.env` ở root, **không mock**. Chạy 2026-11-14 (dev worker đã dừng): 67/67 file, 420 test. Lần chạy tester 2026-11-12 13:29: 169/169 ở hai lần, một lần crash native (xem [roadmap](./development-roadmap.md)) |
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |
