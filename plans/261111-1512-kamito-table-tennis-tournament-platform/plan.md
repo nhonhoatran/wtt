@@ -36,7 +36,33 @@ Phase 10 hoàn tất code, kiểm thử và verifying local: bốn route SSR, t�
 
 [QA phase 10](../reports/tester-261117-phase-10-public-rankings-players.md): API tích hợp 111/111 ở 15 file, API unit 16/16, client 45/45, shared 101/101, ranking-engine 36/36, worker 39/39; Playwright sau F4 24/24, hồi quy trước F4 40/40. Publish admin thật → BullMQ → SSR đã có cache đổi trong 644 ms local. Build API/worker/client đạt, Next đã vá 16.4.5; [review](../reports/code-reviewer-261117-phase-10-public-rankings-players.md) 9,5/10, không còn Critical/P1/P2 mở trong phạm vi review. Chưa deploy/đo staging.
 
-Đã rà đủ 12 phase cấp trên cùng: **117/154 checkbox (76,0 %), 37 còn mở**; tỷ lệ theo checkbox, không theo ngày công hay cổng nghiệm thu. Backfill phase 05 (301 và whitelist đã kiểm), 12 mẫu UI phase 08 theo verifier và nguồn hiện tại, verifying phase 09; tách verifying khỏi staging ở phase 09/10. Phase 10 đạt 8/9, giữ `in-progress` do staging; các cổng G1/G2, M1/M2, pilot và phần phase 11/12 chưa đạt vẫn mở. [Báo cáo sweep và việc còn mở](../reports/pm-261117-phase-10-sync.md).
+Ảnh chụp lịch sử ngày 2026-11-17 sau khi rà đủ 12 phase cấp trên cùng: **117/154 checkbox (76,0 %), 37 còn mở**; tỷ lệ theo checkbox, không theo ngày công hay cổng nghiệm thu. Backfill phase 05 (301 và whitelist đã kiểm), 12 mẫu UI phase 08 theo verifier và nguồn hiện tại, verifying phase 09; tách verifying khỏi staging ở phase 09/10. Phase 10 đạt 8/9, giữ `in-progress` do staging; các cổng G1/G2, M1/M2, pilot và phần phase 11/12 chưa đạt vẫn mở. [Báo cáo sweep và việc còn mở](../reports/pm-261117-phase-10-sync.md).
+
+<!-- Phase 11 implementation sync — 2026-11-19 -->
+Phase 11 đã có code local cho CMS (tin/video/trang tĩnh/tài trợ/liên hệ), API admin/public, hàng đợi hẹn giờ + sweep, job dọn liên hệ, trang công khai, trang chủ, footer và JSON-LD `NewsArticle`/`VideoObject`. Editor có bố cục responsive, tab vi/en, lưu nháp/đăng ngay/hẹn giờ và dán ảnh qua upload-intent; chỉ chèn ảnh `READY` có URL HTTPS, local cần `MEDIA_PUBLIC_BASE_URL` HTTPS. Tab tài trợ có kéo thả bằng chuột/bàn phím; endpoint reorder xử lý phân trang và ghi audit atomic. Mutation CMS ghi audit metadata trong cùng transaction, trả cảnh báo queue/cache sau commit. Đã đối chiếu/tái dùng mẫu code và kiểm giao diện 1440/390 bằng ứng dụng thật với API mock; không có skill `ui-consistency` hiện hành.
+
+Kiểm tra cục bộ ngày 2026-11-19: Prisma validate; typecheck/lint/build shared, DB, API, worker, admin và client đạt; bản sửa nhãn CMS admin cuối cũng đã qua typecheck/lint/build. `pnpm install --frozen-lockfile` đã sửa symlink Better Auth. Các suite đạt **383/383 ca**: API `src` **177/177**, shared **101/101**, worker **44/44**, client **50/50**, admin **11/11** (Windows 6: image policy 3 + trạng thái TipTap thật 3; WSL entrypoint 5).
+
+[QA public mock](../reports/tester-261119-phase-11-cms-mock-ui.md): Next production thật, 7 route × 1440/390 = **14/14 lượt đạt**, 7 nhóm tương tác ở cả hai viewport, không `pageerror`/tràn ngang ở lượt cuối và đã xem ảnh. [QA admin mock](../reports/tester-261119-phase-11-admin-mock-ui.md): ứng dụng Vite thật, **8/8 ca browser + 4/4 kiểm payload/form đạt**, đã xem editor 1440/390. Admin chuyển sang data router + `useBlocker`; đã kiểm hủy/xác nhận native Back/Forward và menu, giữ nháp, lưu không báo nhầm, ID route cũ, body vi/en, ba form sửa, bộ chọn giải và clipboard HTTPS/READY. Đã sửa lỗi TipTap làm rỗng body khi đổi editability, defaults ghi đè dữ liệu Refine, filter `isActive` không hợp hợp đồng và bốn lỗi giao diện public. [Review](../reports/code-reviewer-261119-phase-11-cms.md) không còn Critical/P1/P2 trong phạm vi mã đã rà.
+
+**Giới hạn còn mở:** 16 ca API tích hợp và 18 ca Playwright DB E2E đã bổ sung/typecheck/liệt kê, **chưa thực thi**. Migration SQL được tạo và rà soát offline; target in ra là `localhost:5433/kamito_tt_dev`, đang chờ xác nhận trước khi áp dụng. PostgreSQL chưa bị truy vấn/seed/migrate trong các lượt browser mock. Kết quả mock không xác nhận DB–Redis/BullMQ–storage thật hoặc staging; Phase 11 giữ `in-progress` theo cổng phase 01.
+
+Rà lại đủ 12 phase cấp trên cùng ngày 2026-11-19: **127/158 checkbox (80,4 %), 31 còn mở**. Đếm các checkbox gạch đầu dòng trong 12 file phase, gồm checklist mẫu UI phase 08; Implementation Steps mô tả tiến độ, không đếm lặp. Checklist phase 11 làm rõ structured metadata và tách các gate DB, guard, trực quan, staging; guard và trực quan đã đóng với bằng chứng mock nêu trên. Các phase khác giữ nguyên checkbox vì chưa có bằng chứng mới để đóng cổng. Kết quả local/mock và số ca đã viết không thay cho nghiệm thu DB, E2E dịch vụ thật, staging hoặc BTC.
+
+| Phase | Checkbox đã xong/tổng | Còn mở chính |
+|---|---|---|
+| 01 | 10/15 | Tên repo, preflight, sao lưu/RPO, Dokploy/staging, chạy CI trên GitHub |
+| 02 | 3/5 | Spike D staging; dọn spike/schema chờ duyệt |
+| 03 | 12/13 | Deploy + migrate staging |
+| 04 | 11/12 | Deploy + migrate staging |
+| 05 | 14/16 | Staging; file Excel thật/pilot |
+| 06 | 11/13 | G1b; staging; G1a và nợ UI vẫn ghi ở phase |
+| 07 | 12/14 | Đo và deploy staging; E2E Q → BYE → R2 và nợ UI vẫn mở |
+| 08 | 27/28 | Staging → M1/M2 |
+| 09 | 9/11 | G2; staging |
+| 10 | 8/9 | Deploy/đo staging |
+| 11 | 10/13 | Migration DB; API tích hợp/Playwright với dịch vụ thật; staging |
+| 12 | 0/9 | Chưa bắt đầu hardening/ra mắt; JSON-LD CMS đã có là đầu vào, chưa đủ đóng mục SEO tổng |
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -50,7 +76,7 @@ Phase 10 hoàn tất code, kiểm thử và verifying local: bốn route SSR, t�
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (đợt 1–3 xong 2026-11-14, Playwright 34 pass tại thời điểm đó; lịch session/bàn + bản in lịch triển khai 2026-11-15; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile); còn staging → M1/M2 chưa đạt) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | In progress (gói 1–4 commit; gói 5 UI xong 2026-11-16, chưa commit; chờ G2 và staging) |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | In progress (code/test/verifying local xong 2026-11-17; 8/9 checkbox; chờ deploy và đo staging) |
-| 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | Pending |
+| 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | In progress (10/13; code/test và trực quan 1440/390 với API mock; còn migration DB, API tích hợp/Playwright dịch vụ thật và staging) |
 | 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | Pending |
 | — | Pilot với BTC trên dữ liệu một giải cũ (staging) | 9 | 1 | Pending (chặn: chưa có staging, xem Phụ thuộc) |
 | | **Phạm vi** | | **80** | |
@@ -81,7 +107,7 @@ Lượt hoàn tất tiếp theo: client 41 unit, Playwright 51 đạt/7 bỏ qua
 
 - Chuỗi (1 người): 1 ∥ 2 → 3 → 4 (xong) → lát cắt (5 → 6 → 7 → 8) → M1 → 5 → pilot → [G1b] 6 → 7 → 8 → M2 → [G2] 9 → 10 → 11 → 12. Spike E quyết định revalidate ở 7, 8, 10.
 - Phase 03 code trước khi cổng phase 01 đạt: chờ chủ repo chốt tiếp tục hay dừng deploy (xem phase 03).
-- **Blocker (rà lại 2026-11-17, chưa gỡ):** phase 02–10 chưa deploy staging vì cổng phase 01 chưa đạt; code/verifying local không thay nghiệm thu staging (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot.
+- **Blocker (rà lại 2026-11-19, chưa gỡ):** phase 02–11 chưa deploy staging vì cổng phase 01 chưa đạt; code/verifying local không thay nghiệm thu staging (preflight PG/Redis/MinIO/Traefik + sao lưu chờ chủ hạ tầng). Hệ quả: M1 (cuối tuần 6) và pilot (tuần 9) đang có rủi ro trễ. Đường mở: chủ hạ tầng trả lời preflight → 2 project Dokploy → deploy hello → migrate staging (phase 01 todo). Owner: chủ hạ tầng + chủ repo. Phase 05 còn thêm: thử file Excel thật trước pilot. Phase 11 chưa áp dụng migration local vì còn chờ xác nhận target DB.
 - Điều kiện ngoài: tên repo trước lần push đầu (tài khoản/email đã chốt trong phase 01 ngày 2026-11-12); chủ hạ tầng trả lời preflight; tên miền; brand + logo vector; BTC trả lời G1a/G1b/G2; ngày bắt đầu + lịch Tết.
 
 ## Ràng buộc cứng (áp dụng mọi phase)

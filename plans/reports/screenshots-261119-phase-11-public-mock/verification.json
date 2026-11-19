@@ -1,0 +1,290 @@
+{
+  "mode": "Next production + local HTTP mock API; PostgreSQL and Redis disabled",
+  "siteUrl": "http://127.0.0.1:39312",
+  "apiUrl": "http://127.0.0.1:39311",
+  "results": [
+    {
+      "name": "home",
+      "url": "/vi",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Bóng bàn Kamito",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "home-1440.png"
+    },
+    {
+      "name": "news-list",
+      "url": "/vi/news",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Tin tức",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "news-list-1440.png"
+    },
+    {
+      "name": "article",
+      "url": "/vi/news/ban-tin-1",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Sẵn sàng cho mùa giải bóng bàn Kamito 2026",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "article-1440.png"
+    },
+    {
+      "name": "videos-list",
+      "url": "/vi/videos",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Video",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "videos-list-1440.png"
+    },
+    {
+      "name": "video",
+      "url": "/vi/videos/video-1",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Điểm nhấn vòng chung kết Kamito 2026",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "video-1440.png"
+    },
+    {
+      "name": "static-page",
+      "url": "/vi/pages/gioi-thieu",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Giới thiệu giải đấu",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "static-page-1440.png"
+    },
+    {
+      "name": "contact",
+      "url": "/vi/contact",
+      "width": 1440,
+      "httpStatus": 200,
+      "heading": "Liên hệ",
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "contact-1440.png"
+    },
+    {
+      "name": "home",
+      "url": "/vi",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Bóng bàn Kamito",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "home-390.png"
+    },
+    {
+      "name": "news-list",
+      "url": "/vi/news",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Tin tức",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "news-list-390.png"
+    },
+    {
+      "name": "article",
+      "url": "/vi/news/ban-tin-1",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Sẵn sàng cho mùa giải bóng bàn Kamito 2026",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "article-390.png"
+    },
+    {
+      "name": "videos-list",
+      "url": "/vi/videos",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Video",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "videos-list-390.png"
+    },
+    {
+      "name": "video",
+      "url": "/vi/videos/video-1",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Điểm nhấn vòng chung kết Kamito 2026",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "video-390.png"
+    },
+    {
+      "name": "static-page",
+      "url": "/vi/pages/gioi-thieu",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Giới thiệu giải đấu",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "static-page-390.png"
+    },
+    {
+      "name": "contact",
+      "url": "/vi/contact",
+      "width": 390,
+      "httpStatus": 200,
+      "heading": "Liên hệ",
+      "pageWidth": 390,
+      "viewportWidth": 390,
+      "overflowing": [
+        {
+          "tag": "A",
+          "class": "gYcRRa_skipLink",
+          "text": "Bỏ qua tới nội dung"
+        }
+      ],
+      "screenshot": "contact-390.png"
+    }
+  ],
+  "interactions": [
+    {
+      "width": 1440,
+      "serverCategoryFilter": "pass",
+      "clickToLoadVideo": "pass",
+      "iframeSandbox": "pass",
+      "contactToMockApi": "pass",
+      "contactHttp429": "pass",
+      "contactInlineErrorAndRecovery": "pass",
+      "mockHomeToggles": "pass"
+    },
+    {
+      "width": 390,
+      "serverCategoryFilter": "pass",
+      "clickToLoadVideo": "pass",
+      "iframeSandbox": "pass",
+      "contactToMockApi": "pass",
+      "contactHttp429": "pass",
+      "contactInlineErrorAndRecovery": "pass",
+      "mockHomeToggles": "pass"
+    }
+  ],
+  "errors": [],
+  "contactFixtureCount": 8,
+  "callCounts": {
+    "/api/v1/public/site": 181,
+    "/api/v1/public/home": 4,
+    "/api/v1/public/results/strip": 24,
+    "/api/v1/public/footer": 24,
+    "/assets/table-tennis.svg": 18,
+    "/assets/sponsor.svg": 23,
+    "/api/v1/public/events": 10,
+    "/api/v1/public/events/kamito-open-2026": 2,
+    "/api/v1/public/articles": 6,
+    "/api/v1/public/articles/ban-tin-1": 8,
+    "/api/v1/public/articles/ban-tin-2": 3,
+    "/api/v1/public/articles/ban-tin-3": 3,
+    "/api/v1/public/articles/ban-tin-4": 1,
+    "/api/v1/public/pages/gioi-thieu": 13,
+    "/api/v1/public/videos": 2,
+    "/api/v1/public/videos/video-1": 9,
+    "/api/v1/public/videos/video-2": 2,
+    "/api/v1/public/videos/video-3": 2,
+    "/api/v1/public/contact": 8
+  }
+}

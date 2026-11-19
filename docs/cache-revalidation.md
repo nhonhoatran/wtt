@@ -1,7 +1,7 @@
 # Revalidate cache công khai
 
-> Cập nhật: 2026-11-17 · Trạng thái: bổ sung cache cho xếp hạng và hồ sơ công khai ở phase 10 trong working tree; chưa deploy staging. Các phần phase 07–09 đã có trong lịch sử git.
-> Nguồn đối chiếu: `apps/api/src/modules/revalidation/` (`cache-tags.ts`, `route-tag-coverage.ts`, `revalidation-enqueue.service.ts`), `apps/api/test/cache-tags-coverage.e2e-spec.ts`, `packages/shared/src/{public-cache-tags,public-cache-tag-sets,revalidate-job-options,with-timeout}.ts`, `apps/worker/src/{revalidate-worker,processors/revalidate-processor}.ts`, `apps/worker/src/import/import-revalidate-tags.ts`, `apps/admin/src/api/write-warnings.ts`.
+> Cập nhật: 2026-11-19 · Phase 11 thêm cache tags cho CMS; kiểm thử local và UI admin/công khai với API mẫu đã đạt. Chưa áp migration, chạy E2E dùng DB thật hoặc deploy staging. Các phần phase 07–10 đã có trong lịch sử và ghi chú bên dưới.
+> Nguồn đối chiếu: `apps/api/src/modules/revalidation/` (`cache-tags.ts`, `route-tag-coverage.ts`, `revalidation-enqueue.service.ts`), `apps/api/test/cache-tags-coverage.e2e-spec.ts`, `packages/shared/src/{public-cache-tags,public-cache-tag-sets,revalidate-job-options,with-timeout}.ts`, `apps/worker/src/{revalidate-worker,publishing-worker,processors/revalidate-processor,processors/publishing-processors}.ts`, `apps/worker/src/import/import-revalidate-tags.ts`, `apps/admin/src/api/write-warnings.ts`.
 > Tổng quan kiến trúc: [system-architecture](./system-architecture.md#nhập-lịch-và-revalidate-phase-07). Cách thêm route mới: [code-standards](./code-standards.md#route-ghi-admin-mới-phải-đăng-ký-tag).
 
 ## Contents
@@ -62,6 +62,11 @@ Tag được dựng từ `publicCacheTags` (`packages/shared/src/public-cache-ta
 | `players()` / `player(slug)` | `players`, `player-<slug>` | Danh sách VĐV, hồ sơ VĐV |
 | `rankings()` / `ranking(code)` | `rankings`, `ranking-<code>` | Bảng xếp hạng công khai, hạng hiện tại trong hồ sơ/danh sách, sitemap bảng (phase 10) |
 | `settings()` | `settings` | Cấu hình ảnh hưởng nhiều trang |
+| `articles()` / `article(slug)` | `articles`, `article-<slug>` | Danh sách và chi tiết tin |
+| `videos()` / `video(slug)` | `videos`, `video-<slug>` | Danh sách và chi tiết video |
+| `pages()` / `page(slug)` | `pages`, `page-<slug>` | Trang tĩnh, footer và sitemap |
+| `sponsors()` | `sponsors` | Dải tài trợ site và trang giải |
+| `home()` | `home` | Trang chủ và nội dung các khối |
 
 Entry dùng `entryChangeTags` (`packages/shared/src/public-cache-tag-sets.ts`): tag giải, `draw-*`, `groups-*` của các nội dung bị ảnh hưởng, `players` khi có VĐV mới, và `player-*` của các VĐV liên quan. Hàm này dùng chung cho API và worker.
 
@@ -92,6 +97,7 @@ Phase 10: mọi loader ngữ cảnh VĐV gửi cả `Player.slug` cũ và `publi
 | Xếp hạng | `rankingList.write`, `ranking.publish` | `rankings`, `ranking-<code>`, `players`, `player-*` đổi thứ hạng |
 | Quy tắc điểm | `rankingRules.write` | `events` và `event-*` của giải thuộc các hạng giải bị sửa; bảng điểm trong tab Thông tin đọc quy tắc theo ngày kết thúc giải |
 | Cấu hình | `settings.update` | `settings` |
+| CMS | `content.write` | `articles`, `videos`, `pages`, `sponsors`, `home`, `settings` |
 
 Tag theo từng mutation không dùng wildcard. Tên mutation dùng camelCase có dấu chấm (`match.unStart`), không dùng kebab-case.
 
@@ -146,6 +152,8 @@ Bảng dưới đây liệt kê route theo mutation (cột "route") và theo lý
 | `ranking.publish` | `POST /admin/ranking-snapshots/:id/publish` |
 | `rankingRules.write` | `PUT /admin/ranking-rules/matrix` |
 | `settings.update` | `PUT /admin/settings/:key`, `DELETE /admin/settings/:key` |
+| `content.write` | `POST`, `PATCH`, `DELETE /admin/articles`, `/admin/videos`, `/admin/sponsors`, `/admin/static-pages` |
+| `content.write` | `POST /admin/sponsors/reorder` |
 
 ### Route không gửi tag
 
@@ -162,6 +170,7 @@ Bảng dưới đây liệt kê route theo mutation (cột "route") và theo lý
 | Upload, tạo phiên tải ảnh; ảnh chỉ công khai khi giải tham chiếu tới | `POST /admin/media/intents`, `PUT /admin/media/:id/content`, `POST /admin/media/:id/complete` |
 | Người dùng không hiển thị công khai | `POST`, `PATCH /admin/users...`, `POST /admin/users/:id/reset-password`, `POST /admin/users/:id/revoke-sessions` |
 | Ranking nháp, chưa publish | `POST`, `DELETE /admin/ranking-points...`, `POST /admin/ranking-snapshots/drafts`, `DELETE /admin/ranking-snapshots/:id`, `POST /admin/ranking/recompute` |
+| Hộp thư là dữ liệu riêng tư, đổi trạng thái không đổi trang công khai | `PATCH /admin/contact-messages/:id` |
 
 Lý do ghi trong bảng theo `route-tag-coverage.ts`. Phase 10 đã chuyển lưu ma trận điểm sang `rankingRules.write`; không được coi thay đổi quy tắc chỉ ảnh hưởng dữ liệu nháp nữa.
 
@@ -187,6 +196,18 @@ Helper `withTimeout` (`packages/shared/src/with-timeout.ts`) từ chối promise
 
 Revalidate là idempotent, nên job trùng vô hại. Nếu mọi lần thử đều lỗi, trang vẫn cập nhật khi cache hết TTL (`PUBLIC_REVALIDATE_SECONDS`, `MATCHDAY_REVALIDATE_SECONDS`).
 
+### Lịch đăng bài và lưu trữ liên hệ (phase 11)
+
+Queue `publishing` nhận job `publish-article` chỉ chứa `articleId`; worker đọc lại trạng thái và `publishAt` trong DB trước khi đăng. Job quét định kỳ đăng bù các bài đến hạn nếu delayed job bị mất. Khi bài đăng thành công, worker gửi `articles`, `article-<slug>` và `home` qua queue `revalidate`.
+
+Chu kỳ `publishing.sweepIntervalMinutes` chỉnh trong `/settings`, mặc định mẫu 1 phút. Worker đọc lại và đồng bộ lịch sau mỗi lần sweep; thay đổi có hiệu lực sau lượt sweep kế tiếp, không cần khởi động lại. Worker cũng chạy `contact-retention` định kỳ và xóa thư cũ hơn setting `contact.retentionDays`.
+
+Nếu DB đã công bố bài nhưng enqueue revalidate thất bại, retry `publish-article` trên bài `PUBLISHED` vẫn gửi lại invalidation. Sweep luôn gửi tag chung `articles` và `home`, kể cả khi không có dòng mới, để phục hồi các lần ghi DB đã xong nhưng mất invalidation trước đó.
+
+Ghi CMS và audit metadata dùng chung transaction; audit không sao chép HTML hoặc PII từ hộp thư. `POST /admin/sponsors/reorder` khóa phạm vi giải/site-wide, cập nhật thứ tự và audit nguyên tử, rồi mới enqueue `content.write`; lỗi enqueue trả `PUBLIC_REFRESH_DELAYED` sau commit.
+
+Kiểm thử local ngày 2026-11-19: 383 kiểm tra mã nguồn/script đạt (API `src` 177, worker 44, shared 101, client 50, admin 11); sáu package đều typecheck/lint/build đạt. [UI công khai với API mẫu](../plans/reports/tester-261119-phase-11-cms-mock-ui.md) đạt 14/14 lượt trang; [UI admin với API/media mẫu](../plans/reports/tester-261119-phase-11-admin-mock-ui.md) đạt 8/8 ca browser. Các lượt browser không kiểm queue/Redis/DB thật. Migration CMS chưa áp dụng; 16 ca API E2E và 18 ca Playwright dùng DB thật đã viết nhưng chưa chạy.
+
 ## Cảnh báo hiện cho admin
 
 Mutation có thể trả `warnings`. Admin hiện qua `apps/admin/src/api/write-warnings.ts`:
@@ -194,6 +215,7 @@ Mutation có thể trả `warnings`. Admin hiện qua `apps/admin/src/api/write-
 | Mã | Nhãn hiện cho người dùng |
 |---|---|
 | `PUBLIC_REFRESH_DELAYED` | "Đã lưu. Trang công khai sẽ cập nhật chậm hơn" |
+| `ARTICLE_PUBLISHING_DELAYED` | "Đã lưu lịch đăng. Tác vụ đăng đang chậm; hệ thống sẽ kiểm tra lại tự động" |
 | `RANKING_RECOMPUTE_DELAYED` | "Đã lưu. Bảng xếp hạng sẽ cập nhật chậm hơn" |
 | `RANKING_SNAPSHOT_REBUILD_SUGGESTED` | "Nên tạo lại bản chụp xếp hạng mới vì VĐV đã được gộp" |
 
