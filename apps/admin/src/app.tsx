@@ -6,7 +6,7 @@ import { App as AntdApp, ConfigProvider } from 'antd';
 import viVN from 'antd/es/locale/vi_VN';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { createBrowserRouter, matchPath, Navigate, Route, RouterProvider, Routes } from 'react-router';
 import { AuthGate } from './components/auth-gate';
 import { RequireAccess } from './components/require-access';
 import { StepUpProvider } from './components/step-up-modal';
@@ -36,6 +36,11 @@ import { PlayerList } from './resources/players/player-list';
 import { UserCreate } from './resources/users/user-create';
 import { UserEdit } from './resources/users/user-edit';
 import { UserList } from './resources/users/user-list';
+import { ArticleCreate, ArticleEdit, StaticPageCreate, StaticPageEdit, VideoCreate, VideoEdit } from './resources/content/content-forms';
+import { ArticleList, StaticPageList, VideoList } from './resources/content/content-lists';
+import { ContactMessageList } from './resources/content/contact-message-list';
+import { SponsorCreate, SponsorEdit } from './resources/sponsors/sponsor-form';
+import { SponsorList } from './resources/sponsors/sponsor-list';
 
 dayjs.locale('vi');
 
@@ -47,12 +52,32 @@ const resources = [
   { name: 'pairs', list: '/pairs', meta: { label: 'Cặp đôi' } },
   { name: 'imports', list: '/imports', show: '/imports/:id', meta: { label: 'Lịch sử import' } },
   ...rankingResources,
+  { name: 'articles', list: '/articles', create: '/articles/create', edit: '/articles/:id/edit', meta: { label: 'Tin tức' } },
+  { name: 'videos', list: '/videos', create: '/videos/create', edit: '/videos/:id/edit', meta: { label: 'Video' } },
+  { name: 'static-pages', list: '/static-pages', create: '/static-pages/create', edit: '/static-pages/:id/edit', meta: { label: 'Trang tĩnh' } },
+  { name: 'contact-messages', list: '/contact-messages', meta: { label: 'Hộp thư liên hệ' } },
+  { name: 'sponsors', list: '/sponsors', create: '/sponsors/create', edit: '/sponsors/:id/edit', meta: { label: 'Nhà tài trợ' } },
   { name: 'audit-logs', list: '/audit-logs', meta: { label: 'Nhật ký thao tác' } },
 ];
 
-export function App() {
+// Refine's parser otherwise treats the data-router splat as resource params and skips edit-id lookup.
+const adminRouterProvider = {
+  ...routerProvider,
+  parse: () => {
+    const parse = routerProvider.parse!();
+    return () => {
+      const result = parse();
+      const route = result.action ? result.resource?.[result.action as 'list' | 'create' | 'edit' | 'show'] : undefined;
+      const pathParams = typeof route === 'string' ? matchPath(route, result.pathname ?? '/')?.params : undefined;
+      const params = { ...pathParams, ...result.params };
+      delete params['*'];
+      return { ...result, ...(pathParams?.id ? { id: decodeURIComponent(pathParams.id) } : {}), params };
+    };
+  },
+};
+
+function AdminApplication() {
   return (
-    <BrowserRouter>
       <ConfigProvider theme={antdTheme} locale={viVN}>
         <AntdApp>
           <Refine
@@ -60,7 +85,7 @@ export function App() {
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
-            routerProvider={routerProvider}
+            routerProvider={adminRouterProvider}
             notificationProvider={useNotificationProvider}
             resources={resources}
             options={{ syncWithLocation: true, disableTelemetry: true, warnWhenUnsavedChanges: true }}
@@ -90,6 +115,19 @@ export function App() {
                     <Route path="/imports/:id" element={<RequireAccess resource="tournaments" action="read"><ImportDetailPage /></RequireAccess>} />
                     <Route path="/audit-logs"element={<RequireAccess resource="audit-logs" action="list"><AuditLogList /></RequireAccess>} />
                     <Route path="/settings" element={<RequireAccess resource="settings" action="list"><SettingsPage /></RequireAccess>} />
+                    <Route path="/articles" element={<RequireAccess resource="content" action="list"><ArticleList /></RequireAccess>} />
+                    <Route path="/articles/create" element={<RequireAccess resource="content" action="create"><ArticleCreate /></RequireAccess>} />
+                    <Route path="/articles/:id/edit" element={<RequireAccess resource="content" action="update"><ArticleEdit /></RequireAccess>} />
+                    <Route path="/videos" element={<RequireAccess resource="content" action="list"><VideoList /></RequireAccess>} />
+                    <Route path="/videos/create" element={<RequireAccess resource="content" action="create"><VideoCreate /></RequireAccess>} />
+                    <Route path="/videos/:id/edit" element={<RequireAccess resource="content" action="update"><VideoEdit /></RequireAccess>} />
+                    <Route path="/static-pages" element={<RequireAccess resource="content" action="list"><StaticPageList /></RequireAccess>} />
+                    <Route path="/static-pages/create" element={<RequireAccess resource="content" action="create"><StaticPageCreate /></RequireAccess>} />
+                    <Route path="/static-pages/:id/edit" element={<RequireAccess resource="content" action="update"><StaticPageEdit /></RequireAccess>} />
+                    <Route path="/contact-messages" element={<RequireAccess resource="content" action="list"><ContactMessageList /></RequireAccess>} />
+                    <Route path="/sponsors" element={<RequireAccess resource="sponsors" action="list"><SponsorList /></RequireAccess>} />
+                    <Route path="/sponsors/create" element={<RequireAccess resource="sponsors" action="create"><SponsorCreate /></RequireAccess>} />
+                    <Route path="/sponsors/:id/edit" element={<RequireAccess resource="sponsors" action="update"><SponsorEdit /></RequireAccess>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
                 </Route>
@@ -98,6 +136,11 @@ export function App() {
           </Refine>
         </AntdApp>
       </ConfigProvider>
-    </BrowserRouter>
   );
+}
+
+const adminRouter = createBrowserRouter([{ path: '*', element: <AdminApplication /> }]);
+
+export function App() {
+  return <RouterProvider router={adminRouter} />;
 }

@@ -67,6 +67,9 @@
     "calendar": "Lịch thi đấu",
     "rankings": "Xếp hạng",
     "players": "Vận động viên",
+    "news": "Tin tức",
+    "videos": "Video",
+    "contact": "Liên hệ",
     "language": "Ngôn ngữ",
     "switchTo": "English",
     "switchToCode": "EN"
@@ -78,6 +81,13 @@
   "home": {
     "ongoing": "Đang diễn ra",
     "upcoming": "Sắp diễn ra",
+    "featured": "Giải nổi bật",
+    "news": "Tin nổi bật",
+    "allNews": "Xem tất cả tin",
+    "videos": "Video mới",
+    "allVideos": "Xem tất cả video",
+    "rankings": "Bảng xếp hạng",
+    "sponsors": "Nhà tài trợ",
     "allEvents": "Xem tất cả giải",
     "empty": "Chưa có giải nào được công bố."
   },
@@ -279,5 +289,35 @@
     "status": "Trạng thái / kết quả",
     "timePending": "Chờ xếp giờ",
     "timezone": "Múi giờ: {timezone}"
+  },
+  "news": {
+    "title": "Tin tức",
+    "description": "Tin mới nhất về các giải đấu và hoạt động bóng bàn.",
+    "filterLabel": "Lọc tin tức",
+    "category": "Chuyên mục",
+    "allCategories": "Tất cả chuyên mục",
+    "filter": "Lọc",
+    "empty": "Chưa có tin tức được công bố.",
+    "videos": "Xem video"
+  },
+  "videos": {
+    "title": "Video",
+    "description": "Video về các giải đấu và hoạt động bóng bàn.",
+    "play": "Phát video",
+    "empty": "Chưa có video được công bố.",
+    "news": "Đọc tin tức"
+  },
+  "contact": {
+    "title": "Liên hệ",
+    "description": "Gửi lời nhắn cho ban tổ chức.",
+    "name": "Họ tên",
+    "email": "Email",
+    "phone": "Số điện thoại (tùy chọn)",
+    "organization": "Đơn vị (tùy chọn)",
+    "message": "Nội dung",
+    "submit": "Gửi liên hệ",
+    "sending": "Đang gửi...",
+    "success": "Cảm ơn bạn. Lời nhắn đã được gửi.",
+    "error": "Chưa gửi được lời nhắn. Vui lòng thử lại sau."
   }
 }

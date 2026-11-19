@@ -14,6 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     alternates: { languages: { ...Object.fromEntries(LOCALES.map((l) => [l, `${base}/${l}${path}`])), 'x-default': `${base}/${DEFAULT_LOCALE}${path}` } },
   });
   const [data, rankings] = await Promise.all([getSitemap(), getRankings()]);
-  return [entry(''), entry('/events'), entry('/events/calendar'), entry('/rankings'), ...(data?.events ?? []).map((e) => entry(`/events/${e.slug}`, e.updatedAt)),
+  return [entry(''), entry('/events'), entry('/events/calendar'), entry('/rankings'), entry('/news'), entry('/videos'), entry('/contact'), ...(data?.events ?? []).map((e) => entry(`/events/${e.slug}`, e.updatedAt)),
+    ...(data?.articles ?? []).map((a) => entry(`/news/${a.slug}`, a.updatedAt)),
+    ...(data?.pages ?? []).map((p) => entry(`/pages/${p.slug}`, p.updatedAt)),
     ...(rankings?.items ?? []).map((row) => entry(`/rankings/${row.list.code}`, row.publishedAt ?? undefined))];
 }

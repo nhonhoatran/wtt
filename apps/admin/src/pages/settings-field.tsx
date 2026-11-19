@@ -6,11 +6,12 @@ import {
   ChoiceSettingEditor,
   EventSettingEditor,
   NumberSettingEditor,
+  JsonSettingEditor,
   TextSettingEditor,
   TimezoneSettingEditor,
 } from './settings-editors/setting-value-editors';
 
-export type SettingValue = number | string | boolean | null;
+export type SettingValue = unknown;
 
 export interface SettingView {
   key: string;
@@ -18,13 +19,13 @@ export interface SettingView {
   label: string;
   description: string;
   editor: AppSettingEditor;
-  defaultValue: SettingValue;
-  value: SettingValue;
+  defaultValue: unknown;
+  value: unknown;
   isDefault: boolean;
   updatedAt: string | null;
 }
 
-function renderEditor(editor: AppSettingEditor): ReactNode {
+function renderEditor(editor: AppSettingEditor, settingKey: string): ReactNode {
   switch (editor.kind) {
     case 'number':
       return <NumberSettingEditor min={editor.min} max={editor.max} unit={editor.unit} />;
@@ -36,6 +37,8 @@ function renderEditor(editor: AppSettingEditor): ReactNode {
       return <TimezoneSettingEditor />;
     case 'event':
       return <EventSettingEditor />;
+    case 'json':
+      return <JsonSettingEditor settingKey={settingKey} />;
     case 'choice':
       return <ChoiceSettingEditor options={editor.options} />;
   }
@@ -83,7 +86,7 @@ export function SettingField({ item, onReset }: { item: SettingView; onReset: ()
       }
     >
       <Form.Item name={item.key} noStyle valuePropName={item.editor.kind === 'boolean' ? 'checked' : 'value'} rules={ruleFor(item.editor)}>
-        {renderEditor(item.editor)}
+        {renderEditor(item.editor, item.key)}
       </Form.Item>
     </Form.Item>
   );

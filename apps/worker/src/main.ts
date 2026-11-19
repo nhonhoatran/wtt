@@ -4,6 +4,7 @@ import { startImportWorker } from './import-worker.js';
 import { startMediaWorker } from './media-worker.js';
 import { startRankingWorker } from './ranking-worker.js';
 import { startRevalidateWorker } from './revalidate-worker.js';
+import { startPublishingWorker } from './publishing-worker.js';
 import { checkRedisEvictionPolicy } from './redis-eviction-guard.js';
 import { loadWorkerEnv } from './worker-env.js';
 import { startWorkerHealthServer, type WorkerHealthState } from './worker-health-server.js';
@@ -35,6 +36,7 @@ async function main(): Promise<void> {
   const stopImport = await startImportWorker(env, redis, logger);
   const stopRevalidate = await startRevalidateWorker(env, redis, logger);
   const stopRanking = await startRankingWorker(env, redis, logger);
+  const stopPublishing = await startPublishingWorker(env, redis, logger);
 
   const server = await startWorkerHealthServer(env.WORKER_HEALTH_PORT, () => health);
   logger.info({ queuePrefix: env.QUEUE_PREFIX, healthPort: env.WORKER_HEALTH_PORT }, 'worker started');
@@ -46,6 +48,7 @@ async function main(): Promise<void> {
     await stopImport();
     await stopRevalidate();
     await stopRanking();
+    await stopPublishing();
     await redis.quit();
     process.exit(0);
   };

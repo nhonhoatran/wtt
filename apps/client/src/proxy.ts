@@ -3,7 +3,8 @@ import { LOCALE_COOKIE, negotiateLocale } from './i18n/negotiate-locale';
 import { isLocale } from './i18n/locales';
 import { isInternalHost } from './lib/internal-request';
 import { clientIp, rateLimitRetryAfter } from './lib/public-rate-limit';
-import { getPlayerProfile, isUrlPart } from './lib/public-data';
+import { getPlayerProfile, getSiteConfig, isUrlPart } from './lib/public-data';
+import { contactRateLimitRetryAfter } from './lib/public-contact-rate-limit';
 
 const isRevalidatePath = (path: string) => path === '/api/revalidate' || path.startsWith('/api/revalidate/');
 
@@ -21,9 +22,15 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Vary', 'Cookie, Accept-Language');
     return response;
   }
-  const retryAfter = await rateLimitRetryAfter(clientIp(request.headers), Boolean(searchParams.get('q')?.trim()));
+  const ip = clientIp(request.headers);
+  const contactPost = request.method === 'POST' && /^\/(vi|en)\/contact\/?$/.test(pathname);
+  const contactLimits = contactPost ? (await getSiteConfig().catch(() => null))?.contactRateLimit : undefined;
+  const retryAfter = contactLimits
+    ? await contactRateLimitRetryAfter(ip, contactLimits)
+    : await rateLimitRetryAfter(ip, Boolean(searchParams.get('q')?.trim()));
   if (retryAfter !== null) {
-    return new NextResponse('Too many requests', { status: 429, headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+    const message = contactPost && first === 'vi' ? 'Bạn gửi quá nhiều tin. Vui lòng thử lại sau.' : 'Too many requests';
+    return new NextResponse(message, { status: 429, headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
   const profileRoute = /^\/(vi|en)\/players\/([^/]+)\/?$/.exec(pathname);
   if (profileRoute && (request.method === 'GET' || request.method === 'HEAD') && isUrlPart(profileRoute[2]!)) {
@@ -41,6 +48,8 @@ export const config = {
   // Exclude actual framework/static routes; dotted page paths must still pass the page limiter.
   // Link prefetches skip the proxy: they are not page views and would eat a shared venue IP's budget.
   matcher: [
+    '/vi/contact',
+    '/en/contact',
     '/api/revalidate',
     '/api/revalidate/:path*',
     {

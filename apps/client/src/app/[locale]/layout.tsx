@@ -43,7 +43,7 @@ export default async function LocaleLayout({
       <body>
         <SiteHeader locale={locale} siteName={siteName} t={t} />
         {children}
-        <SiteFooter text={siteName} />
+        <SiteFooter text={siteName} locale={locale} />
       </body>
     </html>
   );

@@ -167,7 +167,7 @@ export const CACHE_TAGS = {
   'eventType.write': eventCardTags,
   'venue.write': eventCardTags,
   'venueTable.write': (c: EventSlugsTagContext) => c.eventSlugs.flatMap((slug) => [t.event(slug), t.schedule(slug)]),
-  'media.update': (c: EventSlugsTagContext) => [...eventCardTags(c), t.players(), t.rankings()],
+  'media.update': (c: EventSlugsTagContext) => [...eventCardTags(c), t.players(), t.rankings(), t.articles(), t.sponsors(), t.home()],
   'discipline.write': subEventUsageTags,
   'category.write': subEventUsageTags,
   'rankingList.write': rankingListTags,
@@ -190,6 +190,7 @@ export const CACHE_TAGS = {
   'player.merge': playerTags,
   'settings.update': () => [t.settings()],
   'ranking.publish': (c: RankingTagContext) => [t.rankings(), t.ranking(c.listCode), t.players(), ...c.playerSlugs.map(t.player)],
+  'content.write': () => [t.articles(), t.videos(), t.pages(), t.sponsors(), t.home(), t.settings()],
 } as const;
 
 export type CacheTagMutation = keyof typeof CACHE_TAGS;

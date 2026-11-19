@@ -5,6 +5,7 @@ import { listSettings } from './list-settings.js';
 import { importOperationalSettings } from './import-operational-settings.js';
 import { importSettings, playerSettings } from './player-settings.js';
 import { publicSiteSettings } from './public-site-settings.js';
+import { contentSettings } from './content-settings.js';
 import { rankingSettings } from './ranking-settings.js';
 import { tournamentSettings } from './tournament-settings.js';
 
@@ -29,6 +30,7 @@ export const appSettingRegistry = {
   ...importOperationalSettings,
   ...rankingSettings,
   ...publicSiteSettings,
+  ...contentSettings,
 } as const;
 
 export type AppSettingKey = (typeof appSettingRegistry)[keyof typeof appSettingRegistry]['key'];

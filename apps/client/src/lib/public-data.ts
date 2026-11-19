@@ -22,6 +22,14 @@ import {
   type PublicPlayerRedirect,
   type PublicPlayerResults,
   type PublicEventRankingPoints,
+  type PublicArticle,
+  type PublicArticleList,
+  type PublicVideo,
+  type PublicVideoList,
+  type PublicStaticPage,
+  type PublicFooter,
+  type PublicHome,
+  type PublicEventContent,
 } from '@kamito/shared';
 import { publicGet } from './api-client';
 
@@ -74,7 +82,7 @@ export const getResultsStrip = cache(() =>
 
 export const getSiteConfig = cache(() => publicGet<PublicSiteConfig>('/site', { tags: [tags.settings()], policy: 'standard' }));
 
-export const getSitemap = cache(() => publicGet<PublicSitemap>('/sitemap', { tags: [tags.events()], policy: 'standard' }));
+export const getSitemap = cache(() => publicGet<PublicSitemap>('/sitemap', { tags: [tags.events(), tags.articles(), tags.pages()], policy: 'standard' }));
 
 export const getRankings = cache(() =>
   publicGet<PublicRankingOverview>('/rankings', { tags: [tags.rankings(), tags.players(), tags.events(), tags.settings()], policy: 'standard' }),
@@ -106,4 +114,36 @@ export const getEventRankingPoints = cache((slug: string) =>
   publicGet<PublicEventRankingPoints>(`/events/${slug}/ranking-points`, {
     tags: [tags.event(slug), tags.rankings(), tags.settings()], policy: 'standard',
   }),
+);
+
+export const getArticles = cache((query: string, searching = false) =>
+  publicGet<PublicArticleList>(`/articles${query}`, { tags: ['articles', 'settings'], policy: searching ? 'none' : 'standard' }),
+);
+
+export const getArticle = cache((slug: string) =>
+  publicGet<PublicArticle>(`/articles/${slug}`, { tags: ['articles', `article-${slug}`], policy: 'standard' }),
+);
+
+export const getVideos = cache((query = '', searching = false) =>
+  publicGet<PublicVideoList>(`/videos${query}`, { tags: [tags.videos(), tags.settings()], policy: searching ? 'none' : 'standard' }),
+);
+
+export const getVideo = cache((slug: string) =>
+  publicGet<PublicVideo>(`/videos/${slug}`, { tags: ['videos', `video-${slug}`], policy: 'standard' }),
+);
+
+export const getStaticPage = cache((slug: string) =>
+  publicGet<PublicStaticPage>(`/pages/${slug}`, { tags: ['pages', `page-${slug}`], policy: 'standard' }),
+);
+
+export const getFooter = cache(() =>
+  publicGet<PublicFooter>('/footer', { tags: ['pages', 'sponsors'], policy: 'standard' }),
+);
+
+export const getHomeContent = cache(() =>
+  publicGet<PublicHome>('/home', { tags: ['home', 'articles', 'videos', 'sponsors', 'events', 'rankings', 'settings'], policy: 'matchday' }),
+);
+
+export const getEventContent = cache((slug: string) =>
+  publicGet<PublicEventContent>(`/events/${slug}/content`, { tags: [tags.event(slug), tags.articles(), tags.videos(), tags.sponsors(), tags.settings()], policy: 'standard' }),
 );

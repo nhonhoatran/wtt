@@ -48,8 +48,17 @@ export const MENU_GROUPS: MenuGroupDef[] = [
       { key: 'ranking-snapshots', label: 'Kỳ chốt', path: '/ranking-snapshots', resource: 'rankings' },
     ],
   },
-  { key: 'content', label: 'Nội dung', items: [] },
-  { key: 'sponsors', label: 'Nhà tài trợ', items: [] },
+  {
+    key: 'content',
+    label: 'Nội dung',
+    items: [
+      { key: 'articles', label: 'Tin tức', path: '/articles', resource: 'content' },
+      { key: 'videos', label: 'Video', path: '/videos', resource: 'content' },
+      { key: 'static-pages', label: 'Trang tĩnh', path: '/static-pages', resource: 'content' },
+      { key: 'contact-messages', label: 'Hộp thư liên hệ', path: '/contact-messages', resource: 'content' },
+    ],
+  },
+  { key: 'sponsors', label: 'Nhà tài trợ', items: [{ key: 'sponsors', label: 'Nhà tài trợ', path: '/sponsors', resource: 'sponsors' }] },
   {
     key: 'config',
     label: 'Cấu hình',

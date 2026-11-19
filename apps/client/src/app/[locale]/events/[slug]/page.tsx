@@ -4,10 +4,15 @@ import { EventShell } from '../../../../components/events/event-shell';
 import styles from '../../../../components/events/event-overview.module.css';
 import { sideClubs } from '../../../../components/matches/side-name';
 import { SidePlayers } from '../../../../components/players/side-players';
+import { ArticleCard } from '../../../../components/content/article-card';
+import { VideoCard } from '../../../../components/content/video-card';
+import { SponsorStrip } from '../../../../components/content/sponsor-strip';
+import contentStyles from '../../../../components/content/content.module.css';
 import { format } from '../../../../i18n/get-dictionary';
 import { pickLocalized } from '../../../../i18n/pick-localized';
 import { loadEventPage } from '../../../../lib/event-page';
 import { eventPageMetadata } from '../../../../lib/page-metadata';
+import { getEventContent } from '../../../../lib/public-data';
 
 interface OverviewProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -20,6 +25,7 @@ export async function generateMetadata({ params }: OverviewProps): Promise<Metad
 
 export default async function EventOverviewPage({ params }: OverviewProps) {
   const { locale, event, t } = await loadEventPage(params);
+  const content = await getEventContent(event.slug);
   const o = t.event.overview;
   const subName = new Map(event.subEvents.map((s) => [s.code, pickLocalized(locale, s.name, s.nameEn)]));
   const base = `/${locale}/events/${event.slug}`;
@@ -85,6 +91,10 @@ export default async function EventOverviewPage({ params }: OverviewProps) {
           </ul>
       </section>
       )}
+
+      {content?.articles.length ? <section aria-labelledby="event-news"><h2 id="event-news" className="section-title">{locale === 'vi' ? 'Tin tức giải' : 'Tournament news'}</h2><ul className={contentStyles.grid}>{content.articles.map((article) => <li key={article.slug}><ArticleCard article={article} locale={locale} /></li>)}</ul></section> : null}
+      {content?.videos.length ? <section aria-labelledby="event-videos"><h2 id="event-videos" className="section-title">{locale === 'vi' ? 'Video giải' : 'Tournament videos'}</h2><ul className={contentStyles.grid}>{content.videos.map((video) => <li key={video.slug}><VideoCard video={video} locale={locale} playLabel={t.videos.play} /></li>)}</ul></section> : null}
+      {content?.sponsors.length ? <section aria-labelledby="event-sponsors"><h2 id="event-sponsors" className="section-title">{t.home.sponsors}</h2><SponsorStrip sponsors={content.sponsors} locale={locale} /></section> : null}
     </EventShell>
   );
 }

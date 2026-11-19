@@ -1,51 +1,35 @@
 import { App } from 'antd';
-import { useContext, useEffect, useRef } from 'react';
-import { UNSAFE_NavigationContext as NavigationContext } from 'react-router';
+import { useEffect } from 'react';
+import { useBlocker } from 'react-router';
 
 /**
- * Asks before any in-app navigation or tab close while `when` is true.
- * useBlocker needs a data router and the admin runs under BrowserRouter, so the history methods are wrapped
- * the same way @refinedev/react-router does. Browser back/forward cannot be undone after the fact and is not covered.
+ * The data router blocks application links and native browser history before the route unmounts.
+ * Full document navigation and tab close use the browser's beforeunload confirmation.
  */
 export function useUnsavedGuard(when: boolean, message: string) {
-  const { navigator } = useContext(NavigationContext);
+  const blocker = useBlocker(when);
   const { modal } = App.useApp();
-  const asking = useRef(false);
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (!when) { blocker.reset(); return; }
+    const dialog = modal.confirm({
+      title: message,
+      okText: 'Bỏ thay đổi',
+      cancelText: 'Ở lại',
+      onOk: () => blocker.proceed(),
+      onCancel: () => blocker.reset(),
+    });
+    return () => dialog.destroy();
+  }, [blocker, when, modal, message]);
 
   useEffect(() => {
     if (!when) return;
-    const { push, replace, go } = navigator;
-    const guard =
-      <A extends unknown[]>(original: (...args: A) => void) =>
-      (...args: A) => {
-        if (asking.current) return;
-        asking.current = true;
-        modal.confirm({
-          title: message,
-          okText: 'Bỏ thay đổi',
-          cancelText: 'Ở lại',
-          onOk: () => {
-            asking.current = false;
-            original(...args);
-          },
-          onCancel: () => {
-            asking.current = false;
-          },
-        });
-      };
-    navigator.push = guard(push);
-    navigator.replace = guard(replace);
-    navigator.go = guard(go);
     const warnUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = message;
     };
     window.addEventListener('beforeunload', warnUnload);
-    return () => {
-      navigator.push = push;
-      navigator.replace = replace;
-      navigator.go = go;
-      window.removeEventListener('beforeunload', warnUnload);
-    };
-  }, [when, message, navigator, modal]);
+    return () => window.removeEventListener('beforeunload', warnUnload);
+  }, [when, message]);
 }

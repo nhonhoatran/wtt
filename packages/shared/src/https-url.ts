@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const MAX_URL_LENGTH = 2048;
+// eslint-disable-next-line no-control-regex -- URL validation deliberately rejects ASCII control characters.
 const CONTROL_OR_SPACE = /[\s\x00-\x1f\x7f]/;
 
 /** Only https: URLs are stored; blocks javascript:, data:, http: and protocol-relative tricks. */

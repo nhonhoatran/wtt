@@ -13,6 +13,9 @@ export function MainNav({ locale, t }: { locale: Locale; t: Dictionary['nav'] })
   const calendarHref = `${eventsHref}/calendar`;
   const rankingsHref = `/${locale}/rankings`;
   const playersHref = `/${locale}/players`;
+  const newsHref = `/${locale}/news`;
+  const videosHref = `/${locale}/videos`;
+  const contactHref = `/${locale}/contact`;
   const inEvents = pathname?.startsWith(`${eventsHref}/`) && pathname !== calendarHref;
   const links = (
     <ul className={styles.navList}>
@@ -28,6 +31,9 @@ export function MainNav({ locale, t }: { locale: Locale; t: Dictionary['nav'] })
       <li>
         <Link href={playersHref} aria-current={pathname === playersHref ? 'page' : pathname?.startsWith(`${playersHref}/`) ? 'location' : undefined}>{t.players}</Link>
       </li>
+      <li><Link href={newsHref} aria-current={pathname === newsHref || pathname?.startsWith(`${newsHref}/`) ? 'location' : undefined}>{t.news}</Link></li>
+      <li><Link href={videosHref} aria-current={pathname === videosHref || pathname?.startsWith(`${videosHref}/`) ? 'location' : undefined}>{t.videos}</Link></li>
+      <li><Link href={contactHref} aria-current={pathname === contactHref ? 'page' : undefined}>{t.contact}</Link></li>
     </ul>
   );
   return (

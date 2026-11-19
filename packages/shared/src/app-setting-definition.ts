@@ -31,12 +31,15 @@ export interface EventSettingEditor {
   kind: 'event';
 }
 
+export interface JsonSettingEditor { kind: 'json' }
+
 export type AppSettingEditor =
   | NumberSettingEditor
   | TextSettingEditor
   | BooleanSettingEditor
   | TimezoneSettingEditor
   | EventSettingEditor
+  | JsonSettingEditor
   | ChoiceSettingEditor;
 
 export const APP_SETTING_GROUPS = [
@@ -50,6 +53,7 @@ export const APP_SETTING_GROUPS = [
   { key: 'draw', label: 'Bốc thăm & nhánh đấu' },
   { key: 'ranking', label: 'Xếp hạng' },
   { key: 'publicAccess', label: 'Truy cập site công khai' },
+  { key: 'content', label: 'Nội dung công khai' },
 ] as const;
 export type AppSettingGroupKey = (typeof APP_SETTING_GROUPS)[number]['key'];
 

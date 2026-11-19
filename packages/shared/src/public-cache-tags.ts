@@ -25,6 +25,14 @@ export const publicCacheTags = {
   rankings: () => 'rankings',
   ranking: (listCode: string) => join('ranking', listCode),
   settings: () => 'settings',
+  articles: () => 'articles',
+  article: (slug: string) => join('article', slug),
+  videos: () => 'videos',
+  video: (slug: string) => join('video', slug),
+  pages: () => 'pages',
+  page: (slug: string) => join('page', slug),
+  sponsors: () => 'sponsors',
+  home: () => 'home',
 } as const;
 
 const TAG = /^[a-z][A-Za-z0-9_.-]*$/;

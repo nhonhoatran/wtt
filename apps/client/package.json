@@ -18,7 +18,8 @@
     "ioredis": "6.0.0",
     "next": "16.4.5",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "sanitize-html": "2.18.1"
   },
   "devDependencies": {
     "@kamito/config": "workspace:*",
@@ -26,6 +27,7 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/sanitize-html": "2.16.2",
     "eslint": "10.13.0",
     "typescript": "6.0.3",
     "vitest": "5.0.5"

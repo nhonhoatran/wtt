@@ -9,6 +9,7 @@ const CSP_REPORT_ONLY = [
   "img-src 'self' data: https:",
   "font-src 'self'",
   "connect-src 'self'",
+  'frame-src https://www.youtube-nocookie.com https://www.facebook.com',
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

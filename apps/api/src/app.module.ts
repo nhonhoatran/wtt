@@ -41,6 +41,8 @@ import { PublicCompetitionModule } from './modules/public-competition/public-com
 import { PublicEventsModule } from './modules/public-events/public-events.module.js';
 import { PublicRankingsModule } from './modules/public-rankings/public-rankings.module.js';
 import { PublicPlayersModule } from './modules/public-players/public-players.module.js';
+import { PublicContentModule } from './modules/public-content/public-content.module.js';
+import { ContentModule } from './modules/content/content.module.js';
 
 @Module({
   imports: [
@@ -81,6 +83,8 @@ import { PublicPlayersModule } from './modules/public-players/public-players.mod
     PublicEventsModule,
     PublicRankingsModule,
     PublicPlayersModule,
+    PublicContentModule,
+    ContentModule,
     RankingJobsModule,
     RankingListsModule,
     RankingRulesModule,

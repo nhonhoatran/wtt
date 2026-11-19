@@ -35,7 +35,7 @@ it('reads upstream with no-store and a bounded timeout when Redis reads fail', a
   const timeout = vi.spyOn(AbortSignal, 'timeout');
   expect(await publicGet('/events/sample', { tags: ['event-sample'], policy: 'matchday' })).toEqual({ name: 'Fresh event' });
   expect(dependencies.fetch).toHaveBeenCalledWith('http://api.internal/api/v1/public/events/sample', expect.objectContaining({
-    cache: 'no-store', headers: { 'x-internal-secret': 'test-ssr-secret' }, signal: expect.any(AbortSignal),
+    cache: 'no-store', headers: { 'x-internal-secret': 'test-ssr-secret', 'Accept-Encoding': 'gzip' }, signal: expect.any(AbortSignal),
   }));
   expect(timeout).toHaveBeenCalledWith(3210);
   expect(dependencies.warn).toHaveBeenCalledTimes(1);

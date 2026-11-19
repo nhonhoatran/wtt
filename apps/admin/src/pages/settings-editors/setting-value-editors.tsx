@@ -1,5 +1,6 @@
 import { useSelect } from '@refinedev/antd';
-import { Input, InputNumber, Select, Switch } from 'antd';
+import { Form, Input, InputNumber, Select, Switch } from 'antd';
+import { useEffect, useState } from 'react';
 import { useMemo } from 'react';
 
 interface ControlProps<T> {
@@ -55,4 +56,31 @@ export function EventSettingEditor({ value, onChange }: ControlProps<string | nu
       style={{ width: CONTROL_WIDTH }}
     />
   );
+}
+
+/** JSON is kept editable as text, while only valid values enter the settings form. */
+export function JsonSettingEditor({ value, onChange, settingKey }: ControlProps<unknown> & { settingKey: string }) {
+  const [text, setText] = useState(() => JSON.stringify(value ?? null, null, 2));
+  const [error, setError] = useState<string>();
+  const form = Form.useFormInstance();
+
+  useEffect(() => {
+    setText(JSON.stringify(value ?? null, null, 2));
+  }, [value]);
+
+  const update = (next: string) => {
+    setText(next);
+    try {
+      const parsed: unknown = JSON.parse(next);
+      onChange?.(parsed);
+      setError(undefined);
+      form.setFields([{ name: settingKey, errors: [] }]);
+    } catch {
+      const message = 'JSON chưa hợp lệ';
+      setError(message);
+      form.setFields([{ name: settingKey, errors: [message] }]);
+    }
+  };
+
+  return <Input.TextArea value={text} onChange={(event) => update(event.target.value)} autoSize={{ minRows: 4, maxRows: 14 }} status={error ? 'error' : undefined} aria-invalid={Boolean(error)} />;
 }

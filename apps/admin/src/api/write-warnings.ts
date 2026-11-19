@@ -5,6 +5,7 @@ type MessageApi = ReturnType<typeof App.useApp>['message'];
 /** Codes the API attaches to an already committed write; anything else is already a readable sentence. */
 export const WARNING_LABELS: Record<string, string> = {
   PUBLIC_REFRESH_DELAYED: 'Đã lưu. Trang công khai sẽ cập nhật chậm hơn',
+  ARTICLE_PUBLISHING_DELAYED: 'Đã lưu lịch đăng. Tác vụ đăng đang chậm; hệ thống sẽ kiểm tra lại tự động',
   RANKING_RECOMPUTE_DELAYED: 'Đã lưu. Bảng xếp hạng sẽ cập nhật chậm hơn',
   RANKING_SNAPSHOT_REBUILD_SUGGESTED: 'Nên tạo lại bản chụp xếp hạng mới vì VĐV đã được gộp',
 };

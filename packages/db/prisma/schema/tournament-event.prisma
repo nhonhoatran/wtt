@@ -41,6 +41,9 @@ model Event {
   sessions      EventSession[]
   matchCounter  EventMatchCounter?
   rankingPoints RankingPointsEarned[]
+  articles      ArticleEvent[]
+  videos        Video[]
+  sponsors      Sponsor[]
 
   @@index([startDate])
   @@index([eventTypeId])

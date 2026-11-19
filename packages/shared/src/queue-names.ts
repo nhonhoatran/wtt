@@ -5,6 +5,7 @@ export const QueueName = {
   Import: 'import',
   Revalidate: 'revalidate',
   Ranking: 'ranking',
+  Publishing: 'publishing',
 } as const;
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName];
@@ -21,3 +22,6 @@ export function isQueuePrefixValid(prefix: string | undefined, appEnv: string): 
 export const RANKING_RECOMPUTE_JOB = 'recompute-sub-event';
 export const RANKING_SNAPSHOT_JOB = 'build-snapshot';
 export const RANKING_SWEEP_JOB = 'sweep-dirty-sub-events';
+export const PUBLISH_ARTICLE_JOB = 'publish-article';
+export const PUBLISHING_SWEEP_JOB = 'publishing-sweep';
+export const CONTACT_RETENTION_JOB = 'contact-retention';

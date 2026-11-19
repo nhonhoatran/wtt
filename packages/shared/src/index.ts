@@ -37,3 +37,5 @@ export * from './public-bracket-contract.js';
 export * from './public-api.js';
 export * from './public-ranking-contract.js';
 export * from './public-player-slug.js';
+export * from './content-settings.js';
+export * from './public-content-contract.js';

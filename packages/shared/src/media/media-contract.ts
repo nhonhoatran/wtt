@@ -4,6 +4,10 @@ export const MEDIA_PURPOSES = [
   'event-type-logo',
   'event-type-background',
   'event-banner',
+  'article-cover',
+  'article-body',
+  'sponsor-logo',
+  'sponsor-logo-dark',
   'player-photo',
 ] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];

@@ -67,6 +67,9 @@
     "calendar": "Calendar",
     "rankings": "Rankings",
     "players": "Players",
+    "news": "News",
+    "videos": "Videos",
+    "contact": "Contact",
     "language": "Language",
     "switchTo": "Tiếng Việt",
     "switchToCode": "VI"
@@ -78,6 +81,13 @@
   "home": {
     "ongoing": "In progress",
     "upcoming": "Upcoming",
+    "featured": "Featured tournaments",
+    "news": "Featured news",
+    "allNews": "All news",
+    "videos": "Latest videos",
+    "allVideos": "All videos",
+    "rankings": "Rankings",
+    "sponsors": "Sponsors",
     "allEvents": "See all events",
     "empty": "No events have been published yet."
   },
@@ -279,5 +289,35 @@
     "status": "Status / result",
     "timePending": "Time to be confirmed",
     "timezone": "Time zone: {timezone}"
+  },
+  "news": {
+    "title": "News",
+    "description": "The latest updates on table tennis tournaments and activities.",
+    "filterLabel": "Filter news",
+    "category": "Category",
+    "allCategories": "All categories",
+    "filter": "Filter",
+    "empty": "No news has been published yet.",
+    "videos": "Watch videos"
+  },
+  "videos": {
+    "title": "Videos",
+    "description": "Videos from table tennis tournaments and activities.",
+    "play": "Play video",
+    "empty": "No videos have been published yet.",
+    "news": "Read news"
+  },
+  "contact": {
+    "title": "Contact",
+    "description": "Send a message to the tournament team.",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone (optional)",
+    "organization": "Organization (optional)",
+    "message": "Message",
+    "submit": "Send message",
+    "sending": "Sending...",
+    "success": "Thank you. Your message has been received.",
+    "error": "Your message could not be sent. Please try again later."
   }
 }

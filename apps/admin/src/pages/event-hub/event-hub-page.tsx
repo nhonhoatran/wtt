@@ -19,6 +19,7 @@ import { EventInfoTab } from './event-info-tab';
 import type { HubTabContext } from './hub-tab-context';
 import { ScheduleTab } from './schedule-tab';
 import { SubEventsTab } from './sub-events-tab';
+import { SponsorsTab } from './sponsors-tab';
 
 interface HubTabDef {
   key: string;
@@ -33,6 +34,7 @@ const HUB_TABS: HubTabDef[] = [
   { key: 'entries', label: 'Danh sách', render: (context) => <EntriesTab {...context} /> },
   { key: 'draws', label: 'Bốc thăm', render: (context) => <DrawsTab {...context} /> },
   { key: 'schedule', label: 'Lịch & kết quả', render: (context) => <ScheduleTab {...context} /> },
+  { key: 'sponsors', label: 'Tài trợ', render: (context) => <SponsorsTab {...context} /> },
 ];
 const DEFAULT_TAB = HUB_TABS[0]!.key;
 
@@ -44,6 +46,7 @@ export function EventHubPage() {
   const canCreate = useCan({ resource: 'tournaments', action: 'create' }).data?.can ?? false;
   const canDelete = useCan({ resource: 'tournaments', action: 'delete' }).data?.can ?? false;
   const canPublish = useCan({ resource: 'tournaments', action: 'publish' }).data?.can ?? false;
+  const canListSponsors = useCan({ resource: 'sponsors', action: 'list' }).data?.can ?? false;
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-event', id],
     queryFn: async () => (await apiFetch<{ data: EventRecord }>(`/admin/events/${encodeURIComponent(id)}`)).data,
@@ -74,7 +77,8 @@ export function EventHubPage() {
     );
   }
 
-  const activeKey = HUB_TABS.some((item) => item.key === tab) ? tab : DEFAULT_TAB;
+  const tabs = HUB_TABS.filter((item) => item.key !== 'sponsors' || canListSponsors);
+  const activeKey = tabs.some((item) => item.key === tab) ? tab : DEFAULT_TAB;
   const context: HubTabContext = { event: data, canUpdate, canCreate, canDelete, onChanged };
 
   return (
@@ -96,7 +100,7 @@ export function EventHubPage() {
       <Tabs
         activeKey={activeKey}
         onChange={(key) => navigate(`/events/${data.id}/${key}`)}
-        items={HUB_TABS.map((item) => ({ key: item.key, label: item.label, children: item.render(context) }))}
+        items={tabs.map((item) => ({ key: item.key, label: item.label, children: item.render(context) }))}
       />
     </Flex>
   );
