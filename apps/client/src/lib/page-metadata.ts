@@ -31,7 +31,13 @@ export function pageMetadata(locale: Locale, path: string, { title, description,
       locale: OG_LOCALES[locale],
       ...(title ? { title } : {}),
       ...(description ? { description } : {}),
-      ...(image ? { images: [{ url: image.url, width: image.width, height: image.height, alt: image.alt ?? undefined }] } : {}),
+      ...(image ? { images: [{ url: image.url, width: image.width, height: image.height, alt: pickLocalized(locale, image.alt ?? '', image.altEn) || undefined }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      ...(title ? { title } : {}),
+      ...(description ? { description } : {}),
+      ...(image ? { images: [image.url] } : {}),
     },
   };
 }

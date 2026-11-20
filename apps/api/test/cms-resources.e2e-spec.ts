@@ -8,11 +8,12 @@ describe('CMS video, sponsors, and static pages (real Postgres + Redis)', () => 
   afterAll(async () => { if (cms) await cms.close(); }, 60_000);
 
   it('extracts a video provider on create, exposes published detail, and archives it', async () => {
-    const payload = { slug: `video-${cms.tag}`, title: `Video ${cms.tag}`, titleEn: 'English video', url: 'https://youtu.be/Abcdef_1234', status: 'PUBLISHED' };
+    const payload = { slug: `video-${cms.tag}`, title: `Video ${cms.tag}`, titleEn: 'English video', durationText: '5 phút', durationTextEn: '5 minutes', url: 'https://youtu.be/Abcdef_1234', status: 'PUBLISHED' };
     const video = await cms.create('videos', payload);
-    expect(video).toMatchObject({ provider: 'youtube', embedId: 'Abcdef_1234', url: 'https://www.youtube.com/watch?v=Abcdef_1234' });
+    expect(video).toMatchObject({ provider: 'youtube', embedId: 'Abcdef_1234', url: 'https://www.youtube.com/watch?v=Abcdef_1234', durationText: '5 phút', durationTextEn: '5 minutes' });
     const detail = (await cms.publicGet(`videos/${payload.slug}`).expect(200)).body.data;
-    expect(detail).toMatchObject({ slug: payload.slug, titleEn: 'English video', provider: 'youtube', embedId: 'Abcdef_1234' });
+    expect(detail).toMatchObject({ slug: payload.slug, titleEn: 'English video', provider: 'youtube', embedId: 'Abcdef_1234', durationText: '5 phút', durationTextEn: '5 minutes' });
+    expect(Object.keys(detail).sort()).toEqual(['slug', 'title', 'titleEn', 'provider', 'embedId', 'url', 'thumbnailUrl', 'durationText', 'durationTextEn', 'publishedAt', 'eventSlug'].sort());
     expect(detail).not.toHaveProperty('id');
     expect((await cms.get(`videos/${video.id}`).expect(200)).body.data.id).toBe(video.id);
     await cms.write('patch', `videos/${video.id}`, { ...payload, status: 'ARCHIVED' }).expect(200);
@@ -47,17 +48,20 @@ describe('CMS video, sponsors, and static pages (real Postgres + Redis)', () => 
   });
 
   it('sanitizes static pages, accepts the admin footer sort, and returns only published footer pages', async () => {
-    const payload = { slug: `page-${cms.tag}`, title: `Page ${cms.tag}`, titleEn: 'English page', body: '<p>About us</p><script>alert(1)</script>', bodyEn: '<p>English</p><img src="javascript:x" onerror="alert(1)">', footerGroup: `Group ${cms.tag}`, footerOrder: 3 };
+    const payload = { slug: `page-${cms.tag}`, title: `Page ${cms.tag}`, titleEn: 'English page', body: '<p>About us</p><script>alert(1)</script>', bodyEn: '<p>English</p><img src="javascript:x" onerror="alert(1)">', footerGroup: `Group ${cms.tag}`, footerGroupEn: `English group ${cms.tag}`, footerOrder: 3 };
     const page = await cms.create('static-pages', payload);
     expect(page.body + String(page.bodyEn)).not.toMatch(/script|onerror|javascript:/i);
     expect((await cms.publicGet(`pages/${payload.slug}`).expect(200)).body.data).toBeNull();
     await cms.write('patch', `static-pages/${page.id}`, { ...payload, status: 'PUBLISHED' }).expect(200);
     const adminList = await cms.get(`static-pages?q=${cms.tag}&sort=footerOrder:asc&pageSize=1`).expect(200);
-    expect(adminList.body.data[0]).toMatchObject({ footerOrder: 3, slug: payload.slug });
+    expect(adminList.body.data[0]).toMatchObject({ footerOrder: 3, slug: payload.slug, footerGroupEn: payload.footerGroupEn });
     expect((await cms.get(`static-pages/${page.id}`).expect(200)).body.data.id).toBe(page.id);
     expect((await cms.publicGet(`pages/${payload.slug}`).expect(200)).body.data).toMatchObject({ titleEn: 'English page', body: '<p>About us</p>' });
     const footer = (await cms.publicGet('footer').expect(200)).body.data.pages;
-    expect(footer).toContainEqual(expect.objectContaining({ slug: payload.slug, group: payload.footerGroup, order: 3 }));
+    expect(footer).toContainEqual(expect.objectContaining({ slug: payload.slug, group: payload.footerGroup, groupEn: payload.footerGroupEn, order: 3 }));
+    expect(Object.keys(footer.find((row: { slug: string }) => row.slug === payload.slug)).sort()).toEqual(['slug', 'title', 'titleEn', 'group', 'groupEn', 'order'].sort());
+    const englishOnly = await cms.create('static-pages', { slug: `english-footer-${cms.tag}`, title: 'English footer group', body: '<p>English group</p>', footerGroupEn: 'English only group', status: 'PUBLISHED' });
+    expect((await cms.publicGet('footer').expect(200)).body.data.pages).toContainEqual(expect.objectContaining({ slug: englishOnly.slug, group: null, groupEn: 'English only group' }));
     await cms.write('post', 'static-pages', { ...payload, slug: `scheduled-${cms.tag}`, status: 'SCHEDULED' }).expect(422);
     await cms.write('delete', `static-pages/${page.id}`).expect(200);
     expect((await cms.publicGet(`pages/${payload.slug}`).expect(200)).body.data).toBeNull();

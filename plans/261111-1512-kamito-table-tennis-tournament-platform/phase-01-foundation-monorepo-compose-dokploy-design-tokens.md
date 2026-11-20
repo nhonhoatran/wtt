@@ -291,7 +291,7 @@ Modify / Delete: không có (repo trống).
 - [ ] Preflight PG/Redis/MinIO/Traefik + câu hỏi chủ hạ tầng; chọn thiết kế upload (a)/(b) — chờ chủ hạ tầng
 - [ ] Chủ sở hữu sao lưu + RPO; lịch diễn tập khôi phục trước pilot — chờ chủ hạ tầng
 - [ ] 2 project Dokploy (staging, prod); deploy hello lên staging — chờ hạ tầng
-- [ ] CI frozen lockfile + audit + quét secret + lint/typecheck/test/build — đã viết `.github/workflows/ci.yml`, chưa chạy trên GitHub (chưa có remote)
+- [ ] CI frozen lockfile + audit + quét secret + lint/typecheck/test/build — đã viết `.github/workflows/ci.yml`; hiện có remote `origin` (kiểm 2026-11-19), chưa có bằng chứng lượt GitHub CI đạt
 - [x] docs/ khởi tạo (gồm quy trình phát hành) — code-standards, system-architecture, deployment-guide
 
 ## Success Criteria

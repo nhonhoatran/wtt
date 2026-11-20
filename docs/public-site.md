@@ -1,6 +1,7 @@
-# Site công khai — Kamito (phase 08, 10 và 11)
+# Site công khai — Kamito (phase 08, 10–12)
 
-> Cập nhật: 2026-11-19 · Phase 11 đã bổ sung tin tức, video, trang tĩnh, liên hệ và nội dung trang chủ. Kiểm thử local và giao diện admin/công khai với API mẫu đã đạt; migration, E2E dùng DB thật và staging vẫn chờ xác nhận. M1/M2 và xác nhận hạ tầng thật vẫn mở. Kết quả kiểm thử theo đợt ở [changelog](./project-changelog.md).
+> Cập nhật: 2026-11-19 · Phase 11–12 đã có CMS, bổ sung tiếng Anh, SEO và hardening trong working tree. API tích hợp và ba suite Playwright công khai đã đạt với PostgreSQL/Redis thật trên DB local riêng `kamito_tt_phase12_test`; 18 migration chỉ được áp dụng vào DB test trong đợt này. DB dev, staging, M1/M2 và hạ tầng phát hành vẫn chưa được nghiệm thu. Kết quả theo đợt ở [changelog](./project-changelog.md).
+> Bổ sung phase 12: metadata Twitter, JSON-LD `SportsEvent` và header bảo mật đã có trong mã nguồn. CSP vẫn là report-only; chưa có báo cáo vi phạm staging để nghiệm thu chuyển sang enforce.
 > Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/{public-events,public-competition,public-rankings,public-players,public-content}/`, `apps/client/tests/e2e/`.
 > Kiến trúc chung xem [system-architecture.md](./system-architecture.md#site-công-khai-phase-08). Biến môi trường và chạy Playwright xem [deployment-guide.md](./deployment-guide.md#playwright-e2e-client). Kế hoạch: `plans/261111-1512-kamito-table-tennis-tournament-platform/phase-08-public-site-shell-event-pages-and-bracket-ui.md`.
 
@@ -40,7 +41,7 @@ Nguyên tắc:
 | Trang trận | 2 | Xong. Đứng ngoài `EventShell` |
 | Trang chủ (giải nổi bật, đang và sắp diễn ra) | 2 và phase 11 | Đã thay bản tạm bằng các khối CMS, xếp hạng và tài trợ có cấu hình |
 | Bản in nhánh (`@media print`, `@page bracket`) | 3 | Xong |
-| Metadata, canonical, hreflang, OG, sitemap, robots | 3 | Xong |
+| Metadata, canonical, hreflang, OG, sitemap, robots | 3; bổ sung phase 12 | Đã triển khai; Twitter card và JSON-LD `SportsEvent` bổ sung trong phase 12. Phạm vi sitemap và các mục còn mở xem mục SEO |
 | Rate limit công khai, CSP report-only | 3 + bổ sung | Redis atomic dùng chung; bộ đếm cục bộ dự phòng khi Redis lỗi |
 | Playwright e2e | 3 + bổ sung | Lượt cuối 51 đạt/7 bỏ qua theo viewport; xem báo cáo hoàn tất nợ còn lại |
 | Lịch theo session/bàn, bản in lịch | Bổ sung 2026-11-15 | Đã triển khai trên dữ liệu phase 07. API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile) ([scheduling](./scheduling.md)) |
@@ -109,7 +110,7 @@ Tiền tố `/api/v1/public`. Các API đọc nội dung dùng `GET`, `@Public()
 | `events/:slug/entries/:subEventCode` | `stage`, `page`. Không trả SĐT, email, ngày sinh |
 | `results/strip` | Trận `LIVE` và `OFFICIAL` gần nhất của giải đang diễn ra |
 | `site` | Tên site (`site.name`) và cấu hình rate limit |
-| `sitemap` | URL giải, tin và trang tĩnh đã công bố cho sitemap |
+| `sitemap` | Dữ liệu slug/ngày sửa của giải, tin, video và trang tĩnh đã công bố; tab/nội dung giải khả dụng và trận `OFFICIAL` chưa void thuộc phạm vi công khai. Client dựng URL sitemap từ payload này |
 | `rankings` | Bảng đang bật và top N của kỳ `PUBLISHED` mới nhất; overview không tải breakdown |
 | `rankings/:listCode` | `page`, `pageSize` (trần kỹ thuật 100), `q`, `club`; trả đủ breakdown của các dòng trong trang |
 | `players` | `q`, `gender`, `club`, `page`, `sort=name|rank`; tìm, sắp xếp trước phân trang ở PostgreSQL |
@@ -137,6 +138,7 @@ Quy tắc phạm vi và trả về:
 - Màn soạn tin admin chia hai cột, có tab Tiếng Việt/English và cảnh báo bản dịch thiếu. Bản nháp lưu thủ công; `Đăng ngay` có xác nhận; menu cạnh nút mở lịch đăng. Rời trang khi có thay đổi hoặc ảnh đang tải phải xác nhận.
 - Ảnh dán từ clipboard đi qua upload intent → tải tệp → xác nhận hoàn tất → xử lý ảnh. Editor chỉ chèn URL HTTPS sau khi media ở trạng thái `READY`; HTML dán không nhập ảnh từ bên ngoài hoặc `data:` URL. Môi trường local cần `MEDIA_PUBLIC_BASE_URL` là URL HTTPS công khai để chèn ảnh vào rich text; URL tương đối hoặc HTTP bị từ chối.
 - Bài viết và trang tĩnh có trường vi/en; giao diện chọn bản tiếng Anh khi có, nếu thiếu thì dùng tiếng Việt. Trang footer và nhà tài trợ site-wide lấy nội dung đã công bố/đang bật.
+- Phase 12 thêm `Article.categoryEn`, `Video.durationTextEn` và `StaticPage.footerGroupEn` xuyên suốt schema, admin, DTO, public whitelist và SSR. Nhãn bộ lọc chuyên mục lấy từ setting động `news.categoryLabelsEn`; chỉ xuất nhãn chuỗi của mã chuyên mục đang cấu hình, kiểm own-property để không đọc giá trị kế thừa như `__proto__`/`constructor`. Mã chuyên mục dùng để lọc không đổi; tóm tắt chỉ có tiếng Anh vẫn hiển thị ở locale `en`.
 - Video chỉ nhận URL HTTPS từ nhà cung cấp được parser cho phép. Thẻ xem trước tải ảnh thu nhỏ trước; iframe YouTube privacy-enhanced hoặc Facebook chỉ được tạo sau thao tác phát, có `sandbox` và `referrerpolicy`.
 - Trang chủ có thứ tự khối cố định. `home.sections` bật/tắt khối; `home.itemsPerSection` điều chỉnh số mục. Dải giải lọc giải đã kết thúc và sắp các giải còn diễn ra theo múi giờ riêng của giải.
 - Form liên hệ dùng Next Server Action rồi gọi API nội bộ. Next proxy áp dụng `contact.rateWindowSeconds`/`contact.rateMaxRequests` cho POST tới route liên hệ và trả HTTP 429 kèm `Retry-After` khi vượt hạn mức. API kiểm tra IP đã xác minh và hạn mức bổ sung; DB chỉ lưu hash có salt. Worker dọn thư theo `contact.retentionDays`.
@@ -148,7 +150,7 @@ Admin chạy ứng dụng thật với API/media mẫu: 8/8 ca browser đạt, g
 
 Sáu package shared, DB, API, worker, admin và client đều typecheck/lint/build đạt. Admin có 6 kiểm tra Windows (3 image policy, 3 hồi quy TipTap thật) và 5 kiểm tra WSL entrypoint, nằm trong tổng 383 kiểm tra mã nguồn/script ở trên. Các lượt browser dùng dữ liệu mẫu được tính riêng.
 
-Đây là kiểm mã giao diện/SSR/CSS/tương tác với dữ liệu mẫu, không thay thế 16 ca API E2E và 18 ca Playwright dùng DB thật đã viết nhưng chưa chạy. Các lượt này không kiểm lưu thư vào DB, worker hẹn giờ, upload storage/CDN thật, Redis nhiều replica, IP qua Traefik/CDN hoặc staging. Chi tiết và ảnh công khai: [báo cáo kiểm UI với API mẫu](../plans/reports/tester-261119-phase-11-cms-mock-ui.md).
+Các lượt mock ở trên là bằng chứng lịch sử về giao diện. Đợt phase 12 tiếp theo đã chạy API tích hợp thật **32 ca duy nhất/7 file** và ba suite Playwright công khai thật **55 đạt/5 bỏ qua có chủ đích theo viewport/0 lỗi** với Next production, API dist, PostgreSQL/Redis local và storage local. Chỉ iframe nhà cung cấp YouTube được thay bằng fixture. Đã kiểm nhãn tiếng Anh, canonical/hreflang, Twitter/JSON-LD, sitemap, header và CSP report-only. Không suy kết quả này thành toàn bộ ma trận CMS, worker hẹn giờ, storage/CDN S3 thật, nhiều replica, IP qua Traefik/CDN hoặc staging. Xem [API thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-phase-12-real-api.md), [Playwright thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-2234-phase-12-bilingual-public-e2e.md) và [UI mock lịch sử](../plans/reports/tester-261119-phase-11-cms-mock-ui.md).
 
 ## Xếp hạng và hồ sơ VĐV (phase 10)
 
@@ -176,7 +178,7 @@ Trình duyệt ──> proxy.ts (locale, rate limit, chặn /api/revalidate)
 
 | `policy` | TTL | Dùng cho |
 |---|---|---|
-| `standard` | `PUBLIC_REVALIDATE_SECONDS` | Danh sách, lịch, thông tin, VĐV, sitemap, site |
+| `standard` | `PUBLIC_REVALIDATE_SECONDS` | Danh sách, lịch, thông tin, VĐV, site; loader bảng xếp hạng trong sitemap vẫn dùng cache riêng |
 | `matchday` | `MATCHDAY_REVALIDATE_SECONDS` | Trang giải đang đấu: trang giải, trận, nhánh, bảng, dải kết quả; lịch theo session/bàn |
 | `none` | không cache | Trang có `q` (tìm kiếm tự do) |
 
@@ -246,11 +248,18 @@ Lưu ý:
 
 | Thành phần | Vị trí | Nội dung |
 |---|---|---|
-| `pageMetadata()` | `lib/page-metadata.ts` | Title, description, canonical, `alternates.languages` gồm `vi`, `en`, `x-default`, Open Graph |
+| `pageMetadata()` | `lib/page-metadata.ts` | Title, description, canonical, `alternates.languages` gồm `vi`, `en`, `x-default`, Open Graph và Twitter `summary_large_image` |
 | `eventPageMetadata()` | `lib/page-metadata.ts` | Như trên, cho trang thuộc giải (dùng banner giải làm ảnh OG) |
 | `metadataBase` | `app/[locale]/layout.tsx` | Lấy từ `PUBLIC_SITE_URL` |
-| `app/sitemap.ts` | Route | `dynamic = 'force-dynamic'`. Dữ liệu giải, tin và trang tĩnh từ `GET /public/sitemap`, bảng đang bật từ `GET /public/rankings`. Sinh lúc chạy; không chứa URL VĐV |
-| `app/robots.ts` | Route | `dynamic = 'force-dynamic'`. Cho phép `/`, chặn `/api/`, trỏ tới `sitemap.xml` |
+| `app/sitemap.xml/route.ts`, `app/sitemap/[id]/route.ts` | Route | `dynamic = 'force-dynamic'`. Dữ liệu giải/tab/trận, tin, video và trang tĩnh từ `GET /public/sitemap`, bảng đang bật từ `GET /public/rankings`. Root trả URL set hoặc index khi cần chia file; không chứa URL hồ sơ VĐV |
+| `app/robots.ts` | Route | `dynamic = 'force-dynamic'`. Cho phép `/`, chặn `/api` và `/api/`, trỏ tới `sitemap.xml` |
+| JSON-LD | `lib/json-ld.ts`, trang giải/tin/video | Trang tổng quan giải dùng `SportsEvent`; trang tin có `NewsArticle`, trang video có `VideoObject`. Không sinh `Person` cho hồ sơ VĐV |
+
+Sitemap xuất riêng URL `vi` và `en` cho mỗi nội dung, cùng alternate `vi`, `en`, `x-default`. Phạm vi gồm các trang tổng quan tĩnh, giải và tab khả dụng (`info`, `matches`, nhánh chính/vòng loại, bảng, danh sách đăng ký theo nội dung), trận `OFFICIAL` công khai chưa void/không BYE, tin, video, trang tĩnh CMS và bảng xếp hạng đang bật. Không sinh route tab chỉ để chuyển hướng. API kiểm trạng thái công bố và trả khả năng hiển thị từng tab; `getSitemap` đọc với `policy: 'none'`, không giữ cache JSON/Redis giữa các request. Dữ liệu bảng xếp hạng vẫn dùng loader/cache riêng.
+
+`lib/sitemap-xml.ts` sắp xếp URL ổn định, escape XML và chia theo hai giới hạn giao thức: tối đa 50.000 URL và 50 MiB XML UTF-8 chưa nén trong mỗi file, gồm cả wrapper/alternate. `/sitemap.xml` giữ nguyên URL đã khai trong robots: một file thì trả `urlset`, nhiều file thì trả `sitemapindex` trỏ tới `/sitemap/0.xml`, `/sitemap/1.xml`… Cả URL set lẫn index đều kiểm giới hạn; không cắt bỏ URL âm thầm. Response XML có `Cache-Control: no-store`. Chunk không tồn tại hoặc ID sai dạng nhận 404, không bị proxy chuyển sang locale hay tính vào hạn mức trang. Đây là giới hạn kỹ thuật của định dạng, không phải giá trị nghiệp vụ cấu hình trên admin.
+
+`SportsEvent` lấy tên/tóm tắt theo locale, ngày bắt đầu/kết thúc từ dữ liệu giải, URL canonical theo `PUBLIC_SITE_URL`, banner, địa điểm và thành phố khi có. `pageMetadata()` chuyển cùng title/description/ảnh sang Twitter; trang video thay ảnh OG/Twitter bằng thumbnail công khai. Các script JSON-LD dùng component `StructuredData` để escape ký tự `<` trước khi nhúng vào HTML.
 
 Quy ước: mọi trang hiển thị nội dung gọi `pageMetadata` hoặc `eventPageMetadata`. Trang chỉ chuyển hướng (`draws`, `groups`, `players` ở cấp giải) và `not-found` được miễn.
 
@@ -272,9 +281,12 @@ Kiểm chứng 2026-11-15: API tích hợp hồi quy 24 ca đạt; lịch/cache 
 
 ## Content-Security-Policy
 
-- Header `Content-Security-Policy-Report-Only` được đặt trong `apps/client/next.config.ts`. Chưa chặn gì, chỉ báo cáo.
-- Báo cáo gửi về `POST /api/csp-report` (`app/api/csp-report/route.ts`): tối đa 8 KB mỗi báo cáo, tối đa 30 bản ghi log mỗi phút. Nội dung được cắt ngắn trước khi ghi log.
-- Chuyển sang enforce ở phase 12.
+- Header `Content-Security-Policy-Report-Only` được đặt trong `apps/client/next.config.ts`. CSP chưa chặn tài nguyên, chỉ báo cáo. Chính sách vẫn có `script-src 'self' 'unsafe-inline'` và `style-src 'self' 'unsafe-inline'`; chưa có nonce cho script Next.js.
+- Các nguồn hiện được khai: ảnh từ `'self'`, `data:` và HTTPS; iframe từ `https://www.youtube-nocookie.com` và `https://www.facebook.com`; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`. Danh sách iframe của CSP hiện là cấu hình trong mã, chưa sinh từ `VIDEO_EMBED_HOSTS`.
+- Báo cáo gửi về `POST /api/csp-report` (`app/api/csp-report/route.ts`): tối đa 8 KB mỗi báo cáo, tối đa 30 bản ghi log mỗi phút. Log chỉ giữ origin hoặc dấu loại scheme và directive trong allowlist; bỏ credentials, path, query và nội dung thô của báo cáo.
+- Phase 12 đã thêm header cho mọi path qua `next.config.ts`: `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`. Chưa bật `includeSubDomains` hoặc preload vì phạm vi TLS của các subdomain chưa được xác nhận.
+- API giữ CORP `same-origin` mặc định của Helmet cho response thông thường; riêng ảnh đã tái mã hóa ở `/api/v1/media/public/*` xuất `Cross-Origin-Resource-Policy: cross-origin` để client khác origin vẫn nhúng được ảnh công khai. Route này tiếp tục chặn `incoming/`, giới hạn dạng đường dẫn và giữ `nosniff`.
+- Chuyển CSP sang enforce còn mở: bổ sung nonce hoặc cơ chế tương đương cho script Next.js, đối chiếu nguồn media/video hợp lệ, chạy trình duyệt trên bản build và rà báo cáo vi phạm staging sạch rồi mới đổi header. Header `frame-ancestors` trong CSP report-only không có tác dụng chặn; `X-Frame-Options: DENY` là header chặn nhúng đang được xuất riêng.
 
 ## Việc còn mở
 
@@ -285,12 +297,15 @@ Nguồn hiện tại sau rà ngày 2026-11-15: [đối chiếu nợ review](../p
 | Kiểm lịch trên staging | Phase 08 mục 10, bổ sung 2026-11-15 | API tích hợp và Playwright lịch local đã đạt; tiếp tục kiểm trên staging |
 | Mốc M1: deploy staging, chạy Playwright trên staging | Phase 08 bước 4 | Chờ staging (phase 01 và 02) |
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
-| Áp migration CMS và chạy 16 ca API E2E/18 ca Playwright | Phase 11 | Chờ xác nhận host/tên DB; danh sách ca kiểm thử đã viết, chưa chạy |
-| Xác minh luồng CMS với dữ liệu thật; deploy staging | Phase 11 | Browser mock admin 8/8 và công khai 14/14 đã đạt; tiếp tục kiểm với DB/API/storage thật và staging |
+| Áp migration CMS trên đích dev/staging và hoàn tất toàn bộ ma trận CMS | Phase 11 | 18 migration chỉ áp dụng trên DB local `_test`; API tích hợp và ba suite public thực tế đã đạt trong phạm vi nêu trên. Chưa áp dụng dev/staging hoặc nghiệm thu toàn bộ CMS |
+| Xác minh luồng CMS vận hành và storage thật; deploy staging | Phase 11 | Browser mock admin 8/8, công khai 14/14 và public E2E local thật đã đạt; còn ma trận quản trị/hẹn giờ, S3/CDN và staging |
+| Nghiệm thu SEO runtime trên dữ liệu phát hành | Phase 12 | Chia file/index, giới hạn URL/byte và browser với API thật local đã đạt; còn validator, container và dữ liệu phát hành trên staging. Hồ sơ VĐV vẫn bị loại trong khi chưa chốt đồng ý công khai |
+| CSP enforce, nguồn iframe/media động | Phase 12 | Chưa có nonce và chưa rà báo cáo staging; giữ report-only tới khi kiểm được tài nguyên hợp lệ |
+| Lighthouse, axe, tải nhẹ và E2E toàn luồng trên staging | Phase 12 | Chưa nghiệm thu. Mục tiêu mobile: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 95; axe không có critical; tải 5 req/s trong 2 phút không có 5xx và ghi p95 |
 
 Đã sửa/đối chiếu: nav có `aria-current`; `LiveBadge` dùng chung ở 5 vị trí; 404 theo locale; canonical năm lịch chuẩn hóa; query `stage=main` dùng chung cache mặc định; nội dung không có draw bị chặn trước fetch. Nút vé hiện 20px/700, màu trắng/primary có tỷ lệ 4,3954:1, đạt ngưỡng chữ lớn 3:1.
 
-Giữ có lý do: API sanitize HTML trước khi trả; `API_FETCH_TIMEOUT_MS` là cấu hình bootstrap ở env để giới hạn chính request đọc API/settings; `<select>` trong form GET phù hợp danh sách nội dung động; ô nhánh và thẻ trận dùng payload khác nhau nên không gộp toàn bộ. Hằng CSP là chốt kỹ thuật report-only, phase 12 rà lại khi enforce. Wordmark KAMITO là nhận diện tạm theo plan.
+Giữ có lý do: API sanitize HTML trước khi trả; `API_FETCH_TIMEOUT_MS` là cấu hình bootstrap ở env để giới hạn chính request đọc API/settings; `<select>` trong form GET phù hợp danh sách nội dung động; ô nhánh và thẻ trận dùng payload khác nhau nên không gộp toàn bộ. CSP report-only được giữ trong khi thiếu bằng chứng staging và đường nonce cho script. Wordmark KAMITO là nhận diện tạm theo plan.
 
 Kiểm chứng đợt rà ghi nợ 2026-11-15: unit client 20/20; Playwright toàn bộ 45 đạt/7 bỏ qua theo viewport/0 lỗi, gồm nav, canonical năm, 404 tiếng Anh và nhãn cột điểm. Typecheck và lint src/tests đạt; test rate limit qua HTTP thật đạt. PDF lịch dài 3 trang giữ ngữ cảnh từng trang. Báo cáo: [tester](../plans/reports/tester-261115-phase08-review-debts.md). Lượt này thay cho giới hạn “chưa chạy lại toàn bộ suite” của lượt lịch trước đó.
 

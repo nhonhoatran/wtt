@@ -10,7 +10,7 @@ const slug = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(160);
 export const articleBody = z.object({
   slug, title: z.string().trim().min(1).max(200), titleEn: nullableText(200),
   summary: nullableText(500), summaryEn: nullableText(500), body: z.string().max(200_000), bodyEn: nullableText(200_000),
-  coverMediaId: z.string().uuid().nullable().optional(), category: nullableText(40), authorName: nullableText(120),
+  coverMediaId: z.string().uuid().nullable().optional(), category: nullableText(40), categoryEn: nullableText(80), authorName: nullableText(120),
   isFeatured: z.boolean().default(false), status: contentStatusSchema.default('DRAFT'),
   publishAt: z.string().datetime().nullable().optional(), eventIds: z.array(z.string().uuid()).max(20).default([]).transform((ids) => [...new Set(ids)]),
 }).superRefine((value, ctx) => {
@@ -21,7 +21,7 @@ export const articleBody = z.object({
 export const videoBody = z.object({
   slug, title: z.string().trim().min(1).max(200), titleEn: nullableText(200), url: httpsUrlSchema,
   eventId: z.string().uuid().nullable().optional(), isFeatured: z.boolean().default(false), status: immediateStatusSchema.default('DRAFT'),
-  publishedAt: z.string().datetime().nullable().optional(), durationText: nullableText(30),
+  publishedAt: z.string().datetime().nullable().optional(), durationText: nullableText(30), durationTextEn: nullableText(30),
 }).superRefine((value, ctx) => {
   if (!parseVideoUrl(value.url)) ctx.addIssue({ code: 'custom', path: ['url'], message: 'URL video không được hỗ trợ' });
 });
@@ -36,7 +36,7 @@ export const updateSponsorBody = sponsorFields.partial().refine((value) => Objec
 
 export const staticPageBody = z.object({
   slug, title: z.string().trim().min(1).max(200), titleEn: nullableText(200), body: z.string().max(200_000), bodyEn: nullableText(200_000),
-  status: immediateStatusSchema.default('DRAFT'), footerGroup: nullableText(60), footerOrder: z.number().int().min(0).max(10_000).nullable().optional(),
+  status: immediateStatusSchema.default('DRAFT'), footerGroup: nullableText(60), footerGroupEn: nullableText(60), footerOrder: z.number().int().min(0).max(10_000).nullable().optional(),
 });
 
 export const contactStatusBody = z.object({ status: z.enum(['NEW', 'READ', 'ARCHIVED']) });

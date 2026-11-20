@@ -32,7 +32,7 @@ describe('PublishingEnqueueService', () => {
   it('logs and returns a warning when scheduling fails', async () => {
     queue.add.mockRejectedValue(new Error('Redis unavailable'));
     await expect(service.scheduleArticle('article-id', nextMinute())).resolves.toEqual([ARTICLE_PUBLISHING_DELAYED]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('schedule failed for article-id'));
+    expect(warn).toHaveBeenCalledWith({ msg: 'article publishing enqueue failed', operation: 'schedule', articleId: 'article-id', err: { type: 'Error' } });
   });
 
   it('bounds a hung enqueue so a saved article can return with a warning', async () => {
@@ -41,7 +41,7 @@ describe('PublishingEnqueueService', () => {
     const pending = service.scheduleArticle('article-id', nextMinute());
     await vi.advanceTimersByTimeAsync(2_000);
     await expect(pending).resolves.toEqual([ARTICLE_PUBLISHING_DELAYED]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+    expect(warn).toHaveBeenCalledWith({ msg: 'article publishing enqueue failed', operation: 'schedule', articleId: 'article-id', err: { type: 'Error' } });
   });
 
   it('logs and returns a warning when stale job cancellation fails', async () => {
@@ -49,7 +49,7 @@ describe('PublishingEnqueueService', () => {
     queue.remove.mockRejectedValue(new Error('Redis unavailable'));
     await expect(service.cancelArticleSchedule('article-id', publishAt)).resolves.toEqual([ARTICLE_PUBLISHING_DELAYED]);
     expect(queue.remove).toHaveBeenCalledWith(`art-article-id-${publishAt.getTime()}`);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('cancel failed for article-id'));
+    expect(warn).toHaveBeenCalledWith({ msg: 'article publishing enqueue failed', operation: 'cancel', articleId: 'article-id', err: { type: 'Error' } });
   });
 
   it('does not enqueue missing or expired schedules', async () => {

@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@kamito/db';
-import { entryChangeTags, isValidCacheTag, publicPlayerSlug } from '@kamito/shared';
+import { entryChangeTags, isValidCacheTag, publicPlayerSlug, safeErrorSummary } from '@kamito/shared';
 import type { CreatedEntities } from './commit-types.js';
 import type { ImportDeps } from './import-deps.js';
 
@@ -29,6 +29,6 @@ export async function refreshPublicAfterImport(deps: ImportDeps, jobId: string, 
     const tags = await importRevalidateTags(deps.prisma, eventId, committed);
     if (tags.length) await deps.enqueueRevalidate(tags);
   } catch (error) {
-    deps.logger?.warn({ importJobId: jobId, err: (error as Error).message }, 'import revalidate enqueue failed, public pages refresh on their TTL');
+    deps.logger?.warn({ importJobId: jobId, err: safeErrorSummary(error) }, 'import revalidate enqueue failed, public pages refresh on their TTL');
   }
 }

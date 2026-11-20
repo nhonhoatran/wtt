@@ -7,6 +7,7 @@ import { PaginationLinks } from '../../../components/common/pagination-links';
 import { FilterForm } from '../../../components/common/filter-form';
 import { getDictionary } from '../../../i18n/get-dictionary';
 import { isLocale } from '../../../i18n/locales';
+import { pickLocalized } from '../../../i18n/pick-localized';
 import { pageMetadata } from '../../../lib/page-metadata';
 import { getArticles } from '../../../lib/public-data';
 
@@ -31,13 +32,16 @@ export default async function NewsPage({ params, searchParams }: Props) {
   if (!result) notFound();
   const t = getDictionary(locale);
   const news = t.news;
+  const categoryLabel = (key: string) => pickLocalized(locale, key,
+    Object.hasOwn(result.categoryLabelsEn ?? {}, key) && typeof result.categoryLabelsEn[key] === 'string'
+      ? result.categoryLabelsEn[key] : null);
   const hrefFor = (nextPage: number) => `/${locale}/news?${new URLSearchParams({ page: String(nextPage), ...(category ? { category } : {}) })}`;
 
   return (
     <main id="content" className="container">
       <h1 className="page-title">{news.title}</h1>
       <FilterForm label={news.filterLabel} action={`/${locale}/news`} fields={[
-        { kind: 'select', name: 'category', label: news.category, value: category, allLabel: news.allCategories, options: result.categories.map((item) => ({ value: item, label: item })) },
+        { kind: 'select', name: 'category', label: news.category, value: category, allLabel: news.allCategories, options: result.categories.map((item) => ({ value: item, label: categoryLabel(item) })) },
       ]} t={t.common} />
       {result.data.length ? (
         <ul className={styles.grid}>

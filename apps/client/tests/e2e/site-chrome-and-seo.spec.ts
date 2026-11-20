@@ -63,22 +63,33 @@ test.describe('SEO', () => {
     for (const [lang, prefix] of [['vi', 'vi'], ['en', 'en'], ['x-default', 'vi']]) {
       await expect(page.locator(`link[rel="alternate"][hreflang="${lang}"]`)).toHaveAttribute('href', `${site}/${prefix}/events/${world.world.slug}`);
     }
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    const sportsEvent = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent()) ?? '{}');
+    expect(sportsEvent['@type']).toBe('SportsEvent');
+    expect(sportsEvent.url).toBe(`${site}${path}`);
   });
 
   test('sitemap lists the event and robots points at the sitemap', async ({ request, world }) => {
     const site = process.env.E2E_SITE_URL;
     const sitemap = await request.get('/sitemap.xml');
     expect(sitemap.status()).toBe(200);
-    expect(await sitemap.text()).toContain(`<loc>${site}${root(world.world.slug)}</loc>`);
+    const xml = await sitemap.text();
+    expect(xml).toContain(`<loc>${site}${root(world.world.slug)}</loc>`);
+    expect(xml).toContain(`<loc>${site}/en/events/${world.world.slug}</loc>`);
+    expect(xml).toContain(`<loc>${site}${root(world.world.slug)}/draws/MS</loc>`);
     const robots = await request.get('/robots.txt');
     expect(await robots.text()).toContain(`Sitemap: ${site}/sitemap.xml`);
   });
 });
 
 test.describe('security headers', () => {
-  test('sends the report-only CSP and accepts a violation report', async ({ request }) => {
+  test('sends security headers and accepts a CSP violation report', async ({ request }) => {
     const page = await request.get('/vi');
     expect(page.headers()['content-security-policy-report-only']).toContain("default-src 'self'");
+    expect(page.headers()['strict-transport-security']).toContain('max-age=31536000');
+    expect(page.headers()['x-content-type-options']).toBe('nosniff');
+    expect(page.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(page.headers()['x-frame-options']).toBe('DENY');
     const report = await request.post('/api/csp-report', {
       headers: { 'content-type': 'application/csp-report' },
       data: JSON.stringify({ 'csp-report': { 'document-uri': 'http://localhost/vi', 'violated-directive': 'img-src', 'blocked-uri': 'https://example.test/x.png' } }),

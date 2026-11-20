@@ -9,7 +9,7 @@ import { ArticleFields, LAST_ARTICLE_CATEGORY_KEY } from './content-form-fields'
 import { ArticlePublishActions } from './article-publish-actions';
 import type { ContentStatus } from './content-labels';
 
-const OPTIONAL_TEXT_FIELDS = ['titleEn', 'summary', 'summaryEn', 'bodyEn', 'category', 'authorName'];
+const OPTIONAL_TEXT_FIELDS = ['titleEn', 'summary', 'summaryEn', 'bodyEn', 'category', 'categoryEn', 'authorName'];
 
 export function ArticleEditor({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();

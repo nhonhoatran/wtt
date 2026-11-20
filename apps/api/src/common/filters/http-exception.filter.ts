@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Response } from 'express';
+import { safeErrorSummary } from '@kamito/shared';
 
 export interface ApiErrorBody {
   error: {
@@ -75,7 +76,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { status, body } = toErrorBody(exception);
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error(exception);
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error({ msg: 'request handler failed', err: safeErrorSummary(exception) });
     host.switchToHttp().getResponse<Response>().status(status).json(body);
   }
 }

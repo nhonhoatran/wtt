@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable, Logger, OnModuleDestroy } from '@nes
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { can, QueueName } from '@kamito/shared';
+import { can, QueueName, safeErrorSummary } from '@kamito/shared';
 import { Queue } from 'bullmq';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { API_ENV } from '../../common/config/app-config.module.js';
@@ -34,7 +34,7 @@ function guard(resolver: SessionResolver, env: ApiEnv) {
       })
       .catch((error: unknown) => {
         if (error instanceof HttpException) return deny(error.getStatus(), 'UNAUTHORIZED');
-        logger.error(error);
+        logger.error({ msg: 'queue dashboard request failed', err: safeErrorSummary(error) });
         deny(500, 'INTERNAL_ERROR');
       });
   };

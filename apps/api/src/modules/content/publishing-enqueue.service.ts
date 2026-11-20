@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { PUBLISH_ARTICLE_JOB, QueueName, withTimeout } from '@kamito/shared';
+import { PUBLISH_ARTICLE_JOB, QueueName, safeErrorSummary, withTimeout } from '@kamito/shared';
 import { Queue } from 'bullmq';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
@@ -15,7 +15,7 @@ export class PublishingEnqueueService implements OnModuleDestroy {
 
   constructor(@Inject(API_ENV) env: ApiEnv) {
     this.queue = new Queue(QueueName.Publishing, { connection: { url: env.REDIS_URL, enableOfflineQueue: false, maxRetriesPerRequest: 1 }, prefix: env.QUEUE_PREFIX });
-    this.queue.on('error', (error) => this.logger.warn(`publishing queue: ${error.message}`));
+    this.queue.on('error', (error) => this.logger.warn({ msg: 'publishing queue error', err: safeErrorSummary(error) }));
   }
 
   async scheduleArticle(articleId: string, publishAt: Date | null): Promise<string[]> {
@@ -43,8 +43,7 @@ export class PublishingEnqueueService implements OnModuleDestroy {
       await withTimeout(run(), ENQUEUE_TIMEOUT_MS);
       return [];
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown error';
-      this.logger.warn(`article publishing ${operation} failed for ${articleId}: ${message}`);
+      this.logger.warn({ msg: 'article publishing enqueue failed', operation, articleId, err: safeErrorSummary(error) });
       return [ARTICLE_PUBLISHING_DELAYED];
     }
   }

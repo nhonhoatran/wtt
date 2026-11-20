@@ -34,6 +34,8 @@ export default async function ArticlePage({ params }: Props) {
   const { locale, article } = await load(params);
   const title = pickLocalized(locale, article.title, article.titleEn);
   const body = pickLocalized(locale, article.body, article.bodyEn);
+  const summary = pickLocalizedOrNull(locale, article.summary, article.summaryEn);
+  const category = pickLocalizedOrNull(locale, article.category, article.categoryEn);
   const siteName = await getSiteName(locale);
   const pageUrl = new URL(`/${locale}/news/${article.slug}`, serverEnv.publicSiteUrl()).toString();
   const structuredData = {
@@ -44,7 +46,7 @@ export default async function ArticlePage({ params }: Props) {
     mainEntityOfPage: pageUrl,
     publisher: { '@type': 'Organization', name: siteName },
     ...(article.authorName ? { author: { '@type': 'Person', name: article.authorName } } : {}),
-    ...(pickLocalizedOrNull(locale, article.summary, article.summaryEn) ? { description: pickLocalizedOrNull(locale, article.summary, article.summaryEn) } : {}),
+    ...(summary ? { description: summary } : {}),
     ...(article.cover ? { image: [new URL(article.cover.url, serverEnv.publicSiteUrl()).toString()] } : {}),
   };
   return (
@@ -54,12 +56,12 @@ export default async function ArticlePage({ params }: Props) {
       <article>
         <h1 className="page-title">{title}</h1>
         <div className={styles.meta}>
-          {article.category && <span>{article.category}</span>}
+          {category && <span>{category}</span>}
           {article.authorName && <span>{article.authorName}</span>}
           <time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', { dateStyle: 'medium' }).format(new Date(article.publishedAt))}</time>
         </div>
         {article.cover && <img className={styles.media} src={article.cover.url} width={article.cover.width} height={article.cover.height} alt={pickLocalized(locale, article.cover.alt ?? '', article.cover.altEn)} />}
-        {article.summary && <p className={styles.summary}>{pickLocalized(locale, article.summary, article.summaryEn)}</p>}
+        {summary && <p className={styles.summary}>{summary}</p>}
         <div className={styles.articleBody} dangerouslySetInnerHTML={{ __html: sanitizeContentHtml(body) }} />
       </article>
     </main>

@@ -6,7 +6,14 @@ export interface PublicSiteConfig {
 }
 
 export interface PublicSitemap {
-  events: { slug: string; updatedAt: string }[];
+  events: {
+    slug: string;
+    updatedAt: string;
+    tabs: { matches: boolean; info: boolean };
+    subEvents: { code: string; drawKinds: ('MAIN' | 'QUALIFYING')[]; hasGroups: boolean; entryCount: number }[];
+  }[];
   articles: { slug: string; updatedAt: string }[];
   pages: { slug: string; updatedAt: string }[];
+  videos: { slug: string; updatedAt: string }[];
+  matches: { eventSlug: string; matchNo: number; updatedAt: string }[];
 }

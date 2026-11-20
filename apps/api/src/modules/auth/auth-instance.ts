@@ -1,4 +1,5 @@
-import { authSettings } from '@kamito/shared';
+import { Logger } from '@nestjs/common';
+import { authSettings, safeErrorSummary } from '@kamito/shared';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
@@ -25,6 +26,7 @@ const SESSION_CEILING_SECONDS = authSettings.sessionMaxAgeHours.editor!.max * 60
 const PASSWORD_MIN_FLOOR = authSettings.passwordMinLength.editor!.min;
 
 let dummyHash: Promise<string> | undefined;
+const authLogger = new Logger('AuthLibrary');
 
 /** Spends the same scrypt time as a real check, so a rejected account does not answer faster. */
 async function burnPasswordCheck(password: unknown): Promise<void> {
@@ -43,6 +45,17 @@ export function createAuth(prisma: object, env: ApiEnv, policy: SignInPolicy) {
     trustedOrigins: [adminOrigin],
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
     telemetry: { enabled: false },
+    logger: {
+      log(level, _message, ...args: unknown[]) {
+        // Library messages may interpolate origins, tokens or raw database errors.
+        const safeLevel = level === 'error' || level === 'warn' || level === 'info' || level === 'debug' ? level : 'warn';
+        const entry = { msg: 'auth library event', level: safeLevel, err: safeErrorSummary(args.find((value) => typeof value === 'object' && value !== null)) };
+        if (safeLevel === 'error') authLogger.error(entry);
+        else if (safeLevel === 'warn') authLogger.warn(entry);
+        else if (safeLevel === 'debug') authLogger.debug(entry);
+        else authLogger.log(entry);
+      },
+    },
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,

@@ -55,3 +55,26 @@ it('matches contact posts even when callers spoof prefetch headers', () => {
     }
   }
 });
+
+it('charges runtime sitemap requests against the search budget without locale negotiation', async () => {
+  const requestHeaders: Record<string, string>[] = [{}, { purpose: 'prefetch' }, { 'next-router-prefetch': '1' }];
+  for (const path of ['/sitemap.xml', '/sitemap/0.xml', '/sitemap/123.xml']) {
+    for (const headers of requestHeaders) {
+      hit.mockClear();
+      expect(unstable_doesMiddlewareMatch({ config, url: `http://site.test${path}`, headers })).toBe(true);
+      const response = await proxy(new NextRequest(`http://site.test${path}`, { headers }));
+      expect(response.headers.get('location')).toBeNull();
+      expect(hit).toHaveBeenCalledExactlyOnceWith('192.0.2.1', true);
+    }
+  }
+  expect(unstable_doesMiddlewareMatch({ config, url: 'http://site.test/robots.txt' })).toBe(false);
+});
+
+it('rejects an exhausted sitemap budget before rendering the expensive route', async () => {
+  hit.mockResolvedValue(11);
+  const response = await proxy(new NextRequest('http://site.test/sitemap/999.xml'));
+  expect(response.status).toBe(429);
+  expect(response.headers.get('retry-after')).toBe('11');
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(response.headers.get('location')).toBeNull();
+});

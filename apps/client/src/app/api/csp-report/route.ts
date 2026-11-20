@@ -21,6 +21,22 @@ const pick = (report: CspReport, ...keys: string[]) => {
   return undefined;
 };
 
+// Reports are untrusted: URL paths, query strings and credentials can contain personal data.
+function reportOrigin(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (['inline', 'eval', 'self', 'none'].includes(value)) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.origin;
+    return ['data:', 'blob:', 'about:'].includes(url.protocol) ? url.protocol : '[redacted]';
+  } catch { return '[redacted]'; }
+}
+
+function reportDirective(value: string | undefined): string {
+  const directive = value?.split(/\s/, 1)[0];
+  return directive && /^(?:default-src|script-src(?:-elem|-attr)?|style-src(?:-elem|-attr)?|img-src|font-src|connect-src|frame-src|child-src|worker-src|media-src|manifest-src|object-src|base-uri|form-action|frame-ancestors|upgrade-insecure-requests|block-all-mixed-content|sandbox|trusted-types|require-trusted-types-for)$/.test(directive) ? directive : 'unknown';
+}
+
 /** The body as text, or null when it passes the cap (stops reading there; Content-Length is not trusted). */
 async function readCapped(request: Request): Promise<string | null> {
   const length = request.headers.get('content-length');
@@ -65,9 +81,9 @@ export async function POST(request: Request) {
     console.warn(
       JSON.stringify({
         msg: 'csp-violation',
-        directive: pick(report, 'effectiveDirective', 'effective-directive', 'violated-directive'),
-        blocked: pick(report, 'blockedURL', 'blocked-uri'),
-        page: pick(report, 'documentURL', 'document-uri'),
+        directive: reportDirective(pick(report, 'effectiveDirective', 'effective-directive', 'violated-directive')),
+        blocked: reportOrigin(pick(report, 'blockedURL', 'blocked-uri')),
+        page: reportOrigin(pick(report, 'documentURL', 'document-uri')),
       }),
     );
   }

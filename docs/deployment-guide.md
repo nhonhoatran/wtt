@@ -1,6 +1,6 @@
 # Deployment Guide — Kamito
 
-> Cập nhật: 2026-11-17 · Trạng thái: đã có mã nguồn đến phase 10. Staging và production chưa được dựng trên Dokploy.
+> Cập nhật: 2026-11-19 · Trạng thái: CMS và SEO/hardening phase 12 đã có trong working tree. Đợt này đã triển khai đủ 18 migration trên DB local riêng `localhost:5433/kamito_tt_phase12_test` để kiểm thử thật; không áp dụng migration mới vào DB dev hoặc staging. Staging/production Dokploy và cổng ra mắt chưa được nghiệm thu.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
@@ -13,6 +13,7 @@
 - [Quy trình phát hành](#quy-trình-phát-hành)
 - [Runbook: migration lỗi](#runbook-migration-lỗi)
 - [Sao lưu và khôi phục](#sao-lưu-và-khôi-phục)
+- [Cổng nghiệm thu ra mắt (phase 12)](#cổng-nghiệm-thu-ra-mắt-phase-12)
 - [Kiểm tra sau deploy](#kiểm-tra-sau-deploy)
 - [Xử lý sự cố](#xử-lý-sự-cố)
 - [Việc còn mở](#việc-còn-mở)
@@ -66,15 +67,29 @@ pnpm --filter @kamito/client test:e2e
 | Mục | Nội dung | Nguồn |
 |---|---|---|
 | Điều kiện | Stack dev đang chạy (Postgres 5433, Redis 6380, xem [Chạy dev local](#chạy-dev-local)). `.env` ở root có đủ biến | `apps/client/playwright.config.ts` |
-| Trước khi chạy | Kiểm đích DB: `pnpm db:print-target`. Seed ghi dữ liệu vào DB mà `.env` trỏ tới | `scripts/print-db-target.mjs` |
+| Trước khi chạy | Dùng `DATABASE_URL` process-only trỏ tới PostgreSQL local có tên DB kết thúc `_test`; đặt `MIGRATE_CONFIRM_TARGET` khớp chính xác `host:port/database`, kiểm bằng `pnpm db:print-target`. Fixture từ chối đích dev trong root `.env` | `scripts/print-db-target.mjs`, `tests/e2e/support/test-database-target.ts` |
 | Web server | Mặc định API source cổng `API_PORT` (3000), Next dev cổng `E2E_CLIENT_PORT` (3001). `E2E_NEXT_MODE=start` chạy Next production; `E2E_API_MODE=dist` chạy API đã build. `CI=1` không tái dùng server cũ | `playwright.config.ts` |
-| Biến ghi đè | Địa chỉ API HTTP, site canonical và allowed Host lấy theo port test; `API_FETCH_TIMEOUT_MS=5000`. Không đổi `DATABASE_URL` | `playwright.config.ts` |
+| Biến ghi đè | Giữ `DATABASE_URL` process-only qua child process; không sửa root `.env`. Đặt `APP_ENV=test`, `QUEUE_PREFIX=kamito-tt:test`. Địa chỉ API HTTP, canonical và allowed Host lấy theo port test; `API_FETCH_TIMEOUT_MS=5000` | `playwright.config.ts`, `api-world-runner.ts` |
 | Dữ liệu | `global-setup` dọn world cũ, seed giải công khai (`apps/api/test/playwright/public-world.seed.ts`, gọi `setupPublicWorld`), gọi `/api/revalidate`, warm up route. `global-teardown` dọn lại | `tests/e2e/global-setup.ts`, `global-teardown.ts` |
 | Project | `desktop` 1280×800; `mobile` 390×844 | `playwright.config.ts` |
-| Spec | `event-pages.spec.ts` (danh sách, trang giải, nhánh, bảng đấu, VĐV); `site-chrome-and-seo.spec.ts` (locale, SEO, CSP report-only, 390 px không tràn ngang, in nhánh) | `tests/e2e/` |
+| Spec | `event-pages.spec.ts` (danh sách, trang giải, nhánh, bảng đấu, VĐV); `site-chrome-and-seo.spec.ts` (locale, canonical/hreflang, Twitter/JSON-LD, header bảo mật và CSP report-only, 390 px không tràn ngang, in nhánh). Ca mới phải chạy lại trước khi nghiệm thu | `tests/e2e/` |
 | Đầu ra | `apps/client/test-results/` và `apps/client/playwright-report/` (đều gitignore) | `.gitignore` |
 
 Kiểm phát hành local nên build API/client trước, rồi chạy với `E2E_NEXT_MODE=start`, `E2E_API_MODE=dist`, cặp port riêng và `CI=1`. Ngày 2026-11-15: client 3115/API 3215 đạt 51 Playwright/7 bỏ qua theo viewport, JavaScript bật; xem `plans/reports/tester-261115-phase08-remaining-debts.md`. Đây là production build chạy local, không phải staging.
+
+Ngày 2026-11-19, ba spec `content-pages`, `rankings-and-players`, `site-chrome-and-seo` đạt **55/5 bỏ qua theo viewport/0 lỗi**, API 3313 và client 3314, worker 1, không retry. Dùng DB `kamito_tt_phase12_test` đã migrate/seed, Redis thật, storage local; iframe YouTube dùng fixture. Setup/teardown hoàn tất và hai port không còn listener sau chạy. Xem [báo cáo phase 12](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-2234-phase-12-bilingual-public-e2e.md).
+
+Chuẩn bị DB test riêng bằng tài khoản local đang hoạt động, không lấy credentials từ dòng comment và không in chuỗi kết nối. Tạo DB một lần, giữ credentials hiện có và chỉ đổi tên DB sang hậu tố `_test`; trước mỗi lệnh ghi phải in host/tên DB đã ẩn mật khẩu. Truyền URL qua biến process từ kho bí mật/shell hiện tại, rồi chạy quy trình sau; không chạy seed khi guard chưa xác nhận đúng đích. Không chạy fixture API và Playwright đồng thời vì chúng cùng thay đổi settings/world test.
+
+```powershell
+# DATABASE_URL must already target a dedicated local *_test database.
+$env:MIGRATE_CONFIRM_TARGET = 'localhost:5433/kamito_tt_phase12_test'
+$env:APP_ENV = 'test'
+$env:QUEUE_PREFIX = 'kamito-tt:test'
+node scripts/print-db-target.mjs --confirm
+pnpm --filter @kamito/db exec prisma migrate deploy
+pnpm --filter @kamito/db seed:config
+```
 
 ```powershell
 pnpm --filter @kamito/api build
@@ -348,6 +363,30 @@ Mục tiêu trước pilot (tuần 9 theo phase 01):
 - Diễn tập khôi phục trên staging. Diễn tập phải xong **trước khi nạp dữ liệu thật đầu tiên**.
 - Mỗi lần phát hành có bản `pg_dump` trước migration (bước 3 của quy trình).
 
+## Cổng nghiệm thu ra mắt (phase 12)
+
+**Trạng thái: chưa đạt.** Staging/Dokploy, thông tin sao lưu và các quyết định quy chế còn mở theo [kế hoạch](../plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md#phụ-thuộc). Kiểm local hoặc bằng API mẫu không thay cho các bước dưới đây.
+
+| Cổng | Bằng chứng phải ghi trước khi đóng |
+|---|---|
+| Hạ tầng và bảo mật biên | Domain client/admin, TLS, API không có domain công khai; kiểm giả mạo forwarded headers và `TRUST_PROXY_HOPS`; xác minh `/api/revalidate` và `/api/v1/public/*` không lộ qua domain công khai |
+| Migration và dữ liệu mẫu | In host/tên DB thực tế, xác nhận target, `pg_dump` trước migration và deploy migration đúng thứ tự. Không lấy cấu hình từ dòng `.env` đã comment; không dùng `prisma db push` |
+| CSP enforce | Chưa chuyển header. Bổ sung nonce hoặc cơ chế tương đương cho script Next.js, đối chiếu nguồn ảnh/video, kiểm bản build bằng trình duyệt và rà báo cáo staging không còn vi phạm hợp lệ bị chặn trước khi bật enforce |
+| Hiệu năng và khả năng truy cập | Lighthouse mobile trang chủ/giải/nhánh/BXH: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 95; axe không có lỗi critical. Ghi URL, phiên bản build, điều kiện đo và artifact báo cáo |
+| Tải nhẹ staging | Trang giải đang diễn ra: 5 req/s trong 2 phút, không có 5xx, lưu p95 và số phản hồi theo mã HTTP; chỉ chạy với target đã thống nhất và công cụ đã kiểm license |
+| E2E vận hành | Luồng giải đầy đủ với PostgreSQL/Redis/storage thật, ADMIN và RESULTS_OPERATOR, import, kết quả, mở lại và công bố BXH; kiểm 1440/390 px. Ca đã viết hoặc pass bằng API mẫu chưa đóng cổng này |
+| Rollback và khôi phục | Diễn tập Spike D trên staging với bản phát hành hiện tại, xác minh bản trước chạy được trên schema mới. Khôi phục PostgreSQL và object storage vào đích staging đã chỉ định; ghi bản sao dùng, thời gian, kết quả và người vận hành |
+
+Header client được khai trong `apps/client/next.config.ts`: HSTS `max-age=31536000`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`. Chưa bật `includeSubDomains` hoặc preload vì phạm vi TLS của các subdomain chưa được xác nhận. CSP vẫn là `Content-Security-Policy-Report-Only`, còn `unsafe-inline` cho script/style và iframe hosts cố định trong code. Đối chiếu header thực tế trên domain TLS sau deploy; không gọi trạng thái này là CSP enforce. Chi tiết và giới hạn SEO xem [site công khai](./public-site.md#content-security-policy).
+
+API đăng ký Helmet trước các raw handler xác thực và bull-board trong `apps/api/src/bootstrap-app.ts`, với chính sách ở `common/security/api-security-headers.ts`: HSTS `max-age=15552000`, không `includeSubDomains`/preload, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`; Helmet bổ sung `X-Content-Type-Options: nosniff`. Tắt CSP và `Cross-Origin-Embedder-Policy` ở middleware API; không áp CSP của Next lên các route này. Kiểm lại bull-board và ảnh media qua domain admin khi nghiệm thu staging.
+
+Log HTTP dùng allowlist method, request id, route template và status; không ghi raw URL/query/header/body/IP. Error sink chỉ xuất loại/mã đã lọc, không xuất message/stack/cause. Better Auth và worker dùng cùng nguyên tắc. Prisma mặc định `log: []`, chỉ opt-in có chủ đích. Probe SQL lỗi chỉ đọc trên DB `_test` xác nhận cấu hình mặc định không rò sentinel nhạy cảm, trong khi negative control `log: ['error']` phát hiện sentinel. Media công khai có CORP `cross-origin`; response API còn lại giữ mặc định `same-origin`.
+
+`tests/load/event-page-smoke-test.js` đã chuẩn bị target và ngưỡng cấu hình; mới kiểm cú pháp/inspect, chưa có lượt tải staging đạt. Audit dependency hiện còn 2 moderate, 0 high/critical sau override có phạm vi; không coi đó là toàn bộ cổng bảo mật đã đóng.
+
+URL hồ sơ VĐV không được bổ sung vào sitemap hoặc JSON-LD `Person` trong khi câu hỏi đồng ý công khai chưa được chốt. Tôn trọng `isPublicProfile`, `noindex` và tên công khai thay thế khi kiểm dữ liệu phát hành.
+
 ## Kiểm tra sau deploy
 
 Chạy từ máy có quyền truy cập domain (thay `<admin-domain>`):
@@ -422,9 +461,9 @@ Kiểm bổ sung cho phase 10 sau khi có staging:
 | 6 | Thiết kế upload | Phase 04 (2026-11-12) | Đã chốt (b): ảnh đi qua API. Không còn việc mở |
 | 7 | Hạ tầng PostgreSQL, Redis, MinIO có dùng chung không; role và quyền | Phase 01 bước 15 | Chưa có câu trả lời |
 | 8 | Client chưa truyền `ADMIN_PUBLIC_URL` trong compose (phase 01 bảng biến có ghi) | So sánh compose với bảng phase | Thêm nếu client cần đọc |
-| 9 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo chưa có remote | Quyết định 2026-11-12 | Push cuối dự án |
+| 9 | CI (`.github/workflows/ci.yml`) chỉ chạy khi push lên `main` hoặc mở PR. Repo hiện có remote `origin`; chưa có bằng chứng workflow GitHub thành công trong đợt này | Kiểm git baseline 2026-11-19 | Xác minh lượt CI thực tế trên GitHub khi phát hành |
 | 10 | Tạo admin đầu tiên trong container `api` chưa kiểm chứng | [Tạo admin đầu tiên](#tạo-admin-đầu-tiên) | Thử trên staging |
-| 11 | Deploy staging: chưa áp dụng migration nào trong 15 migration của repo, theo thứ tự tên (danh sách ở [system-architecture](./system-architecture.md#dữ-liệu)). Migration đầu là `20261112015704_init_app_settings_audit_log`. Phase 03 có `20261112042429_add_users_and_auth_sessions`. Phase 04 thêm 3 migration: `20261112061544_add_tournament_master_data`, `20261112061630_add_media_assets`, `20261112070130_add_single_default_partial_indexes` | Phase 03 bước 13; phase 04; [giới hạn đã biết](./auth-and-rbac.md#giới-hạn-đã-biết) | Làm theo thứ tự trong [roadmap](./development-roadmap.md). Sau migrate chạy seed danh mục |
+| 11 | Deploy staging: chưa áp dụng migration nào trong 18 migration hiện có của repo; xem thứ tự trong [system-architecture](./system-architecture.md#dữ-liệu). Đợt 2026-11-19 chỉ migrate đủ 18 trên `localhost:5433/kamito_tt_phase12_test`; hai migration mới chưa áp dụng DB dev | Phase 03–12; [báo cáo API thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-phase-12-real-api.md) | Xác nhận target và sao lưu trước khi deploy đúng thứ tự; sau migrate chạy seed danh mục |
 | 12 | Sharp trên image Alpine (`node:24.22.3-alpine3.23`) chưa kiểm chứng | Phase 04 | Build image rồi xử lý một ảnh thật trong container api và worker trước khi dựa vào upload |
 | 13 | `STORAGE_DRIVER=s3` với bucket thật chưa thử: tải, xử lý, xóa `incoming/`, đọc `public/` | Phase 04 | Thử trên staging. Nên dùng `S3_INCOMING_BUCKET` riêng để đóng cửa sổ phơi bày (xem [Bucket công khai](#bucket-công-khai)) |
 | 14 | ~~Nginx admin giới hạn `2m` cho route upload import~~ | Đã sửa 2026-11-12 | Location riêng theo `IMPORT_MAX_FILE_BYTES` (xem [Giới hạn import Excel](#giới-hạn-import-excel)) |
@@ -436,6 +475,7 @@ Kiểm bổ sung cho phase 10 sau khi có staging:
 | 20 | Phase 08 chưa lên staging (mốc M1): Playwright mới chạy trên máy dev, chưa chạy trên staging | [public-site](./public-site.md#việc-còn-mở) | Sau khi deploy: kiểm trang giải, nhánh, `robots.txt`, `sitemap.xml`, header CSP report-only trên domain staging |
 | 21 | Rate limit công khai và `forwardedHeaders` của Traefik chưa kiểm | Mục Traefik ở [Preflight hạ tầng](#preflight-hạ-tầng-trạng-thái) | Trên staging: gửi `X-Forwarded-For` giả từ client và xem IP mà client thấy. Chỉnh Traefik nếu nó tin header client |
 | 22 | `API_FETCH_TIMEOUT_MS` giữ ở env vì giới hạn request bootstrap API/settings | Đã đối chiếu 2026-11-15 | Không còn chờ quyết định; xem `plans/reports/reviewer-261115-phase08-review-debt-audit.md`. Timeout của revalidation nền do Next điều khiển vẫn là giới hạn riêng |
+| 23 | Phase 12 chưa nghiệm thu CSP enforce, Lighthouse/axe, tải nhẹ, E2E toàn luồng, rollback/restore | Phase 12 | Hoàn thành và lưu bằng chứng theo [cổng nghiệm thu ra mắt](#cổng-nghiệm-thu-ra-mắt-phase-12); không dùng kết quả local/mock để đóng staging |
 
 ## Liên quan
 

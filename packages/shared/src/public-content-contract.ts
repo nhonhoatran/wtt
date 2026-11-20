@@ -9,6 +9,7 @@ export interface PublicArticleCard {
   summaryEn: string | null;
   cover: PublicImage | null;
   category: string | null;
+  categoryEn: string | null;
   authorName: string | null;
   publishedAt: string;
   eventSlugs: string[];
@@ -28,13 +29,14 @@ export interface PublicVideo {
   url: string;
   thumbnailUrl: string | null;
   durationText: string | null;
+  durationTextEn: string | null;
   publishedAt: string;
   eventSlug: string | null;
 }
 
 export interface PublicStaticPage { slug: string; title: string; titleEn: string | null; body: string; bodyEn: string | null; updatedAt: string }
 export interface PublicSponsor { name: string; logo: PublicImage | null; logoDark: PublicImage | null; url: string | null; roleLabel: string | null; roleLabelEn: string | null }
-export interface PublicFooter { pages: Array<{ slug: string; title: string; titleEn: string | null; group: string | null; order: number }>; sponsors: PublicSponsor[] }
+export interface PublicFooter { pages: Array<{ slug: string; title: string; titleEn: string | null; group: string | null; groupEn: string | null; order: number }>; sponsors: PublicSponsor[] }
 export interface PublicHome {
   featuredEvents: PublicEventCard[];
   upcomingEvents: PublicEventCard[];
@@ -46,5 +48,5 @@ export interface PublicHome {
 }
 export interface PublicEventContent { articles: PublicArticleCard[]; videos: PublicVideo[]; sponsors: PublicSponsor[] }
 export interface ContactSubmission { name: string; email: string; phone?: string | null; organization?: string | null; message: string; website?: string }
-export interface PublicArticleList { data: PublicArticleCard[]; total: number; page: number; pageSize: number; categories: string[] }
+export interface PublicArticleList { data: PublicArticleCard[]; total: number; page: number; pageSize: number; categories: string[]; categoryLabelsEn: Record<string, string> }
 export interface PublicVideoList { data: PublicVideo[]; total: number; page: number; pageSize: number }

@@ -7,11 +7,14 @@ import { SidePlayers } from '../../../../components/players/side-players';
 import { ArticleCard } from '../../../../components/content/article-card';
 import { VideoCard } from '../../../../components/content/video-card';
 import { SponsorStrip } from '../../../../components/content/sponsor-strip';
+import { StructuredData } from '../../../../components/content/structured-data';
 import contentStyles from '../../../../components/content/content.module.css';
 import { format } from '../../../../i18n/get-dictionary';
 import { pickLocalized } from '../../../../i18n/pick-localized';
 import { loadEventPage } from '../../../../lib/event-page';
 import { eventPageMetadata } from '../../../../lib/page-metadata';
+import { sportsEventStructuredData } from '../../../../lib/json-ld';
+import { serverEnv } from '../../../../lib/server-env';
 import { getEventContent } from '../../../../lib/public-data';
 
 interface OverviewProps {
@@ -26,6 +29,7 @@ export async function generateMetadata({ params }: OverviewProps): Promise<Metad
 export default async function EventOverviewPage({ params }: OverviewProps) {
   const { locale, event, t } = await loadEventPage(params);
   const content = await getEventContent(event.slug);
+  const eventUrl = new URL(`/${locale}/events/${event.slug}`, serverEnv.publicSiteUrl()).toString();
   const o = t.event.overview;
   const subName = new Map(event.subEvents.map((s) => [s.code, pickLocalized(locale, s.name, s.nameEn)]));
   const base = `/${locale}/events/${event.slug}`;
@@ -35,6 +39,7 @@ export default async function EventOverviewPage({ params }: OverviewProps) {
 
   return (
     <EventShell event={event} locale={locale} t={t} active="overview">
+      <StructuredData value={sportsEventStructuredData(event, locale, eventUrl)} />
       {event.champions.length > 0 && (
         <section aria-labelledby="champions">
           <h2 id="champions" className="section-title">

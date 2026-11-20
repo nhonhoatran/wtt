@@ -2,21 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { REVALIDATE_SECRET_HEADER, contentSettings, resolveAppSetting } from '@kamito/shared';
 import type { Prisma, PrismaClient } from '../../../../../packages/db/dist/index.js';
 import { test as base, expect } from './fixtures';
+import { confirmedTestDatabaseUrl } from './test-database-target';
 
 const CMS_TAGS = ['articles', 'videos', 'pages', 'sponsors', 'home', 'settings'];
-const CONFIRMED_TARGET = 'localhost:5433/kamito_tt_dev';
-
-function databaseUrl(): string {
-  const raw = process.env.DATABASE_URL;
-  if (!raw) throw new Error('DATABASE_URL is required for CMS browser fixtures');
-  const url = new URL(raw);
-  const target = `${url.hostname}:${url.port || '5432'}${url.pathname}`;
-  if (target !== CONFIRMED_TARGET || process.env.MIGRATE_CONFIRM_TARGET !== target) {
-    throw new Error(`CMS browser fixtures require explicit confirmation of ${CONFIRMED_TARGET}`);
-  }
-  return raw;
-}
-
 export class ContentWorld {
   readonly tag = `cms-${randomUUID()}`;
   readonly articleSlug = `${this.tag}-news`;
@@ -27,9 +15,12 @@ export class ContentWorld {
   readonly draftPageSlug = `${this.tag}-draft-page`;
   readonly title = `Tin CMS ${this.tag}`;
   readonly titleEn = `CMS news ${this.tag}`;
+  readonly category = `Tin giải ${this.tag}`;
+  readonly categoryEn = `Tournament news ${this.tag}`;
   readonly videoTitle = `Video CMS ${this.tag}`;
   readonly pageTitle = `Thông tin CMS ${this.tag}`;
   readonly pageTitleEn = `CMS information ${this.tag}`;
+  readonly footerGroupEn = `Information ${this.tag}`;
   readonly articleIds: string[] = [];
   readonly videoIds: string[] = [];
   readonly pageIds: string[] = [];
@@ -39,7 +30,7 @@ export class ContentWorld {
 
   static async create(): Promise<ContentWorld> {
     // Importing or listing tests must never open a database connection.
-    const connectionString = databaseUrl();
+    const connectionString = confirmedTestDatabaseUrl(process.env.DATABASE_URL, process.env.MIGRATE_CONFIRM_TARGET);
     const { createPrismaClient } = await import('../../../../../packages/db/dist/index.js');
     const world = new ContentWorld(createPrismaClient({ connectionString }));
     try {
@@ -102,7 +93,8 @@ export class ContentWorld {
     for (const status of ['PUBLISHED', 'DRAFT'] as const) {
       const article = await this.db.article.create({ data: {
         slug: status === 'PUBLISHED' ? this.articleSlug : this.draftArticleSlug,
-        title: this.title, titleEn: this.titleEn, summary: `Sapo ${this.tag}`, summaryEn: `Summary ${this.tag}`,
+        title: this.title, titleEn: this.titleEn, summary: null, summaryEn: `Summary ${this.tag}`,
+        category: this.category, categoryEn: this.categoryEn,
         body: `<h2>Nội dung ${this.tag}</h2><p>Văn bản an toàn</p><script>window.cmsXss=1</script><a href="javascript:alert(1)">Unsafe link</a>`,
         bodyEn: `<h2>Content ${this.tag}</h2><p>English body</p>`,
         status, isFeatured: true, publishedAt: status === 'PUBLISHED' ? new Date() : null,
@@ -111,6 +103,7 @@ export class ContentWorld {
       const video = await this.db.video.create({ data: {
         slug: status === 'PUBLISHED' ? this.videoSlug : this.draftVideoSlug,
         title: this.videoTitle, titleEn: `CMS video ${this.tag}`,
+        durationText: '4 phút', durationTextEn: '4 minutes',
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', provider: 'youtube', embedId: 'dQw4w9WgXcQ',
         status, isFeatured: true, publishedAt: status === 'PUBLISHED' ? new Date() : null,
       } });
@@ -118,7 +111,7 @@ export class ContentWorld {
       const page = await this.db.staticPage.create({ data: {
         slug: status === 'PUBLISHED' ? this.pageSlug : this.draftPageSlug,
         title: this.pageTitle, titleEn: this.pageTitleEn, body: `<p>Nội dung trang ${this.tag}</p><img src=x onerror=alert(1)>`,
-        bodyEn: `<p>English page ${this.tag}</p>`, status, footerGroup: this.tag, footerOrder: 0,
+        bodyEn: `<p>English page ${this.tag}</p>`, status, footerGroup: this.tag, footerGroupEn: this.footerGroupEn, footerOrder: 0,
       } });
       this.pageIds.push(page.id);
     }

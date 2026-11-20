@@ -28,6 +28,12 @@ export const contentSettings = {
     schema: z.array(z.string().trim().min(1).max(40)).max(50),
     defaultValue: [] as string[], editor: { kind: 'json' },
   }),
+  newsCategoryLabelsEn: defineAppSetting({
+    key: 'news.categoryLabelsEn', group: 'content', label: 'Tên chuyên mục tin tiếng Anh',
+    description: 'Ánh xạ mã trong news.categories sang nhãn tiếng Anh; mã không có bản dịch giữ nguyên.',
+    schema: z.record(z.string().trim().min(1).max(40), z.string().trim().min(1).max(80)),
+    defaultValue: {} as Record<string, string>, editor: { kind: 'json' },
+  }),
   homeSections: defineAppSetting({
     key: 'home.sections', group: 'content', label: 'Khối trang chủ',
     description: 'Bật hoặc tắt các khối nội dung trang chủ.',

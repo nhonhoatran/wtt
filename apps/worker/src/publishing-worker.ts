@@ -1,5 +1,5 @@
 import { createPrismaClient } from '@kamito/db';
-import { CONTACT_RETENTION_JOB, PUBLISH_ARTICLE_JOB, PUBLISHING_SWEEP_JOB, QueueName } from '@kamito/shared';
+import { CONTACT_RETENTION_JOB, PUBLISH_ARTICLE_JOB, PUBLISHING_SWEEP_JOB, QueueName, safeErrorSummary } from '@kamito/shared';
 import { Queue, UnrecoverableError, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -49,8 +49,8 @@ export async function startPublishingWorker(env: WorkerEnv, redis: Redis, logger
     },
     { ...options, concurrency: 2 },
   );
-  worker.on('error', (error) => logger.error({ err: error.message }, 'publishing worker error'));
-  worker.on('failed', (job, error) => logger.warn({ jobId: job?.id, name: job?.name, err: error.message }, 'publishing job failed'));
+  worker.on('error', (error) => logger.error({ err: safeErrorSummary(error) }, 'publishing worker error'));
+  worker.on('failed', (job, error) => logger.warn({ jobId: job?.id, err: safeErrorSummary(error) }, 'publishing job failed'));
 
   return async () => {
     await worker.close();

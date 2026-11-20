@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { authSettings } from '@kamito/shared';
+import { authSettings, safeErrorSummary } from '@kamito/shared';
 import type { Redis } from 'ioredis';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
@@ -32,7 +32,7 @@ export class LoginIpRateLimiter {
       return count > max ? Math.max(ttl, 1) : 0;
     } catch (error) {
       // Fail open: a Redis outage must not lock every operator out on match day.
-      this.logger.error(`login rate limit unavailable: ${(error as Error).message}`);
+      this.logger.error({ msg: 'login rate limit unavailable', err: safeErrorSummary(error) });
       return 0;
     }
   }

@@ -18,6 +18,7 @@ export class MediaPublicFilesController {
   @Header('Content-Type', 'image/webp')
   @Header('Cache-Control', 'public, max-age=31536000, immutable')
   @Header('X-Content-Type-Options', 'nosniff')
+  @Header('Cross-Origin-Resource-Policy', 'cross-origin')
   async serve(@Param('path') segments: string | string[]): Promise<StreamableFile> {
     const relative = Array.isArray(segments) ? segments.join('/') : segments;
     if (!PUBLIC_FILE.test(relative)) throw new NotFoundException();

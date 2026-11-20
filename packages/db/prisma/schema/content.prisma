@@ -23,6 +23,7 @@ model Article {
   coverMediaId String?
   coverMedia   MediaAsset?    @relation("ArticleCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
   category     String?
+  categoryEn   String?
   authorName   String?
   isFeatured   Boolean         @default(false)
   status       ContentStatus   @default(DRAFT)
@@ -57,6 +58,7 @@ model Video {
   embedId       String
   thumbnailUrl  String?
   durationText  String?
+  durationTextEn String?
   eventId       String?
   event         Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
   isFeatured    Boolean       @default(false)
@@ -98,6 +100,7 @@ model StaticPage {
   bodyEn      String?
   status      ContentStatus @default(DRAFT)
   footerGroup String?
+  footerGroupEn String?
   footerOrder Int?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

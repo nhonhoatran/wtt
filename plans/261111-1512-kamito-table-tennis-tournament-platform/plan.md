@@ -49,9 +49,16 @@ Kiểm tra cục bộ ngày 2026-11-19: Prisma validate; typecheck/lint/build sh
 
 Rà lại đủ 12 phase cấp trên cùng ngày 2026-11-19: **127/158 checkbox (80,4 %), 31 còn mở**. Đếm các checkbox gạch đầu dòng trong 12 file phase, gồm checklist mẫu UI phase 08; Implementation Steps mô tả tiến độ, không đếm lặp. Checklist phase 11 làm rõ structured metadata và tách các gate DB, guard, trực quan, staging; guard và trực quan đã đóng với bằng chứng mock nêu trên. Các phase khác giữ nguyên checkbox vì chưa có bằng chứng mới để đóng cổng. Kết quả local/mock và số ca đã viết không thay cho nghiệm thu DB, E2E dịch vụ thật, staging hoặc BTC.
 
+<!-- Phase 12 verified implementation sync — 2026-11-19 -->
+Snapshot phase 11 **127/158** ở trên được giữ nguyên như lịch sử trước đợt kiểm DB thật. Rà đủ 12 file phase sau phase 12: **134/163 checkbox (82,2 %), 29 còn mở**. Chỉ thay đổi checklist phase 12, tách mã nguồn đã kiểm khỏi gate phát hành; các checkbox phase 01–11 giữ nguyên. Các mục phase 11 về toàn bộ DB/CMS matrix vẫn mở vì chỉ chạy targeted scope trên DB `_test`, không migrate dev/staging.
+
+Phase 12 đã bổ sung ba trường tiếng Anh CMS và nhãn chuyên mục động, sitemap runtime chia index/chunk theo URL/byte, Twitter/JSON-LD, Helmet/header và log allowlist kể cả Better Auth/Prisma/worker. Kiểm cuối theo từng suite: API src **182**, shared **104**, worker **44**, client **72**, admin **11** đạt; typecheck/lint/build liên quan đạt. API tích hợp thật **32 ca duy nhất/7 file** và ba suite Playwright public production local **55 đạt/5 bỏ qua viewport/0 lỗi**, không retry. Publish admin → BullMQ → SSR cache đổi trong **212 ms** local. Đủ **18 migration chỉ áp dụng trên `localhost:5433/kamito_tt_phase12_test`**; không áp dụng hai migration mới vào dev/staging, root `.env` không được sửa bởi lệnh test. Probe SQL lỗi chỉ đọc có negative control xác nhận log mặc định không rò sentinel. Audit còn 2 moderate, 0 high/critical.
+
+Chưa hoàn tất: toàn site UI, validator/container/dữ liệu SEO phát hành, CSP enforce/nonce, Lighthouse/axe/load thật, E2E giải 8 bước, staging/Dokploy/forwarded headers, backup/RPO, rollback/restore và các quyết định BTC/consent. [PM sweep](./reports/pm-261119-phase-12-sync.md), [API](./reports/tester-261119-phase-12-real-api.md), [browser](./reports/tester-261119-2234-phase-12-bilingual-public-e2e.md), [review](./reports/code-reviewer-261119-phase-12-hardening.md).
+
 | Phase | Checkbox đã xong/tổng | Còn mở chính |
 |---|---|---|
-| 01 | 10/15 | Tên repo, preflight, sao lưu/RPO, Dokploy/staging, chạy CI trên GitHub |
+| 01 | 10/15 | Đồng bộ quyết định repo, preflight, sao lưu/RPO, Dokploy/staging, bằng chứng CI GitHub; hiện có remote origin |
 | 02 | 3/5 | Spike D staging; dọn spike/schema chờ duyệt |
 | 03 | 12/13 | Deploy + migrate staging |
 | 04 | 11/12 | Deploy + migrate staging |
@@ -61,8 +68,8 @@ Rà lại đủ 12 phase cấp trên cùng ngày 2026-11-19: **127/158 checkbox 
 | 08 | 27/28 | Staging → M1/M2 |
 | 09 | 9/11 | G2; staging |
 | 10 | 8/9 | Deploy/đo staging |
-| 11 | 10/13 | Migration DB; API tích hợp/Playwright với dịch vụ thật; staging |
-| 12 | 0/9 | Chưa bắt đầu hardening/ra mắt; JSON-LD CMS đã có là đầu vào, chưa đủ đóng mục SEO tổng |
+| 11 | 10/13 | Migration dev/staging; hoàn tất toàn bộ ma trận CMS với dịch vụ thật; staging |
+| 12 | 7/14 | UI toàn site; SEO validator/container; CSP enforce; Lighthouse/axe/load; E2E giải 8 bước; staging rollback/restore |
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -76,8 +83,8 @@ Rà lại đủ 12 phase cấp trên cùng ngày 2026-11-19: **127/158 checkbox 
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (đợt 1–3 xong 2026-11-14, Playwright 34 pass tại thời điểm đó; lịch session/bàn + bản in lịch triển khai 2026-11-15; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile); còn staging → M1/M2 chưa đạt) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | In progress (gói 1–4 commit; gói 5 UI xong 2026-11-16, chưa commit; chờ G2 và staging) |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | In progress (code/test/verifying local xong 2026-11-17; 8/9 checkbox; chờ deploy và đo staging) |
-| 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | In progress (10/13; code/test và trực quan 1440/390 với API mock; còn migration DB, API tích hợp/Playwright dịch vụ thật và staging) |
-| 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | Pending |
+| 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | In progress (10/13; code/test và UI mock; targeted API/public browser DB test thật đã đạt; còn migrate dev/staging, toàn bộ ma trận CMS và staging) |
+| 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | In progress (7/14; code và targeted local verification đã đạt, gate phát hành còn mở) |
 | — | Pilot với BTC trên dữ liệu một giải cũ (staging) | 9 | 1 | Pending (chặn: chưa có staging, xem Phụ thuộc) |
 | | **Phạm vi** | | **80** | |
 | | **Dự phòng**: tuần 9 (1,5) · tuần 13 (3,5) · tuần 18–19 (10) | | **15** | |

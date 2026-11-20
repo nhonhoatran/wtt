@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { authSettings } from '@kamito/shared';
+import { authSettings, safeErrorSummary } from '@kamito/shared';
 import type { Redis } from 'ioredis';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
@@ -40,7 +40,7 @@ export class AccountLockoutService {
     try {
       return (await this.redis.exists(this.key('lock', email))) === 1;
     } catch (error) {
-      this.logger.error(`lockout check unavailable: ${(error as Error).message}`);
+      this.logger.error({ msg: 'lockout check unavailable', err: safeErrorSummary(error) });
       return false;
     }
   }
@@ -64,7 +64,7 @@ export class AccountLockoutService {
         LOCK_LEVEL_MEMORY_SECONDS,
       );
     } catch (error) {
-      this.logger.error(`lockout record unavailable: ${(error as Error).message}`);
+      this.logger.error({ msg: 'lockout record unavailable', err: safeErrorSummary(error) });
     }
   }
 
@@ -73,7 +73,7 @@ export class AccountLockoutService {
     try {
       await this.redis.del(this.key('fail', email), this.key('lock', email), this.key('lock-level', email));
     } catch (error) {
-      this.logger.error(`lockout clear unavailable: ${(error as Error).message}`);
+      this.logger.error({ msg: 'lockout clear unavailable', err: safeErrorSummary(error) });
     }
   }
 

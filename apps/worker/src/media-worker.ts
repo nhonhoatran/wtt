@@ -1,5 +1,5 @@
 import { createPrismaClient, type PrismaClient } from '@kamito/db';
-import { QueueName, tournamentSettings } from '@kamito/shared';
+import { QueueName, safeErrorSummary, tournamentSettings } from '@kamito/shared';
 import { effectiveMaxImageBytes, MEDIA_CLEANUP_JOB, MEDIA_PROCESS_JOB, parseVariantWidths } from '@kamito/shared/media';
 import { createObjectStorage } from '@kamito/shared/object-storage';
 import { Queue, Worker, type Job } from 'bullmq';
@@ -50,12 +50,12 @@ export async function startMediaWorker(env: WorkerEnv, redis: Redis, logger: Log
     },
     { ...queueOptions, concurrency: env.MEDIA_WORKER_CONCURRENCY },
   );
-  worker.on('error', (error) => logger.error({ err: error.message }, 'media worker error'));
+  worker.on('error', (error) => logger.error({ err: safeErrorSummary(error) }, 'media worker error'));
   worker.on('failed', (job, error) => {
-    logger.error({ jobId: job?.id, err: error.message }, 'media job failed');
+    logger.error({ jobId: job?.id, err: safeErrorSummary(error) }, 'media job failed');
     const exhausted = job && job.attemptsMade >= (job.opts.attempts ?? 1);
     if (job?.name === MEDIA_PROCESS_JOB && exhausted && job.data.mediaId) {
-      failProcessing(deps, job.data.mediaId).catch((err: Error) => logger.error({ err: err.message }, 'failProcessing failed'));
+      failProcessing(deps, job.data.mediaId).catch((err: Error) => logger.error({ err: safeErrorSummary(err) }, 'failProcessing failed'));
     }
   });
 

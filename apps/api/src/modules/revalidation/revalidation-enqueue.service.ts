@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { isValidCacheTag, QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, withTimeout } from '@kamito/shared';
+import { isValidCacheTag, QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, safeErrorSummary, withTimeout } from '@kamito/shared';
 import { Queue } from 'bullmq';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
@@ -17,7 +17,7 @@ export class RevalidationEnqueueService implements OnModuleDestroy {
       connection: { url: env.REDIS_URL, enableOfflineQueue: false, maxRetriesPerRequest: 1 },
       prefix: env.QUEUE_PREFIX,
     });
-    this.queue.on('error', (error) => this.logger.warn(`revalidate queue: ${error.message}`));
+    this.queue.on('error', (error) => this.logger.warn({ msg: 'revalidate queue error', err: safeErrorSummary(error) }));
   }
 
   /** Never throws, even when loading the tag context fails: returns the warnings to attach to the (already committed) response. */
@@ -32,7 +32,7 @@ export class RevalidationEnqueueService implements OnModuleDestroy {
       await withTimeout(Promise.all(jobs.map((job) => this.queue.add(job.name, job.data, job.opts))), REVALIDATE_ENQUEUE_TIMEOUT_MS);
       return dropped ? [PUBLIC_REFRESH_DELAYED] : [];
     } catch (error) {
-      this.logger.warn(`revalidate enqueue failed: ${(error as Error).message}`);
+      this.logger.warn({ msg: 'revalidate enqueue failed', err: safeErrorSummary(error) });
       return [PUBLIC_REFRESH_DELAYED];
     }
   }

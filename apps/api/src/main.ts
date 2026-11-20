@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { findPendingMigrations } from '@kamito/db';
+import { safeErrorSummary } from '@kamito/shared';
 import { createApiApp } from './bootstrap-app.js';
 import { API_ENV, loadApiEnv } from './common/config/app-config.module.js';
 import type { ApiEnv } from './common/config/env-schema.js';
@@ -22,6 +23,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  console.error(error);
+  console.error(JSON.stringify({ msg: 'API startup failed', err: safeErrorSummary(error) }));
   process.exit(1);
 });

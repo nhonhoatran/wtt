@@ -19,6 +19,9 @@ test.describe('published CMS pages', () => {
     await page.goto(`/en/news/${cms.articleSlug}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(cms.titleEn);
     await expect(page.getByRole('heading', { name: `Content ${cms.tag}`, exact: true })).toBeVisible();
+    await expect(page.locator('main').getByText(`Summary ${cms.tag}`, { exact: true })).toBeVisible();
+    await expect(page.locator('main').getByText(cms.categoryEn, { exact: true })).toBeVisible();
+    await expect(page.locator('main').getByText(cms.category, { exact: true })).toHaveCount(0);
     const draft = await page.goto(`/vi/news/${cms.draftArticleSlug}`);
     expect(draft?.status()).toBe(404);
   });
@@ -54,6 +57,7 @@ test.describe('published CMS pages', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(cms.pageTitleEn);
     await expect(page.getByText(`English page ${cms.tag}`, { exact: true })).toBeVisible();
     await expect(page.locator(`footer a[href="/en/pages/${cms.pageSlug}"]`)).toHaveText(cms.pageTitleEn);
+    await expect(page.locator('footer').getByRole('heading', { name: cms.footerGroupEn, exact: true })).toBeVisible();
     expect((await page.goto(`/vi/pages/${cms.draftPageSlug}`))?.status()).toBe(404);
     const sitemap = await (await request.get('/sitemap.xml')).text();
     expect(sitemap).toContain(`/news/${cms.articleSlug}`);
@@ -77,6 +81,9 @@ test.describe('published CMS pages', () => {
     await expect(iframe).toHaveAttribute('src', /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1$/);
     await expect(iframe).toHaveAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
     await expect(iframe).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    await page.goto(`/en/videos/${cms.videoSlug}`);
+    await expect(page.locator('main').getByText('4 minutes', { exact: true })).toBeVisible();
+    await expect(page.locator('main').getByText('4 phút', { exact: true })).toHaveCount(0);
     expect((await page.goto(`/vi/videos/${cms.draftVideoSlug}`))?.status()).toBe(404);
   });
 

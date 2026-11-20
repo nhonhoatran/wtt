@@ -79,6 +79,7 @@ export function ArticleFields({ editing, language, onLanguageChange, onImageUplo
             { key: 'en', label: missingEnglish ? <Typography.Text type="warning">English · Chưa đủ bản dịch</Typography.Text> : 'English', forceRender: true, children: <>
               <Form.Item name="titleEn" label="Title"><Input maxLength={200} /></Form.Item>
               <Form.Item name="summaryEn" label="Summary"><Input.TextArea rows={3} maxLength={500} showCount /></Form.Item>
+              <Form.Item name="categoryEn" label="Category label"><Input maxLength={80} /></Form.Item>
               <Form.Item name="bodyEn" label="Content" extra="Paste an image to upload and insert it."><RichTextField minHeight={320} onUploadingChange={(uploading) => onImageUploadingChange('en', uploading)} /></Form.Item>
             </> },
           ]} />
@@ -108,6 +109,8 @@ export function VideoFields({ record }: { record?: { id: string } }) {
     <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, whitespace: true }]}><Input autoFocus maxLength={200} /></Form.Item>
     <SlugField sourceName="title" excludeId={record?.id} />
     <Form.Item name="titleEn" label="Title"><Input maxLength={200} /></Form.Item>
+    <Form.Item name="durationText" label="Thời lượng hiển thị"><Input maxLength={30} placeholder="04:32" /></Form.Item>
+    <Form.Item name="durationTextEn" label="Duration label"><Input maxLength={30} /></Form.Item>
     <Form.Item name="eventId" label="Giải liên quan"><Select allowClear {...events} placeholder="Không gắn giải" /></Form.Item>
     <Form.Item name="isFeatured" label="Nổi bật" valuePropName="checked"><Switch /></Form.Item>
     <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}><Select options={IMMEDIATE_CONTENT_STATUS_OPTIONS} /></Form.Item>
@@ -124,6 +127,7 @@ export function StaticPageFields({ record, onImageUploadingChange }: { record?: 
     <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}><Select options={IMMEDIATE_CONTENT_STATUS_OPTIONS} /></Form.Item>
     <Card title="Chân trang">
       <Form.Item name="footerGroup" label="Nhóm cột"><Input maxLength={60} /></Form.Item>
+      <Form.Item name="footerGroupEn" label="Column group (English)"><Input maxLength={60} /></Form.Item>
       <Form.Item name="footerOrder" label="Thứ tự"><InputNumber min={0} precision={0} /></Form.Item>
     </Card>
   </>;

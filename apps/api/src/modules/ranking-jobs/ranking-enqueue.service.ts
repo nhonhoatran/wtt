@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException, OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common';
-import { QueueName, rankingRecomputeJob, rankingSnapshotJob } from '@kamito/shared';
+import { QueueName, rankingRecomputeJob, rankingSnapshotJob, safeErrorSummary } from '@kamito/shared';
 import { Queue } from 'bullmq';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
@@ -34,7 +34,7 @@ export class RankingEnqueueService implements OnModuleDestroy {
       connection: { url: env.REDIS_URL, enableOfflineQueue: false, maxRetriesPerRequest: 1 },
       prefix: env.QUEUE_PREFIX,
     });
-    this.queue.on('error', (error) => this.logger.warn(`ranking queue: ${error.message}`));
+    this.queue.on('error', (error) => this.logger.warn({ msg: 'ranking queue error', err: safeErrorSummary(error) }));
   }
 
   /** Never throws: returns the warnings to attach to the (already committed) response. */
@@ -44,7 +44,7 @@ export class RankingEnqueueService implements OnModuleDestroy {
         const job = rankingRecomputeJob(subEventId);
         await withTimeout(this.queue.add(job.name, job.data, job.opts), ENQUEUE_TIMEOUT_MS);
       } catch (error) {
-        this.logger.warn(`ranking recompute enqueue failed: ${(error as Error).message}`);
+        this.logger.warn({ msg: 'ranking recompute enqueue failed', err: safeErrorSummary(error) });
         return [RANKING_RECOMPUTE_DELAYED];
       }
     }
@@ -56,7 +56,7 @@ export class RankingEnqueueService implements OnModuleDestroy {
     try {
       await withTimeout(this.queue.add(job.name, job.data, job.opts), ENQUEUE_TIMEOUT_MS);
     } catch (error) {
-      this.logger.warn(`ranking snapshot enqueue failed: ${(error as Error).message}`);
+      this.logger.warn({ msg: 'ranking snapshot enqueue failed', err: safeErrorSummary(error) });
       throw queueUnavailable();
     }
     return job.opts.jobId;
@@ -69,7 +69,7 @@ export class RankingEnqueueService implements OnModuleDestroy {
     try {
       job = await withTimeout(this.queue.getJob(jobId), ENQUEUE_TIMEOUT_MS);
     } catch (error) {
-      this.logger.warn(`ranking job lookup failed: ${(error as Error).message}`);
+      this.logger.warn({ msg: 'ranking job lookup failed', err: safeErrorSummary(error) });
       throw queueUnavailable();
     }
     if (!job) throw notFound();

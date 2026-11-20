@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { safeErrorSummary } from '@kamito/shared';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
 
@@ -30,7 +31,7 @@ export const redisConnectionProvider = {
   useFactory: async (env: ApiEnv) => {
     // No offline queue: commands fail fast while Redis is down instead of piling up.
     const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null, enableOfflineQueue: false });
-    redis.on('error', (error) => logger.error(`connection error: ${error.message}`));
+    redis.on('error', (error) => logger.error({ msg: 'redis connection error', err: safeErrorSummary(error) }));
     await waitUntilReady(redis, READY_WAIT_MS);
     return redis;
   },

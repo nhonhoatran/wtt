@@ -49,8 +49,8 @@ export class PublicContentController {
 
   @Get('articles')
   async articles(@Query('category') category?: string, @Query('page') rawPage?: string, @Query('event') event?: string): Promise<{ data: PublicArticleList }> {
-    const [pageSize, categories] = await Promise.all([
-      this.settings.get(contentSettings.newsPageSize), this.settings.get(contentSettings.newsCategories),
+    const [pageSize, categories, labelsEn] = await Promise.all([
+      this.settings.get(contentSettings.newsPageSize), this.settings.get(contentSettings.newsCategories), this.settings.get(contentSettings.newsCategoryLabelsEn),
     ]);
     const page = pageNum(rawPage);
     const where = {
@@ -62,7 +62,10 @@ export class PublicContentController {
       this.prisma.article.findMany({ where, orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }], skip: (page - 1) * pageSize, take: pageSize, include: { events: articleEvents, coverMedia: true } }),
       this.prisma.article.count({ where }),
     ]);
-    return { data: { data: rows.map((row) => this.articleCard(row)), total, page, pageSize, categories } };
+    const categoryLabelsEn = Object.fromEntries(categories.flatMap((key) => (
+      Object.hasOwn(labelsEn, key) && typeof labelsEn[key] === 'string' ? [[key, labelsEn[key]]] : []
+    )));
+    return { data: { data: rows.map((row) => this.articleCard(row)), total, page, pageSize, categories, categoryLabelsEn } };
   }
 
   @Get('home')
@@ -145,10 +148,10 @@ export class PublicContentController {
   @Get('footer')
   async footer() {
     const [pages, sponsors] = await Promise.all([
-      this.prisma.staticPage.findMany({ where: { status: 'PUBLISHED', footerGroup: { not: null } }, orderBy: [{ footerOrder: 'asc' }, { title: 'asc' }], select: { slug: true, title: true, titleEn: true, footerGroup: true, footerOrder: true } }),
+      this.prisma.staticPage.findMany({ where: { status: 'PUBLISHED', OR: [{ footerGroup: { not: null } }, { footerGroupEn: { not: null } }] }, orderBy: [{ footerOrder: 'asc' }, { title: 'asc' }], select: { slug: true, title: true, titleEn: true, footerGroup: true, footerGroupEn: true, footerOrder: true } }),
       this.prisma.sponsor.findMany({ where: { isActive: true, eventId: null }, orderBy: [{ order: 'asc' }, { name: 'asc' }], include: { logoMedia: true, logoDarkMedia: true } }),
     ]);
-    return { data: { pages: pages.map((p) => ({ slug: p.slug, title: p.title, titleEn: p.titleEn, group: p.footerGroup, order: p.footerOrder ?? 0 })), sponsors: sponsors.map((s) => this.sponsorView(s)) } };
+    return { data: { pages: pages.map((p) => ({ slug: p.slug, title: p.title, titleEn: p.titleEn, group: p.footerGroup, groupEn: p.footerGroupEn, order: p.footerOrder ?? 0 })), sponsors: sponsors.map((s) => this.sponsorView(s)) } };
   }
 
   @Get('sponsors')
@@ -176,14 +179,14 @@ export class PublicContentController {
     return { data: { accepted: true } };
   }
 
-  private articleCard(row: { slug: string; title: string; titleEn: string | null; summary: string | null; summaryEn: string | null; category: string | null; authorName: string | null; publishedAt: Date | null; body: string; coverMedia: { status: string; width: number | null; height: number | null; altText: string | null; altTextEn: string | null; variants: unknown } | null; events: Array<{ event: { slug: string } }> }) {
+  private articleCard(row: { slug: string; title: string; titleEn: string | null; summary: string | null; summaryEn: string | null; category: string | null; categoryEn: string | null; authorName: string | null; publishedAt: Date | null; body: string; coverMedia: { status: string; width: number | null; height: number | null; altText: string | null; altTextEn: string | null; variants: unknown } | null; events: Array<{ event: { slug: string } }> }) {
     const variant = readVariants(row.coverMedia?.variants as never).at(-1);
     const cover = row.coverMedia?.status === 'READY' && variant ? { url: publicUrlFor(mediaPublicBaseUrl(this.env), variant.key), width: variant.width, height: variant.height, alt: row.coverMedia.altText, altEn: row.coverMedia.altTextEn } : null;
-    return { slug: row.slug, title: row.title, titleEn: row.titleEn, summary: row.summary, summaryEn: row.summaryEn, cover, category: row.category, authorName: row.authorName, publishedAt: row.publishedAt?.toISOString() ?? '', eventSlugs: row.events.map((event) => event.event.slug) };
+    return { slug: row.slug, title: row.title, titleEn: row.titleEn, summary: row.summary, summaryEn: row.summaryEn, cover, category: row.category, categoryEn: row.categoryEn, authorName: row.authorName, publishedAt: row.publishedAt?.toISOString() ?? '', eventSlugs: row.events.map((event) => event.event.slug) };
   }
 
-  private videoView(row: { slug: string; title: string; titleEn: string | null; provider: string; embedId: string; url: string; thumbnailUrl: string | null; durationText: string | null; publishedAt: Date | null; event: { slug: string; publishStatus: string; isCancelled: boolean } | null }) {
-    return { slug: row.slug, title: row.title, titleEn: row.titleEn, provider: row.provider, embedId: row.embedId, url: row.url, thumbnailUrl: row.thumbnailUrl, durationText: row.durationText, publishedAt: row.publishedAt?.toISOString() ?? '', eventSlug: row.event?.publishStatus === 'PUBLISHED' && !row.event.isCancelled ? row.event.slug : null };
+  private videoView(row: { slug: string; title: string; titleEn: string | null; provider: string; embedId: string; url: string; thumbnailUrl: string | null; durationText: string | null; durationTextEn: string | null; publishedAt: Date | null; event: { slug: string; publishStatus: string; isCancelled: boolean } | null }) {
+    return { slug: row.slug, title: row.title, titleEn: row.titleEn, provider: row.provider, embedId: row.embedId, url: row.url, thumbnailUrl: row.thumbnailUrl, durationText: row.durationText, durationTextEn: row.durationTextEn, publishedAt: row.publishedAt?.toISOString() ?? '', eventSlug: row.event?.publishStatus === 'PUBLISHED' && !row.event.isCancelled ? row.event.slug : null };
   }
 
   private sponsorView(row: { name: string; logoMedia: { status: string; width: number | null; height: number | null; altText: string | null; altTextEn: string | null; variants: unknown } | null; logoDarkMedia: { status: string; width: number | null; height: number | null; altText: string | null; altTextEn: string | null; variants: unknown } | null; url: string | null; roleLabel: string | null; roleLabelEn: string | null }): PublicSponsor {

@@ -1,6 +1,6 @@
 # System Architecture — Kamito
 
-> Cập nhật: 2026-11-17 · Trạng thái: đã có mã nguồn công khai xếp hạng và hồ sơ VĐV của phase 10 trong working tree, chưa deploy staging. Trạng thái từng phase: xem [roadmap](./development-roadmap.md).
+> Cập nhật: 2026-11-19 · Trạng thái: có mã nguồn CMS phase 11 và tiếng Anh/SEO/hardening phase 12 trong working tree; kiểm API và public Playwright trên PostgreSQL/Redis local thật đã đạt trong phạm vi báo cáo. Chưa deploy staging. Trạng thái từng phase: xem [roadmap](./development-roadmap.md).
 > Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
 > Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
@@ -18,6 +18,7 @@
 - [Nhập, lịch và revalidate (phase 07)](#nhập-lịch-và-revalidate-phase-07)
 - [Site công khai (phase 08)](#site-công-khai-phase-08)
 - [Xếp hạng và hồ sơ công khai (phase 10)](#xếp-hạng-và-hồ-sơ-công-khai-phase-10)
+- [CMS, SEO và hardening (phase 11–12)](#cms-seo-và-hardening-phase-1112)
 - [Xác thực và phân quyền (phase 03)](#xác-thực-và-phân-quyền-phase-03)
 - [Dịch vụ dùng chung trong api](#dịch-vụ-dùng-chung-trong-api)
 - [Packages dùng chung](#packages-dùng-chung)
@@ -40,7 +41,7 @@ Nền tảng giải bóng bàn Kamito: site công khai (tiếng Việt và tiế
 
 | Thành phần | Công nghệ | Cổng | Mạng | Vai trò hiện tại |
 |---|---|---|---|---|
-| `apps/client` | Next.js 16.4.5, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Site công khai `[locale]` (vi, en): trang chủ tạm, danh sách và lịch giải, trang giải 6 tab, trận, nhánh, bảng xếp hạng, danh sách và hồ sơ VĐV; SSR đọc API nội bộ. Route `/api/revalidate`, `/api/csp-report`, `/api/health`, `sitemap.ts`, `robots.ts`, `proxy.ts`. Chi tiết: [public-site.md](./public-site.md) |
+| `apps/client` | Next.js 16.4.5, React 19.3.1 | 3000 trong container, 3001 khi dev | `internal`, `dokploy-network` | Site công khai `[locale]` (vi, en): trang chủ, danh sách/lịch giải, trang giải 6 tab, trận, nhánh, BXH, VĐV và CMS; SSR đọc API nội bộ. Route `/api/revalidate`, `/api/csp-report`, `/api/health`, `/sitemap.xml`, `/sitemap/[id]`, `robots.ts`, `proxy.ts`. Chi tiết: [public-site.md](./public-site.md) |
 | `apps/admin` | Vite 8.3.5, React 19.3.1, antd 5.29.3, `@refinedev/core` 5.0.12 + `@refinedev/antd` 6.0.3, react-router 7.18.5, TipTap 3.33.1 | 8080 trong container (nginx-unprivileged), 5173 khi dev | `internal`, `dokploy-network` | Đăng nhập, người dùng, nhật ký, `/settings`, danh mục cấu hình, địa điểm và bàn, danh sách giải, hub giải, ô tải ảnh, ô soạn rich text, VĐV, cặp đôi, tab Danh sách đăng ký, wizard import, gộp VĐV, tab Bốc thăm (wizard sinh nhánh, bảng sơ đồ, vòng bảng, thao tác sau công bố), trang Nhập tỷ số `/results`, tab Lịch & kết quả (session, lưới xếp lịch, panel chưa xếp), in phiếu trận |
 | `apps/api` | NestJS 12.3.2 trên Express 5.3.0, Better Auth 1.7.21, BullMQ 6.5.1, sharp 0.35.5, sanitize-html 2.18.1 | `API_PORT` (3000) | `internal` | Health, error filter, pagination, audit, auth và RBAC, users, settings, nhật ký (đọc), bull-board, danh mục CRUD, địa điểm và bàn, giải và nội dung thi đấu, media (intent, nội dung, complete, public), CLI `create-admin`, VĐV và gộp VĐV, cặp đôi (đọc), đăng ký, import và export Excel (phase 05), bốc thăm, nhánh, vòng bảng, trận, đọc (phase 06), nhập, chốt, sửa và mở lại tỷ số, session và xếp lịch, phiếu trận, xuất lịch và kết quả, revalidation (phase 07), API công khai `/public/*` (phase 08) |
 | `apps/worker` | Node, ioredis, BullMQ 6.5.1, sharp 0.35.5 | `WORKER_HEALTH_PORT` (3010) | `internal` | Kiểm Redis lúc boot, health HTTP, media worker: job `process-image` và job dọn định kỳ `cleanup-expired-intents`. Import worker (queue `import`): `validate-import`, `commit-import`, dọn file import định kỳ. Revalidate worker (queue `revalidate`): job `revalidate-tags`, gọi `client` `/api/revalidate` |
@@ -176,8 +177,12 @@ Migration theo thứ tự:
 14. `packages/db/prisma/migrations/20261114064027_add_sessions_and_match_scheduling` (phase 07: `EventSession`, `EventSessionTable`, cột lịch của `Match`)
 15. `packages/db/prisma/migrations/20261114071907_add_match_schedule_indexes` (phase 07: index lịch)
 16. `packages/db/prisma/migrations/20261115032757_add_player_public_name_key` (phase 08: khóa tên công khai, trigger/backfill/index; DB dev local đã áp dụng, staging chưa)
+17. `packages/db/prisma/migrations/20261119090000_add_content_cms` (phase 11: tin/video/trang tĩnh/tài trợ/liên hệ)
+18. `packages/db/prisma/migrations/20261119151407_add_content_english_fields` (phase 12: ba cột nullable `Article.categoryEn`, `StaticPage.footerGroupEn`, `Video.durationTextEn`)
 
-Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`, `players-and-entries.prisma`, `imports.prisma`, `draws-and-matches.prisma`, `groups-and-standings.prisma`, `sessions.prisma`.
+Đợt 2026-11-19 chỉ migrate đủ 18 vào DB local riêng `localhost:5433/kamito_tt_phase12_test`; migration 17–18 chưa áp dụng DB dev/staging. SQL migration 18 chỉ thêm ba cột TEXT nullable, không rewrite hoặc xóa dữ liệu.
+
+Schema tách file: `base.prisma`, `app-setting.prisma`, `audit-log.prisma`, `auth.prisma`, `tournament-catalog.prisma`, `tournament-event.prisma`, `media.prisma`, `players-and-entries.prisma`, `imports.prisma`, `draws-and-matches.prisma`, `groups-and-standings.prisma`, `sessions.prisma`, `content.prisma`.
 
 **`AppSetting`** — chỉ giá trị nghiệp vụ và tham số vận hành. Key, zod schema và default nằm trong `@kamito/shared` (`app-setting-registry.ts`).
 
@@ -719,12 +724,22 @@ Code phía admin (`apps/admin/src`):
 - `pages/settings-field.tsx` và `pages/settings-editors/`: editor theo `editor.kind` của setting (`number`, `text`, `boolean`, `timezone`, `event`).
 - `pages/ranking/`, `resources/ranking-lists/`: bốn màn Xếp hạng (bảng, quy tắc điểm dạng ma trận có phiên bản, sổ điểm, kỳ chốt). Route khai ở `pages/ranking/ranking-routes.tsx`, kiểm quyền theo resource `rankings`. Trong `pages/event-hub/` có `sub-event-ranking-field.tsx` (chọn bảng cho nội dung) và `draw-seed-suggestion-modal.tsx` (gợi ý hạt giống theo BXH). Chi tiết: [changelog 2026-11-16](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit).
 
+## CMS, SEO và hardening (phase 11–12)
+
+CMS có API admin/public cho tin, video, trang tĩnh, tài trợ và liên hệ; mutation ghi audit atomic rồi enqueue publishing/revalidation sau commit. Worker có job hẹn giờ, sweep và dọn liên hệ. Public SSR dùng whitelist, lọc/phân trang ở API; HTML được sanitize lúc ghi và lúc hiển thị. Nội dung tiếng Anh dùng fallback vi; phase 12 bổ sung category/duration/footer group và setting động `news.categoryLabelsEn` với kiểm own-property/kiểu chuỗi.
+
+Sitemap chạy runtime qua `/sitemap.xml` và `/sitemap/[id]`, helpers ở `src/lib/sitemap.ts`/`sitemap-xml.ts`. Payload dùng public scope; bộ chia tuân thủ 50.000 URL và 50 MiB UTF-8 sau escape/wrapper, tự tạo index, không cắt URL. Root/chunk không thương lượng locale nhưng vẫn tính vào ngân sách search động trong proxy, kể cả request giả header prefetch. Có hai locale, canonical/hreflang, OG/Twitter và JSON-LD; hồ sơ VĐV vẫn bị loại khỏi sitemap/`Person` khi gate đồng ý công khai chưa chốt.
+
+Helmet được đăng ký trước raw auth và bull-board. HTTP log chỉ giữ request id/method/route template/status; Better Auth và worker bỏ message/stack thô. `safeErrorSummary` chỉ xuất loại/mã được phép; Prisma mặc định không log (`log: []`). Client CSP vẫn report-only, chưa nonce, chưa nghiệm thu enforce; collector chỉ log origin/scheme marker/directive cho phép. Media public có CORP `cross-origin`, phần API còn lại giữ `same-origin`.
+
+Kiểm local thật ngày 2026-11-19: API tích hợp 32 ca/7 file; public Playwright 55 đạt/5 bỏ qua viewport, không lỗi; publish admin → BullMQ → SSR cache đổi trong 212 ms. Đây là DB `_test`, Redis thật và storage local; không đóng cổng staging, S3/CDN, khôi phục hoặc E2E giải đầy đủ. Nguồn và giới hạn: [API](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-phase-12-real-api.md), [client](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-2234-phase-12-bilingual-public-e2e.md), [deployment](./deployment-guide.md#cổng-nghiệm-thu-ra-mắt-phase-12).
+
 ## Chưa xây dựng
 
 | Hạng mục | Phase | Trạng thái |
 |---|---|---|
 | Queue nghiệp vụ khác | Phase sau | `QueueName` có `maintenance` (chưa có job), `media`, `import` và `revalidate` (đang dùng) |
-| CMS: tin, video, nhà tài trợ và trang tĩnh | 11 | Chưa triển khai. Bảng xếp hạng và hồ sơ VĐV công khai đã có ở phase 10 ([public-site](./public-site.md)) |
+| Nghiệm thu CMS và SEO trên staging | 11–12 | Code và targeted local test đã có; còn deploy, toàn bộ ma trận vận hành CMS, storage/CDN thật và cổng ra mắt ([public-site](./public-site.md)) |
 | Sửa `site.name` trên `/settings` | — | Key có trong registry, chưa có editor |
 | `S3_PRESIGN_ENDPOINT`, `S3_PUBLIC_BASE_URL` | — | Không còn dùng (đã chọn thiết kế (b)). Vẫn nằm trong `env-schema.ts`, compose và `.env.example`. Gỡ ở lần dọn env |
 

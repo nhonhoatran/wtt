@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
 import { pino } from 'pino';
+import { safeErrorSummary } from '@kamito/shared';
 import { startImportWorker } from './import-worker.js';
 import { startMediaWorker } from './media-worker.js';
 import { startRankingWorker } from './ranking-worker.js';
@@ -14,23 +15,23 @@ import { startWorkerHealthServer, type WorkerHealthState } from './worker-health
 
 async function main(): Promise<void> {
   const env = loadWorkerEnv();
-  const logger = pino({ level: env.LOG_LEVEL, base: { service: 'worker', env: env.APP_ENV } });
+  const logger = pino({ level: env.LOG_LEVEL, base: { service: 'worker', env: env.APP_ENV }, serializers: { err: safeErrorSummary, error: safeErrorSummary } });
 
   const verdict = await checkRedisEvictionPolicy(env);
   let health: WorkerHealthState = { status: 'ok' };
   if (verdict.status === 'fatal') {
-    logger.fatal(`${verdict.message}; refusing to run`);
+    logger.fatal({ status: verdict.status }, 'Redis eviction check failed; refusing to run');
     process.exit(1);
   } else if (verdict.status === 'overridden') {
-    logger.warn(`${verdict.message} (override set)`);
+    logger.warn({ status: verdict.status }, 'Redis eviction check override is active');
   } else if (verdict.status === 'degraded') {
-    logger.error(verdict.message);
+    logger.error({ status: verdict.status }, 'Redis eviction check not ready');
     health = { status: 'degraded', detail: verdict.message };
   }
 
   // Shared connection for BullMQ workers; BullMQ requires maxRetriesPerRequest: null.
   const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
-  redis.on('error', (error) => logger.error({ err: error.message }, 'redis connection error'));
+  redis.on('error', (error) => logger.error({ err: safeErrorSummary(error) }, 'redis connection error'));
 
   const stopMedia = await startMediaWorker(env, redis, logger);
   const stopImport = await startImportWorker(env, redis, logger);
@@ -57,6 +58,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(error);
+  console.error(JSON.stringify({ msg: 'worker startup failed', err: safeErrorSummary(error) }));
   process.exit(1);
 });

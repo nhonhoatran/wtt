@@ -25,8 +25,8 @@ export class RedisEvictionPolicyCheck implements OnApplicationBootstrap {
           override: this.env.REDIS_EVICTION_CHECK_OVERRIDE,
         })
       : { status: 'degraded', policy: undefined, message: `Redis unreachable at boot: ${probe.error}` };
-    if (this.verdict.status === 'overridden') this.logger.warn(`${this.verdict.message} (override set)`);
-    else if (this.verdict.status !== 'ok') this.logger.error(this.verdict.message);
+    if (this.verdict.status === 'overridden') this.logger.warn({ msg: 'Redis eviction policy override is active', status: this.verdict.status });
+    else if (this.verdict.status !== 'ok') this.logger.error({ msg: 'Redis eviction policy check not ready', status: this.verdict.status });
     return this.verdict;
   }
 

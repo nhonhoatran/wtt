@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { safeErrorSummary } from '@kamito/shared';
 import { toNodeHandler } from 'better-auth/node';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { AUTH_BASE_PATH, SIGN_IN_PATH, type Auth } from './auth-instance.js';
@@ -31,7 +32,7 @@ export function mountAuthRawHandler(server: Express, auth: Auth, limiter: LoginI
       return;
     }
     handleRaw(req, res, subPath).catch((error: unknown) => {
-      logger.error(error);
+      logger.error({ msg: 'raw auth handler failed', err: safeErrorSummary(error) });
       if (!res.headersSent) res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
     });
   });

@@ -1,6 +1,6 @@
 # Code Standards — Kamito
 
-> Cập nhật: 2026-11-17 · Phạm vi: phase 01, 03–10: hạ tầng, nghiệp vụ giải, xếp hạng, site công khai và quyền riêng tư hồ sơ.
+> Cập nhật: 2026-11-19 · Phạm vi: phase 01, 03–12: hạ tầng, nghiệp vụ giải, CMS, site công khai, tiếng Anh, SEO và hardening; cổng phát hành staging còn mở.
 > Nguồn đối chiếu: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/*/package.json`, `apps/*/package.json`, `.editorconfig`, `.gitignore`, `apps/api/src/common/*`, `apps/worker/src/*`.
 > Mô tả kiến trúc xem [system-architecture.md](./system-architecture.md); quy trình triển khai xem [deployment-guide.md](./deployment-guide.md).
 
@@ -23,6 +23,7 @@
 - [Cảnh báo ghi (warnings) ở admin](#cảnh-báo-ghi-warnings)
 - [Frontend](#frontend)
 - [Xếp hạng và hồ sơ công khai (phase 10)](#xếp-hạng-và-hồ-sơ-công-khai-phase-10)
+- [Song ngữ, SEO và log (phase 12)](#song-ngữ-seo-và-log-phase-12)
 - [Kiểm thử](#kiểm-thử)
 - [Git và commit](#git-và-commit)
 - [Thư viện mới](#thư-viện-mới)
@@ -37,6 +38,7 @@
 | Turborepo | 2.11.10 | `devDependencies` root |
 | TypeScript | 6.0.3 | root + mọi package |
 | NestJS | 12.3.2 | `apps/api/package.json` |
+| Helmet | 8.3.0 | `apps/api/package.json`; middleware trước raw auth và bull-board |
 | Better Auth | 1.7.21 | `apps/api/package.json` (không dùng plugin admin) |
 | BullMQ | 6.5.1 | `apps/api` (producer, bull-board), `apps/worker` (processor) |
 | bull-board | 9.10.5 | `apps/api/package.json` |
@@ -486,6 +488,15 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
   - Theme antd lấy từ `@kamito/ui-tokens/antd-theme`.
   - Màu theo hạng giải hoặc loại giải là dữ liệu động (`colorHex` trong DB), không phải token.
 
+## Song ngữ, SEO và log (phase 12)
+
+- Dữ liệu CMS có nhãn nghiệp vụ vi/en qua schema/DTO/admin/public whitelist/SSR; dùng fallback vi khi bản en trống. Không làm mất tóm tắt chỉ có tiếng Anh. `Article.categoryEn`, `Video.durationTextEn`, `StaticPage.footerGroupEn` đi qua migration nullable. Nhãn bộ lọc lấy từ setting động `news.categoryLabelsEn`, chỉ dùng own-property có kiểu chuỗi và mã chuyên mục được cấu hình; không hardcode bản dịch trong component.
+- Metadata tập trung ở `page-metadata.ts`, JSON-LD qua helper an toàn, URL canonical/hreflang cùng nguồn dữ liệu. Sitemap runtime phải kiểm public scope và cả giới hạn 50.000 URL lẫn 50 MiB UTF-8 sau escape/wrapper; đây là giới hạn giao thức, không phải tham số nghiệp vụ. Tách index/chunk thay vì truncate; chunk không hợp lệ trả 404 và không cache. Root/chunk bỏ qua thương lượng locale nhưng vẫn dùng ngân sách search động hiện có; header prefetch không bỏ qua giới hạn. Không thêm hồ sơ VĐV vào sitemap/`Person` khi gate đồng ý công khai chưa chốt.
+- Log HTTP dùng allowlist request id, method, route template và status. Không log raw URL/query, headers, body, IP, tokens, email, error message/stack/cause. Dùng `safeErrorSummary` cho loại/mã cho phép; Better Auth và worker giữ ngữ cảnh cố định. Prisma mặc định `log: []`; opt-in chỉ khi có mục đích rõ và không chứa dữ liệu nhạy cảm. Probe SQL lỗi phải có negative control để chứng minh phép kiểm phát hiện được rò rỉ.
+- CSP client hiện report-only; không đổi sang enforce chỉ dựa vào test header. Cần nonce/script policy, nguồn media hợp lệ và báo cáo staging sạch. Collector chỉ giữ origin/scheme marker/directive cho phép, không ghi nguyên báo cáo.
+- Fixture CMS/public browser phải nhận `DATABASE_URL` process-only là PostgreSQL local có tên kết thúc `_test` và `MIGRATE_CONFIRM_TARGET` khớp chính xác `host:port/database`; root `.env` trỏ dev bị từ chối có chủ đích. Đặt `APP_ENV=test`, `QUEUE_PREFIX=kamito-tt:test`, không sửa root `.env` hoặc chạy fixture ghi đồng thời trên cùng DB. Migrate/seed theo [deployment guide](./deployment-guide.md#playwright-e2e-client), không dùng `prisma db push`.
+- Báo cáo phải tách unit, API tích hợp, browser, mock và staging; không cộng các lượt chạy đè cùng test. Kết quả local không thay cho Lighthouse/axe/load, container, S3/CDN, rollback/restore hoặc luồng giải 8 bước.
+
 ## Kiểm thử
 
 | Khu vực | Công cụ | Lệnh | Ghi chú |
@@ -496,7 +507,7 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
 | admin | `node --test` | `pnpm --filter @kamito/admin test` | Kiểm allowlist của `docker/admin-entrypoint.sh` |
 | scripts | `node --test` | `pnpm test` (root) | `scripts/*.test.mjs` |
 | migration | Prisma CLI | `prisma migrate deploy` trên DB test | CI chạy trên Postgres service container |
-| client e2e | Playwright 1.64.1 | `pnpm --filter @kamito/client test:e2e` | Cần stack dev và `.env` ở root. Chi tiết: [deployment-guide](./deployment-guide.md#playwright-e2e-client) |
+| client e2e | Playwright 1.64.1 | `pnpm --filter @kamito/client test:e2e` | Cần stack local thật; truyền DB PostgreSQL local `*_test` và target xác nhận chính xác bằng env process-only. `.env` root chỉ là nguồn cấu hình, không phải quyền chạy fixture vào DB dev. Chi tiết: [deployment-guide](./deployment-guide.md#playwright-e2e-client) |
 
 Quy tắc:
 - E2E cần dependency dev đang chạy (`docker-compose.dev.yml`). CI có service container Postgres 17.11, Redis 8.2.11 và RustFS 1.0.4.
@@ -520,8 +531,8 @@ Lint: ESLint 10 (flat config). `apps/api`, `apps/admin`, `apps/client` có `esli
   fix: reject placeholder secrets at boot
   ```
 - Lịch sử commit: xem `git log`. Code phase 01 đến 08 đã commit (kiểm 2026-11-14).
-- Repo chưa có remote (kiểm 2026-11-12). Đã chốt: chỉ commit cục bộ, push khi kết thúc dự án. Trước khi thêm remote, xác nhận lại tài khoản GitHub, email commit, tên repo.
-- Tài khoản dự kiến cho repo này: `midomax-hoa`, SSH host alias `github.com` (chưa thêm remote, chưa xác nhận lại). Không dùng URL HTTPS. Email commit đặt bằng `git config user.email` mức repo, không đặt `--global`.
+- Snapshot 2026-11-12: repo chưa có remote, tài khoản dự kiến là `midomax-hoa` với SSH host alias `github.com`; thông tin này là lịch sử, không dùng để suy ra tài khoản hiện tại.
+- Đối chiếu 2026-11-19: đã có remote `origin`, `main` đồng bộ `origin/main` tại lượt bàn giao phase 12. Lượt này không thêm/đổi remote, stage, commit hoặc push. Giữ target đã có; chỉ thêm remote mới sau khi xác nhận tài khoản GitHub, email commit và tên repo. Dùng SSH alias, không tự đổi sang HTTPS. Email commit đặt bằng `git config user.email` mức repo, không đặt `--global`.
 - Không commit `.env`, `packages/db/src/generated/`, `dist/`, `.next/`, `.turbo/`, `coverage/`, `apps/api/uploads/`.
 
 ## Thư viện mới
@@ -531,6 +542,8 @@ Trước khi dùng thư viện lần đầu:
 2. Kiểm repo còn được bảo trì (commit gần đây, issue được xử lý).
 3. Đọc doc chính thức của đúng phiên bản đã ghim. Không suy từ trí nhớ. Ví dụ đã làm: `disallowedTagsMode` của sanitize-html đọc từ README trong `apps/api/node_modules/sanitize-html` (2.18.1).
 4. Với chức năng lớn (sửa Office, ký số, chat, BI, workflow, PDF...), tìm giải pháp tự host hoặc tích hợp có sẵn trước khi tự viết.
+
+Đối chiếu thư viện mới phase 12 ngày 2026-11-19: `pnpm view helmet@8.3.0 license repository --json` trả giấy phép `MIT`, repository chính chủ `helmetjs/helmet`. Công cụ tải k6 được chạy ngoài ứng dụng; nguồn giấy phép và kết quả inspect ghi tại [tests/load/README.md](../tests/load/README.md). Đây là ghi nhận nguồn, không phải kết luận pháp lý.
 
 ## Liên quan
 

@@ -118,7 +118,7 @@ test.describe('published rankings and player profiles', () => {
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/players/${r.playerSlug}$`));
   });
 
-  test('profile metadata protects noindex players and sitemap only includes rankings', async ({ page, request, world }) => {
+  test('profile metadata protects noindex players and sitemap excludes profile URLs', async ({ page, request, world }) => {
     const r = world.ranking;
     await page.goto(`/vi/players/${r.playerSlug}`);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
@@ -126,7 +126,7 @@ test.describe('published rankings and player profiles', () => {
     expect(types.some((value) => /"@type"\s*:\s*"Person"/.test(value))).toBe(false);
     const sitemap = await (await request.get('/sitemap.xml')).text();
     expect(sitemap).toContain(`/rankings/${r.code}`);
-    expect(sitemap).not.toContain('/players/');
+    expect(sitemap).not.toMatch(/\/(?:vi|en)\/players\//);
     await page.goto(`/en/players/${r.playerSlug}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(r.playerName);
     await expect(page.getByRole('heading', { name: 'Current rankings' })).toBeVisible();
@@ -157,7 +157,7 @@ test.describe('published rankings and player profiles', () => {
     const width = testInfo.project.name === 'mobile' ? 390 : 1440;
     await page.setViewportSize({ width, height: 900 });
     const r = world.ranking;
-    const shots = path.resolve(import.meta.dirname, '../../../../plans/reports/screenshots-261117-phase-10');
+    const shots = process.env.E2E_SCREENSHOT_DIR ?? testInfo.outputPath('screenshots');
     await mkdir(shots, { recursive: true });
     for (const [name, url] of [
       ['rankings-overview', '/vi/rankings'],

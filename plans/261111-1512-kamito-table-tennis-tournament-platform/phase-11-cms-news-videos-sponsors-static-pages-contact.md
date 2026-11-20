@@ -138,14 +138,14 @@ Modify: `apps/client/src/app/[locale]/page.tsx`, `events/[slug]/page.tsx` (tin/v
 
 - [x] Kiểm chứng rich text editor (TipTap core MIT, bản 3.33.1 đang cài; npm hiện ghi 3.34.0 mới nhất; API headless hiện có typecheck với React 19. UI Components chưa dùng vì tài liệu cảnh báo hỗ trợ React 19 chưa đầy đủ)
 - [x] Đối chiếu/tái dùng mẫu code admin và public (finding-patterns → planning ở mức code; không có skill `ui-consistency`)
-- [x] Tạo 6 model và migration SQL; schema/diff đã kiểm offline, chưa áp dụng DB
-- [ ] Xác nhận target `localhost:5433/kamito_tt_dev`, áp dụng migration và kiểm tra DB
+- [x] Tạo 6 model và migration SQL; schema/diff đã kiểm offline, sau đó migrate trên DB local `_test` ở phase 12
+- [ ] Xác nhận target dev/staging, áp dụng migration và kiểm tra DB — phase 12 chỉ migrate đủ 18 trên `localhost:5433/kamito_tt_phase12_test`, chưa áp dụng hai migration mới vào dev/staging
 - [x] Video URL parser + unit test; dùng sanitizer phase 04
 - [x] API admin/public + queue publishing (delayed + sweep) + dọn liên hệ
 - [x] Màn admin Nội dung, Nhà tài trợ, tab Tài trợ
 - [x] Trang công khai tin/video/trang tĩnh/liên hệ/trang chủ (phạm vi code)
 - [x] Metadata structured `NewsArticle`/`VideoObject` + unit test
-- [ ] Chạy 16 ca API tích hợp + 18 ca Playwright CMS (đã bổ sung/typecheck/liệt kê, chưa thực thi)
+- [ ] Hoàn tất toàn bộ ma trận API tích hợp + Playwright CMS/vận hành — phase 12 đã chạy targeted 32 ca API/7 file và ba suite public 55 đạt/5 bỏ qua viewport trên DB `_test` thật; chưa đủ toàn bộ phạm vi quản trị/hẹn giờ/storage/staging
 - [x] Guard dữ liệu chưa lưu cho Browser Back/Forward, liên kết trong app và đóng tab; browser mock kiểm hủy/xác nhận, giữ nháp và lưu không báo nhầm
 - [x] Kiểm tra trực quan thủ công ở 1440 + 390 trên ứng dụng public/admin thật với API mock; có ảnh, chưa xác nhận dịch vụ thật/staging
 - [ ] Deploy staging — chờ cổng phase 01

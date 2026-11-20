@@ -82,7 +82,8 @@ export const getResultsStrip = cache(() =>
 
 export const getSiteConfig = cache(() => publicGet<PublicSiteConfig>('/site', { tags: [tags.settings()], policy: 'standard' }));
 
-export const getSitemap = cache(() => publicGet<PublicSitemap>('/sitemap', { tags: [tags.events(), tags.articles(), tags.pages()], policy: 'standard' }));
+// Do not retain routes after their publication scope changes (draws, entries, matches and content).
+export const getSitemap = cache(() => publicGet<PublicSitemap>('/sitemap', { tags: [], policy: 'none' }));
 
 export const getRankings = cache(() =>
   publicGet<PublicRankingOverview>('/rankings', { tags: [tags.rankings(), tags.players(), tags.events(), tags.settings()], policy: 'standard' }),

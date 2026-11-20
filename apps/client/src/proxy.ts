@@ -7,12 +7,21 @@ import { getPlayerProfile, getSiteConfig, isUrlPart } from './lib/public-data';
 import { contactRateLimitRetryAfter } from './lib/public-contact-rate-limit';
 
 const isRevalidatePath = (path: string) => path === '/api/revalidate' || path.startsWith('/api/revalidate/');
+const isSitemapPath = (path: string) => path === '/sitemap.xml' || path === '/sitemap' || path.startsWith('/sitemap/');
 
 export async function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
   // Second wall in front of /api/revalidate (the first is the Traefik rule): public hosts get a 404.
   if (isRevalidatePath(pathname)) {
     return isInternalHost(request.headers.get('host')) ? NextResponse.next() : new NextResponse(null, { status: 404 });
+  }
+  // Runtime XML stays outside locale negotiation, but its uncached reads use the lower search budget.
+  if (isSitemapPath(pathname)) {
+    const retryAfter = await rateLimitRetryAfter(clientIp(request.headers), true);
+    return retryAfter === null ? NextResponse.next() : new NextResponse('Too many requests', {
+      status: 429,
+      headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
   }
   const first = pathname.split('/')[1] ?? '';
   if (!isLocale(first)) {
@@ -52,8 +61,10 @@ export const config = {
     '/en/contact',
     '/api/revalidate',
     '/api/revalidate/:path*',
+    '/sitemap.xml',
+    '/sitemap/:path*',
     {
-      source: '/((?!api(?:/|$)|_next/|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)',
+      source: '/((?!api(?:/|$)|_next/|favicon\\.ico$|robots\\.txt$|sitemap(?:\\.xml$|/)).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

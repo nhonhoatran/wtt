@@ -1,11 +1,11 @@
 # Development Roadmap — Kamito
 
-> Cập nhật: 2026-11-17. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và các file phase, đối chiếu với lịch sử git (`git log`) và code.
+> Cập nhật: 2026-11-19. Nguồn: `plans/261111-1512-kamito-table-tennis-tournament-platform/plan.md` và đủ 12 file phase, đối chiếu code và báo cáo kiểm thử. Các số liệu gắn ngày trước là snapshot lịch sử.
 > Lịch sử thay đổi: [project-changelog.md](./project-changelog.md).
 
 ## Trạng thái phase
 
-| Phase | Nội dung | Trạng thái (2026-11-17) | Ghi chú |
+| Phase | Nội dung | Trạng thái (2026-11-19) | Ghi chú |
 |---|---|---|---|
 | 01 | Nền móng: monorepo, compose, Dokploy, design token | Code xong, cổng ra chưa đạt | Plan: không sang phase 03 cho tới khi đủ 4 điều kiện: staging chạy; Redis riêng `noeviction`; chọn thiết kế upload (đã chọn (b), 2026-11-12); chủ sở hữu sao lưu và RPO |
 | 02 | Spike: Refine, Better Auth, Dokploy, revalidate Next.js | B, C, E đạt cục bộ. D chờ staging | Kết quả trong `plans/reports/spike-*` |
@@ -17,8 +17,10 @@
 | 08 | Site công khai: khung, i18n, trang giải, nhánh đấu, bảng đấu, trận, bản in | Đợt 1 đến 3 đã commit (`88777db`, `998f3f1`..`57be6b9`, 2026-11-13 và 11-14). Chưa lên staging | Bổ sung 2026-11-15 (đã commit `a26f833`): lịch theo session/bàn và bản in lịch. Typecheck/lint client đạt; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile). Còn mốc M1/M2. Đã có: 13 endpoint public (gồm `schedule`), i18n vi/en, khung và header, danh sách và lịch giải, trang giải 6 tab, trang trận, nhánh và bảng đấu, bản in nhánh, metadata, sitemap, robots, rate limit công khai, CSP report-only, Playwright cuối 51 đạt/7 bỏ qua, xem báo cáo hoàn tất nợ code. Chi tiết: [public-site](./public-site.md), [changelog](./project-changelog.md#2026-11-14--phase-08-site-công-khai-đợt-1-đến-3-đã-commit) |
 | 09 | Quy tắc điểm, sổ điểm, snapshot xếp hạng, màn admin xếp hạng | Code xong ở local. Lõi (`packages/ranking-engine`, migration, API) đã commit (`b59fffb`..`478ad88`). Màn admin và thay đổi API nhỏ chưa commit (2026-11-16). Chưa deploy staging | Staging chờ cổng phase 01. Chờ G2 (BTC trả lời quy chế điểm), nên số điểm hiện là dữ liệu mẫu để thử. Test API 571/571 (chạy lại sau vòng sửa review). Chưa có unit test cho admin. Chi tiết và việc còn mở: [changelog](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit) |
 | 10 | Trang xếp hạng, danh sách và hồ sơ VĐV | Mã nguồn đã triển khai và kiểm chứng ở local, chưa commit/staging | SSR bảng và hồ sơ; điểm từ kỳ công bố; chi tiết native không cần JS; URL VĐV `p-<UUID>`, slug cũ/đã gộp 301; quyền riêng tư/noindex; bảng điểm giải. Không có migration. 111 API test trên 15 file, 24 browser test sau sửa review đạt; build API/worker/client đạt. Xem [changelog](./project-changelog.md#2026-11-17--phase-10-xếp-hạng-và-hồ-sơ-vđv-công-khai-chưa-commit) |
-| 11 | CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ | Pending | |
-| 12 | Tiếng Anh, SEO, hardening, ra mắt | Pending | |
+| 11 | CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ | In progress, 10/13 | Code, unit và UI với API mock đã đạt; targeted API/public Playwright với DB local `_test` thật đã đạt ở phase 12. Hai migration mới chưa áp dụng DB dev/staging; toàn bộ ma trận CMS/vận hành và staging còn mở |
+| 12 | Tiếng Anh, SEO, hardening, ra mắt | In progress, 7/14 | Song ngữ, sitemap/index, metadata và hardening/log privacy đã kiểm local; API tích hợp 32 ca/7 file, public Playwright 55 đạt/5 bỏ qua viewport. Còn toàn site UI, validator/container dữ liệu phát hành, CSP enforce, Lighthouse/axe/load, E2E giải 8 bước, staging và rollback/restore |
+
+Rà đủ 12 phase ngày 2026-11-19: **134/163 checkbox (82,2 %), 29 còn mở**; tính theo checklist, không theo ngày công hoặc độ sẵn sàng phát hành. Phase 12 tách rõ công việc mã nguồn đã kiểm và gate phát hành chưa đạt. Không đổi checkbox phase 01–11; G1/G2, M1/M2, pilot và cổng hạ tầng vẫn mở. Xem [PM sync](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/pm-261119-phase-12-sync.md).
 
 ## Mốc và cổng (theo plan)
 
@@ -42,7 +44,7 @@
    - `@RequireStepUp` cho `PUT /admin/settings/:key` và `reset-password`: giữ hay gắn (xem [auth-and-rbac](./auth-and-rbac.md#giới-hạn-đã-biết)).
 2. **Trước khi deploy staging:** chạy lại tester và code-reviewer trên code hiện tại. Code phase 04 đã đổi sau báo cáo 13:29, phase 05 sau 14:36, và phase 07 đợt 2 chỉ có báo cáo review trước khi sửa (14:14). Báo cáo phase 06 là bản trước khi sửa, chưa có review sau sửa. Trong lần cập nhật này chưa chạy lại test. Phase 09 (2026-11-16): API 571/571 chạy lại sau vòng sửa review; màn admin chỉ kiểm bằng typecheck, lint và trình duyệt.
 3. **Deploy staging** (phase 04 bước 13, phase 05 bước 11, phase 07 bước mới):
-   - Migrate 16 migration có trong repo, theo thứ tự tên: 1 (phase 01), 1 (phase 03), 3 (phase 04), 4 (phase 05), 2 (phase 06), 2 (phase 09, ranking), 2 (phase 07, lịch), 1 (phase 08, tên VĐV công khai). Xem [system-architecture](./system-architecture.md#dữ-liệu). Chạy `seed:config`. Chạy `pnpm db:print-target` trước khi migrate và xác nhận host và tên DB.
+   - Migrate 18 migration hiện có theo thứ tự tên: 16 migration tới phase 10, `20261119090000_add_content_cms` và `20261119151407_add_content_english_fields`. Migration cuối chỉ thêm ba cột TEXT nullable. Xem [system-architecture](./system-architecture.md#dữ-liệu). Đợt 2026-11-19 chỉ migrate đủ 18 trên `localhost:5433/kamito_tt_phase12_test`, không áp dụng hai migration mới vào dev/staging. In target, xác nhận host/tên DB và sao lưu trước migrate; sau đó chạy `seed:config`.
    - Thử `create-admin` trong container api (chưa kiểm chứng).
    - Kiểm sharp trên image Alpine, và upload một ảnh thật với `STORAGE_DRIVER=s3`.
    - Phase 05: upload một file import thật (lưu từ Excel), kiểm tra, nhập, thử gộp VĐV trên staging.

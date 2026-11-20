@@ -1,5 +1,5 @@
 import { createPrismaClient } from '@kamito/db';
-import { QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, withTimeout } from '@kamito/shared';
+import { QueueName, REVALIDATE_ENQUEUE_TIMEOUT_MS, revalidateTagsJobs, safeErrorSummary, withTimeout } from '@kamito/shared';
 import { createObjectStorage } from '@kamito/shared/object-storage';
 import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
@@ -56,13 +56,13 @@ export async function startImportWorker(env: WorkerEnv, redis: Redis, logger: Lo
     },
     { ...queueOptions, concurrency: env.IMPORT_WORKER_CONCURRENCY },
   );
-  worker.on('error', (error) => logger.error({ err: error.message }, 'import worker error'));
+  worker.on('error', (error) => logger.error({ err: safeErrorSummary(error) }, 'import worker error'));
   worker.on('failed', (job, error) => {
-    logger.error({ jobId: job?.id, err: error.message }, 'import job failed');
+    logger.error({ jobId: job?.id, err: safeErrorSummary(error) }, 'import job failed');
     const exhausted = job && job.attemptsMade >= (job.opts.attempts ?? 1);
     const id = job?.data?.importJobId;
     if (exhausted && id && (job.name === VALIDATE_IMPORT_JOB || job.name === COMMIT_IMPORT_JOB)) {
-      failImportJob(deps, id, GENERIC_FAILURE).catch((err: Error) => logger.error({ err: err.message }, 'failImportJob failed'));
+      failImportJob(deps, id, GENERIC_FAILURE).catch((err: Error) => logger.error({ err: safeErrorSummary(err) }, 'failImportJob failed'));
     }
   });
 

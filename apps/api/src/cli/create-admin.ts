@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { AuditActorType, createPrismaClient } from '@kamito/db';
-import { appSettingRegistry, resolveAppSetting } from '@kamito/shared';
+import { appSettingRegistry, resolveAppSetting, safeErrorSummary } from '@kamito/shared';
 import { hashPassword } from 'better-auth/crypto';
 import { setCredentialPassword } from '../modules/users/credential-account.js';
 import { ask, askHidden } from './terminal-prompts.js';
@@ -66,6 +66,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
+  console.error(JSON.stringify({ msg: 'admin CLI failed', err: safeErrorSummary(error) }));
   process.exit(1);
 });

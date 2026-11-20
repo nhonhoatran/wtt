@@ -1,6 +1,8 @@
 packages:
   - apps/*
   - packages/*
+overrides:
+  '@ant-design/pro-layout>path-to-regexp': 8.4.2
 allowBuilds:
   '@prisma/engines': true
   '@swc/core': true

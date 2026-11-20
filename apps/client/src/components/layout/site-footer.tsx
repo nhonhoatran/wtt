@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Locale } from '../../i18n/locales';
-import { pickLocalized } from '../../i18n/pick-localized';
+import { pickLocalized, pickLocalizedOrNull } from '../../i18n/pick-localized';
 import { getFooter, isUrlPart } from '../../lib/public-data';
 import { SponsorStrip } from '../content/sponsor-strip';
 import contentStyles from '../content/content-layout.module.css';
@@ -12,7 +12,7 @@ export async function SiteFooter({ text, locale }: { text: string; locale: Local
   const groups = new Map<string, PublicFooter['pages']>();
   for (const page of footer?.pages ?? []) {
     if (!isUrlPart(page.slug)) continue;
-    const group = page.group || (locale === 'vi' ? 'Thông tin' : 'Information');
+    const group = pickLocalizedOrNull(locale, page.group, page.groupEn) || (locale === 'vi' ? 'Thông tin' : 'Information');
     groups.set(group, [...(groups.get(group) ?? []), page]);
   }
   return (

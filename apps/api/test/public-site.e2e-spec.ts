@@ -57,6 +57,7 @@ describe('public site config and sitemap API (real Postgres)', () => {
   it('serves the site name and rate limits with the whitelisted fields', async () => {
     const { data } = (await site().expect(200)).body;
     expect(sortedPaths(data)).toEqual([
+      'contactRateLimit', 'contactRateLimit.maxRequests', 'contactRateLimit.windowSeconds',
       'rateLimit', 'rateLimit.maxRequests', 'rateLimit.maxTrackedIps', 'rateLimit.searchMaxRequests', 'rateLimit.windowSeconds', 'siteName', 'siteName.en', 'siteName.vi',
     ]);
   });
@@ -85,12 +86,16 @@ describe('public site config and sitemap API (real Postgres)', () => {
 
   it('lists only published, non-cancelled events in the sitemap, with ISO updatedAt', async () => {
     const { data } = (await sitemap().expect(200)).body;
-    expect(sortedPaths(data)).toEqual(['events', 'events[].slug', 'events[].updatedAt']);
+    expect(Object.keys(data).sort()).toEqual(['articles', 'events', 'matches', 'pages', 'videos']);
     const listed = await sitemapSlugs();
     expect(listed).toContain(slugs.published);
     expect(listed).not.toContain(slugs.draft);
     expect(listed).not.toContain(slugs.cancelled);
     const entry = data.events.find((e: { slug: string }) => e.slug === slugs.published);
+    expect(sortedPaths(entry)).toEqual([
+      'slug', 'subEvents', 'subEvents[].code', 'subEvents[].drawKinds', 'subEvents[].entryCount', 'subEvents[].hasGroups',
+      'tabs', 'tabs.info', 'tabs.matches', 'updatedAt',
+    ]);
     expect(new Date(entry.updatedAt).toISOString()).toBe(entry.updatedAt);
   });
 

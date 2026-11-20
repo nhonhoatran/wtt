@@ -9,7 +9,7 @@ export interface CreatePrismaClientOptions {
 export function buildPrismaClientOptions(options: CreatePrismaClientOptions) {
   return {
     adapter: new PrismaPg({ connectionString: options.connectionString }),
-    log: options.log ?? (['warn', 'error'] as Array<'warn' | 'error'>),
+    log: options.log ?? [],
   };
 }
 

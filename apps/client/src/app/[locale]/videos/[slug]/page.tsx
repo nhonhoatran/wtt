@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { VideoEmbedFacade } from '../../../../components/content/video-embed-facade';
 import styles from '../../../../components/content/content.module.css';
 import { isLocale } from '../../../../i18n/locales';
-import { pickLocalized } from '../../../../i18n/pick-localized';
+import { pickLocalized, pickLocalizedOrNull } from '../../../../i18n/pick-localized';
 import { pageMetadata } from '../../../../lib/page-metadata';
 import { getVideo, isUrlPart } from '../../../../lib/public-data';
 import { StructuredData } from '../../../../components/content/structured-data';
@@ -23,13 +23,19 @@ async function load(params: Props['params']) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, video } = await load(params);
   const title = pickLocalized(locale, video.title, video.titleEn);
+  const image = video.thumbnailUrl ? [{ url: video.thumbnailUrl, alt: title }] : undefined;
   const metadata = pageMetadata(locale, `/videos/${video.slug}`, { title });
-  return { ...metadata, openGraph: { ...metadata.openGraph, ...(video.thumbnailUrl ? { images: [{ url: video.thumbnailUrl, alt: title }] } : {}) } };
+  return {
+    ...metadata,
+    openGraph: { ...metadata.openGraph, ...(image ? { images: image } : {}) },
+    twitter: { ...metadata.twitter, ...(image ? { images: image.map(({ url }) => url) } : {}) },
+  };
 }
 
 export default async function VideoPage({ params }: Props) {
   const { locale, video } = await load(params);
   const title = pickLocalized(locale, video.title, video.titleEn);
+  const duration = pickLocalizedOrNull(locale, video.durationText, video.durationTextEn);
   const siteName = await getSiteName(locale);
   const pageUrl = new URL(`/${locale}/videos/${video.slug}`, serverEnv.publicSiteUrl()).toString();
   const embedUrl = video.provider === 'youtube'
@@ -44,7 +50,7 @@ export default async function VideoPage({ params }: Props) {
     embedUrl,
     publisher: { '@type': 'Organization', name: siteName },
     ...(video.thumbnailUrl ? { thumbnailUrl: [video.thumbnailUrl] } : {}),
-    ...(video.durationText ? { description: video.durationText } : {}),
+    ...(duration ? { description: duration } : {}),
     mainEntityOfPage: pageUrl,
   };
   return (
@@ -53,7 +59,7 @@ export default async function VideoPage({ params }: Props) {
       <p className="eyebrow"><Link href={`/${locale}/videos`}>{locale === 'vi' ? 'Video' : 'Videos'}</Link></p>
       <h1 className="page-title">{pickLocalized(locale, video.title, video.titleEn)}</h1>
       <VideoEmbedFacade video={video} label={locale === 'vi' ? 'Phát video' : 'Play video'} />
-      {video.durationText && <p className={styles.meta}>{video.durationText}</p>}
+      {duration && <p className={styles.meta}>{duration}</p>}
     </main>
   );
 }

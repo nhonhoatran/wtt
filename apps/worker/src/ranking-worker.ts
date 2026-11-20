@@ -1,5 +1,5 @@
 import { createPrismaClient } from '@kamito/db';
-import { QueueName, RANKING_RECOMPUTE_JOB, RANKING_SNAPSHOT_JOB, RANKING_SWEEP_JOB, rankingRecomputeJob } from '@kamito/shared';
+import { QueueName, RANKING_RECOMPUTE_JOB, RANKING_SNAPSHOT_JOB, RANKING_SWEEP_JOB, rankingRecomputeJob, safeErrorSummary } from '@kamito/shared';
 import { Queue, UnrecoverableError, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -46,9 +46,9 @@ export async function startRankingWorker(env: WorkerEnv, redis: Redis, logger: L
     },
     { ...queueOptions, concurrency: env.RANKING_WORKER_CONCURRENCY },
   );
-  worker.on('error', (error) => logger.error({ err: error.message }, 'ranking worker error'));
+  worker.on('error', (error) => logger.error({ err: safeErrorSummary(error) }, 'ranking worker error'));
   worker.on('failed', (job, error) =>
-    logger.error({ jobId: job?.id, name: job?.name, attempt: job?.attemptsMade, err: error.message }, 'ranking job failed'),
+    logger.error({ jobId: job?.id, attempt: job?.attemptsMade, err: safeErrorSummary(error) }, 'ranking job failed'),
   );
 
   return async () => {

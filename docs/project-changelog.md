@@ -1,7 +1,20 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-17. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-19. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-19 — Phase 12: tiếng Anh, SEO và hardening local (chưa commit)
+
+- Bổ sung `Article.categoryEn`, `Video.durationTextEn`, `StaticPage.footerGroupEn` từ schema đến admin, API whitelist và public SSR; nhãn chuyên mục dùng setting động `news.categoryLabelsEn`, bỏ key ngoài cấu hình và chống đọc prototype. Migration `20261119151407_add_content_english_fields` chỉ thêm ba cột TEXT nullable.
+- Sitemap runtime tự chia index/chunk theo giới hạn URL và byte UTF-8 thực tế, giữ đủ URL công khai vi/en, kiểm scope và route chunk/rate budget; không truncate. Bổ sung Twitter metadata, `SportsEvent` JSON-LD, alt theo locale và kiểm key i18n. Hồ sơ VĐV vẫn không vào sitemap/`Person` khi chưa chốt consent.
+- Helmet trước raw auth/bull-board, header client/API và CORP media public; CSP vẫn report-only. HTTP/error log dùng allowlist, Better Auth/worker bỏ dữ liệu lỗi thô, Prisma mặc định `log: []`, CSP collector bỏ credentials/path/query. Probe SQL lỗi chỉ đọc có negative control xác nhận mặc định không rò sentinel.
+- Override có phạm vi cho `@ant-design/pro-layout>path-to-regexp` lên 8.4.2; audit còn 2 moderate (uuid/minimatch), 0 high/critical. Kịch bản k6 đã chuẩn bị và inspect, chưa chạy tải staging.
+- Kiểm nguồn cuối: API **182/32 file**, shared **104/23 file**, worker **44/8 file**, client **72/19 file**, admin **11/11** đạt; typecheck/lint/build liên quan đạt, worker production build cuối exit 0. Tách từng suite, không cộng với snapshot cũ hoặc lượt chạy lặp.
+- API tích hợp thật **32 ca duy nhất/7 file** đạt ở các batch cuối. Public Playwright production local **55 đạt/5 bỏ qua viewport/0 lỗi/0 flaky**, không retry; ADMIN → BullMQ → SSR đã có cache cập nhật sau **212 ms**. API/client test cổng 3313/3314 đã dừng sau teardown. Chỉ iframe YouTube dùng fixture; PostgreSQL/Redis thật và storage local.
+- Đợt này tạo DB riêng `localhost:5433/kamito_tt_phase12_test`, áp dụng đủ **18 migration** và seed ở đúng DB test; không áp dụng migration mới hoặc seed DB dev/staging. Root `.env` không được lệnh kiểm thử sửa; không có baseline hash để tuyên bố so sánh byte. Guard fixture yêu cầu PostgreSQL local `_test`, exact `MIGRATE_CONFIRM_TARGET`, process-only override và queue test.
+- PM rà đủ 12 phase: **134/163 (82,2 %), 29 mở**, phase 12 **7/14**, giữ `in-progress`. Còn UI toàn site, SEO validator/container/dữ liệu phát hành, CSP enforce, Lighthouse/axe/load, full 8-step tournament UI E2E, staging/Dokploy và rollback/restore; G1/G2, M1/M2, pilot và consent không được đóng bằng test local.
+
+Bằng chứng: [API thật và lịch sử lỗi môi trường](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-phase-12-real-api.md), [client/public E2E](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261119-2234-phase-12-bilingual-public-e2e.md), [review](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261119-phase-12-hardening.md), [PM sync](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/pm-261119-phase-12-sync.md).
 
 ## 2026-11-17 — Phase 10: xếp hạng và hồ sơ VĐV công khai (chưa commit)
 

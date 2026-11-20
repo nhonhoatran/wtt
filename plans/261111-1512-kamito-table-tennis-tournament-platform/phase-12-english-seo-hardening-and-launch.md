@@ -7,11 +7,12 @@
 - [Admin + hạ tầng: ISR nhiều instance, D.2 Dokploy](../reports/researcher-261111-1450-admin-ui-kit-and-infra-queue-storage-realtime.md)
 - [Phase 01 — quy trình phát hành](./phase-01-foundation-monorepo-compose-dokploy-design-tokens.md), [Phase 02 — Spike D (rollback), Spike E (sitemap lúc chạy)](./phase-02-spikes-refine-antd-better-auth-dokploy-nextjs-revalidation.md)
 - [Red team đã phân xử: nhóm 5, 6, 7, 10, 15](./reports/red-team-261111-1614-adjudicated-findings.md)
+- [API tích hợp thật + probe log Prisma](./reports/tester-261119-phase-12-real-api.md), [song ngữ + public Playwright](./reports/tester-261119-2234-phase-12-bilingual-public-e2e.md), [review hardening](./reports/code-reviewer-261119-phase-12-hardening.md)
 
 ## Overview
 
 <!-- Red Team: Lịch 20 tuần + lát cắt dọc + cắt phạm vi — 2026-11-11 -->
-- Priority: P1. Status: pending. Tuần 17 (≈4,5 ngày công, gồm ui-consistency ≈0,5 ngày); tuần 18–19 là dự phòng trước ra mắt. **Không thuộc danh sách cắt** và không bị cắt trước CMS.
+- Priority: P1. Status: in-progress. Tuần 17 (≈4,5 ngày công, gồm ui-consistency ≈0,5 ngày); tuần 18–19 là dự phòng trước ra mắt. **Không thuộc danh sách cắt** và không bị cắt trước CMS.
 - Phủ đủ từ điển en, rà trường song ngữ, SEO hoàn chỉnh (sitemap sinh lúc chạy, robots, JSON-LD, canonical, hreflang, OG), hardening (header bảo mật, CSP enforce, audit phụ thuộc, rà quyền), hiệu năng, smoke test tải nhẹ, e2e toàn luồng, runbook ra mắt + diễn tập rollback, tài liệu `docs/`.
 - Dời giai đoạn sau: công cụ tìm bản ghi thiếu bản tiếng Anh, tải thử 50 req/s.
 
@@ -104,14 +105,28 @@ Modify: `apps/client/src/i18n/en.json`, `apps/client/src/i18n/pick-localized.ts`
 ## Todo List
 
 - [ ] ui-consistency: finding-patterns → planning (rà tổng)
-- [ ] en.json đủ khóa + test; rà trường song ngữ công khai
-- [ ] Sitemap lúc chạy, robots, JSON-LD, canonical, hreflang, OG, 404/500
-- [ ] Header bảo mật, CSP enforce, helmet, audit phụ thuộc
+- [x] en.json đủ khóa + test; rà trường song ngữ công khai, bổ sung category/duration/footer-group EN và nhãn lọc động
+- [x] Mã SEO: sitemap runtime tự chia file/index, robots, JSON-LD, canonical, hreflang, OG/Twitter, 404/500 song ngữ; giữ loại trừ hồ sơ/Person khi chưa chốt đồng ý
+- [ ] Nghiệm thu SEO bằng validator và bản container/dữ liệu phát hành trên staging
+- [x] Header HSTS/nosniff/referrer/frame-deny, Helmet API, log an toàn và audit không high/critical
+- [ ] CSP enforce: cơ chế nonce/script, nguồn ảnh/iframe cấu hình và báo cáo staging sạch
+- [x] Chuẩn bị script k6 tải nhẹ có target bắt buộc và tham số env; không tính là đã đạt bài đo staging
 - [ ] Lighthouse, axe, smoke test tải nhẹ đạt ngưỡng
-- [ ] Playwright luồng E2E chính
-- [ ] Runbook, diễn tập rollback, diễn tập lại khôi phục sao lưu
-- [ ] docs/ cập nhật; code review tổng
+- [x] Hồi quy public Playwright local với API/PostgreSQL/Redis thật: 55 đạt, 5 bỏ qua theo viewport
+- [ ] Playwright luồng E2E chính đủ 8 bước vận hành giải
+- [x] Runbook ra mắt và ma trận bằng chứng cho các cổng còn mở
+- [ ] Diễn tập rollback và diễn tập lại khôi phục sao lưu PostgreSQL + object storage trên staging
+- [x] docs/ cập nhật; review mã nguồn trong phạm vi thay đổi không còn Critical/P1/P2
 - [ ] ui-consistency: verifying toàn site
+
+## Bằng chứng thực thi ngày 2026-11-19
+
+- Đã bổ sung ba trường nullable `Article.categoryEn`, `Video.durationTextEn`, `StaticPage.footerGroupEn` bằng migration `20261119151407_add_content_english_fields`; bộ lọc tin dùng setting động `news.categoryLabelsEn`. Giá trị category gửi server giữ nguyên, lookup chỉ nhận own string property. Danh sách trường EN/trung lập được rà tại `pick-localized.ts`.
+- Client unit **72/72**, API `src` **182/182**, shared **104/104**, worker **44/44**; admin **11/11**. Typecheck/lint/build các app/package liên quan đạt theo báo cáo tester/reviewer. Không cộng các nhóm trùng nhau thành tổng dự án.
+- API tích hợp thật **7 file / 32 ca duy nhất** đạt; public Playwright **55 đạt / 5 bỏ qua có chủ đích / 0 lỗi**, Next production local + API dist + PostgreSQL/Redis thật. Các lượt lỗi seed, restart WSL và native crash Windows được giữ riêng trong báo cáo, không dùng làm bằng chứng thành công.
+- Đã migrate deploy đủ **18 migrations** và seed catalog **chỉ trên `localhost:5433/kamito_tt_phase12_test`**. Không migrate/seed DB dev hoặc staging; không chỉnh root `.env` trong các lệnh đã chạy. Probe SQL đọc lỗi thật xác nhận default Prisma không ghi query chứa sentinel, negative control opt-in vẫn chứng minh đường log có thể phát nội dung.
+- Review đã sửa CORP ảnh public khác origin, giới hạn/chia file và ngân sách request sitemap, CSP report chứa URL riêng tư, sink log API/worker/Better Auth/Prisma và trường song ngữ. Audit phụ thuộc còn **2 moderate, 0 high/critical** sau override có phạm vi cho `path-to-regexp`.
+- **Chưa hoàn thành phase:** chưa dựng staging/Dokploy theo cổng phase 01; CSP vẫn report-only; chưa đo Lighthouse/axe/tải staging, chưa chạy luồng giải 8 bước và verifying toàn site 1440/390; chưa diễn tập rollback/khôi phục. Privacy consent của VĐV vẫn mở. Các checkbox tách code và nghiệm thu để không lấy kết quả local thay cổng ra mắt.
 
 ## Success Criteria
 
