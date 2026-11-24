@@ -33,6 +33,15 @@ describe('effective public player names (real Postgres)', () => {
     }
     const seeded = await kit.prisma.entry.findMany({ where: { subEventId: fixture.fx.subEvents.MS! }, orderBy: { id: 'desc' }, take: 2 });
     for (const [index, entry] of seeded.entries()) await kit.prisma.entry.update({ where: { id: entry.id }, data: { seed: index + 1 } });
+    // Two unseeded MS players share one public name, so the id tie-break is exercised whatever order the DB collation gives the aliases.
+    const tied = await kit.prisma.entry.findMany({
+      where: { subEventId: fixture.fx.subEvents.MS!, status: 'CONFIRMED', seed: null, competitor: { playerId: { not: null, notIn: [fixture.sharedPlayer.id] } } },
+      select: { competitor: { select: { playerId: true } } },
+      orderBy: { id: 'asc' },
+      take: 2,
+    });
+    expect(tied).toHaveLength(2);
+    for (const entry of tied) await kit.prisma.player.update({ where: { id: entry.competitor.playerId! }, data: { publicDisplayName: 'Zulu' } });
     const settings = kit.app.get(AppSettingsService);
     const originalGet = settings.get.bind(settings);
     // A small page makes boundary ordering visible without mutating shared development settings.
