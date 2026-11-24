@@ -8,7 +8,7 @@ import styles from './event-hero.module.css';
 export function EventHero({ event, locale, t }: { event: PublicEventDetail; locale: Locale; t: Dictionary }) {
   const place = [event.venue ? pickLocalized(locale, event.venue.name, event.venue.nameEn) : null, event.city].filter(Boolean).join(', ');
   return (
-    <section className={styles.hero}>
+    <section className={styles.hero} data-event-hero>
       {event.banner && (
         // Pre-sized WebP variant from the media worker; decorative behind the text.
         <img className={styles.banner} src={event.banner.url} width={event.banner.width} height={event.banner.height} alt="" fetchPriority="high" />

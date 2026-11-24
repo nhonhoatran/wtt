@@ -1,4 +1,5 @@
 import { expect, test } from './support/fixtures';
+import { readFileSync } from 'node:fs';
 
 const root = (slug: string) => `/vi/events/${slug}`;
 
@@ -33,9 +34,28 @@ test.describe('locale', () => {
 });
 
 test.describe('SEO', () => {
+  test('core pages provide localized descriptions in standard and social metadata', async ({ page, world }) => {
+    for (const locale of ['vi', 'en'] as const) {
+      const dictionary = JSON.parse(readFileSync(new URL(`../../src/i18n/${locale}.json`, import.meta.url), 'utf8'));
+      const routes = [`/${locale}`, `/${locale}/events/${world.world.slug}`, `/${locale}/events/${world.world.slug}/draws/MS`, `/${locale}/rankings/${world.ranking.code}`];
+      for (const [index, route] of routes.entries()) {
+        await page.goto(route);
+        const metadata = await page.evaluate(() => Object.fromEntries(([
+          ['description', 'meta[name="description"]'], ['openGraph', 'meta[property="og:description"]'], ['twitter', 'meta[name="twitter:description"]'],
+        ] as const).map(([key, selector]) => [key, document.head.querySelector(selector)?.getAttribute('content') ?? null])));
+        expect.soft(metadata.description, route).toEqual(expect.stringMatching(/\S/));
+        expect.soft(metadata.openGraph, route).toBe(metadata.description);
+        expect.soft(metadata.twitter, route).toBe(metadata.description);
+        if (index === 0) expect.soft(metadata.description, route).toBe(dictionary.home.metaDescription);
+        if (index === 1 || index === 2) expect.soft(metadata.description, route).toContain(await page.locator('h1').textContent());
+        if (index === 3) expect.soft(metadata.description, route).toBe(dictionary.rankings.metaDescription);
+      }
+    }
+  });
+
   test('calendar normalizes invalid and repeated years while preserving canonical years', async ({ page }) => {
     const current = new Date().getFullYear();
-    for (const query of ['', '?year=invalid', '?year=2025&year=2024']) {
+    for (const query of ['', '?year=invalid', '?year=2025&year=2024', '?_rsc=nonce-regression']) {
       await page.goto(`/vi/events/calendar${query}`);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${process.env.E2E_SITE_URL}/vi/events/calendar`);
     }
@@ -44,8 +64,8 @@ test.describe('SEO', () => {
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${process.env.E2E_SITE_URL}/vi/events/calendar?year=${other}`);
   });
 
-  test('navigation distinguishes the exact page and event section location', async ({ page, world, viewport }) => {
-    test.skip(viewport?.width !== 1280, 'Desktop navigation semantics');
+  test('navigation distinguishes the exact page and event section location', async ({ page, world }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop navigation semantics');
     const nav = page.getByRole('navigation', { name: 'Menu chính' });
     await page.goto('/vi/events');
     await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'page');
@@ -85,7 +105,8 @@ test.describe('SEO', () => {
 test.describe('security headers', () => {
   test('sends security headers and accepts a CSP violation report', async ({ request }) => {
     const page = await request.get('/vi');
-    expect(page.headers()['content-security-policy-report-only']).toContain("default-src 'self'");
+    const policyHeader = process.env.CSP_MODE === 'enforce' ? 'content-security-policy' : 'content-security-policy-report-only';
+    expect(page.headers()[policyHeader]).toContain("default-src 'self'");
     expect(page.headers()['strict-transport-security']).toContain('max-age=31536000');
     expect(page.headers()['x-content-type-options']).toBe('nosniff');
     expect(page.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
@@ -118,7 +139,7 @@ test.describe('mobile layout', () => {
 });
 
 test.describe('print', () => {
-  test.skip(({ viewport }) => viewport?.width !== 1280, 'desktop project only');
+  test.skip(({ isMobile }) => isMobile, 'desktop project only');
 
   test('draws page prints the bracket without site chrome', async ({ page, world }, testInfo) => {
     await page.goto(`${root(world.world.slug)}/draws/MS`);

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { PublicEventDetail, PublicImage } from '@kamito/shared';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '../i18n/locales';
 import { pickLocalized, pickLocalizedOrNull } from '../i18n/pick-localized';
+import { format, getDictionary } from '../i18n/get-dictionary';
 
 const OG_LOCALES: Record<Locale, string> = { vi: 'vi_VN', en: 'en_US' };
 
@@ -45,9 +46,13 @@ export function pageMetadata(locale: Locale, path: string, { title, description,
 /** Every event tab shares the event's summary and banner; `title` is the tab's own heading. */
 export function eventPageMetadata(locale: Locale, event: PublicEventDetail, tabPath: string, title?: string): Metadata {
   const name = pickLocalized(locale, event.name, event.nameEn);
+  const pageTitle = title ? `${title} · ${name}` : name;
+  const summary = pickLocalizedOrNull(locale,
+    event.summary?.trim() ? event.summary : null,
+    event.summaryEn?.trim() ? event.summaryEn : null);
   return pageMetadata(locale, `/events/${event.slug}${tabPath}`, {
-    title: title ? `${title} · ${name}` : name,
-    description: pickLocalizedOrNull(locale, event.summary, event.summaryEn),
+    title: pageTitle,
+    description: summary ?? format(getDictionary(locale).event.metaDescription, { title: pageTitle }),
     image: event.banner,
   });
 }

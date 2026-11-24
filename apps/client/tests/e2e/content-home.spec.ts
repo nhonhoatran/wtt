@@ -4,7 +4,7 @@ import { withHomeSections } from './support/content-settings';
 test.describe('CMS home configuration', () => {
   // home.sections is global: one project owns this probe, with a version-checked restore in finally.
   test.describe.configure({ mode: 'serial' });
-  test.skip(({ viewport }) => viewport?.width !== 1280, 'Global home configuration is exercised once per run');
+  test.skip(({ isMobile }) => isMobile, 'Global home configuration is exercised once per run');
 
   test('turns news and video sections on and off without removing their public pages', async ({ page, cms }) => {
     const off = { hero: false, events: false, news: false, videos: false, rankings: false, sponsors: false };

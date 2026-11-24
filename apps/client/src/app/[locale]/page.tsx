@@ -19,7 +19,7 @@ import { pickLocalized } from '../../i18n/pick-localized';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return pageMetadata(locale, '', {});
+  return pageMetadata(locale, '', { description: getDictionary(locale).home.metaDescription });
 }
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {

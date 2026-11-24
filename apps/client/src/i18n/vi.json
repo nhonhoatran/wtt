@@ -79,6 +79,7 @@
     "toggle": "Kết quả"
   },
   "home": {
+    "metaDescription": "Lịch thi đấu, kết quả, nhánh đấu, tin tức và bảng xếp hạng bóng bàn.",
     "ongoing": "Đang diễn ra",
     "upcoming": "Sắp diễn ra",
     "featured": "Giải nổi bật",
@@ -117,6 +118,7 @@
     "tier": "Hạng giải"
   },
   "event": {
+    "metaDescription": "{title}: thông tin, lịch thi đấu và kết quả giải bóng bàn.",
     "tabsLabel": "Mục của giải",
     "tabs": {
       "overview": "Tổng quan",

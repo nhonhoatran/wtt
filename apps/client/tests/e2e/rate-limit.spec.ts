@@ -5,7 +5,7 @@ import { expect, test } from './support/fixtures';
 // Exercise the real Next proxy and real /site configuration without changing shared database settings.
 // Direct local requests intentionally set the edge headers; staging must separately verify Traefik replaces them.
 test.describe('public HTTP rate limiting', () => {
-  test.skip(({ viewport }) => viewport?.width !== 1280, 'HTTP behavior does not depend on viewport');
+  test.skip(({ isMobile }) => isMobile, 'HTTP behavior does not depend on viewport');
 
   test('enforces the search bucket, excludes prefetches, separates IPs and sends uncached retry headers', async ({ request }) => {
     const api = process.env.API_INTERNAL_URL!.replace(/\/+$/, '');

@@ -79,6 +79,7 @@
     "toggle": "Results"
   },
   "home": {
+    "metaDescription": "Table tennis schedules, results, draws, news and player rankings.",
     "ongoing": "In progress",
     "upcoming": "Upcoming",
     "featured": "Featured tournaments",
@@ -117,6 +118,7 @@
     "tier": "Tier"
   },
   "event": {
+    "metaDescription": "{title}: table tennis tournament information, schedule and results.",
     "tabsLabel": "Event sections",
     "tabs": {
       "overview": "Overview",

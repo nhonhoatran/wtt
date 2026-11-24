@@ -1,4 +1,5 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToReadableStream, renderToStaticMarkup } from 'react-dom/server';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PublicArticle, PublicFooter, PublicVideo } from '@kamito/shared';
 
@@ -6,10 +7,18 @@ const { getArticle, getVideo, getFooter, getArticles } = vi.hoisted(() => ({ get
 vi.mock('../../src/lib/public-data', () => ({ getArticle, getVideo, getFooter, getArticles, isUrlPart: () => true }));
 vi.mock('../../src/lib/site-name', () => ({ getSiteName: async () => 'Kamito' }));
 vi.mock('../../src/lib/server-env', () => ({ serverEnv: { publicSiteUrl: () => 'https://example.test' } }));
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': 'localization-test-nonce' }) }));
 import ArticlePage from '../../src/app/[locale]/news/[slug]/page';
 import VideoPage from '../../src/app/[locale]/videos/[slug]/page';
 import NewsPage from '../../src/app/[locale]/news/page';
 import { SiteFooter } from '../../src/components/layout/site-footer';
+
+// Request-aware Server Components can suspend; use the async renderer rather than a legacy sync root.
+async function renderPage(node: ReactNode) {
+  const stream = await renderToReadableStream(node);
+  await stream.allReady;
+  return new Response(stream).text();
+}
 
 const article: PublicArticle = {
   slug: 'news', title: 'Tin', titleEn: 'News', body: '<p>Nội dung</p>', bodyEn: '<p>Body</p>',
@@ -29,19 +38,19 @@ beforeEach(() => {
 
 describe('public CMS localization', () => {
   it('renders an English-only summary and translated category in article detail', async () => {
-    const html = renderToStaticMarkup(await ArticlePage({ params: Promise.resolve({ locale: 'en', slug: 'news' }) }));
+    const html = await renderPage(await ArticlePage({ params: Promise.resolve({ locale: 'en', slug: 'news' }) }));
     expect(html).toContain('>English-only summary</p>');
     expect(html).toContain('>Tournament news</span>');
     expect(html).not.toContain('>Tin giải</span>');
   });
 
   it('uses English video duration and footer labels with Vietnamese fallback', async () => {
-    const enVideo = renderToStaticMarkup(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }));
+    const enVideo = await renderPage(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }));
     expect(enVideo).toContain('>4 minutes</p>');
     expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', text: 'Kamito' }))).toContain('>Information</h2>');
     getVideo.mockResolvedValue({ ...video, durationTextEn: null });
     getFooter.mockResolvedValue({ pages: [{ slug: 'about', title: 'Giới thiệu', titleEn: null, group: 'Thông tin', groupEn: null, order: 0 }], sponsors: [] });
-    expect(renderToStaticMarkup(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }))).toContain('>4 phút</p>');
+    expect(await renderPage(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }))).toContain('>4 phút</p>');
     expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', text: 'Kamito' }))).toContain('>Thông tin</h2>');
   });
 
