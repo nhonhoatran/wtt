@@ -5,12 +5,14 @@ import { DRAW_REASON_MAX_LENGTH, DRAW_REASON_MIN_LENGTH as MIN_REASON_LENGTH } f
 import { ApiError, apiFetch } from '../../api/http-client';
 import type { CellActionTarget } from './admin-bracket-view';
 import { blockedText, impactText } from './draw-impact-text';
-import type { BracketData, DryRunResult } from './draw-types';
+import type { BracketData, DryRunResult, EntryBrief } from './draw-types';
 import { useReplacementEntries } from './use-replacement-entries';
 import type { DrawCall } from './use-draw-call';
 
 type Operation = 'replace' | 'withdraw' | 'unpublish';
-export type DrawActionTarget = ({ mode: 'cell' } & CellActionTarget) | { mode: 'unpublish' };
+export type DrawActionTarget = ({ mode: 'cell' } & CellActionTarget)
+  | { mode: 'group-member'; entry: EntryBrief }
+  | { mode: 'unpublish' };
 
 
 const OK_TEXT: Record<Operation, string> = { replace: 'Thay VĐV', withdraw: 'Rút khỏi nhánh', unpublish: 'Bỏ công bố' };
@@ -34,8 +36,9 @@ export function DrawEntryActionModal({ target, data, call, onClose, onDone }: Dr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const operation: Operation = target?.mode === 'cell' ? picked : 'unpublish';
+  const operation: Operation = target?.mode === 'cell' ? picked : target?.mode === 'group-member' ? 'withdraw' : 'unpublish';
   const cell = target?.mode === 'cell' ? target : null;
+  const entry = target?.mode === 'cell' || target?.mode === 'group-member' ? target.entry : null;
   // Group views carry no `positions`; only a bracket cell action needs the taken set.
   const taken = new Set(cell ? data.positions.flatMap((position) => (position.entry ? [position.entry.id] : [])) : []);
   const replacements = useReplacementEntries(data.subEventId, operation === 'replace' && Boolean(cell), taken);
@@ -44,14 +47,14 @@ export function DrawEntryActionModal({ target, data, call, onClose, onDone }: Dr
 
   const bodyFor = (text: string | undefined, dryRun: boolean) => ({
     ...(operation === 'replace' && { positionId: cell?.positionId, newEntryId }),
-    ...(operation === 'withdraw' && { entryId: cell?.entry.id }),
+    ...(operation === 'withdraw' && { entryId: entry?.id }),
     ...(text && { reason: text }),
     expectedVersion: data.version,
     ...(dryRun && { dryRun: true }),
   });
 
   const preview = useQuery({
-    queryKey: ['admin-draw-impact', data.id, data.version, operation, cell?.positionId, newEntryId],
+    queryKey: ['admin-draw-impact', data.id, data.version, operation, cell?.positionId, entry?.id, newEntryId],
     enabled: Boolean(target) && ready,
     retry: false,
     gcTime: 0,
@@ -86,8 +89,8 @@ export function DrawEntryActionModal({ target, data, call, onClose, onDone }: Dr
   return (
     <Modal
       open={Boolean(target)}
-      title={cell ? `Thao tác với ${cell.entry.displayName}` : 'Bỏ công bố nhánh đấu'}
-      okText={OK_TEXT[operation]}
+      title={entry ? `Thao tác với ${entry.displayName}` : 'Bỏ công bố nhánh đấu'}
+      okText={target?.mode === 'group-member' ? 'Rút khỏi bảng' : OK_TEXT[operation]}
       cancelText="Hủy"
       okButtonProps={{ danger: operation !== 'replace', loading: saving, disabled: !result?.allowed || reason.trim().length < MIN_REASON_LENGTH }}
       onOk={submit}

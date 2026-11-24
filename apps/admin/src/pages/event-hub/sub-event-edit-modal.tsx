@@ -69,7 +69,7 @@ export function SubEventEditModal({ eventId, subEvent, onClose, onSaved }: SubEv
       destroyOnHidden
     >
       {subEvent && (
-        <Form form={form} layout="vertical" onFinish={save} initialValues={{ ...subEvent, matchFormatId: subEvent.matchFormatId }}>
+        <Form form={form} layout="vertical" preserve={false} onFinish={save} initialValues={{ ...subEvent, matchFormatId: subEvent.matchFormatId }}>
           <Form.Item name="name" label="Tên hiển thị" extra="Để trống thì dùng tên theo nội dung và nhóm tuổi / trình độ.">
             <Input maxLength={200} />
           </Form.Item>

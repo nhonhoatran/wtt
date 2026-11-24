@@ -2,7 +2,7 @@ import { Alert, App, Button, Card, Flex, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { apiFetch } from '../../api/http-client';
 import { GroupSchedule } from './group-schedule';
-import type { GroupRecord, GroupStanding } from './draw-types';
+import type { EntryBrief, GroupRecord, GroupStanding } from './draw-types';
 import type { DrawCall } from './use-draw-call';
 
 const GROUP_CARD_WIDTH = 480;
@@ -10,13 +10,15 @@ const GROUP_CARD_WIDTH = 480;
 interface GroupCardProps {
   group: GroupRecord;
   canUpdate: boolean;
+  canWithdraw: boolean;
   call: DrawCall;
   report: (error: unknown) => void;
   onChanged: () => Promise<unknown>;
   onTiebreak: (group: GroupRecord) => void;
+  onWithdraw: (entry: EntryBrief) => void;
 }
 
-export function GroupCard({ group, canUpdate, call, report, onChanged, onTiebreak }: GroupCardProps) {
+export function GroupCard({ group, canUpdate, canWithdraw, call, report, onChanged, onTiebreak, onWithdraw }: GroupCardProps) {
   const { message } = App.useApp();
   const [recomputing, setRecomputing] = useState(false);
   const names = new Map(group.members.map((member) => [member.entryId, member.entry.displayName]));
@@ -64,7 +66,7 @@ export function GroupCard({ group, canUpdate, call, report, onChanged, onTiebrea
           }
         />
       )}
-      <Table<GroupStanding> dataSource={standings} rowKey="entryId" size="small" pagination={false}>
+      <Table<GroupStanding> dataSource={standings} rowKey="entryId" size="small" pagination={false} scroll={{ x: 'max-content' }}>
         <Table.Column<GroupStanding> title="Hạng" width={56} render={(_, row) => row.rank ?? '—'} />
         <Table.Column<GroupStanding>
           title="VĐV"
@@ -78,6 +80,24 @@ export function GroupCard({ group, canUpdate, call, report, onChanged, onTiebrea
         <Table.Column<GroupStanding> title="Thắng-Thua" align="right" render={(_, row) => `${row.won}-${row.lost}`} />
         <Table.Column<GroupStanding> title="Ván" align="right" render={(_, row) => `${row.gamesFor}-${row.gamesAgainst}`} />
         <Table.Column<GroupStanding> title="Điểm" align="right" dataIndex="matchPoints" />
+        {canWithdraw && (
+          <Table.Column<GroupStanding>
+            title="Thao tác"
+            render={(_, row) => {
+              const entry = group.members.find((member) => member.entryId === row.entryId)?.entry;
+              return entry && entry.status !== 'WITHDRAWN' ? (
+                <Button
+                  size="small"
+                  danger
+                  aria-label={`Rút ${entry.displayName} khỏi bảng ${group.code}`}
+                  onClick={() => onWithdraw(entry)}
+                >
+                  Rút khỏi bảng
+                </Button>
+              ) : null;
+            }}
+          />
+        )}
       </Table>
       <GroupSchedule group={group} />
       </Flex>

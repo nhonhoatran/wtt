@@ -91,7 +91,7 @@ export function DrawPanel({ subEvent, kind, draws, canUpdate, refresh }: DrawPan
         )}
       </Flex>
       {kind === 'GROUP' ? (
-        <GroupTablesView data={data} canUpdate={canUpdate} call={call} report={report} onChanged={refresh} />
+        <GroupTablesView data={data} canUpdate={canUpdate} call={call} report={report} onChanged={refresh} onWithdraw={(entry) => setAction({ mode: 'group-member', entry })} />
       ) : (
         <AdminBracketView
           data={data}
