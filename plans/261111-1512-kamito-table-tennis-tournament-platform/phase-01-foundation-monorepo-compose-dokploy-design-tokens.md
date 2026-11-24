@@ -291,7 +291,7 @@ Modify / Delete: không có (repo trống).
 - [ ] Preflight PG/Redis/MinIO/Traefik + câu hỏi chủ hạ tầng; chọn thiết kế upload (a)/(b) — chờ chủ hạ tầng
 - [ ] Chủ sở hữu sao lưu + RPO; lịch diễn tập khôi phục trước pilot — chờ chủ hạ tầng
 - [ ] 2 project Dokploy (staging, prod); deploy hello lên staging — chờ hạ tầng
-- [ ] CI frozen lockfile + audit + quét secret + lint/typecheck/test/build — đã viết `.github/workflows/ci.yml`; hiện có remote `origin` (kiểm 2026-11-19), chưa có bằng chứng lượt GitHub CI đạt
+- [x] CI frozen lockfile + audit + quét secret + lint/typecheck/test/build — lượt GitHub Actions đầu tiên đạt cả 3 job (secret-scan, docker-images, build-test): run `45337885843`, commit `0f9bba3` (2026-11-24)
 - [x] docs/ khởi tạo (gồm quy trình phát hành) — code-standards, system-architecture, deployment-guide
 
 ## Success Criteria
@@ -344,7 +344,7 @@ Rollback: phase chỉ thêm file + 1 migration tạo bảng mới; revert = xóa
 - Worker khung + health; client Next 16.4.3 + admin Vite 8/React 19/antd 5.29.3 build được; nginx admin + entrypoint allowlist + test.
 - 4 Dockerfile (target `migrate`), compose prod/dev, base image ghim; 5 image build + smoke trong WSL Docker.
 - `docs/`: code-standards, system-architecture, deployment-guide.
-- CI `.github/workflows/ci.yml` đã viết, CHƯA chạy (chưa có remote).
+- CI `.github/workflows/ci.yml` đạt trên GitHub Actions từ 2026-11-24 (run `45337885843`).
 - Git: repo local, email `dev03@midomax.vn` (mức local); quyết định 2026-11-12 chỉ commit local, push cuối dự án.
 
 **Chưa xong (chờ chủ hạ tầng):** preflight PG/Redis/MinIO/Traefik + chọn upload (a)/(b); sao lưu + RPO + diễn tập; 2 project Dokploy + deploy hello staging.

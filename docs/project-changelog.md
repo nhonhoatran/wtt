@@ -5,6 +5,8 @@
 
 ## 2026-11-24 — CI, audit admin 1440/390, nợ phase 07
 
+- GitHub Actions đạt lần đầu cả 3 job: run `45337885843` (commit `0f9bba3`). Lượt trước đó lộ thêm 3 lỗi chỉ có trên Linux, đã sửa: guard zip bomb đẩy khối 64 KiB nên fflate nở 64 MiB một lần (giảm còn 256 byte; đo trong container node:24 alpine, RSS tăng 128 MiB → 7 MiB); fixture tên công khai phụ thuộc collation DB; smoke admin thiếu `UPLOAD_MAX_IMAGE_BYTES`/`IMPORT_MAX_FILE_BYTES`.
+
 - CI: test chạy `turbo --env-mode=loose` (strict mode lọc mất `DATABASE_URL`/`REDIS_URL`); DB CI đổi thành `kamito_tt_ci_test` + `MIGRATE_CONFIRM_TARGET` để qua chốt an toàn e2e; thêm bước build `@kamito/db` + `seed:config` sau `migrate deploy` (seed import `dist/`, không commit).
 - CI: `next build` của client dùng `tsconfig.build.json` (loại `tests/`), image client không còn type-check fixture import `packages/db/dist`. `pnpm typecheck` vẫn kiểm cả test.
 - Test: `public-rate-limit.test.ts` cố định đường in-memory khi có `REDIS_URL`; `imports-commit-guards` khớp log đã ẩn message lỗi (`safeErrorSummary`, phase 12).
