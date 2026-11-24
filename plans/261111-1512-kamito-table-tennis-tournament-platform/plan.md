@@ -18,6 +18,7 @@ created: 2026-11-11
 - Một ban tổ chức, nhiều giải; đơn + đôi; loại trực tiếp hoặc vòng bảng → loại trực tiếp; tỷ số nhập theo ván; xếp hạng tích điểm có hạn; client vi/en, admin tiếng Việt.
 - Stack: pnpm + Turborepo; `apps/client` Next.js; `apps/admin` Refine 5 + antd 5; `apps/api` NestJS + Prisma 7.10.x; `apps/worker` BullMQ; PostgreSQL/Redis/S3 có sẵn; deploy docker-compose trên Dokploy (staging + production).
 - Lịch: 19 tuần làm việc (95 ngày công) + 1 tuần Tết. Phạm vi 80 ngày công + dự phòng 15. **Ngày bắt đầu: chờ xác nhận.**
+- Nợ còn mở (admin UI, chưa audit, CI, dọn dẹp): [open-debts-backlog.md](./open-debts-backlog.md).
 
 ## Phases
 
