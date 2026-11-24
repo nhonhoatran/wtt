@@ -2,6 +2,7 @@ import { Table } from 'antd';
 import dayjs from 'dayjs';
 import { DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import { stageLabelWithCode } from './ranking-stage-labels';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export interface BreakdownItem {
   ledgerId: string;
@@ -17,8 +18,9 @@ const day = (value: string) => dayjs(value.slice(0, 10)).format(DISPLAY_DATE_FOR
 
 /** The ledger entries that make up one player's points in the snapshot. */
 export function SnapshotBreakdownTable({ items }: { items: BreakdownItem[] }) {
+  const tableScroll = useTableScroll();
   return (
-    <Table<BreakdownItem> size="small" pagination={false} rowKey="ledgerId" dataSource={items} scroll={{ x: true }}>
+    <Table<BreakdownItem> size="small" pagination={false} rowKey="ledgerId" dataSource={items} scroll={tableScroll}>
       <Table.Column<BreakdownItem>
         key="event"
         title="Giải"

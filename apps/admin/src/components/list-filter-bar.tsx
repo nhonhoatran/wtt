@@ -1,5 +1,5 @@
 import { getDefaultFilter, type CrudFilter, type CrudFilters } from '@refinedev/core';
-import { Button, DatePicker, Flex, Input, Select, theme } from 'antd';
+import { Button, DatePicker, Flex, Grid, Input, Select, theme } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useState } from 'react';
 
@@ -16,8 +16,11 @@ interface ListFilterBarProps {
 
 const eq = (field: string, value: unknown): CrudFilter => ({ field, operator: 'eq', value });
 
+const SEARCH_WIDTH = 280;
+const SELECT_MIN_WIDTH = 160;
+
 /** Keeps typed text while focused, but follows the applied filter (e.g. after "Xóa lọc"). */
-function SearchInput({ placeholder, applied, onSearch }: { placeholder: string; applied?: string; onSearch: (value: string) => void }) {
+function SearchInput({ placeholder, applied, onSearch, compact }: { placeholder: string; applied?: string; onSearch: (value: string) => void; compact: boolean }) {
   const [text, setText] = useState(applied ?? '');
   useEffect(() => setText(applied ?? ''), [applied]);
   return (
@@ -27,7 +30,7 @@ function SearchInput({ placeholder, applied, onSearch }: { placeholder: string; 
       value={text}
       onChange={(event) => setText(event.target.value)}
       onSearch={onSearch}
-      style={{ width: 280 }}
+      style={{ width: compact ? '100%' : SEARCH_WIDTH }}
     />
   );
 }
@@ -35,6 +38,8 @@ function SearchInput({ placeholder, applied, onSearch }: { placeholder: string; 
 /** The one filter row above every admin table. Each change resets to page 1 (Refine's default). */
 export function ListFilterBar({ fields, filters, setFilters }: ListFilterBarProps) {
   const { token } = theme.useToken();
+  // Phones: the search takes a full row and the other filters share rows instead of leaving half the width empty.
+  const compact = Grid.useBreakpoint().md === false;
   // Bumped by "Xóa lọc" so the search box also drops text typed but not yet submitted.
   const [clearCount, setClearCount] = useState(0);
   const clearAll = () => {
@@ -55,6 +60,7 @@ export function ListFilterBar({ fields, filters, setFilters }: ListFilterBarProp
               placeholder={def.placeholder}
               applied={current(def.field)}
               onSearch={(value) => set([eq(def.field, value.trim() || undefined)])}
+              compact={compact}
             />
           );
         }
@@ -70,7 +76,7 @@ export function ListFilterBar({ fields, filters, setFilters }: ListFilterBarProp
               value={current(def.field)}
               options={def.options}
               onChange={(value) => set([eq(def.field, value)])}
-              style={{ minWidth: 180 }}
+              style={{ minWidth: SELECT_MIN_WIDTH, flex: compact ? `1 1 ${SELECT_MIN_WIDTH}px` : undefined }}
             />
           );
         }

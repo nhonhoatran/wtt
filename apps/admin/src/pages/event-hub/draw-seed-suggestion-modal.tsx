@@ -8,6 +8,7 @@ import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { useConfirmAction } from '../../components/confirm-action-button';
 import { DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import { entriesResource } from './entry-table';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 interface Suggestion {
   entryId: string;
@@ -32,6 +33,7 @@ const SEED_COLUMN_WIDTH = 140;
 const suggestUrl = (subEventId: string) => `/admin/sub-events/${subEventId}/entries/suggest-seeds`;
 
 export function DrawSeedSuggestionModal({ subEventId, open, onClose }: DrawSeedSuggestionModalProps) {
+  const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const { message } = App.useApp();
   const confirm = useConfirmAction();
@@ -86,7 +88,7 @@ export function DrawSeedSuggestionModal({ subEventId, open, onClose }: DrawSeedS
             <Typography.Text type="secondary">
               Theo BXH {result.snapshot.listCode} công bố ngày {dayjs(result.snapshot.asOfDate).format(DISPLAY_DATE_FORMAT)} · {result.seedCount} hạt giống
             </Typography.Text>
-            <Table<Suggestion> size="small" pagination={false} rowKey="entryId" dataSource={result.suggestions} scroll={{ x: true }}>
+            <Table<Suggestion> size="small" pagination={false} rowKey="entryId" dataSource={result.suggestions} scroll={tableScroll}>
               <Table.Column<Suggestion> title="Hạt giống gợi ý" width={SEED_COLUMN_WIDTH} render={(_, row) => row.suggestedSeed ?? '—'} />
               <Table.Column<Suggestion> title="VĐV" render={(_, row) => row.displayName} />
               <Table.Column<Suggestion> title="Hạng" align="right" render={(_, row) => row.rankingAtEntry ?? '—'} />

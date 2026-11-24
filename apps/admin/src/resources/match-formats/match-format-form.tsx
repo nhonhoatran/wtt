@@ -28,16 +28,16 @@ function MatchFormatFields({ isDefault }: { isDefault?: boolean }) {
         <Input />
       </Form.Item>
       <Form.Item name="bestOf" label="Số ván tối đa" rules={[{ required: true, message: 'Nhập số ván' }, oddNumber]} extra="Số lẻ, ví dụ 3 hoặc 5.">
-        <InputNumber min={1} max={9} step={2} precision={0} addonAfter="ván" />
+        <InputNumber min={1} max={9} step={2} precision={0} suffix="ván" />
       </Form.Item>
       <Form.Item name="pointsPerGame" label="Số điểm mỗi ván" rules={[{ required: true, message: 'Nhập số điểm' }]}>
-        <InputNumber min={5} max={50} precision={0} addonAfter="điểm" />
+        <InputNumber min={5} max={50} precision={0} suffix="điểm" />
       </Form.Item>
       <Form.Item name="winBy" label="Cách biệt tối thiểu" rules={[{ required: true, message: 'Nhập số điểm cách biệt' }]} extra="Số điểm hơn đối thủ để thắng ván.">
-        <InputNumber min={1} max={5} precision={0} addonAfter="điểm" />
+        <InputNumber min={1} max={5} precision={0} suffix="điểm" />
       </Form.Item>
       <Form.Item name="estimatedMinutes" label="Thời gian ước tính mỗi trận" rules={[{ required: true, message: 'Nhập số phút' }]}>
-        <InputNumber min={5} max={240} precision={0} addonAfter="phút" />
+        <InputNumber min={5} max={240} precision={0} suffix="phút" />
       </Form.Item>
       <Form.Item
         name="isDefault"

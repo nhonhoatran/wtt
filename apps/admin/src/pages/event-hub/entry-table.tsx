@@ -20,6 +20,7 @@ import {
   type EntryWriteResult,
 } from './entry-labels';
 import { EntrySeedCell } from './entry-seed-cell';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export const entriesResource = (subEventId: string) => `sub-events/${subEventId}/entries`;
 
@@ -31,6 +32,7 @@ interface EntryTableProps {
 }
 
 export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableProps) {
+  const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const { message } = App.useApp();
   const pageSize = useListPageSize();
@@ -83,7 +85,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
       )}
       <Table<EntryRecord>
         {...tableProps}
-        rowKey="id" scroll={{ x: true }}
+        rowKey="id" scroll={tableScroll}
         size="small"
         rowSelection={canUpdate ? { selectedRowKeys: selected, onChange: setSelected, preserveSelectedRowKeys: true } : undefined}
         onRow={(entry) => ({ style: entry.status === 'WITHDRAWN' ? { color: token.colorTextTertiary } : undefined })}

@@ -6,11 +6,13 @@ import { ConfirmActionButton } from '../../components/confirm-action-button';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { BulkTablesModal, TableFormModal, type VenueTableRecord } from './venue-table-modals';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 type Dialog = { kind: 'form'; table: VenueTableRecord | null } | { kind: 'bulk' } | null;
 
 /** "Bàn thi đấu" on the venue edit page: server-paged table plus add / quick-create dialogs. */
 export function VenueTablesSection({ venueId }: { venueId: string }) {
+  const tableScroll = useTableScroll();
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const { canCreate, canUpdate, canDelete } = useCatalogAccess();
@@ -48,7 +50,7 @@ export function VenueTablesSection({ venueId }: { venueId: string }) {
         )
       }
     >
-      <Table {...tableProps} rowKey="id" size="small" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" size="small" scroll={tableScroll}>
         <Table.Column<VenueTableRecord> dataIndex="order" title="Thứ tự" sorter defaultSortOrder={getDefaultSortOrder('order', sorters)} />
         <Table.Column<VenueTableRecord> dataIndex="code" title="Mã bàn" sorter defaultSortOrder={getDefaultSortOrder('code', sorters)} />
         <Table.Column<VenueTableRecord> dataIndex="displayName" title="Tên hiển thị" render={(name: string | null) => name ?? '—'} />

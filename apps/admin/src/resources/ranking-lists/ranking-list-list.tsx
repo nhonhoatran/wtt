@@ -5,11 +5,13 @@ import { COMPETITOR_KIND_LABELS, COMPETITOR_KIND_OPTIONS, GENDER_RULE_LABELS, GE
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import type { RankingListRecord } from './ranking-list-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'ranking-lists';
 const PERMISSION = 'rankings';
 
 export function RankingListList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess(PERMISSION);
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<RankingListRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
@@ -25,7 +27,7 @@ export function RankingListList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<RankingListRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<RankingListRecord>(sorters, 'code', 'Mã')}
         {sortColumn<RankingListRecord>(sorters, 'name', 'Tên')}

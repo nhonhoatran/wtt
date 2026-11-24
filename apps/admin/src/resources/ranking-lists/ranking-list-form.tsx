@@ -51,7 +51,7 @@ function RankingListFields({ editing, categoryId }: { editing: boolean; category
         rules={editing ? [{ required: true, message: 'Nhập thời hạn' }] : undefined}
         extra={editing ? EDIT_VALIDITY_HINT : CREATE_VALIDITY_HINT}
       >
-        <InputNumber min={1} precision={0} addonAfter="ngày" />
+        <InputNumber min={1} precision={0} suffix="ngày" />
       </Form.Item>
       <Form.Item
         name="groupStageByRank"

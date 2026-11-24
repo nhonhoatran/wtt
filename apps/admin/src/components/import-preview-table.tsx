@@ -13,8 +13,11 @@ import {
   type ImportRowStatus,
 } from '../resources/imports/import-labels';
 import { ImportRowDecisionSelect } from './import-row-decision-select';
+import { useTableScroll } from './use-table-scroll';
 
 const ALL_TAB = 'ALL';
+/** Long validation messages wrap inside this width instead of stretching a phone-width table. */
+const MESSAGES_MAX_WIDTH = 320;
 
 interface ImportPreviewTableProps {
   job: ImportJob;
@@ -30,6 +33,7 @@ const statusFilter = (tab: string) => [{ field: 'status', operator: 'eq' as cons
 
 /** Server-paged rows of one import job, one tab per row status; uncertain players are decided in place. */
 export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTableProps) {
+  const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const pageSize = useListPageSize();
   const [tab, setTab] = useState(() => firstTab(job));
@@ -82,7 +86,7 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
       <Tabs size="small" activeKey={tab} onChange={changeTab} items={tabs} />
       <Table<ImportRow>
         {...tableProps}
-        rowKey="rowNo" scroll={{ x: true }}
+        rowKey="rowNo" scroll={tableScroll}
         size="small"
         onRow={(row) => ({ style: row.status === 'NEEDS_CONFIRM' ? { background: token.colorWarningBg } : undefined })}
       >
@@ -108,7 +112,7 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
           title="Ghi chú kiểm tra"
           render={(_, row) =>
             row.messages.length ? (
-              <Flex vertical>
+              <Flex vertical style={{ maxWidth: MESSAGES_MAX_WIDTH, whiteSpace: 'normal' }}>
                 {row.messages.map((text) => (
                   <Typography.Text key={text} type={row.status === 'ERROR' ? 'danger' : 'warning'}>
                     {text}

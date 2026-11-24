@@ -4,10 +4,12 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import type { VenueRecord } from './venue-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'venues';
 
 export function VenueList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<VenueRecord>(RESOURCE, { field: 'name', order: 'asc' });
 
@@ -21,7 +23,7 @@ export function VenueList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<VenueRecord>(sorters, 'name', 'Tên')}
         {sortColumn<VenueRecord>(sorters, 'city', 'Tỉnh / thành phố', (city: string | null) => city ?? '—')}
         <Table.Column<VenueRecord> key="address" dataIndex="address" title="Địa chỉ" render={(address: string | null) => address ?? '—'} />

@@ -21,7 +21,7 @@ export function BooleanSettingEditor({ value, onChange }: ControlProps<boolean>)
 }
 
 export function NumberSettingEditor({ value, onChange, min, max, unit }: ControlProps<number> & { min: number; max: number; unit: string }) {
-  return <InputNumber value={value} onChange={(next) => onChange?.(next as number)} min={min} max={max} precision={0} addonAfter={unit} style={{ width: NUMBER_WIDTH }} />;
+  return <InputNumber value={value} onChange={(next) => onChange?.(next as number)} min={min} max={max} precision={0} suffix={unit} style={{ width: NUMBER_WIDTH }} />;
 }
 
 export function ChoiceSettingEditor({ value, onChange, options }: ControlProps<string> & { options: { value: string; label: string }[] }) {

@@ -4,10 +4,12 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import type { EventTypeRecord } from './event-type-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'event-types';
 
 export function EventTypeList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<EventTypeRecord>(RESOURCE, { field: 'order', order: 'asc' });
   const { selectProps: tierSelect } = useSelect({
@@ -35,7 +37,7 @@ export function EventTypeList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<EventTypeRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<EventTypeRecord>(sorters, 'code', 'Mã')}
         {sortColumn<EventTypeRecord>(sorters, 'name', 'Tên')}

@@ -4,12 +4,14 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import { UNFINISHED_OPTIONS, type GroupScoringRuleRecord } from './group-scoring-rule-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'group-scoring-rules';
 const unfinishedLabel = (value: GroupScoringRuleRecord['unfinishedMatchScoring']) =>
   UNFINISHED_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
 export function GroupScoringRuleList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<GroupScoringRuleRecord>(RESOURCE, { field: 'name', order: 'asc' });
 
@@ -23,7 +25,7 @@ export function GroupScoringRuleList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<GroupScoringRuleRecord>(sorters, 'name', 'Tên')}
         {sortColumn<GroupScoringRuleRecord>(sorters, 'pointsWin', 'Điểm thắng / thua', (_, rule) => `${rule.pointsWin} / ${rule.pointsLoss}`)}
         <Table.Column<GroupScoringRuleRecord> key="unfinished" title="Trận dang dở" render={(_, rule) => unfinishedLabel(rule.unfinishedMatchScoring)} />

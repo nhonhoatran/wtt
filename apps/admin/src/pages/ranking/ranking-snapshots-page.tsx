@@ -12,6 +12,7 @@ import { DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import { SNAPSHOT_STATUS_COLORS, SNAPSHOT_STATUS_LABELS, SNAPSHOT_STATUS_OPTIONS, type SnapshotStatus } from './ranking-labels';
 import { SnapshotDraftModal } from './snapshot-draft-modal';
 import { SnapshotJobsTracker, type SnapshotJobRef } from './snapshot-jobs-tracker';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export interface SnapshotRecord {
   id: string;
@@ -30,6 +31,7 @@ export const formatSnapshotDate = (value: string) => dayjs(value.slice(0, 10)).f
 const formatTime = (value: string | null) => (value ? dayjs(value).format('HH:mm DD/MM/YYYY') : '—');
 
 export function RankingSnapshotsPage() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const canCreate = useCan({ resource: 'rankings', action: 'create' }).data?.can ?? false;
   const lists = useCatalogRows('ranking-lists', { isActive: '' });
@@ -57,7 +59,7 @@ export function RankingSnapshotsPage() {
             { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: SNAPSHOT_STATUS_OPTIONS },
           ]}
         />
-        <Table<SnapshotRecord> {...tableProps} rowKey="id" scroll={{ x: true }}>
+        <Table<SnapshotRecord> {...tableProps} rowKey="id" scroll={tableScroll}>
           <Table.Column<SnapshotRecord> key="list" title="Bảng XH" render={(_, row) => <Link to={`/ranking-snapshots/${row.id}`}>{row.rankingList.name}</Link>} />
           <Table.Column<SnapshotRecord>
             dataIndex="asOfDate"

@@ -31,10 +31,13 @@ export function SubEventSideMenu({ subEvents, counts, selectedId, onSelect, rend
         const full = subEvent.maxEntries !== null && confirmed >= subEvent.maxEntries;
         return {
           key: subEvent.id,
-          title: subEventTitle(subEvent),
+          title: `${subEvent.code} · ${subEventTitle(subEvent)}`,
           label: (
             <Flex justify="space-between" align="center" gap="small">
-              <Typography.Text ellipsis>{subEventTitle(subEvent)}</Typography.Text>
+              {/* The code tells apart sub-events that share a name. */}
+              <Typography.Text ellipsis>
+                <Typography.Text type="secondary">{subEvent.code}</Typography.Text> {subEventTitle(subEvent)}
+              </Typography.Text>
               {counts && (
                 <Badge
                   showZero

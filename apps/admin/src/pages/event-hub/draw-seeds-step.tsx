@@ -7,6 +7,7 @@ import type { DrawKind } from './draw-types';
 import type { EntryRecord, EntrySubEvent } from './entry-labels';
 import { EntrySeedCell } from './entry-seed-cell';
 import { entriesResource } from './entry-table';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 interface DrawSeedsStepProps {
   subEvent: EntrySubEvent;
@@ -15,6 +16,7 @@ interface DrawSeedsStepProps {
 
 /** Seeds are saved cell by cell (blur / Enter), the same cell as the Đăng ký tab. */
 export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const [suggesting, setSuggesting] = useState(false);
   const seedInputs = useRef(new Map<string, HTMLInputElement>());
@@ -50,7 +52,7 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
           </span>
         </Tooltip>
       </Flex>
-      <Table<EntryRecord> {...tableProps} size="small" rowKey="id" scroll={{ x: true }}>
+      <Table<EntryRecord> {...tableProps} size="small" rowKey="id" scroll={tableScroll}>
         <Table.Column<EntryRecord>
           title="Hạt giống"
           width={120}

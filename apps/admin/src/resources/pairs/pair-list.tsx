@@ -6,6 +6,7 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { DISPLAY_DATE_FORMAT } from '../events/event-labels';
 import { playerCodeName } from '../players/player-labels';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 interface PairPlayer {
   id: string;
@@ -26,6 +27,7 @@ const playerLink = (player: PairPlayer) => <Link to={`/players/${player.id}/edit
 
 /** Pairs are created implicitly by doubles entries, so this list is read-only. */
 export function PairList() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const { tableProps, sorters, filters, setFilters } = useTable<PairRecord>({
     resource: 'pairs',
@@ -37,7 +39,7 @@ export function PairList() {
   return (
     <List title="Cặp đôi">
       <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên hoặc mã VĐV' }]} />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<PairRecord> key="playerA" title="VĐV 1" render={(_, pair) => playerLink(pair.playerA)} />
         <Table.Column<PairRecord> key="playerB" title="VĐV 2" render={(_, pair) => playerLink(pair.playerB)} />
         <Table.Column<PairRecord> dataIndex="entryCount" title="Số lượt đăng ký" align="right" />

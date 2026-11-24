@@ -4,10 +4,12 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import type { TierRecord } from './tier-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'tiers';
 
 export function TierList() {
+  const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<TierRecord>(RESOURCE, { field: 'order', order: 'asc' });
@@ -22,7 +24,7 @@ export function TierList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<TierRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<TierRecord>(sorters, 'code', 'Mã')}
         {sortColumn<TierRecord>(sorters, 'name', 'Tên', (_, tier) => (

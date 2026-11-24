@@ -10,6 +10,7 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { IMPORT_STATUS_COLORS, IMPORT_STATUS_LABELS, IMPORT_STATUS_OPTIONS, type ImportJob } from './import-labels';
 import { SEARCH_DEBOUNCE_MS } from '../../components/use-debounced-value';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const formatTime = (value: string | null) => (value ? dayjs(value).format('HH:mm DD/MM/YYYY') : '—');
 const count = (value: number | null) => value ?? '—';
@@ -37,6 +38,7 @@ function useEventOptions(selected?: string) {
 }
 
 export function ImportList() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const { tableProps, sorters, filters, setFilters } = useTable<ImportJob>({
     resource: 'imports',
@@ -56,7 +58,7 @@ export function ImportList() {
           { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: IMPORT_STATUS_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<ImportJob>
           dataIndex="createdAt"
           title="Thời điểm"

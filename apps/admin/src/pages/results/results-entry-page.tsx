@@ -115,9 +115,9 @@ export function ResultsEntryPage() {
           style={{ minWidth: SUB_EVENT_SELECT_MIN_WIDTH }}
         />
         <Select
-          aria-label="Session"
+          aria-label="Buổi thi đấu"
           allowClear
-          placeholder="Tất cả session"
+          placeholder="Tất cả buổi"
           value={schedule.sessionId}
           options={schedule.sessions.map((row) => ({ value: row.id, label: sessionDatedLabel(row) }))}
           onChange={resetPage(schedule.setSession)}

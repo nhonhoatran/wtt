@@ -12,6 +12,7 @@ import { ManualPointsForm } from './manual-points-form';
 import { POINTS_SOURCE_COLORS, POINTS_SOURCE_LABELS, POINTS_SOURCE_OPTIONS, POINTS_VALIDITY_OPTIONS, type PointsSource } from './ranking-labels';
 import { RankingPointsDeleteModal, type DeletablePoints } from './ranking-points-delete-modal';
 import { useRankingPointsFilterOptions } from './use-ranking-points-filter-options';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 interface PointsRow {
   id: string;
@@ -32,6 +33,7 @@ const dateText = (value: string) => dayjs(value).format(DISPLAY_DATE_FORMAT);
 const isExpired = (row: PointsRow) => !dayjs(row.expiresAt).isAfter(dayjs(), 'day');
 
 export function RankingPointsPage() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const invalidate = useInvalidate();
   const canCreate = useCan({ resource: 'rankings', action: 'create' }).data?.can ?? false;
@@ -69,7 +71,7 @@ export function RankingPointsPage() {
           { kind: 'select', field: 'active', placeholder: 'Hiệu lực', options: POINTS_VALIDITY_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<PointsRow> key="player" title="VĐV" render={(_, row) => playerCodeName(row.player)} />
         <Table.Column<PointsRow> key="list" title="Bảng" render={(_, row) => row.rankingList.name} />
         <Table.Column<PointsRow> key="event" title="Giải" render={(_, row) =>

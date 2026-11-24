@@ -16,8 +16,10 @@ import {
   type EventRecord,
 } from './event-labels';
 import { useCatalogSelect } from './use-catalog-options';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export function EventList() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const { tableProps, sorters, filters, setFilters } = useTable<EventRecord>({
     resource: 'events',
@@ -47,7 +49,7 @@ export function EventList() {
           { kind: 'select', field: 'publishStatus', placeholder: 'Công bố', options: PUBLISH_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<EventRecord>
           dataIndex="name"
           title="Tên giải"

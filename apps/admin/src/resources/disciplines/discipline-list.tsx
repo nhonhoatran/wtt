@@ -10,10 +10,12 @@ import {
   GENDER_RULE_OPTIONS,
   type DisciplineRecord,
 } from './discipline-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'disciplines';
 
 export function DisciplineList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<DisciplineRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
@@ -32,7 +34,7 @@ export function DisciplineList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<DisciplineRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<DisciplineRecord>(sorters, 'code', 'Mã')}
         {sortColumn<DisciplineRecord>(sorters, 'name', 'Tên')}

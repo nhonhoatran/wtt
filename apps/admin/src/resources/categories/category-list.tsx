@@ -4,6 +4,7 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import { CATEGORY_KIND_LABELS, CATEGORY_KIND_OPTIONS, type CategoryRecord } from './category-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'categories';
 
@@ -14,6 +15,7 @@ const ageRange = ({ minAge, maxAge }: CategoryRecord) => {
 };
 
 export function CategoryList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<CategoryRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
@@ -31,7 +33,7 @@ export function CategoryList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<CategoryRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<CategoryRecord>(sorters, 'code', 'Mã')}
         {sortColumn<CategoryRecord>(sorters, 'name', 'Tên')}

@@ -9,8 +9,10 @@ import { BulkSubEventModal } from './bulk-sub-event-modal';
 import type { HubTabContext } from './hub-tab-context';
 import { SubEventEditModal } from './sub-event-edit-modal';
 import { SUB_EVENT_FORMAT_LABELS, subEventsKey, subEventTitle, type SubEventRecord } from './sub-event-labels';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export function SubEventsTab({ event, canCreate, canUpdate, canDelete, onChanged }: HubTabContext) {
+  const tableScroll = useTableScroll();
   const { message } = App.useApp();
   const [bulkOpen, setBulkOpen] = useState(false);
   const published = event.publishStatus === 'PUBLISHED';
@@ -43,7 +45,7 @@ export function SubEventsTab({ event, canCreate, canUpdate, canDelete, onChanged
       {data.length > 0 && addButton && <Flex justify="end">{addButton}</Flex>}
       <Table<SubEventRecord>
         dataSource={data}
-        rowKey="id" scroll={{ x: true }}
+        rowKey="id" scroll={tableScroll}
         pagination={false}
         locale={{ emptyText: <Empty description="Chưa có nội dung">{addButton || null}</Empty> }}
       >

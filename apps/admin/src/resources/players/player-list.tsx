@@ -8,8 +8,10 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { GENDER_LABELS, GENDER_OPTIONS, PLAYER_ACTIVE_OPTIONS, type PlayerRecord } from './player-labels';
 import { PlayerMergeModal } from './player-merge-modal';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 export function PlayerList() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const canManage = useCan({ resource: 'players', action: 'manage' }).data?.can ?? false;
   const [mergeTarget, setMergeTarget] = useState<PlayerRecord | null>(null);
@@ -39,7 +41,7 @@ export function PlayerList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: PLAYER_ACTIVE_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<PlayerRecord> dataIndex="code" title="Mã" sorter defaultSortOrder={getDefaultSortOrder('code', sorters)} />
         <Table.Column<PlayerRecord>
           dataIndex="fullName"

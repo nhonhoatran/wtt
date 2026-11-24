@@ -4,10 +4,12 @@ import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
 import type { MatchFormatRecord } from './match-format-form';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const RESOURCE = 'match-formats';
 
 export function MatchFormatList() {
+  const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
   const { tableProps, sorters, filters, setFilters } = useCatalogTable<MatchFormatRecord>(RESOURCE, { field: 'name', order: 'asc' });
 
@@ -21,7 +23,7 @@ export function MatchFormatList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<MatchFormatRecord>(sorters, 'name', 'Tên')}
         {sortColumn<MatchFormatRecord>(sorters, 'bestOf', 'Số ván tối đa', (bestOf: number) => `${bestOf} ván`)}
         {sortColumn<MatchFormatRecord>(sorters, 'pointsPerGame', 'Điểm mỗi ván', (points: number) => `${points} điểm`)}

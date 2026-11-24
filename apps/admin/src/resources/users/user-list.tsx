@@ -9,10 +9,12 @@ import { ROLE_LABELS } from '../../layout/menu-groups';
 import type { CurrentUser } from '../../providers/current-user';
 import { ROLE_OPTIONS, STATUS_OPTIONS, type UserRecord } from './user-labels';
 import { UserRowActions } from './user-row-actions';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const formatTime = (value: string | null) => (value ? dayjs(value).format('HH:mm DD/MM/YYYY') : '—');
 
 export function UserList() {
+  const tableScroll = useTableScroll();
   const { data: me } = useGetIdentity<CurrentUser>();
   const [tempPassword, setTempPassword] = useState<TempPasswordInfo | null>(null);
   const { tableProps, sorters, filters, setFilters } = useTable<UserRecord>({
@@ -33,7 +35,7 @@ export function UserList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: STATUS_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<UserRecord> dataIndex="name" title="Họ tên" sorter defaultSortOrder={getDefaultSortOrder('name', sorters)} />
         <Table.Column<UserRecord> dataIndex="email" title="Email" sorter defaultSortOrder={getDefaultSortOrder('email', sorters)} />
         <Table.Column<UserRecord>

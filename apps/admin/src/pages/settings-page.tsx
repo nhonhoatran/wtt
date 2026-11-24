@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Flex, Form, Result, Skeleton, Typography } from 'antd';
+import { App, Button, Card, Flex, Form, Result, Skeleton, Tabs, Typography } from 'antd';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { ApiError, apiFetch } from '../api/http-client';
 import { SettingField, type SettingValue, type SettingView } from './settings-field';
 
@@ -12,11 +13,13 @@ interface SettingsResponse {
 type SettingValues = Record<string, SettingValue>;
 
 const SETTINGS_KEY = ['admin-settings'];
+const GROUP_QUERY_PARAM = 'group';
 
-/** /settings: operational values edited without a redeploy; each change is audited by the API. */
+/** /settings: operational values edited without a redeploy; each change is audited by the API. One tab per group, kept in ?group=. */
 export function SettingsPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+  const [params, setParams] = useSearchParams();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: SETTINGS_KEY,
     queryFn: () => apiFetch<SettingsResponse>('/admin/settings'),
@@ -57,12 +60,17 @@ export function SettingsPage() {
   return (
     <Flex vertical gap="large">
       <Typography.Title level={3} style={{ margin: 0 }}>Cài đặt hệ thống</Typography.Title>
-      {data.groups.map((group) => {
-        const items = data.data.filter((item) => item.group === group.key);
-        return (
-          <SettingsGroupCard key={group.key} title={group.label} items={items} onSave={saveGroup} onReset={resetOne} />
-        );
-      })}
+      <Tabs
+        activeKey={data.groups.some((group) => group.key === params.get(GROUP_QUERY_PARAM)) ? params.get(GROUP_QUERY_PARAM)! : data.groups[0]?.key}
+        onChange={(key) => setParams((current) => { current.set(GROUP_QUERY_PARAM, key); return current; }, { replace: true })}
+        items={data.groups.map((group) => ({
+          key: group.key,
+          label: group.label,
+          children: (
+            <SettingsGroupCard title={group.label} items={data.data.filter((item) => item.group === group.key)} onSave={saveGroup} onReset={resetOne} />
+          ),
+        }))}
+      />
     </Flex>
   );
 }

@@ -4,11 +4,13 @@ import dayjs from 'dayjs';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { AUDIT_ACTION_LABELS, AUDIT_ENTITY_LABELS, type AuditLogRecord, toOptions } from './audit-log-labels';
+import { useTableScroll } from '../../components/use-table-scroll';
 
 const json = (value: unknown) => (value === null || value === undefined ? '—' : JSON.stringify(value, null, 2));
 
 /** Read-only: no create, edit or delete exists for audit rows. */
 export function AuditLogList() {
+  const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
   const { tableProps, sorters, filters, setFilters } = useTable<AuditLogRecord>({
     resource: 'audit-logs',
@@ -45,7 +47,7 @@ export function AuditLogList() {
       />
       <Table
         {...tableProps}
-        rowKey="id" scroll={{ x: true }}
+        rowKey="id" scroll={tableScroll}
         expandable={{
           expandedRowRender: (row) => (
             <Descriptions column={1} size="small" bordered>
