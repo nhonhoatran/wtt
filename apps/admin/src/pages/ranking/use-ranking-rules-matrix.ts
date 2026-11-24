@@ -5,37 +5,14 @@ import { useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { DATE_ONLY_FORMAT } from '../../resources/events/event-labels';
 import type { DrawKind } from '../event-hub/draw-types';
+import { cellKey, copyRuleColumn, editsInScope, ruleCellValue, updateRuleCell, updateScopedRuleEdits, type CompetitorKind, type RuleEdits, type RulesMatrix, type ScopedRuleEdits } from './ranking-rules-state';
 
-export type CompetitorKind = 'SINGLES' | 'DOUBLES';
-
-export interface RuleEventType {
-  id: string;
-  code: string;
-  name: string;
-  isActive: boolean;
-  tier: { id: string; name: string } | null;
-}
-
-export interface RulesMatrix {
-  competitorKind: CompetitorKind;
-  drawKind: DrawKind;
-  asOf: string;
-  eventTypes: RuleEventType[];
-  stageCodes: string[];
-  cells: { eventTypeId: string; stageCode: string; points: number; effectiveFrom: string }[];
-  versions: string[];
-}
-
-export interface RuleCellEdit {
-  eventTypeId: string;
-  stageCode: string;
-  points: number;
-}
+export { cellKey, visibleEventTypes } from './ranking-rules-state';
+export type { CompetitorKind, RuleCellEdit, RuleEventType, RulesMatrix } from './ranking-rules-state';
 
 const KINDS: CompetitorKind[] = ['SINGLES', 'DOUBLES'];
 const DRAWS: DrawKind[] = ['MAIN', 'QUALIFYING', 'GROUP'];
 export const RULES_KEY = 'admin-ranking-rules';
-export const cellKey = (eventTypeId: string, stageCode: string) => `${eventTypeId}|${stageCode}`;
 
 export function useRankingRulesMatrix() {
   const [params, setParams] = useSearchParams();
@@ -57,38 +34,30 @@ export function useRankingRulesMatrix() {
 
   // Edits belong to the (kind, draw, version) they were made on and never leak into another.
   const scope = `${kind}|${draw}|${asOf}`;
-  const [state, setState] = useState<{ scope: string; edits: Record<string, RuleCellEdit> }>({ scope, edits: {} });
-  const edits = useMemo(() => (state.scope === scope ? state.edits : {}), [state, scope]);
+  const [state, setState] = useState<ScopedRuleEdits>({ scope, edits: {} });
+  const edits = useMemo(() => editsInScope(state, scope), [state, scope]);
   const setEdits = useCallback(
-    (update: (current: Record<string, RuleCellEdit>) => Record<string, RuleCellEdit>) =>
-      setState((previous) => ({ scope, edits: update(previous.scope === scope ? previous.edits : {}) })),
+    (update: (current: RuleEdits) => RuleEdits) =>
+      setState((previous) => updateScopedRuleEdits(previous, scope, update)),
     [scope],
   );
   useEffect(() => setState((previous) => (previous.scope === scope ? previous : { scope, edits: {} })), [scope]);
 
   const original = useMemo(() => new Map((query.data?.cells ?? []).map((cell) => [cellKey(cell.eventTypeId, cell.stageCode), cell.points])), [query.data]);
-  const valueOf = useCallback((eventTypeId: string, stageCode: string) => edits[cellKey(eventTypeId, stageCode)]?.points ?? original.get(cellKey(eventTypeId, stageCode)) ?? null, [edits, original]);
+  const valueOf = useCallback((eventTypeId: string, stageCode: string) => ruleCellValue(edits, original, eventTypeId, stageCode), [edits, original]);
 
   const setCell = useCallback(
     (eventTypeId: string, stageCode: string, points: number | null) => {
-      const key = cellKey(eventTypeId, stageCode);
-      setEdits((current) => {
-        const next = { ...current };
-        delete next[key];
-        return points === null || points === original.get(key) ? next : { ...next, [key]: { eventTypeId, stageCode, points } };
-      });
+      setEdits((current) => updateRuleCell(current, original, eventTypeId, stageCode, points));
     },
     [original, setEdits],
   );
 
   const copyColumn = useCallback(
     (fromId: string, toId: string) => {
-      for (const stageCode of query.data?.stageCodes ?? []) {
-        const points = valueOf(fromId, stageCode);
-        if (points !== null) setCell(toId, stageCode, points);
-      }
+      setEdits((current) => copyRuleColumn(current, original, query.data?.stageCodes ?? [], fromId, toId));
     },
-    [query.data, valueOf, setCell],
+    [query.data, original, setEdits],
   );
 
   const setParam = (key: string, value: string) =>
@@ -118,7 +87,3 @@ export function useRankingRulesMatrix() {
     setAsOf: (value: string) => setParam('asOf', value),
   };
 }
-
-/** Active event types, plus hidden ones that still hold rules in this matrix. */
-export const visibleEventTypes = (matrix: RulesMatrix) =>
-  matrix.eventTypes.filter((eventType) => eventType.isActive || matrix.cells.some((cell) => cell.eventTypeId === eventType.id));

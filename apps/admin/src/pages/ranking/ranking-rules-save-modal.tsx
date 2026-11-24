@@ -7,7 +7,8 @@ import { ApiError, apiFetch } from '../../api/http-client';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { DATE_ONLY_FORMAT, DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import type { DrawKind } from '../event-hub/draw-types';
-import { RULES_KEY, cellKey, type CompetitorKind, type RuleCellEdit, type RulesMatrix } from './use-ranking-rules-matrix';
+import { changedRuleCells } from './ranking-rules-state';
+import { RULES_KEY, type CompetitorKind, type RuleCellEdit, type RulesMatrix } from './use-ranking-rules-matrix';
 
 const MODAL_WIDTH = 640;
 const NOTE_ROWS = 2;
@@ -58,8 +59,7 @@ export function RankingRulesSaveModal({ open, kind, draw, edits, today, versions
   const baselineReady = effectiveIso === today || Boolean(baseline.data);
   const cells = useMemo(() => {
     if (effectiveIso === today) return edits;
-    const base = new Map((baseline.data?.cells ?? []).map((cell) => [cellKey(cell.eventTypeId, cell.stageCode), cell.points]));
-    return edits.filter((edit) => base.get(cellKey(edit.eventTypeId, edit.stageCode)) !== edit.points);
+    return changedRuleCells(edits, baseline.data?.cells ?? []);
   }, [edits, baseline.data, effectiveIso, today]);
   const eventTypeIds = [...new Set(cells.map((cell) => cell.eventTypeId))];
   const laterVersion = effectiveIso ? [...versions].sort().find((version) => version > effectiveIso) : undefined;
