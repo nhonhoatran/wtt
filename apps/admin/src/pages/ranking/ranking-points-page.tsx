@@ -69,7 +69,7 @@ export function RankingPointsPage() {
           { kind: 'select', field: 'active', placeholder: 'Hiệu lực', options: POINTS_VALIDITY_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<PointsRow> key="player" title="VĐV" render={(_, row) => playerCodeName(row.player)} />
         <Table.Column<PointsRow> key="list" title="Bảng" render={(_, row) => row.rankingList.name} />
         <Table.Column<PointsRow> key="event" title="Giải" render={(_, row) =>

@@ -50,7 +50,7 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
           </span>
         </Tooltip>
       </Flex>
-      <Table<EntryRecord> {...tableProps} size="small" rowKey="id">
+      <Table<EntryRecord> {...tableProps} size="small" rowKey="id" scroll={{ x: true }}>
         <Table.Column<EntryRecord>
           title="Hạt giống"
           width={120}

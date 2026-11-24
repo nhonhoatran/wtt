@@ -18,7 +18,7 @@ const day = (value: string) => dayjs(value.slice(0, 10)).format(DISPLAY_DATE_FOR
 /** The ledger entries that make up one player's points in the snapshot. */
 export function SnapshotBreakdownTable({ items }: { items: BreakdownItem[] }) {
   return (
-    <Table<BreakdownItem> size="small" pagination={false} rowKey="ledgerId" dataSource={items}>
+    <Table<BreakdownItem> size="small" pagination={false} rowKey="ledgerId" dataSource={items} scroll={{ x: true }}>
       <Table.Column<BreakdownItem>
         key="event"
         title="Giải"

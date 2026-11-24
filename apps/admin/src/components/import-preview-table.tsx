@@ -82,7 +82,7 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
       <Tabs size="small" activeKey={tab} onChange={changeTab} items={tabs} />
       <Table<ImportRow>
         {...tableProps}
-        rowKey="rowNo"
+        rowKey="rowNo" scroll={{ x: true }}
         size="small"
         onRow={(row) => ({ style: row.status === 'NEEDS_CONFIRM' ? { background: token.colorWarningBg } : undefined })}
       >

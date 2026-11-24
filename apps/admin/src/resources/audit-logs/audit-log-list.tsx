@@ -45,7 +45,7 @@ export function AuditLogList() {
       />
       <Table
         {...tableProps}
-        rowKey="id"
+        rowKey="id" scroll={{ x: true }}
         expandable={{
           expandedRowRender: (row) => (
             <Descriptions column={1} size="small" bordered>

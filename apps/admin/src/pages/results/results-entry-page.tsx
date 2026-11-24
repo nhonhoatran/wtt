@@ -142,7 +142,7 @@ export function ResultsEntryPage() {
         />
       </Flex>
       <Table<MatchListItem>
-        rowKey="id"
+        rowKey="id" scroll={{ x: true }}
         size="middle"
         loading={matches.isFetching}
         dataSource={rows}

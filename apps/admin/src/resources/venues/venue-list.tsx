@@ -21,7 +21,7 @@ export function VenueList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<VenueRecord>(sorters, 'name', 'Tên')}
         {sortColumn<VenueRecord>(sorters, 'city', 'Tỉnh / thành phố', (city: string | null) => city ?? '—')}
         <Table.Column<VenueRecord> key="address" dataIndex="address" title="Địa chỉ" render={(address: string | null) => address ?? '—'} />

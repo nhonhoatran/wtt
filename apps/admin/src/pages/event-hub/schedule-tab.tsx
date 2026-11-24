@@ -5,9 +5,10 @@ import { App, Button, Empty, Flex, Result, Skeleton, Space, Tag, Typography, the
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
-import { DAY_QUERY_PARAM, SESSION_QUERY_PARAM, SIDE_MENU_WIDTH } from './entry-labels';
+import { DAY_QUERY_PARAM, SESSION_QUERY_PARAM } from './entry-labels';
 import type { HubTabContext } from './hub-tab-context';
 import { ScheduleActions } from './schedule-actions';
+import { SideMenuLayout } from './side-menu-layout';
 import { scheduleAnnouncements, scheduleScreenReaderInstructions } from './schedule-dnd-accessibility';
 import { scheduleKey, sessionsKey, tableLabel, todayInZone, type ScheduleMatch, type SessionRecord } from './schedule-types';
 import { SessionFormModal } from './session-form-modal';
@@ -17,6 +18,8 @@ import { UnscheduledPanel } from './unscheduled-panel';
 import { useScheduleBoard, type SlotTarget } from './use-schedule-board';
 
 const DRAG_START_DISTANCE = 6;
+const STACKED_PANEL_MAX_HEIGHT = '50vh';
+const PANEL_COLUMN = { display: 'flex', flexDirection: 'column' } as const;
 
 type Dialog = { session: SessionRecord | null } | null;
 
@@ -121,34 +124,23 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
           onEdit={() => setDialog({ session })}
           onDelete={() => removeSession(session)}
         />
-        <Flex gap="middle" align="start">
-          {/* Sticky and height-capped so a long panel scrolls inside itself and the grid stays in view while dragging. */}
-          <div
-            style={{
-              width: SIDE_MENU_WIDTH,
-              flex: 'none',
-              position: 'sticky',
-              top: token.marginMD,
-              maxHeight: `calc(100vh - ${token.marginMD * 2}px)`,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <UnscheduledPanel eventId={event.id} board={board} canUpdate={canUpdate} />
-          </div>
-          <Flex vertical gap="middle" style={{ flex: 1, minWidth: 0 }}>
-            <Flex justify="space-between" align="center" wrap gap="small">
-              <Space align="center" wrap>
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  {session.name ?? `Session ${session.code}`}
-                </Typography.Title>
-                <Tag>{session.code}</Tag>
-              </Space>
-              <ScheduleActions eventId={event.id} sessionId={session.id} canUpdate={canUpdate} />
-            </Flex>
-            <SessionGrid eventId={event.id} timeZone={event.timezone} session={session} canUpdate={canUpdate} board={board} />
+        {/* Height-capped so a long panel scrolls inside itself; sticky beside the grid so it stays in view while dragging. */}
+        <SideMenuLayout
+          side={<UnscheduledPanel eventId={event.id} board={board} canUpdate={canUpdate} />}
+          sideStyle={{ ...PANEL_COLUMN, position: 'sticky', top: token.marginMD, maxHeight: `calc(100vh - ${token.marginMD * 2}px)` }}
+          stackedSideStyle={{ ...PANEL_COLUMN, maxHeight: STACKED_PANEL_MAX_HEIGHT }}
+        >
+          <Flex justify="space-between" align="center" wrap gap="small">
+            <Space align="center" wrap>
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                {session.name ?? `Session ${session.code}`}
+              </Typography.Title>
+              <Tag>{session.code}</Tag>
+            </Space>
+            <ScheduleActions eventId={event.id} sessionId={session.id} canUpdate={canUpdate} />
           </Flex>
-        </Flex>
+          <SessionGrid eventId={event.id} timeZone={event.timezone} session={session} canUpdate={canUpdate} board={board} />
+        </SideMenuLayout>
       </Flex>
       <DragOverlay>{dragging && <Tag color="processing">Trận #{dragging.matchNo}</Tag>}</DragOverlay>
       {dialog && (

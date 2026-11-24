@@ -86,7 +86,7 @@ export function DrawSeedSuggestionModal({ subEventId, open, onClose }: DrawSeedS
             <Typography.Text type="secondary">
               Theo BXH {result.snapshot.listCode} công bố ngày {dayjs(result.snapshot.asOfDate).format(DISPLAY_DATE_FORMAT)} · {result.seedCount} hạt giống
             </Typography.Text>
-            <Table<Suggestion> size="small" pagination={false} rowKey="entryId" dataSource={result.suggestions}>
+            <Table<Suggestion> size="small" pagination={false} rowKey="entryId" dataSource={result.suggestions} scroll={{ x: true }}>
               <Table.Column<Suggestion> title="Hạt giống gợi ý" width={SEED_COLUMN_WIDTH} render={(_, row) => row.suggestedSeed ?? '—'} />
               <Table.Column<Suggestion> title="VĐV" render={(_, row) => row.displayName} />
               <Table.Column<Suggestion> title="Hạng" align="right" render={(_, row) => row.rankingAtEntry ?? '—'} />

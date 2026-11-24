@@ -43,7 +43,7 @@ export function SubEventsTab({ event, canCreate, canUpdate, canDelete, onChanged
       {data.length > 0 && addButton && <Flex justify="end">{addButton}</Flex>}
       <Table<SubEventRecord>
         dataSource={data}
-        rowKey="id"
+        rowKey="id" scroll={{ x: true }}
         pagination={false}
         locale={{ emptyText: <Empty description="Chưa có nội dung">{addButton || null}</Empty> }}
       >

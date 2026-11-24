@@ -22,7 +22,7 @@ export function TierList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<TierRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<TierRecord>(sorters, 'code', 'Mã')}
         {sortColumn<TierRecord>(sorters, 'name', 'Tên', (_, tier) => (

@@ -31,7 +31,7 @@ export function SnapshotRankTable({ snapshotId }: { snapshotId: string }) {
       <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên VĐV' }]} />
       <Table<SnapshotRankRow>
         {...tableProps}
-        rowKey="playerId"
+        rowKey="playerId" scroll={{ x: true }}
         expandable={{ rowExpandable: (row) => row.breakdown.length > 0, expandedRowRender: (row) => <SnapshotBreakdownTable items={row.breakdown} /> }}
       >
         <Table.Column<SnapshotRankRow> dataIndex="rank" title="Hạng" sorter defaultSortOrder={getDefaultSortOrder('rank', sorters)} />

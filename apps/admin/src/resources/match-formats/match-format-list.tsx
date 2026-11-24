@@ -21,7 +21,7 @@ export function MatchFormatList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<MatchFormatRecord>(sorters, 'name', 'Tên')}
         {sortColumn<MatchFormatRecord>(sorters, 'bestOf', 'Số ván tối đa', (bestOf: number) => `${bestOf} ván`)}
         {sortColumn<MatchFormatRecord>(sorters, 'pointsPerGame', 'Điểm mỗi ván', (points: number) => `${points} điểm`)}

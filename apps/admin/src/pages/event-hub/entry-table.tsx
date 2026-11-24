@@ -83,7 +83,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
       )}
       <Table<EntryRecord>
         {...tableProps}
-        rowKey="id"
+        rowKey="id" scroll={{ x: true }}
         size="small"
         rowSelection={canUpdate ? { selectedRowKeys: selected, onChange: setSelected, preserveSelectedRowKeys: true } : undefined}
         onRow={(entry) => ({ style: entry.status === 'WITHDRAWN' ? { color: token.colorTextTertiary } : undefined })}

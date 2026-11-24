@@ -8,9 +8,10 @@ import { apiUrl } from '../../api/api-url';
 import { apiFetch } from '../../api/http-client';
 import { ImportWizard } from '../../components/import-wizard';
 import { AddEntryForm } from './add-entry-form';
-import { entryCountsKey, SIDE_MENU_WIDTH, SUB_EVENT_QUERY_PARAM, type EntryCount, type EntrySubEvent } from './entry-labels';
+import { entryCountsKey, SUB_EVENT_QUERY_PARAM, type EntryCount, type EntrySubEvent } from './entry-labels';
 import { entriesResource, EntryTable } from './entry-table';
 import type { HubTabContext } from './hub-tab-context';
+import { SideMenuLayout } from './side-menu-layout';
 import { subEventsKey, subEventTitle } from './sub-event-labels';
 import { SubEventSideMenu } from './sub-event-side-menu';
 
@@ -58,11 +59,8 @@ export function EntriesTab({ event, canCreate, canUpdate }: HubTabContext) {
   const exportHref = apiUrl(`/admin/exports/entries?${new URLSearchParams({ eventId: event.id, subEventId: selected.id })}`);
 
   return (
-    <Flex gap="middle" align="start">
-      <div style={{ width: SIDE_MENU_WIDTH, flex: 'none' }}>
-        <SubEventSideMenu subEvents={subEvents.data} counts={counts.data ?? []} selectedId={selected.id} onSelect={select} />
-      </div>
-      <Flex vertical gap="middle" style={{ flex: 1, minWidth: 0 }}>
+    <>
+      <SideMenuLayout side={<SubEventSideMenu subEvents={subEvents.data} counts={counts.data ?? []} selectedId={selected.id} onSelect={select} />}>
         <Flex justify="space-between" align="center" wrap gap="small">
           <Space align="center" wrap>
             <Typography.Title level={4} style={{ margin: 0 }}>
@@ -84,10 +82,10 @@ export function EntriesTab({ event, canCreate, canUpdate }: HubTabContext) {
         {counts.isError && (
           <Alert type="warning" showIcon message="Không tải được số đăng ký của từng nội dung." action={<Button size="small" onClick={() => counts.refetch()}>Thử lại</Button>} />
         )}
-        {canCreate && <AddEntryForm key={selected.id} subEvent={selected} canOverride={canOverride} onAdded={onAdded} />}
-        <EntryTable key={selected.id} subEvent={selected} canUpdate={canUpdate} onCountsChanged={refreshCounts} />
-      </Flex>
+        {canCreate && <AddEntryForm key={`add-${selected.id}`} subEvent={selected} canOverride={canOverride} onAdded={onAdded} />}
+        <EntryTable key={`table-${selected.id}`} subEvent={selected} canUpdate={canUpdate} onCountsChanged={refreshCounts} />
+      </SideMenuLayout>
       <ImportWizard eventId={event.id} open={importOpen} onClose={() => setImportOpen(false)} />
-    </Flex>
+    </>
   );
 }

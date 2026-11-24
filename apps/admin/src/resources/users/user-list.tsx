@@ -33,7 +33,7 @@ export function UserList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: STATUS_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<UserRecord> dataIndex="name" title="Họ tên" sorter defaultSortOrder={getDefaultSortOrder('name', sorters)} />
         <Table.Column<UserRecord> dataIndex="email" title="Email" sorter defaultSortOrder={getDefaultSortOrder('email', sorters)} />
         <Table.Column<UserRecord>

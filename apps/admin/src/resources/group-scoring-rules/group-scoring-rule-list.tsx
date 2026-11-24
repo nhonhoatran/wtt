@@ -23,7 +23,7 @@ export function GroupScoringRuleList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<GroupScoringRuleRecord>(sorters, 'name', 'Tên')}
         {sortColumn<GroupScoringRuleRecord>(sorters, 'pointsWin', 'Điểm thắng / thua', (_, rule) => `${rule.pointsWin} / ${rule.pointsLoss}`)}
         <Table.Column<GroupScoringRuleRecord> key="unfinished" title="Trận dang dở" render={(_, rule) => unfinishedLabel(rule.unfinishedMatchScoring)} />

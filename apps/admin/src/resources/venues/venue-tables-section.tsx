@@ -48,7 +48,7 @@ export function VenueTablesSection({ venueId }: { venueId: string }) {
         )
       }
     >
-      <Table {...tableProps} rowKey="id" size="small">
+      <Table {...tableProps} rowKey="id" size="small" scroll={{ x: true }}>
         <Table.Column<VenueTableRecord> dataIndex="order" title="Thứ tự" sorter defaultSortOrder={getDefaultSortOrder('order', sorters)} />
         <Table.Column<VenueTableRecord> dataIndex="code" title="Mã bàn" sorter defaultSortOrder={getDefaultSortOrder('code', sorters)} />
         <Table.Column<VenueTableRecord> dataIndex="displayName" title="Tên hiển thị" render={(name: string | null) => name ?? '—'} />

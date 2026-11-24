@@ -1,13 +1,14 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Empty, Flex, Result, Skeleton, Space, Tabs, Tag, Typography } from 'antd';
+import { Alert, Button, Empty, Result, Skeleton, Space, Tabs, Tag, Typography } from 'antd';
 import { Link, useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { DrawPanel } from './draw-panel';
 import { DRAW_KIND_LABELS, DRAW_VIEW_KEY, drawsOverviewKey, OVERALL_COLORS, OVERALL_LABELS, overallDrawState, overviewOf } from './draw-labels';
 import type { DrawKind, DrawOverviewRow } from './draw-types';
-import { SIDE_MENU_WIDTH, SUB_EVENT_QUERY_PARAM, type EntrySubEvent } from './entry-labels';
+import { SUB_EVENT_QUERY_PARAM, type EntrySubEvent } from './entry-labels';
 import type { HubTabContext } from './hub-tab-context';
+import { SideMenuLayout } from './side-menu-layout';
 import { subEventsKey, subEventTitle } from './sub-event-labels';
 import { SubEventSideMenu } from './sub-event-side-menu';
 
@@ -62,34 +63,33 @@ export function DrawsTab({ event, canCreate, canUpdate }: HubTabContext) {
   const panel = (kind: DrawKind) => <DrawPanel key={`${selected.id}-${kind}`} subEvent={selected} kind={kind} draws={draws} canUpdate={canUpdate} refresh={refresh} />;
 
   return (
-    <Flex gap="middle" align="start">
-      <div style={{ width: SIDE_MENU_WIDTH, flex: 'none' }}>
+    <SideMenuLayout
+      side={
         <SubEventSideMenu
           subEvents={subEvents.data}
           selectedId={selected.id}
           onSelect={select}
           renderStatus={(id) => overview.data && <Tag color={OVERALL_COLORS[stateOf(id)]}>{OVERALL_LABELS[stateOf(id)]}</Tag>}
         />
-      </div>
-      <Flex vertical gap="middle" style={{ flex: 1, minWidth: 0 }}>
-        <Space align="center" wrap>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            {subEventTitle(selected)}
-          </Typography.Title>
-          <Tag>{selected.code}</Tag>
-          {overview.data && <Tag color={OVERALL_COLORS[state]}>{OVERALL_LABELS[state]}</Tag>}
-        </Space>
-        {overview.isError && (
-          <Alert type="warning" showIcon message="Không tải được trạng thái bốc thăm." action={<Button size="small" onClick={() => overview.refetch()}>Thử lại</Button>} />
-        )}
-        {overview.isLoading ? (
-          <Skeleton active />
-        ) : kinds.length === 1 ? (
-          panel(kinds[0]!)
-        ) : (
-          <Tabs key={selected.id} size="small" items={kinds.map((kind) => ({ key: kind, label: DRAW_KIND_LABELS[kind], children: panel(kind) }))} />
-        )}
-      </Flex>
-    </Flex>
+      }
+    >
+      <Space align="center" wrap>
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          {subEventTitle(selected)}
+        </Typography.Title>
+        <Tag>{selected.code}</Tag>
+        {overview.data && <Tag color={OVERALL_COLORS[state]}>{OVERALL_LABELS[state]}</Tag>}
+      </Space>
+      {overview.isError && (
+        <Alert type="warning" showIcon message="Không tải được trạng thái bốc thăm." action={<Button size="small" onClick={() => overview.refetch()}>Thử lại</Button>} />
+      )}
+      {overview.isLoading ? (
+        <Skeleton active />
+      ) : kinds.length === 1 ? (
+        panel(kinds[0]!)
+      ) : (
+        <Tabs key={selected.id} size="small" items={kinds.map((kind) => ({ key: kind, label: DRAW_KIND_LABELS[kind], children: panel(kind) }))} />
+      )}
+    </SideMenuLayout>
   );
 }

@@ -13,7 +13,7 @@ export function SponsorList() {
   const events = useContentEventOptions(selectedEvent ? [selectedEvent] : []);
   return <List title="Nhà tài trợ" headerButtons={<CanAccess resource="sponsors" action="create"><CreateButton>Thêm nhà tài trợ</CreateButton></CanAccess>}>
     <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên nhà tài trợ' }, { kind: 'select', field: 'eventId', placeholder: 'Giải', options: events.options, showSearch: true, onSearch: events.onSearch }]} />
-    <Table {...tableProps} rowKey="id">
+    <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
       <Table.Column<SponsorRecord> dataIndex="name" title="Nhà tài trợ" sorter defaultSortOrder={getDefaultSortOrder('name', sorters)} render={(name, row) => <Link to={`/sponsors/${row.id}/edit`}>{name}</Link>} />
       <Table.Column<SponsorRecord> dataIndex="event" title="Phạm vi" render={(event) => event?.name ?? <Tag color="blue">Toàn site</Tag>} />
       <Table.Column<SponsorRecord> dataIndex="roleLabel" title="Vai trò" render={(value) => value ?? '—'} />

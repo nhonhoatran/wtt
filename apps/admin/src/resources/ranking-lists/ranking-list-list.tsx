@@ -25,7 +25,7 @@ export function RankingListList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<RankingListRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<RankingListRecord>(sorters, 'code', 'Mã')}
         {sortColumn<RankingListRecord>(sorters, 'name', 'Tên')}

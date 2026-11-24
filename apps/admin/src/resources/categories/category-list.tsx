@@ -31,7 +31,7 @@ export function CategoryList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<CategoryRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<CategoryRecord>(sorters, 'code', 'Mã')}
         {sortColumn<CategoryRecord>(sorters, 'name', 'Tên')}

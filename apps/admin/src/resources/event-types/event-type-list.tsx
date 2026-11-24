@@ -35,7 +35,7 @@ export function EventTypeList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<EventTypeRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<EventTypeRecord>(sorters, 'code', 'Mã')}
         {sortColumn<EventTypeRecord>(sorters, 'name', 'Tên')}

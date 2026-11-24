@@ -56,7 +56,7 @@ export function ImportList() {
           { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: IMPORT_STATUS_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<ImportJob>
           dataIndex="createdAt"
           title="Thời điểm"

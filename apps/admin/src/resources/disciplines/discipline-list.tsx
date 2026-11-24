@@ -32,7 +32,7 @@ export function DisciplineList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: ACTIVE_FILTER_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         {sortColumn<DisciplineRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<DisciplineRecord>(sorters, 'code', 'Mã')}
         {sortColumn<DisciplineRecord>(sorters, 'name', 'Tên')}

@@ -39,7 +39,7 @@ export function PlayerList() {
           { kind: 'select', field: 'isActive', placeholder: 'Trạng thái', options: PLAYER_ACTIVE_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<PlayerRecord> dataIndex="code" title="Mã" sorter defaultSortOrder={getDefaultSortOrder('code', sorters)} />
         <Table.Column<PlayerRecord>
           dataIndex="fullName"

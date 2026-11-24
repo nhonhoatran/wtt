@@ -47,7 +47,7 @@ export function EventList() {
           { kind: 'select', field: 'publishStatus', placeholder: 'Công bố', options: PUBLISH_OPTIONS },
         ]}
       />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<EventRecord>
           dataIndex="name"
           title="Tên giải"

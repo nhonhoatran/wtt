@@ -96,7 +96,7 @@ export function SponsorsTab({ event, canUpdate }: HubTabContext) {
         },
       }}>
       <SortableContext items={rows.map(({ id }) => id)} strategy={verticalListSortingStrategy}>
-      <Table dataSource={rows} rowKey="id" loading={saving || query.isFetching} components={{ body: { row: SponsorRow } }}
+      <Table dataSource={rows} rowKey="id" scroll={{ x: true }} loading={saving || query.isFetching} components={{ body: { row: SponsorRow } }}
         onRow={(row) => ({ 'data-sponsor-name': row.name, 'data-drag-disabled': saving || !canUpdate }) as HTMLAttributes<HTMLTableRowElement>}
         pagination={{ current: page, pageSize: query.data.pageSize, total: query.data.total, showSizeChanger: false, disabled: saving, onChange: setPage }}>
       {canUpdate && <Table.Column<SponsorRecord> key="drag" title="Sắp xếp" width={80} render={() => <SponsorDragHandle />} />}

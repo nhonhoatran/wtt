@@ -23,7 +23,7 @@ export function ContactMessageList() {
   return <>
     <List title={<>Hộp thư liên hệ{newCount.data ? <Tag color="red" style={{ marginInlineStart: 8 }}>{newCount.data}</Tag> : null}</>}>
       <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên, email, nội dung' }, { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: CONTACT_STATUS_OPTIONS }]} />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<ContactMessageRecord> dataIndex="name" title="Người gửi" render={(name, row) => <Button type="link" onClick={() => { setSelected(row); if (row.status === 'NEW') void changeStatus(row, 'READ'); }}>{name}</Button>} />
         <Table.Column<ContactMessageRecord> dataIndex="email" title="Email" />
         <Table.Column<ContactMessageRecord> dataIndex="organization" title="Tổ chức" render={(value) => value ?? '—'} />

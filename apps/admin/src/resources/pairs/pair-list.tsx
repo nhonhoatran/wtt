@@ -37,7 +37,7 @@ export function PairList() {
   return (
     <List title="Cặp đôi">
       <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên hoặc mã VĐV' }]} />
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
         <Table.Column<PairRecord> key="playerA" title="VĐV 1" render={(_, pair) => playerLink(pair.playerA)} />
         <Table.Column<PairRecord> key="playerB" title="VĐV 2" render={(_, pair) => playerLink(pair.playerB)} />
         <Table.Column<PairRecord> dataIndex="entryCount" title="Số lượt đăng ký" align="right" />

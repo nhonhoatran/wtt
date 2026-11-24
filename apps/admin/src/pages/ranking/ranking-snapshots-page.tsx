@@ -57,7 +57,7 @@ export function RankingSnapshotsPage() {
             { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: SNAPSHOT_STATUS_OPTIONS },
           ]}
         />
-        <Table<SnapshotRecord> {...tableProps} rowKey="id">
+        <Table<SnapshotRecord> {...tableProps} rowKey="id" scroll={{ x: true }}>
           <Table.Column<SnapshotRecord> key="list" title="Bảng XH" render={(_, row) => <Link to={`/ranking-snapshots/${row.id}`}>{row.rankingList.name}</Link>} />
           <Table.Column<SnapshotRecord>
             dataIndex="asOfDate"
