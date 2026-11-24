@@ -42,7 +42,8 @@ jobs:
       - name: Smoke admin (allowlist, routing, headers)
         run: |
           docker run -d --name admin -p 8080:8080 -e API_BASE_PATH=/api/v1 -e ADMIN_PUBLIC_URL=https://admin.test \
-            -e PUBLIC_SITE_URL=https://site.test -e AUTH_SECRET=must-not-leak kamito-tt-admin
+            -e PUBLIC_SITE_URL=https://site.test -e AUTH_SECRET=must-not-leak \
+            -e UPLOAD_MAX_IMAGE_BYTES=5242880 -e IMPORT_MAX_FILE_BYTES=5242880 kamito-tt-admin
           sleep 3
           code() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
           test "$(code /healthz)" = 200
