@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { publicGet } = vi.hoisted(() => ({ publicGet: vi.fn() }));
 vi.mock('../../src/lib/api-client', () => ({ publicGet }));
 vi.mock('../../src/lib/server-env', () => ({ serverEnv: { matchdayRevalidateSeconds: () => 1 } }));
+// The shared Redis limiter has its own integration test; keep this suite on the in-memory path even when REDIS_URL is set.
+vi.mock('../../src/lib/public-redis', async (importOriginal) => ({ ...(await importOriginal<object>()), publicRedis: () => null }));
 
 const config = { rateLimit: { windowSeconds: 5, maxRequests: 3, searchMaxRequests: 1, maxTrackedIps: 2 } };
 const load = () => import('../../src/lib/public-rate-limit');

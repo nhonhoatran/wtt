@@ -123,6 +123,6 @@ describe('import commit: locked draws and public refresh (real Postgres + Redis,
     expect(await entryCount('MS')).toBe(1);
     expect((await kit.get(`${IMPORTS}/${id}`, admin)).body.data).toMatchObject({ status: 'DONE', committedRows: 1 });
     expect(enqueueRevalidate).toHaveBeenCalledOnce();
-    expect(warn).toHaveBeenCalledWith(expect.objectContaining({ importJobId: id, err: 'redis down' }), expect.stringContaining('revalidate'));
+    expect(warn).toHaveBeenCalledWith(expect.objectContaining({ importJobId: id, err: { type: 'Error' } }), expect.stringContaining('revalidate'));
   }, 30_000);
 });

@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   // Monorepo root so standalone output traces workspace packages.
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   poweredByHeader: false,
+  // Test suites import other workspaces' build output; `pnpm typecheck` covers them, not image builds.
+  typescript: { tsconfigPath: 'tsconfig.build.json' },
   async headers() {
     return [{
       source: '/:path*',
