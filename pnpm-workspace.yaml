@@ -3,6 +3,7 @@ packages:
   - packages/*
 overrides:
   '@ant-design/pro-layout>path-to-regexp': 8.4.2
+  '@prisma/config>effect': 3.22.1
 allowBuilds:
   '@prisma/engines': true
   '@swc/core': true
