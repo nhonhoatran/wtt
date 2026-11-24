@@ -50,7 +50,7 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
 
   if (sessions.isLoading) return <Skeleton active />;
   if (sessions.isError || !sessions.data) {
-    return <Result status="error" title="Không tải được danh sách session" extra={<Button onClick={() => sessions.refetch()}>Thử lại</Button>} />;
+    return <Result status="error" title="Không tải được danh sách buổi thi đấu" extra={<Button onClick={() => sessions.refetch()}>Thử lại</Button>} />;
   }
 
   const all = sessions.data;
@@ -79,7 +79,7 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
 
   const removeSession = async (target: SessionRecord) => {
     await apiFetch(`/admin/events/${event.id}/sessions/${target.id}`, { method: 'DELETE' });
-    message.success('Đã xóa session');
+    message.success('Đã xóa buổi thi đấu');
     select(day, undefined);
     await Promise.all([reloadSessions(), queryClient.invalidateQueries({ queryKey: scheduleKey(event.id) })]);
   };
@@ -89,10 +89,10 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
   if (!session) {
     return (
       <>
-        <Empty description="Chưa có session">
+        <Empty description="Chưa có buổi thi đấu">
           {canUpdate && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setDialog({ session: null })}>
-              Thêm session
+              Thêm buổi thi đấu
             </Button>
           )}
         </Empty>
@@ -133,7 +133,7 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
           <Flex justify="space-between" align="center" wrap gap="small">
             <Space align="center" wrap>
               <Typography.Title level={4} style={{ margin: 0 }}>
-                {session.name ?? `Session ${session.code}`}
+                {session.name ?? `Buổi ${session.code}`}
               </Typography.Title>
               <Tag>{session.code}</Tag>
             </Space>

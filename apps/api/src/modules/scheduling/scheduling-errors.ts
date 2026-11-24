@@ -2,7 +2,7 @@ import { ConflictException, NotFoundException, UnprocessableEntityException } fr
 
 export const scheduleMatchNotFound = () => new NotFoundException({ code: 'MATCH_NOT_FOUND', message: 'Không tìm thấy trận đấu' });
 
-export const sessionNotFound = () => new NotFoundException({ code: 'SESSION_NOT_FOUND', message: 'Không tìm thấy session' });
+export const sessionNotFound = () => new NotFoundException({ code: 'SESSION_NOT_FOUND', message: 'Không tìm thấy buổi thi đấu' });
 
 export const scheduleVersionConflict = (currentScheduleVersion: number) =>
   new ConflictException({
@@ -17,10 +17,10 @@ export const matchNotSchedulable = (message: string) => new ConflictException({ 
 export const slotOccupied = (message: string) => new ConflictException({ code: 'SCHEDULE_SLOT_OCCUPIED', message });
 
 export const sessionFull = (cap: number) =>
-  new ConflictException({ code: 'SESSION_FULL', message: `Session đã đủ ${cap} trận, không xếp thêm được` });
+  new ConflictException({ code: 'SESSION_FULL', message: `Buổi thi đấu đã đủ ${cap} trận, không xếp thêm được` });
 
 export const tableNotInSession = () =>
-  new UnprocessableEntityException({ code: 'TABLE_NOT_IN_SESSION', message: 'Bàn không thuộc session này', fields: { tableId: 'Bàn không thuộc session này' } });
+  new UnprocessableEntityException({ code: 'TABLE_NOT_IN_SESSION', message: 'Bàn không thuộc buổi này', fields: { tableId: 'Bàn không thuộc buổi này' } });
 
 export const concurrentScheduleRetry = () =>
   new ConflictException({ code: 'CONCURRENT_UPDATE_RETRY', message: 'Lịch vừa được thay đổi đồng thời, thử lại' });

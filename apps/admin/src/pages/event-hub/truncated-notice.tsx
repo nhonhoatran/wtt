@@ -10,5 +10,5 @@ interface TruncatedNoticeProps {
 /** Same wording wherever a session's match list was cut at the server cap. */
 export function TruncatedNotice({ action, shown, total }: TruncatedNoticeProps) {
   const size = total === undefined ? 'nhiều trận hơn' : `${total} trận`;
-  return <Alert type="warning" showIcon message={`Session có ${size}, chỉ ${action} ${shown} trận đầu.`} />;
+  return <Alert type="warning" showIcon message={`Buổi này có ${size}, chỉ ${action} ${shown} trận đầu.`} />;
 }

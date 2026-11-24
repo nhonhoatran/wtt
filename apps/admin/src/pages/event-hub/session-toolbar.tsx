@@ -26,15 +26,15 @@ export function SessionToolbar({ days, day, sessionsOfDay, session, canUpdate, o
       {canUpdate && (
         <Flex gap="small" align="center">
           <Button icon={<PlusOutlined />} onClick={onAdd}>
-            Thêm session
+            Thêm buổi thi đấu
           </Button>
           <Button onClick={onEdit}>Sửa</Button>
           <ConfirmActionButton
             label="Xóa"
             danger
-            title={`Xóa session ${session.code}?`}
-            content="Chỉ xóa được session chưa có trận nào."
-            okText="Xóa session"
+            title={`Xóa buổi ${session.code}?`}
+            content="Chỉ xóa được buổi chưa có trận nào."
+            okText="Xóa buổi"
             onConfirm={onDelete}
           />
         </Flex>

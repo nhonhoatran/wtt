@@ -10,7 +10,7 @@ import { requireExportEvent, streamMatchSheet, type SheetColumn } from './match-
 const STATUS_LABELS = { SCHEDULED: 'Chưa đấu', LIVE: 'Đang đấu', OFFICIAL: 'Đã có kết quả' } as const;
 const COLUMNS: SheetColumn[] = [
   { header: 'Ngày', width: 12 },
-  { header: 'Session', width: 10 },
+  { header: 'Buổi', width: 10 },
   { header: 'Giờ', width: 8 },
   { header: 'Bàn', width: 12 },
   { header: 'Thứ tự', width: 8 },

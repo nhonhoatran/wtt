@@ -34,7 +34,7 @@ interface Effective {
   tableIds: string[];
 }
 
-const sessionNotFound = () => new NotFoundException({ code: 'SESSION_NOT_FOUND', message: 'Không tìm thấy session' });
+const sessionNotFound = () => new NotFoundException({ code: 'SESSION_NOT_FOUND', message: 'Không tìm thấy buổi thi đấu' });
 
 @Injectable()
 export class SessionsService {
@@ -143,7 +143,7 @@ export class SessionsService {
       if (!current) throw sessionNotFound();
       const matchCount = await tx.match.count({ where: { sessionId: id } });
       if (matchCount > 0) {
-        throw new ConflictException({ code: 'SESSION_HAS_MATCHES', message: `Session còn ${matchCount} trận đã xếp, hãy bỏ xếp các trận trước khi xóa`, dependants: { matches: matchCount } });
+        throw new ConflictException({ code: 'SESSION_HAS_MATCHES', message: `Buổi còn ${matchCount} trận đã xếp, hãy bỏ xếp các trận trước khi xóa`, dependants: { matches: matchCount } });
       }
       await tx.eventSession.delete({ where: { id } });
       await this.audit.record({ action: 'session.delete', entity: 'EventSession', entityId: id, before: { eventId, code: current.code, date: formatDateOnly(current.date) } }, tx);
@@ -157,7 +157,7 @@ export class SessionsService {
     if (e.tableIds.length === 0) return;
     if (!e.venueId) throw fieldError('venueId', 'Chọn địa điểm để chọn bàn');
     const tables = await db.venueTable.findMany({ where: { id: { in: e.tableIds }, venueId: e.venueId }, select: { id: true, isActive: true } });
-    if (tables.length !== e.tableIds.length) throw fieldError('tableIds', 'Có bàn không thuộc địa điểm của session');
+    if (tables.length !== e.tableIds.length) throw fieldError('tableIds', 'Có bàn không thuộc địa điểm của buổi này');
     if (tables.some((t) => newTableIds.includes(t.id) && !t.isActive)) throw fieldError('tableIds', 'Có bàn đã ngừng sử dụng');
   }
 
@@ -166,7 +166,7 @@ export class SessionsService {
     if (removed.length === 0) return;
     const inUse = await tx.match.count({ where: { sessionId, tableId: { in: removed } } });
     if (inUse > 0) {
-      throw new ConflictException({ code: 'SESSION_TABLE_IN_USE', message: `Bàn bỏ khỏi session còn ${inUse} trận đã xếp, hãy dời hoặc bỏ xếp các trận trước`, dependants: { matches: inUse } });
+      throw new ConflictException({ code: 'SESSION_TABLE_IN_USE', message: `Bàn bỏ khỏi buổi còn ${inUse} trận đã xếp, hãy dời hoặc bỏ xếp các trận trước`, dependants: { matches: inUse } });
     }
   }
 
@@ -185,7 +185,7 @@ export class SessionsService {
 /** The pre-checks cannot see a concurrent insert; @@unique([eventId, code]) is the final guard. */
 function mapDuplicateCode(error: unknown, code: string | undefined): unknown {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-    return new ConflictException({ code: 'SESSION_CODE_EXISTS', message: `Mã session ${code ?? ''} đã tồn tại trong giải`, fields: { code: 'Mã đã tồn tại trong giải' } });
+    return new ConflictException({ code: 'SESSION_CODE_EXISTS', message: `Mã buổi ${code ?? ''} đã tồn tại trong giải`, fields: { code: 'Mã đã tồn tại trong giải' } });
   }
   return error;
 }

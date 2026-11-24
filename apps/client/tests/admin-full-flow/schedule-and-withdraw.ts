@@ -5,11 +5,11 @@ import { saveEvidence, type EventFixture, type FullUiWorld, type RunEvidence } f
 
 export async function scheduleAndPrint(page: Page, world: FullUiWorld, event: EventFixture, evidence: RunEvidence, info: TestInfo): Promise<void> {
   await page.goto(`${world.adminOrigin}/events/${event.id}/schedule`);
-  await page.getByRole('button', { name: /Thêm session$/ }).click();
-  const modal = page.getByRole('dialog', { name: 'Thêm session', exact: true });
+  await page.getByRole('button', { name: /Thêm buổi thi đấu$/ }).click();
+  const modal = page.getByRole('dialog', { name: 'Thêm buổi thi đấu', exact: true });
   await dateInput(modal.getByLabel('Ngày', { exact: true }), world.oldStartDate);
-  await modal.getByLabel('Mã session', { exact: true }).fill(`S-${world.tag.slice(0, 8)}`);
-  await modal.getByLabel('Tên session', { exact: true }).fill(`Full UI session ${world.tag}`);
+  await modal.getByLabel('Mã buổi', { exact: true }).fill(`S-${world.tag.slice(0, 8)}`);
+  await modal.getByLabel('Tên buổi', { exact: true }).fill(`Full UI session ${world.tag}`);
   await modal.getByLabel('Giờ bắt đầu', { exact: true }).fill('08:00');
   await modal.getByLabel('Giờ bắt đầu', { exact: true }).press('Enter');
   await modal.getByLabel('Giờ kết thúc', { exact: true }).fill('18:00');

@@ -118,11 +118,11 @@ export function MatchSheetsPrintPage() {
     });
 
   let content;
-  if (!sessionId) content = <Result status="warning" title="Chưa chọn session để in" />;
+  if (!sessionId) content = <Result status="warning" title="Chưa chọn buổi để in" />;
   else if (sheets.isLoading || sessions.isLoading) content = <Skeleton active />;
   else if (sheets.isError || !sheets.data) {
     content = <Result status="error" title="Không tải được phiếu trận" extra={<Button onClick={() => sheets.refetch()}>Thử lại</Button>} />;
-  } else if (sheets.data.sheets.length === 0) content = <Empty description="Session chưa có trận" />;
+  } else if (sheets.data.sheets.length === 0) content = <Empty description="Buổi này chưa có trận" />;
   else {
     content = (
       <div className={styles.matchSheets}>
@@ -159,7 +159,7 @@ export function MatchSheetsPrintPage() {
           </Flex>
         </Flex>
         {sessions.isError && (
-          <Alert type="error" showIcon message="Không tải được danh sách session" action={<Button size="small" onClick={() => sessions.refetch()}>Thử lại</Button>} />
+          <Alert type="error" showIcon message="Không tải được danh sách buổi thi đấu" action={<Button size="small" onClick={() => sessions.refetch()}>Thử lại</Button>} />
         )}
         {sheets.data?.truncated && <TruncatedNotice action="in" shown={sheets.data.sheets.length} />}
       </Flex>

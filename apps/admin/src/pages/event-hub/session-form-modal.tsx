@@ -80,13 +80,13 @@ export function SessionFormModal({ event, session, defaultDate, onClose, onSaved
       const res = session
         ? await apiFetch<SessionWrite>(`/admin/events/${event.id}/sessions/${session.id}`, { method: 'PATCH', body })
         : await apiFetch<SessionWrite>(`/admin/events/${event.id}/sessions`, { method: 'POST', body });
-      message.success(session ? 'Đã lưu session' : 'Đã thêm session');
+      message.success(session ? 'Đã lưu buổi thi đấu' : 'Đã thêm buổi thi đấu');
       showWarnings(message, res.warnings);
       onSaved(res.data);
     } catch (error) {
       const fields = error instanceof ApiError ? error.errors : undefined;
       if (fields) form.setFields(Object.entries(fields).map(([name, text]) => ({ name: name as keyof SessionFormValues, errors: [text] })));
-      else message.error(error instanceof ApiError ? error.message : 'Không lưu được session');
+      else message.error(error instanceof ApiError ? error.message : 'Không lưu được buổi thi đấu');
     } finally {
       setSaving(false);
     }
@@ -95,7 +95,7 @@ export function SessionFormModal({ event, session, defaultDate, onClose, onSaved
   return (
     <Modal
       open
-      title={session ? `Sửa session ${session.code}` : 'Thêm session'}
+      title={session ? `Sửa buổi ${session.code}` : 'Thêm buổi thi đấu'}
       okText="Lưu"
       cancelText="Hủy"
       onCancel={onClose}
@@ -108,10 +108,10 @@ export function SessionFormModal({ event, session, defaultDate, onClose, onSaved
         <Form.Item name="date" label="Ngày" rules={[{ required: true, message: 'Chọn ngày thi đấu' }]}>
           <DatePicker format={DISPLAY_DATE_FORMAT} disabledDate={(day) => day.isBefore(dayjs(event.startDate), 'day') || day.isAfter(dayjs(event.endDate), 'day')} />
         </Form.Item>
-        <Form.Item name="code" label="Mã session" rules={[{ required: true, message: 'Nhập mã session' }]} extra="Ví dụ: S01.">
+        <Form.Item name="code" label="Mã buổi" rules={[{ required: true, message: 'Nhập mã buổi' }]} extra="Ví dụ: S01.">
           <Input autoFocus />
         </Form.Item>
-        <Form.Item name="name" label="Tên session" extra="Bỏ trống để hiện theo mã.">
+        <Form.Item name="name" label="Tên buổi" extra="Bỏ trống để hiện theo mã.">
           <Input maxLength={NAME_MAX_LENGTH} />
         </Form.Item>
         <Form.Item name="startTime" label="Giờ bắt đầu" rules={[{ required: true, message: 'Chọn giờ bắt đầu' }]}>
@@ -139,7 +139,7 @@ export function SessionFormModal({ event, session, defaultDate, onClose, onSaved
         </Form.Item>
         <Form.Item
           name="tableIds"
-          label="Bàn dùng trong session"
+          label="Bàn dùng trong buổi"
           extra="Thứ tự ở đây là thứ tự các cột trên lưới xếp lịch."
           rules={[{ required: true, type: 'array', min: 1, message: 'Chọn ít nhất một bàn' }]}
         >

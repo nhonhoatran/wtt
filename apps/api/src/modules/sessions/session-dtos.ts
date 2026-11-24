@@ -23,7 +23,7 @@ const fields = {
     .string()
     .trim()
     .toUpperCase()
-    .min(1, 'Nhập mã session')
+    .min(1, 'Nhập mã buổi')
     .max(MAX_CODE, `Tối đa ${MAX_CODE} ký tự`)
     .regex(/^[A-Z0-9-]+$/, 'Chỉ chữ, số và dấu gạch ngang'),
   name: optionalName,

@@ -53,8 +53,8 @@ export const tournamentSettings = {
   scheduleSessionMatchCap: defineNumberSetting({
     key: 'schedule.sessionMatchCap',
     group: 'event',
-    label: 'Số trận tối đa của một session',
-    description: 'Lưới xếp lịch tải trọn session; session có nhiều trận hơn mức này bị từ chối khi xếp thêm để màn hình không quá tải.',
+    label: 'Số trận tối đa của một buổi thi đấu',
+    description: 'Lưới xếp lịch tải trọn một buổi; buổi có nhiều trận hơn mức này bị từ chối khi xếp thêm để màn hình không quá tải.',
     unit: 'trận',
     min: 50,
     max: 2000,
