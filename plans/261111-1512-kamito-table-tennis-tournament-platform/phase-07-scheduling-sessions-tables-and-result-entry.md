@@ -293,13 +293,13 @@ Rollback: migration thêm bảng; revert app; kết quả đã chốt nằm tron
 
 ## Kết quả thực hiện (2026-11-14)
 
-**Trạng thái:** Hoàn thành (chưa deploy staging). Còn mở: đo staging, deploy + migrate staging, Q → BYE → R2 khi reopen (chỉ unit), và các mục UI bên dưới (xem sync 2026-11-13, 2026-11-14 và Debt fixes sync 2026-11-14).
+**Trạng thái:** Hoàn thành (chưa deploy staging). Còn mở: đo staging, deploy + migrate staging, và các mục UI bên dưới (xem sync 2026-11-13, 2026-11-14 và Debt fixes sync 2026-11-14).
 
 <!-- Debt fixes sync — 2026-11-14 -->
 - Đóng: tag `match-*` khi công bố draw; tag VĐV khi rút/đổi entry; `draw.placeQualifiers`; L8 (thể thức theo vòng, `pickMatchFormat`); L11 (path con của `CLIENT_INTERNAL_URL`); L13 (picker giải tìm kiếm phía server); RETIRED có ván dở (e2e); Redis tắt → 200 kèm `PUBLIC_REFRESH_DELAYED` (e2e).
 - L12: giữ fix cứng cho bốn nhóm hằng nội bộ, có comment lý do. `CHECK_DEBOUNCE_MS` (ô kiểm slug) cũng giữ cố định, có comment lý do.
 - Hạ tầng test: e2e phải chạy khi đã dừng dev worker (worker dev tiêu thụ job import của test). Assertion về job revalidate dùng `apps/api/test/support/revalidate-queue-probe.ts` (chỉ đọc 300 job mới nhất mỗi trạng thái, tự xóa job của chính test).
-- Còn mở (không đổi): đo và deploy staging; Q → BYE → R2 khi reopen (e2e); mục UI: focus đỏ thương hiệu, chữ "session" tiếng Anh, nhảy 76 px khi mở hộp thoại, kéo thả chưa có cảm biến bàn phím.
+- Còn mở (không đổi): đo và deploy staging; mục UI: focus đỏ thương hiệu, chữ "session" tiếng Anh, nhảy 76 px khi mở hộp thoại, kéo thả chưa có cảm biến bàn phím.
 
 **Cách làm:** làm trọn phần còn lại trong 2 cụm commit (backend, UI), không tách lát cắt.
 
@@ -329,7 +329,7 @@ Rollback: migration thêm bảng; revert app; kết quả đã chốt nằm tron
 
 **Việc còn mở:**
 1. Deploy + migrate staging; đo chốt → HTML mới ≤ 5 s (chờ cổng phase 01).
-2. Ghi nợ còn mở: chuỗi Q → BYE → R2 khi reopen chưa có e2e (chỉ unit).
-3. Lỗi thiết kế từ QA, chưa sửa (theo báo cáo phiên): focus đỏ thương hiệu; chữ "session" tiếng Anh; nhảy 76 px khi mở hộp thoại; kéo thả chưa có cảm biến bàn phím (thao tác 2 click vẫn chạy).
+2. ~~Ghi nợ còn mở: chuỗi Q → BYE → R2 khi reopen chưa có e2e (chỉ unit).~~ **Đóng 2026-11-24:** suất vòng loại không bao giờ đứng cạnh BYE (`packages/competition-engine/src/knockout-generator.ts:66`, swap chặn ở `derive-matches.ts:133`), nên chuỗi thật là nhất bảng → BYE → R2: `apps/api/test/match-reopen-group-winner-through-bye.e2e-spec.ts` (2/2 đạt trên DB CI tạm).
+3. Lỗi thiết kế từ QA (theo báo cáo phiên): ~~chữ "session" tiếng Anh~~ đổi thành "buổi thi đấu"/"buổi" như trang công khai (2026-11-24). Còn mở: focus đỏ thương hiệu; nhảy 76 px khi mở hộp thoại (audit 2026-11-24 không thấy lại); kéo thả chưa có cảm biến bàn phím (thao tác 2 click vẫn chạy bằng bàn phím).
 4. Dữ liệu thử trong DB dev local (tiền tố "QA " và một tài khoản admin thử) chưa dọn; cần xác nhận của chủ repo trước khi xóa.
 5. Verifying UI còn thiếu: lưới (`session-grid*`), panel (`unscheduled-panel`), trang in (`match-sheets-print-page` + `print.css`).

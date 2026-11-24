@@ -25,7 +25,7 @@ Phase 04, 05 (2026-11-12) và 06 (2026-11-13) đã làm trọn, không tách lá
 
 <!-- Debt fixes sync — 2026-11-14 -->
 - Đã đóng (commit `c449c75`..`608d948`, kiểm trong code): tag `match-*` và `player-*` khi công bố, gỡ, rút/đổi entry sau công bố; `place-qualifiers` và `place-group-qualifiers` trên MAIN đã công bố gửi tag (`draw.placeQualifiers`); L6 import (kiểm draw trong transaction từng lô, phase 05); L8 thể thức theo vòng (`pickMatchFormat`); L11 path con của `CLIENT_INTERNAL_URL`; L13 picker giải tìm kiếm phía server; L12 quyết định giữ fix cứng cho hằng độ tin cậy nội bộ (có comment lý do); engine: ván dở cuối của RETIRED/DISQUALIFIED không tính là ván thắng trong BXH; e2e RETIRED có ván dở và Redis tắt → `PUBLIC_REFRESH_DELAYED`.
-- Còn mở: đo và deploy staging; G1b; file Excel thật; mục thiết kế (màu focus, chữ "session", nhảy 76 px khi mở hộp thoại, cảm biến bàn phím cho kéo thả); e2e Q → BYE → R2 khi reopen (hiện chỉ unit).
+- Còn mở: đo và deploy staging; G1b; file Excel thật; mục thiết kế (màu focus, nhảy 76 px khi mở hộp thoại, cảm biến bàn phím cho kéo thả).
  Phase 08 đã xong lát cắt bước 1–3 (2026-11-13), đợt 1–3 (2026-11-14) và triển khai lịch session/bàn + bản in lịch (2026-11-15, working tree). Typecheck/lint client đạt; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile). M1/M2 chưa đạt vì thiếu staging. Sync phase 04–07: 2026-11-14; phase 08: 2026-11-15. Rà toàn bộ phase: chỉ phase 08 có công việc hoàn thành trong lần bổ sung này, không đổi trạng thái phase khác.
 
 <!-- Phase 09 sync — 2026-11-16 -->
@@ -69,7 +69,7 @@ Hardening bổ sung: override `@prisma/config>effect` 3.22.1; audit cuối **0 h
 | 04 | 11/12 | Deploy + migrate staging |
 | 05 | 14/16 | Staging; file Excel thật/pilot |
 | 06 | 11/13 | G1b; staging; G1a và nợ UI vẫn ghi ở phase |
-| 07 | 12/14 | Đo và deploy staging; E2E Q → BYE → R2 và nợ UI vẫn mở |
+| 07 | 12/14 | Đo và deploy staging; nợ UI (focus, cảm biến bàn phím) vẫn mở |
 | 08 | 27/28 | Staging → M1/M2 |
 | 09 | 9/11 | G2; staging |
 | 10 | 8/9 | Deploy/đo staging |
@@ -84,7 +84,7 @@ Hardening bổ sung: override `@prisma/config>effect` 3.22.1; audit cuối **0 h
 | 4 | [Dữ liệu gốc giải đấu + cấu hình + upload ảnh + sanitizer](./phase-04-tournament-master-data-config-and-media-upload.md) | 4 · 7–8 | 2 + 6 | Hoàn thành (chưa deploy staging; làm trọn 2026-11-12; verifying UI xong 2026-11-14; còn: deploy staging) |
 | 5 | [VĐV, cặp đôi, đăng ký, import Excel, gộp VĐV](./phase-05-players-pairs-entries-and-excel-import.md) | 4 · 8–9 | 1,5 + 6,5 | Hoàn thành (chưa deploy staging; còn mở: file Excel thật, staging + pilot) |
 | 6 | [Bốc thăm, hạt giống, vòng bảng, sinh nhánh, thao tác sau công bố](./phase-06-draws-seeding-groups-and-bracket-generation.md) | 4–5 · 10–11 | 4 + 6 | Hoàn thành (chưa deploy staging; G1a/G1b chưa xác nhận; màn admin browser-tested 2026-11-14; còn mở: deploy staging, nhánh đấu và vòng bảng chưa hiệu chỉnh UI) |
-| 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Hoàn thành (chưa deploy staging; xong 2026-11-14; còn: đo staging, deploy staging, Q → BYE → R2 khi reopen (e2e), mục thiết kế UI) |
+| 7 | [Xếp lịch session/bàn, nhập, chốt, sửa tỷ số](./phase-07-scheduling-sessions-tables-and-result-entry.md) | 5–6 · 11–12 | 3,5 + 5,5 | Hoàn thành (chưa deploy staging; xong 2026-11-14; còn: đo staging, deploy staging, mục thiết kế UI) |
 | 8 | [Site công khai: khung, trang giải, nhánh đấu, trận, bản in](./phase-08-public-site-shell-event-pages-and-bracket-ui.md) | 6 · 12–13 | 4 + 5 | In progress (đợt 1–3 xong 2026-11-14, Playwright 34 pass tại thời điểm đó; lịch session/bàn + bản in lịch triển khai 2026-11-15; API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile); còn staging → M1/M2 chưa đạt) |
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | In progress (gói 1–4 commit; gói 5 UI xong 2026-11-16, chưa commit; chờ G2 và staging) |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | In progress (code/test/verifying local xong 2026-11-17; 8/9 checkbox; chờ deploy và đo staging) |

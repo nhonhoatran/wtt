@@ -3,7 +3,20 @@
 > Cập nhật: 2026-11-24. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
-## 2026-11-24 — Phase 12: E2E tám bước đạt, sửa admin mobile (chưa commit)
+## 2026-11-24 — CI, audit admin 1440/390, nợ phase 07
+
+- CI: test chạy `turbo --env-mode=loose` (strict mode lọc mất `DATABASE_URL`/`REDIS_URL`); DB CI đổi thành `kamito_tt_ci_test` + `MIGRATE_CONFIRM_TARGET` để qua chốt an toàn e2e; thêm bước build `@kamito/db` + `seed:config` sau `migrate deploy` (seed import `dist/`, không commit).
+- CI: `next build` của client dùng `tsconfig.build.json` (loại `tests/`), image client không còn type-check fixture import `packages/db/dist`. `pnpm typecheck` vẫn kiểm cả test.
+- Test: `public-rate-limit.test.ts` cố định đường in-memory khi có `REDIS_URL`; `imports-commit-guards` khớp log đã ẩn message lỗi (`safeErrorSummary`, phase 12).
+- Admin 390: menu thành Drawer có nút "Mở menu" trên header, tự đóng khi chọn; desktop menu sticky. Trang nhập tỷ số gom một cột tóm tắt dưới `sm`. Bảng dùng `useTableScroll` (`max-content` dưới md) cho 28 bảng. Menu nội dung xếp chồng giới hạn 40vh, hiện mã nội dung. Cài đặt chia tab theo nhóm (`?group=`). Bộ lọc list lấp hàng trên điện thoại. Trận chưa xếp lịch ghi "Chưa xếp lịch". Nội dung cùng `order` sắp theo mã có số tự nhiên (MS-2 trước MS-10).
+- Đổi chữ "session" thành "buổi thi đấu"/"buổi" theo trang công khai: nhãn admin, thông báo lỗi API (sessions, scheduling), cột Excel xuất lịch, nhãn setting; kéo nhà tài trợ giữ trục dọc, không bị khung cuộn che; `InputNumber addonAfter` → `suffix`.
+- Test mới: `match-reopen-group-winner-through-bye.e2e-spec.ts` — nhất bảng qua BYE vào R2, mở lại trận bảng gỡ cả BYE lẫn R2 rồi xếp lại. Đường Q → BYE không xảy ra được vì engine cấm suất vòng loại cạnh BYE (`knockout-generator.ts:66`, `derive-matches.ts:133`).
+- Kiểm (DB CI tạm `localhost:55432/kamito_tt_ci_test`, không `.env`): API 113 file / 678 test đạt (chia 4 shard; shard 3–4 lần đầu dính crash native Windows `0xC0000409`, chạy lại đạt); client 100, worker 44, shared 104, engine 230; lint 9/9, typecheck 14/14; build image client Docker đạt. Audit trình duyệt kiểm lại 64 route × 1440/390: tràn trang 0, gãy chữ 0, request lỗi 0.
+- DB dev local: áp 2 migration CMS (`20261119090000_add_content_cms`, `20261119151407_add_content_english_fields`) sau khi được xác nhận.
+
+Bằng chứng: [audit UI](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/ui-audit-261124-admin-1440-390.md), [checklist hạ tầng](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/infra-preflight-checklist-261124.md), [code review](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261124-ci-and-admin-mobile.md).
+
+## 2026-11-24 — Phase 12: E2E tám bước đạt, sửa admin mobile (commit 53828a7, 2d810a7)
 
 - Fix: tab Danh sách hiện nhiều ô "Thêm VĐV" sau re-render do `AddEntryForm` và `EntryTable` trùng React key (`entries-tab.tsx`).
 - Fix: admin tràn ngang ở 390 px — thêm `scroll={{ x: true }}` cho 29 file bảng antd còn thiếu.
