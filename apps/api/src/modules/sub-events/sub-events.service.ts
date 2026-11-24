@@ -27,6 +27,8 @@ export class SubEventsService {
       orderBy: [{ order: 'asc' }, { code: 'asc' }],
       include: SUB_EVENT_INCLUDE,
     });
+    // Same `order` falls back to the code with numbers compared as numbers (MS-2 before MS-10), which SQL cannot do.
+    data.sort((a, b) => a.order - b.order || a.code.localeCompare(b.code, undefined, { numeric: true }));
     return { data, total: data.length, page: 1, pageSize: data.length };
   }
 
