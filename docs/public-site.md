@@ -1,6 +1,6 @@
 # Site công khai — Kamito (phase 08, 10–12)
 
-> Cập nhật: 2026-11-19 · Phase 11–12 đã có CMS, bổ sung tiếng Anh, SEO và hardening trong working tree. API tích hợp và ba suite Playwright công khai đã đạt với PostgreSQL/Redis thật trên DB local riêng `kamito_tt_phase12_test`; 18 migration chỉ được áp dụng vào DB test trong đợt này. DB dev, staging, M1/M2 và hạ tầng phát hành vẫn chưa được nghiệm thu. Kết quả theo đợt ở [changelog](./project-changelog.md).
+> Cập nhật: 2026-11-20 · Target DB test riêng đã xác nhận: 132 API test/21 spec; full public trước sửa metadata 96 đạt/8 skip, focused SEO/axe trên build cuối 27 đạt/5 skip và 36 axe scan không violation. Lát cắt ADMIN API → operator confirm → BullMQ → SSR đã cache đạt 133 ms. Lighthouse mobile bốn route đạt Performance 99–100, Accessibility/SEO 100; tải nhẹ có packet riêng. Đủ 18 migration trên `localhost:5433/kamito_tt_phase12_test`, không áp migration mới vào dev/staging. Staging, M1/M2 và hạ tầng phát hành chưa được nghiệm thu. Kết quả theo đợt ở [changelog](./project-changelog.md).
 > Bổ sung phase 12: metadata Twitter, JSON-LD `SportsEvent` và header bảo mật đã có trong mã nguồn. CSP vẫn là report-only; chưa có báo cáo vi phạm staging để nghiệm thu chuyển sang enforce.
 > Nguồn đối chiếu: `apps/client/src/app/[locale]/`, `apps/client/src/lib/`, `apps/client/src/proxy.ts`, `apps/client/next.config.ts`, `apps/api/src/modules/{public-events,public-competition,public-rankings,public-players,public-content}/`, `apps/client/tests/e2e/`.
 > Kiến trúc chung xem [system-architecture.md](./system-architecture.md#site-công-khai-phase-08). Biến môi trường và chạy Playwright xem [deployment-guide.md](./deployment-guide.md#playwright-e2e-client). Kế hoạch: `plans/261111-1512-kamito-table-tennis-tournament-platform/phase-08-public-site-shell-event-pages-and-bracket-ui.md`.
@@ -43,15 +43,40 @@ Nguyên tắc:
 | Bản in nhánh (`@media print`, `@page bracket`) | 3 | Xong |
 | Metadata, canonical, hreflang, OG, sitemap, robots | 3; bổ sung phase 12 | Đã triển khai; Twitter card và JSON-LD `SportsEvent` bổ sung trong phase 12. Phạm vi sitemap và các mục còn mở xem mục SEO |
 | Rate limit công khai, CSP report-only | 3 + bổ sung | Redis atomic dùng chung; bộ đếm cục bộ dự phòng khi Redis lỗi |
-| Playwright e2e | 3 + bổ sung | Lượt cuối 51 đạt/7 bỏ qua theo viewport; xem báo cáo hoàn tất nợ còn lại |
+| Playwright e2e | 2026-11-20, production local | Full-03 trước sửa metadata: 104 ca, 96 đạt/8 skip. Build metadata cuối: focused SEO/axe 32 ca, 27 đạt/5 skip. Cả hai 0 lỗi/0 flaky, desktop 1440×900 và mobile 390×844, workers 1, retries 0 |
 | Lịch theo session/bàn, bản in lịch | Bổ sung 2026-11-15 | Đã triển khai trên dữ liệu phase 07. API tích hợp 24 test/3 spec đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile) ([scheduling](./scheduling.md)) |
 | Bảng xếp hạng, danh sách và hồ sơ VĐV | Phase 10, 2026-11-17 | Đã triển khai SSR, lọc/phân trang ở server, chi tiết điểm native `<details>`, URL hồ sơ không chứa tên thật |
 | Điểm xếp hạng theo vòng ở tab Thông tin | Phase 10, 2026-11-17 | Lấy phiên bản quy tắc có hiệu lực tại ngày kết thúc giải, chỉ cho nội dung gắn bảng đang bật |
-| Tin, video, trang tĩnh, liên hệ, tài trợ và các khối trang chủ | Phase 11, 2026-11-19 | Đã triển khai mã nguồn và kiểm local; chưa áp migration hoặc triển khai staging |
-| Kiểm thử Phase 11 | 2026-11-19 | 383 kiểm tra mã nguồn/script đạt: API `src` 177, worker 44, shared 101, client 50, admin 11; E2E dùng DB thật chưa chạy |
+| Tin, video, trang tĩnh, liên hệ, tài trợ và các khối trang chủ | Phase 11, 2026-11-19–20 | Mã nguồn và kiểm local thật đạt trong phạm vi báo cáo; 18 migration chỉ áp dụng DB test, chưa áp hai migration CMS mới vào dev/staging |
+| API thật phase 08–12 | 2026-11-20 | 132 ca duy nhất/21 spec đạt, gồm 5 publishing/sweep/retention; chưa phải toàn bộ API hoặc ma trận CMS |
+| Axe public | 2026-11-20, build sau sửa accessibility | 36 scan: chín route × vi/en × hai viewport; 0 critical/serious/moderate/minor/unknown, vẫn lưu incomplete rules để kiểm thủ công |
+| Lighthouse mobile | 2026-11-20, build metadata cuối | Bốn core route đạt ngưỡng 85/90/95; Performance 99–100, Accessibility/SEO 100; production local, chưa phải staging |
+| Smoke trang giải | 2026-11-20, local qua WSL gateway | Cấu hình 5 arrival/s × 120 s: 600 HTTP 200, 0 failed/5xx/drop; raw rate 4,659/s, p95 14,125 ms. Chỉ GET HTML trang giải có cache |
+| Lát cắt local API → BullMQ → SSR | 2026-11-20 | ADMIN tạo/công bố giải và bốn entry, operator chốt trận; SSR nhánh/trận cập nhật 133 ms. Không phải full UI tám bước hoặc staging M1 |
 | UI công khai Phase 11 với API mẫu | 2026-11-19 | 7 route × 2 viewport (1440/390): 14/14 lượt trang và các tương tác đạt, không có `pageerror`; đã mở ảnh kiểm trực quan ([báo cáo](../plans/reports/tester-261119-phase-11-cms-mock-ui.md)) |
 | UI admin Phase 11 với API/media mẫu | 2026-11-19 | 8/8 ca browser đạt; kiểm thêm payload lưu/nạp form 4/4 đạt, không có `pageerror` ([báo cáo](../plans/reports/tester-261119-phase-11-admin-mock-ui.md)) |
 | Mốc M1 (deploy staging, Playwright trên staging) | — | Chưa làm |
+
+Bằng chứng mới: [API thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-api.md), [public E2E/axe](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-public-and-axe.md), [lát cắt 5 giây](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-local-vertical-slice.md), [review độc lập](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261120-real-services.md). Browser dùng API/DB/Redis thật; chỉ tài liệu iframe YouTube sau click được fixture để không phụ thuộc bên thứ ba. Không suy kết quả này thành toàn site/admin hoặc nghiệm thu staging.
+
+Lighthouse r01 phát hiện thiếu mô tả SEO ở home và giải/nhánh không có summary, nên SEO 92 chưa đạt ngưỡng 95. Đã thêm copy home/template event trong dictionary vi/en; event giữ summary đã biên tập, EN trống fallback VI, cả hai null/rỗng/whitespace mới sinh mô tả theo title/tên giải. Generic metadata/canonical/hreflang giữ nguyên. Client unit sau sửa **83/83**, metadata riêng **12/12**; browser focused sau build **27/5 skip**, mô tả standard/OG/Twitter và 36 axe scan đạt. Đây là lượt focused, không cộng trùng với full-03.
+
+Lighthouse **13.6.0**, lượt **r02**, `formFactor=mobile`, `throttlingMethod=simulate`, production local cổng 3314; giữ ngưỡng **85/90/95**, exit 0 và mọi `runtimeError=null`:
+
+| Route | Performance | Accessibility | SEO |
+|---|---:|---:|---:|
+| `/vi` | 100 | 100 | 100 |
+| `/vi/events/<fixture>` | 99 | 100 | 100 |
+| `/vi/events/<fixture>/draws/MS` | 100 | 100 | 100 |
+| `/vi/rankings/<fixture>` | 100 | 100 | 100 |
+
+Raw JSON/HTML và summary tại `apps/client/test-results/261120-real-lighthouse/r02/`; r01 vẫn giữ ba kết quả SEO 92 và native crash route BXH không có LHR. Không suy điểm local trên fixture thành dữ liệu phát hành hoặc network/container staging.
+
+Lệnh, cấu hình mobile và lịch sử trước/sau sửa: [Lighthouse local](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-lighthouse.md).
+
+Smoke k6 sau Lighthouse dùng image có sẵn, không pull/cài thêm, GET trang giải local qua WSL gateway. Bốn threshold đạt: 600 request/iteration, 600 check HTTP 200; 0 request failed, 0 phản hồi 5xx, 0 dropped iteration. **5/s trong 120 s là cấu hình scenario**, raw aggregate rate **4,659093/s**; p95 **14,125 ms**, p99 **30,986 ms**, max **79,964 ms**. Không đo font/ảnh/script/hydration hoặc dữ liệu staging. [Báo cáo smoke](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-smoke.md).
+
+Đóng lượt kiểm: exact retained fixture IDs được đối chiếu trước/sau, mọi count về 0; API/client tạm dừng theo identity, cổng 3313/3314 không còn listener, world file đã gỡ và `.env` hash khớp đầu lượt. PostgreSQL/Redis giữ nguyên. Việc này không chứng minh đã dọn mọi fixture dở của batch native crash; không xóa dữ liệu không xác định chủ sở hữu. Artifact cleanup trong báo cáo public/axe.
 
 ## Route
 
@@ -272,21 +297,27 @@ Metadata bảng có tên và ngày kỳ chốt. Hồ sơ lấy ảnh công khai 
 | Phạm vi | Vị trí | Nội dung |
 |---|---|---|
 | Toàn site | `app/[locale]/global.css`, `@media print` | Ẩn header, footer, nav, form. Giữ màu nền (`print-color-adjust: exact`) để bảng navy và điểm vẫn đọc được. `@page` lề 10 mm |
-| Nhánh đấu | `components/bracket/bracket.module.css`, `@page bracket` | Khổ ngang (landscape) |
+| Nhánh đấu | `components/bracket/bracket.module.css`, `print-bracket-pages.ts`, `@page bracket` | Khổ ngang; nhánh lớn chia phần in riêng, giữ nguyên grid màn hình. Tên đầy đủ xuống dòng; mỗi tờ nhắc lại giải/nội dung/loại/phần nhánh và giữ số trận gốc |
 | Lịch theo session/bàn | `components/schedule/session-table-schedule.module.css`, `@page schedule` | Khổ dọc; mỗi session/bàn bắt đầu trang mới. `thead` lặp tên giải, session, bàn, múi giờ khi bảng dài; tên VĐV xuống dòng. In lịch đang lọc, ẩn rich text và hero khi có lịch |
 
 Nút `PrintScheduleButton` chỉ gọi `window.print()`; lịch và bộ lọc hoạt động bằng HTML server khi tắt JavaScript. Có thể dùng lệnh In của trình duyệt. Tên session/địa điểm có fallback vi/en; giờ hiển thị theo múi giờ của giải.
+
+Kiểm bổ sung 2026-11-20: **9/9 test offline**, tám PDF nhánh 64 (đơn/đôi × vi/en × A4/A3), mỗi PDF năm trang ngang. Trình đọc `pypdf` xác nhận đủ 63 trận duy nhất, 64/128 tên và ngữ cảnh trên mọi trang; đã mở ảnh trang PDF. Bộ kiểm render React component/CSS/font thật nhưng không chạy API/DB, không thay staging hoặc kiểm toàn site. Chạy `pnpm --filter @kamito/client test:print` sau build; xem [hướng dẫn](../apps/client/tests/offline/README.md), [báo cáo](../plans/reports/tester-261120-phase08-print64-desktop1440.md).
+
+Fixture cuối dùng `EventShell`/`EventHero` thật có đủ thông tin và tiêu đề nhánh/chooser. Đã tái hiện A4 bị đẩy thành sáu trang khi hero chiếm riêng một tờ; bản sửa cuối chỉ ẩn hero/tiêu đề dư khi in nhánh chia nhiều tờ. Screen và print nhánh nhỏ giữ hero/tiêu đề.
 
 Kiểm chứng 2026-11-15: API tích hợp hồi quy 24 ca đạt; lịch/cache 18 ca đạt; sau cập nhật mutation map 11 ca đạt. Client build/typecheck/lint đạt. Playwright lịch với DB/API thật: 5 đạt/1 bỏ qua (PDF chỉ chạy desktop), kiểm SSR không JavaScript, form GET, vi/en, lịch rỗng, múi giờ, phạm vi riêng tư, 390/1280 px. PDF lịch thường 1 trang; lịch dài 3 trang đều lặp ngữ cảnh giải/buổi/bàn/múi giờ. Lượt toàn bộ trước sửa locator có 37 đạt/5 bỏ qua/2 lỗi mới; đã sửa locator và kiểm lại riêng lịch đạt, chưa chạy lại toàn bộ suite sau sửa. Báo cáo: [kiểm thử](../plans/reports/tester-261115-phase08-public-schedule.md), [review](../plans/reports/reviewer-261115-phase08-public-schedule.md) (9,5/10, không còn critical/high/medium).
 
 ## Content-Security-Policy
 
-- Header `Content-Security-Policy-Report-Only` được đặt trong `apps/client/next.config.ts`. CSP chưa chặn tài nguyên, chỉ báo cáo. Chính sách vẫn có `script-src 'self' 'unsafe-inline'` và `style-src 'self' 'unsafe-inline'`; chưa có nonce cho script Next.js.
-- Các nguồn hiện được khai: ảnh từ `'self'`, `data:` và HTTPS; iframe từ `https://www.youtube-nocookie.com` và `https://www.facebook.com`; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`. Danh sách iframe của CSP hiện là cấu hình trong mã, chưa sinh từ `VIDEO_EMBED_HOSTS`.
+- Proxy sinh CSP theo request qua `src/lib/content-security-policy.ts`. `CSP_MODE=report-only` là mặc định; `enforce` xuất `Content-Security-Policy`, giá trị khác bị từ chối. Nonce CSPRNG 128-bit được chuyển vào request Next.js và JSON-LD; header CSP/nonce do người gọi gửi bị ghi đè.
+- Production dùng nonce + `strict-dynamic`, không cho script `unsafe-inline` hoặc `unsafe-eval`; `script-src-attr 'none'`. Development giữ `unsafe-eval` cho công cụ phát triển. `style-src 'unsafe-inline'` còn được giữ cho màu tier/honeypot hiện hành; ảnh cho phép `'self'`, `data:` và HTTPS.
+- Iframe origin được suy từ provider hợp lệ trong `VIDEO_EMBED_HOSTS`, hiện hỗ trợ YouTube nocookie và Facebook; không chèn raw host hoặc wildcard vào policy. Giữ `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
+- Layout dùng `connection()` để HTML có nonce mới theo request; response trang là `private, no-store`. Dữ liệu API công khai vẫn dùng Redis `PublicResponseCache`, không chứa nonce trong key. Prefetch qua proxy để có CSP nhưng GET/HEAD prefetch không bị tính là lượt xem; POST contact vẫn bị giới hạn. `skipProxyUrlNormalize: true` giữ header prefetch của Next 16.4.5, đã kiểm lại canonical/RSC/locale/redirect.
 - Báo cáo gửi về `POST /api/csp-report` (`app/api/csp-report/route.ts`): tối đa 8 KB mỗi báo cáo, tối đa 30 bản ghi log mỗi phút. Log chỉ giữ origin hoặc dấu loại scheme và directive trong allowlist; bỏ credentials, path, query và nội dung thô của báo cáo.
 - Phase 12 đã thêm header cho mọi path qua `next.config.ts`: `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`. Chưa bật `includeSubDomains` hoặc preload vì phạm vi TLS của các subdomain chưa được xác nhận.
 - API giữ CORP `same-origin` mặc định của Helmet cho response thông thường; riêng ảnh đã tái mã hóa ở `/api/v1/media/public/*` xuất `Cross-Origin-Resource-Policy: cross-origin` để client khác origin vẫn nhúng được ảnh công khai. Route này tiếp tục chặn `incoming/`, giới hạn dạng đường dẫn và giữ `nosniff`.
-- Chuyển CSP sang enforce còn mở: bổ sung nonce hoặc cơ chế tương đương cho script Next.js, đối chiếu nguồn media/video hợp lệ, chạy trình duyệt trên bản build và rà báo cáo vi phạm staging sạch rồi mới đổi header. Header `frame-ancestors` trong CSP report-only không có tác dụng chặn; `X-Frame-Options: DENY` là header chặn nhúng đang được xuất riêng.
+- Enforce production local đã kiểm **104 ca đạt / 8 skip theo viewport / 0 lỗi**, gồm negative/positive nonce control, hydration, client navigation và 36 axe scan không violation. Cần rà báo cáo staging cùng media/CDN/proxy thực trước khi bật env enforce ở môi trường phát hành; local không thay cổng đó. `frame-ancestors` trong report-only không chặn nhúng; `X-Frame-Options: DENY` vẫn được xuất riêng. [Bằng chứng và giới hạn CSP](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/execution-261120-csp-local.md).
 
 ## Việc còn mở
 
@@ -298,20 +329,20 @@ Nguồn hiện tại sau rà ngày 2026-11-15: [đối chiếu nợ review](../p
 | Mốc M1: deploy staging, chạy Playwright trên staging | Phase 08 bước 4 | Chờ staging (phase 01 và 02) |
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
 | Áp migration CMS trên đích dev/staging và hoàn tất toàn bộ ma trận CMS | Phase 11 | 18 migration chỉ áp dụng trên DB local `_test`; API tích hợp và ba suite public thực tế đã đạt trong phạm vi nêu trên. Chưa áp dụng dev/staging hoặc nghiệm thu toàn bộ CMS |
-| Xác minh luồng CMS vận hành và storage thật; deploy staging | Phase 11 | Browser mock admin 8/8, công khai 14/14 và public E2E local thật đã đạt; còn ma trận quản trị/hẹn giờ, S3/CDN và staging |
+| Xác minh luồng CMS vận hành và storage thật; deploy staging | Phase 11 | Public E2E local và 5 ca processor publishing/sweep/retention thật đạt ngày 2026-11-20; còn toàn bộ ma trận quản trị, scheduler/worker process tự chạy theo giờ, S3/CDN và staging |
 | Nghiệm thu SEO runtime trên dữ liệu phát hành | Phase 12 | Chia file/index, giới hạn URL/byte và browser với API thật local đã đạt; còn validator, container và dữ liệu phát hành trên staging. Hồ sơ VĐV vẫn bị loại trong khi chưa chốt đồng ý công khai |
-| CSP enforce, nguồn iframe/media động | Phase 12 | Chưa có nonce và chưa rà báo cáo staging; giữ report-only tới khi kiểm được tài nguyên hợp lệ |
+| CSP enforce, nguồn iframe/media động | Phase 12 | Nonce và opt-in enforce đã kiểm local; còn nghiệm thu asset/CDN/video/proxy và báo cáo vi phạm staging |
 | Lighthouse, axe, tải nhẹ và E2E toàn luồng trên staging | Phase 12 | Chưa nghiệm thu. Mục tiêu mobile: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 95; axe không có critical; tải 5 req/s trong 2 phút không có 5xx và ghi p95 |
 
 Đã sửa/đối chiếu: nav có `aria-current`; `LiveBadge` dùng chung ở 5 vị trí; 404 theo locale; canonical năm lịch chuẩn hóa; query `stage=main` dùng chung cache mặc định; nội dung không có draw bị chặn trước fetch. Nút vé hiện 20px/700, màu trắng/primary có tỷ lệ 4,3954:1, đạt ngưỡng chữ lớn 3:1.
 
-Giữ có lý do: API sanitize HTML trước khi trả; `API_FETCH_TIMEOUT_MS` là cấu hình bootstrap ở env để giới hạn chính request đọc API/settings; `<select>` trong form GET phù hợp danh sách nội dung động; ô nhánh và thẻ trận dùng payload khác nhau nên không gộp toàn bộ. CSP report-only được giữ trong khi thiếu bằng chứng staging và đường nonce cho script. Wordmark KAMITO là nhận diện tạm theo plan.
+Giữ có lý do: API sanitize HTML trước khi trả; `API_FETCH_TIMEOUT_MS` là cấu hình bootstrap ở env để giới hạn chính request đọc API/settings; `<select>` trong form GET phù hợp danh sách nội dung động; ô nhánh và thẻ trận dùng payload khác nhau nên không gộp toàn bộ. CSP có nonce, nhưng mặc định report-only trong khi chờ nghiệm thu staging. Wordmark KAMITO là nhận diện tạm theo plan.
 
 Kiểm chứng đợt rà ghi nợ 2026-11-15: unit client 20/20; Playwright toàn bộ 45 đạt/7 bỏ qua theo viewport/0 lỗi, gồm nav, canonical năm, 404 tiếng Anh và nhãn cột điểm. Typecheck và lint src/tests đạt; test rate limit qua HTTP thật đạt. PDF lịch dài 3 trang giữ ngữ cảnh từng trang. Báo cáo: [tester](../plans/reports/tester-261115-phase08-review-debts.md). Lượt này thay cho giới hạn “chưa chạy lại toàn bộ suite” của lượt lịch trước đó.
 
 Lượt hoàn tất sau đó đã đóng nợ timezone/DST, tìm/sort tên công khai, giới hạn ngày, trạng thái tự chọn, contract dài và cache nhiều replica. Migration `20261115032757_add_player_public_name_key` đã áp dụng DB dev local (16/16); staging chưa áp dụng. Bằng chứng: [timezone/DST](../plans/reports/reviewer-261115-phase08-timezone-and-dst.md), [tên công khai](../plans/reports/tester-261115-phase08-public-player-names.md), [runtime hai replica](../plans/reports/reviewer-261115-phase08-shared-public-runtime.md), [kiểm cuối](../plans/reports/tester-261115-phase08-remaining-debts.md). Kết quả cuối 51 đạt/7 bỏ qua thay cho số 45 của lượt rà trước.
 
-Kiểm cuối chạy toàn bộ trên Next production và API đã build, port cô lập, JavaScript bật: 51 đạt/7 bỏ qua, 31,3 giây, không retry. Ảnh date input mobile đã mở kiểm. Lượt dev từng navigation lặp và lượt API source mất kết nối được ghi trong báo cáo; không quy kết nguyên nhân khi chưa có bằng chứng.
+Snapshot 2026-11-15 chạy toàn bộ trên Next production và API đã build, port cô lập, JavaScript bật: 51 đạt/7 bỏ qua, 31,3 giây, không retry. Ảnh date input mobile đã mở kiểm. Lượt dev từng navigation lặp và lượt API source mất kết nối được ghi trong báo cáo; không quy kết nguyên nhân khi chưa có bằng chứng.
 
 ## Liên quan
 

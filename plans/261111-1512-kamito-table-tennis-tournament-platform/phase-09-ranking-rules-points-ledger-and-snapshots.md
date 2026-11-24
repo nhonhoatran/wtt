@@ -52,7 +52,13 @@
   - Seed: dữ liệu mẫu "(mẫu)" đã thấy trên DB dev local `localhost:5433/kamito_tt_dev` (browser test). Target staging chưa xác nhận.
   - Gợi ý hạt giống trong wizard vòng loại chưa thử trên trình duyệt.
   - `suggest-seeds` với `apply:false` vẫn ghi `rankingAtEntry/pointsAtEntry` + audit (`reports/fullstack-developer-261116-phase-09-ui-agent-3.md`). Chưa quyết giữ hay tách preview.
-  - Admin chưa có unit test (chỉ typecheck, lint, browser test).
+  - Admin chưa có unit test tại lượt 2026-11-16; đã bổ sung unit state ma trận ngày 2026-11-20, xem cập nhật dưới đây.
+
+## Bổ sung kiểm chứng — 2026-11-20
+
+- Tách state ma trận quy tắc điểm thành hàm thuần dùng chung trong hook và modal; thêm **18 unit** chạy code production, không đổi API hoặc giá trị nghiệp vụ. Phủ điểm 0/ô trống, hoàn tác, sao chép cột và cô lập state theo loại/draw/phiên bản; module mới đạt 100% line/branch/function coverage.
+- Hồi quy admin **29 ca duy nhất** đạt: 24 ca trên Windows, 5 ca entrypoint trên WSL; không lấy ca negative Windows bắt nhầm `sh ENOENT` làm bằng chứng. `ranking-engine` **36/36**, admin typecheck/lint/build đạt. [Báo cáo](../reports/tester-261120-phase09-admin-unit.md).
+- Chưa kiểm React hook lifecycle/browser bằng unit state. G2, staging, gợi ý hạt giống ở wizard vòng loại và semantics `suggest-seeds apply:false` tiếp tục mở; không đổi checkbox cổng.
 
 ## Requirements
 
@@ -244,6 +250,11 @@ Ma trận test
 - [x] Gợi ý hạt giống (đơn + cặp) + rankingAtEntry/pointsAtEntry — API `ranking-merge-and-seeds.e2e-spec.ts:66` pass; UI 2026-11-16 (chưa commit); wizard vòng loại chưa thử
 - [x] ui-consistency: verifying — xong 2026-11-16 (`ui/phase-09-ui-plan.md`); tách khỏi bước staging khi sync-back 2026-11-17
 - [ ] Deploy staging — **parked**: chờ cổng phase 01
+
+## Lượt dịch vụ thật tiếp theo — 2026-11-20
+
+- Trong hồi quy **21 spec / 132 ca API thật**, API public BXH/hồ sơ/payload có **31 ca** đạt trên DB test riêng đã xác nhận. Đây là kiểm consumer của snapshot và scope công khai; không thay kết quả engine/admin/queue ranking hoặc câu trả lời quy chế BTC. [Chi tiết](./reports/tester-261120-real-api.md).
+- Không chạy thêm batch ranking-admin/flow/performance trong lượt API này để chuyển lease sang browser/axe. Kết quả 18 unit state ma trận và 36 ranking-engine đã ghi ở lượt trước vẫn là bằng chứng riêng, không cộng vào 132. G2 và deploy staging giữ mở, không đổi quy tắc mẫu.
 
 ## Success Criteria
 

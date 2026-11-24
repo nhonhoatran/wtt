@@ -134,6 +134,13 @@ Bổ sung thực tế: `apps/client/src/lib/{public-data.ts,api-client.ts}`, `pr
 - [x] ui-consistency: verifying — tám ảnh 1440/390 px, không tràn ngang toàn trang; QA/review đạt 2026-11-17
 - [ ] Deploy staging — chờ cổng phase 01; đo lại revalidation trên staging
 
+## Lượt dịch vụ thật tiếp theo — 2026-11-20
+
+- Hồi quy API thật của lượt mới có `public-rankings` **16**, `public-players` **14**, payload **1** ca đạt; nằm trong **132 ca / 21 spec duy nhất** của lượt phase 08–12. Guard PostgreSQL test riêng, process env và hash `.env` trước/sau đều đạt. [Báo cáo](./reports/tester-261120-real-api.md).
+- Payload xác nhận lại **50 dòng × 20 khoản = 1.000 breakdown**, **377.129 byte JSON thô / 9.303 byte gzip**, ngân sách 81.920 byte tính trên wire gzip. Giữ đủ khoản, không suy mẫu này thành mọi lịch sử. Hai bài ghi payload/EXPLAIN dùng `API_TEST_ARTIFACT_DIR`; báo cáo khai rõ hai JSON generated cũ đã bị ghi đè ở lượt đầu trước khi sửa đường dẫn, không tuyên bố đã khôi phục lịch sử.
+- Hồi quy public production browser `full-03` đạt **96 / 8 skip / 0 lỗi / 0 flaky** ở 10 spec, có BXH/hồ sơ. Chốt kỳ qua API admin thật → worker BullMQ riêng → SSR có cache đổi trong **209 ms desktop / 218 ms mobile**; không cộng hai phép đo hoặc tổng browser này thành số ca riêng phase 10. [Báo cáo](./reports/tester-261120-real-public-and-axe.md).
+- Không có feature hoặc migration mới ở phase 10. Deploy và đo revalidation trên staging vẫn mở; probe chốt trận 133 ms ở phase 08 không được đổi thành số đo công bố BXH hoặc nghiệm thu staging.
+
 ## Success Criteria
 
 - Công bố kỳ mới trên admin → `/rankings/...` hiện ngày + thứ tự mới trong ≤ 10 s (hoặc ≤ TTL nếu Spike E trượt).

@@ -174,6 +174,13 @@ Task trang (đợt 2–3; mỗi task: đọc lại checklist trước khi viết
   - `pnpm-lock.yaml` lẫn thay đổi ranking của phiên khác: tách khi commit.
   - Nav chính chưa `aria-current`; chưa có component chung cho nhãn LIVE/ô trận.
 
+## Bổ sung kiểm chứng — 2026-11-20
+
+- Đã tái hiện và sửa cắt tên khi in nhánh 64: print-only chia nhánh con, tên đầy đủ xuống dòng, lặp ngữ cảnh từng tờ; giữ grid màn hình và nguyên số trận. Bộ offline dùng React component, CSS và font Archivo thật: **9/9 test đạt**, tám PDF vi/en × đơn/đôi × A4/A3 đều năm trang ngang, đủ 63 trận duy nhất và 64/128 tên khi đọc bằng `pypdf`. Đã mở ảnh trang PDF; typecheck/lint đạt. [Báo cáo](../reports/tester-261120-phase08-print64-desktop1440.md).
+- Desktop Playwright đổi thành **1440×900**, mobile giữ **390×844**; guard desktop không còn phụ thuộc số 1280. Chưa chạy lại bộ public DB E2E trong đợt này.
+- Fixture bản in cuối có EventShell/EventHero đầy đủ cùng chooser/tiêu đề như trang thật; đã tái hiện A4 sáu trang do hero đẩy nhánh sang tờ sau, sửa chỉ ở print nhánh nhiều tờ và chạy lại đạt năm trang. Screen và print nhánh nhỏ vẫn hiện hero/tiêu đề.
+- Không có file `vertical-slice.spec.ts` trong tree hiện tại. `event-pages`, `site-chrome-and-seo`, `schedule` kiểm trang đọc/in nhưng không thay cho chuỗi M1 tạo giải → công bố → chốt → SSR. Không dùng kiểm component offline để đóng M1/M2 hoặc staging.
+
 ## Requirements
 
 Functional
@@ -294,7 +301,7 @@ Phần còn lại (tuần 12–13)
 - [x] (Lát cắt) Khung client + api-client + cache-policy
 - [x] (Lát cắt) public-scope + API nhánh theo slug + serializer + test
 - [x] (Lát cắt) Trang nhánh CSS grid + route revalidate
-- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1 (Playwright đã có (đợt 3); còn staging)
+- [ ] (Lát cắt) Deploy staging + Playwright lát cắt → M1 (đã có probe API-driven local tạo giải/nội dung/4 đăng ký/draw/công bố → RESULTS_OPERATOR chốt → BullMQ → SSR trong 133 ms, cache trước đo còn khoảng 30 s; chưa phải luồng admin browser hoặc staging)
 - [x] ui-consistency: finding-patterns → planning (site công khai) (2026-11-14)
 - [x] i18n vi/en + chuyển hướng locale + fallback vi + nhãn ô chờ qua từ điển (2026-11-14)
 - [x] API public events/matches/draws/groups/entries/strip + test phạm vi từng endpoint + snapshot trường (2026-11-14); API `schedule` và test bổ sung 2026-11-15, API tích hợp 24 test/3 spec đã đạt; Playwright lịch 5 đạt/1 bỏ qua có chủ đích (PDF mobile)
@@ -307,6 +314,13 @@ Phần còn lại (tuần 12–13)
 - [x] Rate limit công khai + CSP report-only (2026-11-14)
 - [x] Playwright e2e (2026-11-14)
 - [x] ui-consistency: verifying → M2 (2026-11-14: verifying 2 vòng mỗi trang + kiểm cả bộ; M2 còn chờ staging)
+
+## Lượt dịch vụ thật tiếp theo — 2026-11-20
+
+- Đã được xác nhận target riêng `localhost:5433/kamito_tt_phase12_test`; schema 18 migrations up to date, seed cấu hình test đạt, không query/migrate/seed DB dev. Hồi quy API **21 spec / 132 ca duy nhất đạt**, gồm **13 spec / 95 ca public**: nhánh, giải, múi giờ/DST, bảng/đăng ký, trận, tên công khai, hồ sơ/BXH, dải kết quả, lịch và cache tags. [Báo cáo API thật](./reports/tester-261120-real-api.md) giữ riêng native crash Windows ban đầu và giới hạn cleanup/artifact.
+- Probe dọc local dùng API admin thật tạo dữ liệu, operator chốt tỷ số, worker BullMQ gọi production revalidation processor, hai trang SSR đã làm nóng đổi trong **133 ms**. Cache trước chốt có TTL **29.978/29.947 ms**; không thể lấy TTL hết hạn làm lý do đạt dưới 5 s. Hậu kiểm event/player/cache/UUID queue/login keys đều 0, `.env` không đổi; xem `test-results/261120-real-vertical-slice-20261120051744375.{probe,cleanup}.json`.
+- Browser public production `full-03` sau sửa hai lỗi accessibility đạt **96 / 8 skip / 0 lỗi / 0 flaky**, desktop 1440 và mobile 390; **36 axe scan không violation** ở chín loại route vi/en. [Báo cáo](./reports/tester-261120-real-public-and-axe.md) giữ baseline 16 serious trước sửa, lý do skip và phạm vi thật; không mock API/DB/queue, chỉ tài liệu iframe YouTube bên ngoài dùng fixture.
+- Metadata build tiếp theo đạt 83 unit và focused browser SEO/chrome + axe 27 đạt / 5 skip, 36 scan 0 violation; không coi full-03 là full suite rerun trên build này. [Lighthouse local](./reports/tester-261120-real-lighthouse.md) `r02` đạt 4/4 (P100/99/100/100, A100/SEO100); [smoke local](./reports/tester-261120-real-smoke.md) cấu hình 5 arrival/s × 120 s, thực 600 HTTP 200, 0 failed/5xx/drop, p95 14,125 ms. Bằng chứng local bổ sung; M1/M2, đo staging và nghiệm thu luồng admin-browser theo kế hoạch vẫn mở.
 
 ## Success Criteria
 

@@ -1,7 +1,46 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-19. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-24. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-24 — Phase 12: E2E tám bước đạt, sửa admin mobile (chưa commit)
+
+- Fix: tab Danh sách hiện nhiều ô "Thêm VĐV" sau re-render do `AddEntryForm` và `EntryTable` trùng React key (`entries-tab.tsx`).
+- Fix: admin tràn ngang ở 390 px — thêm `scroll={{ x: true }}` cho 29 file bảng antd còn thiếu.
+- Fix: tab Danh sách/Bốc thăm/Lịch xếp side panel lên trên nội dung dưới breakpoint md (`side-menu-layout.tsx`); desktop giữ hai cột, panel lịch vẫn sticky.
+- Kiểm: admin typecheck/lint/build, test 29/29; Playwright luồng tám bước trên dịch vụ local thật đạt desktop + mobile cùng build cuối, cleanup về 0.
+
+Bằng chứng: [full UI flow](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-full-ui-flow.md).
+
+## 2026-11-20 — Phase 08–12: kiểm dịch vụ thật và sửa accessibility (chưa commit)
+
+- Sau khi được xác nhận DB riêng `localhost:5433/kamito_tt_phase12_test`, kiểm migration hiện có đủ **18**, seed danh mục test, giữ credentials hoạt động trong process và chạy các suite tuần tự theo lease. Không query/seed/migrate DB dev hoặc thay `.env`; runner API và vertical-slice có hash trước/sau khớp.
+- API thật: **132 ca duy nhất/21 spec** đạt, gồm **5 publishing/sweep/retention**. Một batch gộp bị native Windows `0xC0000409`; giữ log lỗi, chuyển mỗi spec thành một process tuần tự. Không tính lại 7 ca rerun artifact vào tổng; chưa chứng minh cleanup toàn bộ fixture dở của batch crash. Hai spec legacy từng ghi đè JSON generated/ignored cũ; đã thêm `API_TEST_ARTIFACT_DIR` và chạy lại output riêng, không tuyên bố khôi phục nội dung lịch sử không có backup.
+- Public production local API 3313/Next 3314: sau rebuild hai bản sửa accessibility, toàn bộ **10 spec / 104 ca liệt kê: 96 đạt, 8 skip theo viewport, 0 lỗi/0 flaky**, workers 1, retries 0. Axe **36 scan** trên chín route × vi/en × 1440/390 có **0 critical/serious/moderate/minor/unknown**. Chỉ tài liệu iframe YouTube bên ngoài sau click dùng fixture; dữ liệu CMS/API/DB/Redis thật. Probes công bố BXH → BullMQ → SSR đạt desktop **209 ms**, mobile **218 ms**, dưới ngưỡng 10 giây.
+- Axe baseline trước sửa phát hiện tương phản nhãn Play **4,39:1** và `aria-label` không hợp lệ trên generic span. Sửa hẹp nền sang token `primary-strong`, chuyển nhãn biến động thứ hạng sang text `visually-hidden` cạnh glyph `aria-hidden`; gate mới chặn cả serious và critical, không tắt rule hoặc exclude node. Review độc lập không có Critical/P1/P2 trong delta này.
+- Lighthouse r01 chưa đạt: ba core page SEO **92** vì thiếu `meta-description`, route BXH native crash không có LHR. Sửa home description và fallback event trong dictionary vi/en, giữ authored summary/canonical/hreflang và generic helper. Client unit **83/83**, metadata regression **12/12**, typecheck/lint/build đạt. Browser build metadata cuối focused SEO/chrome/axe **32 ca: 27 đạt/5 skip, 0 lỗi/flaky**, regression bốn core × vi/en × hai viewport đạt, 36 axe scan mọi mức 0. Full-03 96/8 ở trên thuộc build trước metadata; retained-world hash không đổi. Lighthouse đo lại riêng, giữ nguyên r01 fail và ngưỡng 85/90/95.
+- Lát cắt mới `vertical-slice-refresh.seed.ts`: ADMIN API tạo/công bố giải MS knockout và bốn entry, RESULTS_OPERATOR confirm một trận; production revalidation processor trong worker UUID làm SSR nhánh/trận đã cache đổi sau **133 ms**, job completed +1, PTTL trước chốt **29.978/29.947 ms**, giới hạn 5 giây. Lượt đầu chức năng đạt nhưng sót 10 BullMQ key UUID; đã sửa cleanup toàn bộ QueueName trong đúng UUID, kiểm không có worker khác, chạy lại và hậu kiểm event/player/response keys/UUID queue keys đều 0. Không phải full UI tám bước hoặc staging M1.
+- Lighthouse **r02 PASS**, giữ ngưỡng **85/90/95**: home **100/100/100**, event **99/100/100**, draw và BXH **100/100/100** (Performance/Accessibility/SEO). Reviewer đọc summary và đủ bốn LHR: Lighthouse **13.6.0**, mobile/simulated throttling, mọi runtimeError null và meta-description audit đạt. Raw JSON/HTML tại `apps/client/test-results/261120-real-lighthouse/r02/`, r01 fail giữ nguyên. Tải nhẹ có packet riêng. G1/G2, consent, CSP enforce, staging/M1/M2, full tournament UI và rollback/restore tiếp tục mở; không đóng cổng từ điểm local trên fixture.
+- Smoke k6 local sau Lighthouse, image sẵn `grafana/k6:2.4.0`, không pull/cài: **600 request/600 iteration/600 check HTTP 200**, 0 failed/5xx/dropped, bốn threshold pass, exit 0. Cấu hình 5 arrivals/s × 120 s; raw aggregate rate **4,659093/s**, p95 **14,125 ms**, p99 **30,986 ms**, max **79,964 ms**. Wrapper 131.997 ms, `.env` không đổi, container riêng đã gỡ. Chỉ GET HTML trang giải có cache qua WSL gateway tới local Next; không phải browser assets/hydration, tải production hoặc staging. [Báo cáo smoke](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-smoke.md).
+- Cleanup retained world: seed 1/1 đạt, exact fixture IDs trước/sau xác nhận mọi count về 0; stop đúng API/client owned PID 10388/23360, cổng 3313/3314 trống, world file gỡ, `.env` hash khớp đầu lượt. PostgreSQL/Redis giữ nguyên, không xóa residue không rõ chủ của lượt native crash. PM đếm đủ 12 phase vẫn **134/163, 29 mở**, không đổi checkbox từ local QA. [PM cuối](../plans/reports/pm-261120-real-services-sync.md).
+
+Bằng chứng: [API thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-api.md), [public/axe](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-public-and-axe.md), [lát cắt local](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-local-vertical-slice.md), [review độc lập](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261120-real-services.md).
+
+Báo cáo đo sản phẩm: [Lighthouse local](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-lighthouse.md).
+
+## 2026-11-20 — Phase 08–12: print64, unit ranking và công cụ nghiệm thu (giai đoạn đầu, chưa commit)
+
+Snapshot trước khi được cấp quyền chạy DB test riêng trong ngày; kết quả dịch vụ thật ở mục ngay trên thay cho các trạng thái “chưa chạy” của giai đoạn này.
+
+- Phase 08: sửa cắt tên dài khi in nhánh 64; chia phần in riêng, lặp ngữ cảnh mỗi tờ, giữ grid màn hình và số trận. Bộ offline React/CSS/font thật đạt **9/9**; tám PDF A4/A3 vi/en đơn/đôi đều năm trang ngang, đủ 63 trận và toàn bộ tên qua trình đọc PDF độc lập. Đã mở ảnh trang; desktop Playwright đổi 1440×900, mobile giữ 390×844; sửa guard tránh bỏ nhầm test desktop.
+- Phase 09: tách logic state ma trận điểm dùng chung, thêm **18 unit** thực thi code production; module đạt 100% line/branch/function coverage. Admin **29 ca duy nhất** đạt (24 Windows, 5 WSL), ranking-engine **36/36**, typecheck/lint/build admin đạt. G2 và quy tắc mẫu giữ nguyên; không thay feature phase 10.
+- Phase 11: suite publishing hiện có năm ca enqueue/cancel, processor/sweep, retry idempotent và retention động; mới typecheck/liệt kê, **chưa chạy DB tích hợp trong lượt này**.
+- Phase 12: chuẩn bị axe trên chín route × vi/en × 1440/390 (bốn ca mới liệt kê) và runner Lighthouse có URL/ngưỡng/output rõ ràng. Self-check runner không phải số đo sản phẩm; axe/Lighthouse/load và full E2E giải tám bước vẫn mở.
+- Hồi quy không truy vấn PostgreSQL: API `src` **182**, shared **104**, worker **44**, client **72** đạt sau bật riêng Redis local. Lượt client trước Redis chưa bật lỗi kết nối được giữ trong báo cáo, không thay bằng mock. Không query/seed/migrate PostgreSQL, không sửa `.env`, không commit/push.
+- Hardening phát sinh: audit mới bắt Effect 3.20.0 qua `@prisma/config`; override riêng lên **3.22.1**. Audit cuối **0 high/critical, 2 moderate**, vẫn exit 1 vì moderate. Sau phục hồi symlink Windows/WSL và frozen install: Prisma validate/generate/DB build, client build, API/worker typecheck/build đạt; API **182**, client **72**, admin **29**, shared **104**, worker **44** chạy lại đạt. [Review dependency](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261120-phases08-12.md).
+- Sweep đủ 12 phase giữ **134/163 checkbox (82,2 %), 29 mở**; không thêm checkbox hoàn tất từ test component/công cụ mới. G1/G2, M1/M2, pilot, consent, target DB, staging và ra mắt tiếp tục mở.
+
+Bằng chứng: [print64](../plans/reports/tester-261120-phase08-print64-desktop1440.md), [ranking admin](../plans/reports/tester-261120-phase09-admin-unit.md), [kiểm độc lập](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-local-checks.md), [PM sweep](../plans/reports/pm-261120-phases-08-12-sync.md).
 
 ## 2026-11-19 — Phase 12: tiếng Anh, SEO và hardening local (chưa commit)
 

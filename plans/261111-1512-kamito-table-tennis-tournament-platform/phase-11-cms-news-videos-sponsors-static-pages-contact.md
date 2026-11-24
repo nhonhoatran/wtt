@@ -139,13 +139,13 @@ Modify: `apps/client/src/app/[locale]/page.tsx`, `events/[slug]/page.tsx` (tin/v
 - [x] Kiểm chứng rich text editor (TipTap core MIT, bản 3.33.1 đang cài; npm hiện ghi 3.34.0 mới nhất; API headless hiện có typecheck với React 19. UI Components chưa dùng vì tài liệu cảnh báo hỗ trợ React 19 chưa đầy đủ)
 - [x] Đối chiếu/tái dùng mẫu code admin và public (finding-patterns → planning ở mức code; không có skill `ui-consistency`)
 - [x] Tạo 6 model và migration SQL; schema/diff đã kiểm offline, sau đó migrate trên DB local `_test` ở phase 12
-- [ ] Xác nhận target dev/staging, áp dụng migration và kiểm tra DB — phase 12 chỉ migrate đủ 18 trên `localhost:5433/kamito_tt_phase12_test`, chưa áp dụng hai migration mới vào dev/staging
+- [ ] Xác nhận target dev/staging, áp dụng migration và kiểm tra DB — target `localhost:5433/kamito_tt_phase12_test` đã được xác nhận ở lượt tiếp theo 2026-11-20, 18 migrations up to date và seed test đạt; chưa áp dụng hai migration mới vào dev/staging
 - [x] Video URL parser + unit test; dùng sanitizer phase 04
 - [x] API admin/public + queue publishing (delayed + sweep) + dọn liên hệ
 - [x] Màn admin Nội dung, Nhà tài trợ, tab Tài trợ
 - [x] Trang công khai tin/video/trang tĩnh/liên hệ/trang chủ (phạm vi code)
 - [x] Metadata structured `NewsArticle`/`VideoObject` + unit test
-- [ ] Hoàn tất toàn bộ ma trận API tích hợp + Playwright CMS/vận hành — phase 12 đã chạy targeted 32 ca API/7 file và ba suite public 55 đạt/5 bỏ qua viewport trên DB `_test` thật; chưa đủ toàn bộ phạm vi quản trị/hẹn giờ/storage/staging
+- [ ] Hoàn tất toàn bộ ma trận API tích hợp + Playwright CMS/vận hành — lượt tiếp theo 2026-11-20 đã chạy publishing 5 và articles/resources/contact 15 ca thật; browser public có báo cáo riêng. Chưa đủ toàn bộ phạm vi quản trị, process scheduler/publishing theo thời gian, storage và staging
 - [x] Guard dữ liệu chưa lưu cho Browser Back/Forward, liên kết trong app và đóng tab; browser mock kiểm hủy/xác nhận, giữ nháp và lưu không báo nhầm
 - [x] Kiểm tra trực quan thủ công ở 1440 + 390 trên ứng dụng public/admin thật với API mock; có ảnh, chưa xác nhận dịch vụ thật/staging
 - [ ] Deploy staging — chờ cổng phase 01
@@ -158,6 +158,19 @@ Modify: `apps/client/src/app/[locale]/page.tsx`, `events/[slug]/page.tsx` (tin/v
 - Admin: ứng dụng Vite thật với API/media mock, **8/8 ca browser + 4/4 kiểm payload/form đạt**; đã xem ảnh editor 1440/390. Bao phủ Back/Forward/menu, ID route cũ, body vi/en, ba form sửa, hợp đồng bộ chọn giải và dán ảnh HTTPS/READY/chặn lưu/từ chối URL tương đối.
 - Đã đóng lỗi TipTap `setEditable` phát update làm rỗng body, defaults ghi đè dữ liệu Refine và bộ chọn video/tài trợ gửi `filter[isActive]` không được API hỗ trợ. Review không còn Critical/P1/P2 trong phạm vi mã đã rà; xem báo cáo để biết giới hạn.
 - **16 ca API tích hợp và 18 ca Playwright DB E2E chưa thực thi**; mới kiểm tra type và danh sách ca. Migration SQL vẫn là bản offline, chưa áp dụng; không truy vấn/seed PostgreSQL trong các lượt browser mock. Chưa xác nhận pipeline DB–Redis/BullMQ–storage thật hoặc staging.
+
+## Bổ sung phạm vi kiểm — 2026-11-20
+
+- Suite `apps/api/test/publishing.e2e-spec.ts` hiện có **5 ca**: enqueue/cancel lịch hẹn, processor tới hạn và lịch đổi tương lai, safety sweep bù job thiếu, retry idempotent và refresh cache mới, retention theo cấu hình. Đã kiểm type và liệt kê ca; **chưa thực thi suite tích hợp trong lượt này** vì chưa xác nhận target PostgreSQL.
+- Hồi quy không truy vấn PostgreSQL được chạy riêng: API `src` 182, worker 44, shared 104 và client 72 ca đạt sau khi bật riêng Redis local. Không dùng các suite này thay bằng chứng DB–BullMQ–storage hoặc toàn bộ ma trận CMS.
+- Không query/seed/migrate DB, không chỉnh `.env`; migration dev/staging và mọi cổng nghiệm thu hiện hành giữ mở.
+
+## Lượt dịch vụ thật tiếp theo — 2026-11-20
+
+- Sau khi target test được xác nhận, **5/5 ca publishing đã thực thi đạt với PostgreSQL/Redis thật**, gồm delayed create/change/cancel, processor đăng bài đến hạn, sweep cứu job mất, retry không đổi thời điểm công bố nhưng tạo cache job mới, retention đọc AppSetting 7 → 2 ngày. Điều kiện bảo vệ row ngoài fixture và CAS khôi phục setting đã chạy thật.
+- `articles` **5**, `cms-resources` **6**, `contact` **4** ca đạt. Thêm site/sitemap/quyền/router và public regression tạo tổng **132 ca duy nhất / 21 spec**. Không cộng lại 7 ca rerun xác nhận thư mục artifact. [Báo cáo API thật](./reports/tester-261120-real-api.md) ghi native crash Windows của lượt gộp và cách cô lập mỗi spec một process, không mock DB/queue hoặc tắt isolation.
+- Public browser production `full-03` **96 đạt / 8 bỏ qua theo viewport / 0 lỗi / 0 flaky** trên toàn bộ 10 spec, bao gồm CMS contact Server Action → hộp thư admin thật, honeypot/429/IP hash, home sections động, trang nội dung/SSR/sanitize và 36 axe scan không violation sau sửa. Không gọi tổng browser này là riêng 96 ca CMS; [báo cáo](./reports/tester-261120-real-public-and-axe.md) tách phạm vi và baseline trước sửa.
+- Lượt này không migrate/query/seed dev hoặc staging. 18 migrations trên DB `_test` đã up to date từ trước; root chỉ kiểm trạng thái và seed cấu hình test. Không gọi processor trực tiếp + queue thật là bằng chứng process scheduler đã tự đăng đúng giờ trên staging. Màn admin với API thật, storage pipeline và nghiệm thu staging còn trong ma trận chưa hoàn tất.
 
 ## Success Criteria
 

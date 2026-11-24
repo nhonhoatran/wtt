@@ -56,6 +56,11 @@ Phase 12 đã bổ sung ba trường tiếng Anh CMS và nhãn chuyên mục đ�
 
 Chưa hoàn tất: toàn site UI, validator/container/dữ liệu SEO phát hành, CSP enforce/nonce, Lighthouse/axe/load thật, E2E giải 8 bước, staging/Dokploy/forwarded headers, backup/RPO, rollback/restore và các quyết định BTC/consent. [PM sweep](./reports/pm-261119-phase-12-sync.md), [API](./reports/tester-261119-phase-12-real-api.md), [browser](./reports/tester-261119-2234-phase-12-bilingual-public-e2e.md), [review](./reports/code-reviewer-261119-phase-12-hardening.md).
 
+<!-- Full-plan sweep — 2026-11-20 -->
+Rà lại đủ **12 file phase**: giữ **134/163 checkbox (82,2 %), 29 mở**, không thêm checkbox hoàn tất từ công cụ mới. Phase 08 sửa/kiểm print64 và desktop 1440; phase 09 bổ sung 18 unit state ma trận (admin 29 ca duy nhất, ranking-engine 36); phase 10 không đổi feature, còn staging. Phase 11 mở rộng suite publishing thành năm ca nhưng mới kiểm type/liệt kê; phase 12 chuẩn bị axe bốn ca và runner Lighthouse, chưa đo sản phẩm. Hồi quy API `src` 182, worker 44, shared 104, client 72 đạt sau khi bật riêng Redis. Không query/migrate/seed PostgreSQL hoặc chỉnh `.env` trong lượt này; cổng target DB, G1/G2, M1/M2, pilot, staging và ra mắt giữ mở. [PM sweep](../reports/pm-261120-phases-08-12-sync.md), [print64](../reports/tester-261120-phase08-print64-desktop1440.md), [ranking admin](../reports/tester-261120-phase09-admin-unit.md).
+
+Hardening bổ sung: override `@prisma/config>effect` 3.22.1; audit cuối **0 high/critical, 2 moderate** (exit 1 vì moderate). Frozen install, Prisma validate/generate/DB build và build/typecheck client/API/worker đã kiểm đạt theo [QA](./reports/tester-261120-local-checks.md), [review](./reports/code-reviewer-261120-phases08-12.md). API 182/client 72/admin 29/shared 104/worker 44 đều có lượt chạy lại sau phục hồi dependency, không cộng trùng các lượt.
+
 | Phase | Checkbox đã xong/tổng | Còn mở chính |
 |---|---|---|
 | 01 | 10/15 | Đồng bộ quyết định repo, preflight, sao lưu/RPO, Dokploy/staging, bằng chứng CI GitHub; hiện có remote origin |
@@ -69,7 +74,7 @@ Chưa hoàn tất: toàn site UI, validator/container/dữ liệu SEO phát hàn
 | 09 | 9/11 | G2; staging |
 | 10 | 8/9 | Deploy/đo staging |
 | 11 | 10/13 | Migration dev/staging; hoàn tất toàn bộ ma trận CMS với dịch vụ thật; staging |
-| 12 | 7/14 | UI toàn site; SEO validator/container; CSP enforce; Lighthouse/axe/load; E2E giải 8 bước; staging rollback/restore |
+| 12 | 8/14 | UI toàn site; SEO validator/container; CSP enforce; Lighthouse/axe/load staging; staging rollback/restore |
 
 | Phase | Name | Tuần | Ngày công | Status |
 |-------|------|------|-----------|--------|
@@ -84,10 +89,24 @@ Chưa hoàn tất: toàn site UI, validator/container/dữ liệu SEO phát hàn
 | 9 | [Quy tắc điểm, sổ điểm, chốt bảng xếp hạng](./phase-09-ranking-rules-points-ledger-and-snapshots.md) | 14–15 | 7 | In progress (gói 1–4 commit; gói 5 UI xong 2026-11-16, chưa commit; chờ G2 và staging) |
 | 10 | [Trang xếp hạng, danh sách và hồ sơ VĐV](./phase-10-public-rankings-players-list-and-profiles.md) | 15–16 | 3,5 | In progress (code/test/verifying local xong 2026-11-17; 8/9 checkbox; chờ deploy và đo staging) |
 | 11 | [CMS: tin, video, nhà tài trợ, trang tĩnh, liên hệ, trang chủ](./phase-11-cms-news-videos-sponsors-static-pages-contact.md) | 16–17 | 5 | In progress (10/13; code/test và UI mock; targeted API/public browser DB test thật đã đạt; còn migrate dev/staging, toàn bộ ma trận CMS và staging) |
-| 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | In progress (7/14; code và targeted local verification đã đạt, gate phát hành còn mở) |
+| 12 | [Tiếng Anh, SEO, hardening, ra mắt](./phase-12-english-seo-hardening-and-launch.md) | 17 | 4,5 | In progress (8/14; E2E 8 bước local đạt desktop + mobile 2026-11-24; gate phát hành còn mở) |
 | — | Pilot với BTC trên dữ liệu một giải cũ (staging) | 9 | 1 | Pending (chặn: chưa có staging, xem Phụ thuộc) |
 | | **Phạm vi** | | **80** | |
 | | **Dự phòng**: tuần 9 (1,5) · tuần 13 (3,5) · tuần 18–19 (10) | | **15** | |
+
+## Lượt tiếp theo với dịch vụ thật — 2026-11-20
+
+- Target riêng `localhost:5433/kamito_tt_phase12_test` đã được xác nhận; 18 migrations up to date, seed cấu hình test đạt. Không migrate/query/seed DB dev hoặc staging. Hash `.env` không đổi ở các lượt API/probe. [API thật](./reports/tester-261120-real-api.md): **21 spec / 132 ca duy nhất đạt**; một native crash Windows và hai JSON generated cũ bị ghi đè trước sửa đường dẫn được giữ rõ trong báo cáo, không gọi các lượt lỗi là đạt.
+- Public production `full-03` sau sửa hai lỗi accessibility: **96 đạt / 8 skip / 0 lỗi / 0 flaky**, **36 axe scan không violation**; công bố BXH qua API admin → BullMQ → SSR đã nóng đạt **209 ms desktop / 218 ms mobile**. Đây là các suite public, không phải full tournament admin-browser workflow. [Báo cáo](./reports/tester-261120-real-public-and-axe.md).
+- Probe dọc API tạo giải/nội dung/4 đăng ký/draw/công bố → RESULTS_OPERATOR chốt → BullMQ → SSR đổi trong **133 ms**, baseline TTL **29.978/29.947 ms**; hậu kiểm dữ liệu/key riêng đều 0. Không đổi kết quả này thành M1 staging hoặc luồng UI tám bước.
+- Lighthouse `r01` không đạt SEO92 do thiếu description (ranking crash native). Metadata đã sửa với **83 unit** và focused browser SEO/chrome + axe **27 đạt / 5 skip**, 36 axe scan mới 0 violation; không coi full-03 96/8 là rerun trên metadata build hoặc cộng các lượt lặp. Baseline lỗi được giữ riêng với audit `r02` tiếp theo.
+- [Lighthouse `r02` local](./reports/tester-261120-real-lighthouse.md) đạt **4/4** ngưỡng P85/A90/SEO95: P home100/event99/draw100/ranking100, A100/S100 cả bốn trang. [Smoke local](./reports/tester-261120-real-smoke.md) cấu hình 5 arrival/s × 120 s chạy riêng sau audit: thực **600 request/iteration, 600 check HTTP 200, 0 failed/5xx/drop**, bốn threshold đạt, exit 0; p95 **14,125 ms**, raw aggregate rate 4,659093/s giữ riêng. Hash `.env` không đổi. Sweep đủ 12 phase hiện giữ **134/163 (82,2 %), 29 mở**, không thêm/tách checkbox để tăng tỷ lệ. G1/G2, M1/M2, pilot, consent, hạ tầng/staging, CSP enforce, full 8-step UI E2E và rollback/restore giữ mở. [PM lượt dịch vụ thật](../reports/pm-261120-real-services-sync.md).
+
+## E2E tám bước — 2026-11-24
+
+- Luồng quản trị giải đủ tám bước qua UI thật (ADMIN + RESULTS_OPERATOR, worker thật, target `localhost:5433/kamito_tt_phase12_test`) **đạt desktop 1440 và mobile 390 trên cùng build cuối**, cleanup về 0, `.env` không đổi. Phase 12 thành 8/14; toàn plan **135/163 checkbox (82,8 %), 28 mở**.
+- Sửa ba lỗi admin tìm ra khi chạy: trùng React key sinh form "Thêm VĐV" thừa; 29 bảng thiếu cuộn ngang làm tràn trang 390 px; side panel 260 px chiếm chỗ ở tab Danh sách/Bốc thăm/Lịch (thêm `side-menu-layout.tsx`).
+- Ba lượt mất listener server local không rõ nguyên nhân được giữ riêng trong [báo cáo](./reports/tester-261120-full-ui-flow.md). Không thay staging, M1/M2, G1/G2, BTC.
 
 ## Mốc và cổng
 
