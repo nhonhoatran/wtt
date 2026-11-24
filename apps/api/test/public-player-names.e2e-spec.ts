@@ -117,7 +117,8 @@ describe('effective public player names (real Postgres)', () => {
     const result = explain!['QUERY PLAN'][0]!;
     expect(result.Plan['Node Type']).toBe('Limit');
     expect(result.Plan['Actual Rows']).toBe(2);
-    await mkdir('test-results', { recursive: true });
-    await writeFile('test-results/public-entry-page-explain.json', JSON.stringify({ query: 'public-entry-page', fixtureEntries: 8, plan: result }, null, 2));
+    const outputDir = process.env.API_TEST_ARTIFACT_DIR ?? 'test-results';
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(`${outputDir}/public-entry-page-explain.json`, JSON.stringify({ query: 'public-entry-page', fixtureEntries: 8, plan: result }, null, 2));
   });
 });

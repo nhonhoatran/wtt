@@ -89,8 +89,10 @@ it('publishes through the real admin API and BullMQ worker then refreshes the wa
   expect(html).not.toContain('Cập nhật ngày 01/06/2099');
   expect(elapsedMs).toBeLessThanOrEqual(10_000);
   expect(await queue.getCompletedCount()).toBeGreaterThan(0);
-  await mkdir('test-results', { recursive: true });
-  await writeFile('test-results/public-ranking-publish-refresh.json', JSON.stringify({
+  const outputFile = (process.env.E2E_PUBLISH_PROBE_FILE ?? 'test-results/public-ranking-publish-refresh.json')
+    .replaceAll('{pid}', String(process.pid));
+  await mkdir(path.dirname(outputFile), { recursive: true });
+  await writeFile(outputFile, JSON.stringify({
     fromDate: '2099-06-01', toDate: '2099-07-01', fromPoints: 137, toPoints: 827,
     elapsedMs, limitMs: 10_000, completedRevalidationJobs: await queue.getCompletedCount(),
     workflow: 'real admin publish -> isolated BullMQ revalidation worker -> warmed SSR HTML',

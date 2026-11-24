@@ -95,8 +95,9 @@ describe('public ranking payload with dense immutable breakdowns (real HTTP and 
     expect(JSON.parse(decoded.toString('utf8'))).toEqual(JSON.parse(raw.bytes.toString('utf8')));
     expect(raw.bytes.length).toBeGreaterThan(WIRE_BUDGET_BYTES);
     expect(gzip.bytes.length).toBeLessThanOrEqual(WIRE_BUDGET_BYTES);
-    await mkdir('test-results', { recursive: true });
-    await writeFile('test-results/public-ranking-payload-budget.json', JSON.stringify({
+    const outputDir = process.env.API_TEST_ARTIFACT_DIR ?? 'test-results';
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(`${outputDir}/public-ranking-payload-budget.json`, JSON.stringify({
       rows: PAGE_ROWS, resultsPerPlayer: RESULTS_PER_PLAYER, breakdownRecords: PAGE_ROWS * RESULTS_PER_PLAYER,
       rawBytes: raw.bytes.length, gzipBytes: gzip.bytes.length, wireBudgetBytes: WIRE_BUDGET_BYTES,
       rawBudgetMet: raw.bytes.length <= WIRE_BUDGET_BYTES, gzipBudgetMet: gzip.bytes.length <= WIRE_BUDGET_BYTES,
