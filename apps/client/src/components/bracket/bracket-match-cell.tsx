@@ -45,7 +45,7 @@ export function BracketMatchCell({ match, locale, t, timeZone }: { match: Public
   const when = match.status === 'SCHEDULED' && match.scheduledAt ? formatMatchTime(match.scheduledAt, locale, timeZone) : null;
   const shared = { locale, t, isBye };
   return (
-    <div className={styles.cell}>
+    <div className={styles.cell} data-match-number={match.matchNo}>
       <div className={styles.cellHead}>
         <span>{format(t.match, { matchNo: match.matchNo })}</span>
         {match.status === 'LIVE' ? <LiveBadge label={t.live} /> : <span>{result ?? when ?? ''}</span>}

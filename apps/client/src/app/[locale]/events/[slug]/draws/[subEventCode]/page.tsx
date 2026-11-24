@@ -47,7 +47,7 @@ export default async function DrawPage(props: DrawPageProps) {
         locale={locale}
         t={t}
       />
-      <h2 className="section-title">
+      <h2 className="section-title" data-bracket-title>
         {t.bracket.title} · {pickLocalized(locale, subEvent.name, subEvent.nameEn)}
         {bracket.availableKinds.length > 1 && ` · ${t.bracket.kind[bracket.draw.kind]}`}
       </h2>

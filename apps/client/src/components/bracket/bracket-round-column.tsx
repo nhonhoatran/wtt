@@ -11,7 +11,7 @@ interface ColumnProps {
   t: Dictionary['bracket'];
   timeZone: string;
   /** One level below the heading that holds the bracket. */
-  heading: 'h3' | 'h4';
+  heading: 'h3' | 'h4' | 'p';
 }
 
 export function BracketRoundColumn({ round, locale, t, timeZone, heading: Heading }: ColumnProps) {

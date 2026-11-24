@@ -2,6 +2,10 @@
   margin-top: 32px;
 }
 
+.printOnly {
+  display: none;
+}
+
 .hint {
   margin: 0 0 8px;
   font-size: 13px;
@@ -141,13 +145,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Landscape sheets for the bracket only: 6 rounds of 150px fit A4 across; each section starts on a new sheet. */
+/* Leave the paper format to the print dialog, while keeping bracket sheets in landscape. */
 @page bracket {
   size: landscape;
 }
 
 @media print {
-  .section {
+  /* Put the event heading on the same named page as its bracket, avoiding a title-only first sheet. */
+  :global(main):has(.section) {
     page: bracket;
   }
 
@@ -156,10 +161,45 @@
   }
 
   .rounds {
-    --cell-w: 150px;
-    --gap: 20px;
+    --cell-w: 230px;
+    --gap: 24px;
     --cell-h: 56px;
     --row-gap: 4px;
+  }
+
+  .screenOnly {
+    display: none;
+  }
+
+  /* Split sheets already repeat event context; a full hero would otherwise consume a title-only sheet. */
+  :global(main):has(.printOnly) :global([data-event-hero]),
+  :global(main):has(.printOnly) :global([data-bracket-title]) {
+    display: none;
+  }
+
+  .printOnly {
+    display: block;
+  }
+
+  .printSheet {
+    break-inside: avoid;
+  }
+
+  .printSheet + .printSheet {
+    break-before: page;
+  }
+
+  .printHeading {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .name {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .section + .section {
