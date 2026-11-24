@@ -3,6 +3,7 @@ import './global.css';
 import type { Metadata } from 'next';
 import { Archivo } from 'next/font/google';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { SiteFooter } from '../../components/layout/site-footer';
 import { SiteHeader } from '../../components/layout/site-header';
@@ -34,6 +35,8 @@ export default async function LocaleLayout({
   children: ReactNode;
   params: Promise<{ locale: string }>;
 }) {
+  // Every HTML document needs its own CSP nonce; tagged API data remains cached separately.
+  await connection();
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const t = getDictionary(locale);

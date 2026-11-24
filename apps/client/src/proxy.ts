@@ -5,20 +5,31 @@ import { isInternalHost } from './lib/internal-request';
 import { clientIp, rateLimitRetryAfter } from './lib/public-rate-limit';
 import { getPlayerProfile, getSiteConfig, isUrlPart } from './lib/public-data';
 import { contactRateLimitRetryAfter } from './lib/public-contact-rate-limit';
+import { pageCsp } from './lib/content-security-policy';
 
 const isRevalidatePath = (path: string) => path === '/api/revalidate' || path.startsWith('/api/revalidate/');
 const isSitemapPath = (path: string) => path === '/sitemap.xml' || path === '/sitemap' || path.startsWith('/sitemap/');
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/api/') || isSitemapPath(request.nextUrl.pathname)) return routeRequest(request);
+  const csp = pageCsp(request.headers);
+  const response = await routeRequest(request, csp.requestHeaders);
+  response.headers.set(csp.header, csp.value);
+  if (!response.headers.has('Cache-Control')) response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+}
+
+async function routeRequest(request: NextRequest, headers?: Headers) {
+  const next = () => NextResponse.next(headers ? { request: { headers } } : undefined);
   const { pathname, search, searchParams } = request.nextUrl;
   // Second wall in front of /api/revalidate (the first is the Traefik rule): public hosts get a 404.
   if (isRevalidatePath(pathname)) {
-    return isInternalHost(request.headers.get('host')) ? NextResponse.next() : new NextResponse(null, { status: 404 });
+    return isInternalHost(request.headers.get('host')) ? next() : new NextResponse(null, { status: 404 });
   }
   // Runtime XML stays outside locale negotiation, but its uncached reads use the lower search budget.
   if (isSitemapPath(pathname)) {
     const retryAfter = await rateLimitRetryAfter(clientIp(request.headers), true);
-    return retryAfter === null ? NextResponse.next() : new NextResponse('Too many requests', {
+    return retryAfter === null ? next() : new NextResponse('Too many requests', {
       status: 429,
       headers: { 'Retry-After': String(retryAfter), 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });
@@ -31,6 +42,9 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Vary', 'Cookie, Accept-Language');
     return response;
   }
+  // Prefetches still receive CSP, but do not count as page views. POSTs cannot bypass contact limits.
+  if ((request.method === 'GET' || request.method === 'HEAD')
+    && (request.headers.has('next-router-prefetch') || request.headers.get('purpose') === 'prefetch')) return next();
   const ip = clientIp(request.headers);
   const contactPost = request.method === 'POST' && /^\/(vi|en)\/contact\/?$/.test(pathname);
   const contactLimits = contactPost ? (await getSiteConfig().catch(() => null))?.contactRateLimit : undefined;
@@ -50,12 +64,12 @@ export async function proxy(request: NextRequest) {
       return response;
     }
   }
-  return NextResponse.next();
+  return next();
 }
 
 export const config = {
   // Exclude actual framework/static routes; dotted page paths must still pass the page limiter.
-  // Link prefetches skip the proxy: they are not page views and would eat a shared venue IP's budget.
+  // Prefetches pass CSP; routeRequest keeps them outside the page-view budget.
   matcher: [
     '/vi/contact',
     '/en/contact',
@@ -65,10 +79,6 @@ export const config = {
     '/sitemap/:path*',
     {
       source: '/((?!api(?:/|$)|_next/|favicon\\.ico$|robots\\.txt$|sitemap(?:\\.xml$|/)).*)',
-      missing: [
-        { type: 'header', key: 'next-router-prefetch' },
-        { type: 'header', key: 'purpose', value: 'prefetch' },
-      ],
     },
   ],
 };

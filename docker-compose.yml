@@ -118,6 +118,8 @@ services:
       PUBLIC_REVALIDATE_SECONDS: ${PUBLIC_REVALIDATE_SECONDS:?PUBLIC_REVALIDATE_SECONDS}
       MATCHDAY_REVALIDATE_SECONDS: ${MATCHDAY_REVALIDATE_SECONDS:?MATCHDAY_REVALIDATE_SECONDS}
       API_FETCH_TIMEOUT_MS: ${API_FETCH_TIMEOUT_MS:-5000}
+      CSP_MODE: ${CSP_MODE:-report-only}
+      VIDEO_EMBED_HOSTS: ${VIDEO_EMBED_HOSTS:-youtube.com,m.youtube.com,youtu.be,facebook.com,fb.watch}
     expose: ["3000"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const { hit, contactHit, site } = vi.hoisted(() => ({ hit: vi.fn(), contactHit: vi.fn(), site: vi.fn() }));
 vi.mock('../../src/lib/public-rate-limit', () => ({ clientIp: () => '192.0.2.1', rateLimitRetryAfter: hit }));
@@ -8,11 +8,56 @@ vi.mock('../../src/lib/public-contact-rate-limit', () => ({ contactRateLimitRetr
 vi.mock('../../src/lib/public-data', () => ({ getSiteConfig: site, getPlayerProfile: vi.fn(), isUrlPart: () => true }));
 vi.mock('../../src/lib/internal-request', () => ({ isInternalHost: (host: string | null) => host === 'internal.test' }));
 import { config, proxy } from '../../src/proxy';
+import nextConfig from '../../next.config';
 
 beforeEach(() => {
+  vi.stubEnv('CSP_MODE', 'report-only');
   hit.mockReset().mockResolvedValue(null);
   contactHit.mockReset().mockResolvedValue(null);
   site.mockReset().mockResolvedValue({ contactRateLimit: { windowSeconds: 60, maxRequests: 3 } });
+});
+afterEach(() => vi.unstubAllEnvs());
+
+it('passes a trusted per-request nonce to Next and keeps HTML private', async () => {
+  const headers = { 'x-nonce': 'attacker', 'content-security-policy': 'default-src *' };
+  const first = await proxy(new NextRequest('http://site.test/vi', { headers }));
+  const second = await proxy(new NextRequest('http://site.test/vi', { headers }));
+  const policy = first.headers.get('content-security-policy-report-only');
+  expect(policy).toContain("'strict-dynamic'");
+  expect(policy).not.toContain('attacker');
+  expect(first.headers.get('x-middleware-request-content-security-policy')).toBe(policy);
+  expect(first.headers.get('x-middleware-request-x-nonce')).not.toBe('attacker');
+  expect(second.headers.get('content-security-policy-report-only')).not.toBe(policy);
+  expect(first.headers.get('cache-control')).toBe('private, no-store');
+  expect(first.headers.get('content-security-policy')).toBeNull();
+});
+
+it('protects prefetched HTML while keeping it outside the page-view budget', async () => {
+  expect(nextConfig.skipProxyUrlNormalize).toBe(true);
+  const prefetched: Record<string, string>[] = [{ purpose: 'prefetch' }, { 'next-router-prefetch': '1' }];
+  for (const headers of prefetched) {
+    expect(unstable_doesMiddlewareMatch({ config, url: 'http://site.test/vi', headers })).toBe(true);
+    const response = await proxy(new NextRequest('http://site.test/vi', { headers }));
+    expect(response.headers.get('content-security-policy-report-only')).toContain("'nonce-");
+  }
+  expect(hit).not.toHaveBeenCalled();
+});
+
+it('does not let prefetch headers bypass a contact POST limit', async () => {
+  contactHit.mockResolvedValue(9);
+  const prefetched: Record<string, string>[] = [{ purpose: 'prefetch' }, { 'next-router-prefetch': '1' }];
+  for (const headers of prefetched) {
+    const response = await proxy(new NextRequest('http://site.test/vi/contact', { method: 'POST', headers }));
+    expect(response.status).toBe(429);
+  }
+  expect(contactHit).toHaveBeenCalledTimes(2);
+});
+
+it('uses enforcement only when explicitly configured', async () => {
+  vi.stubEnv('CSP_MODE', 'enforce');
+  const response = await proxy(new NextRequest('http://site.test/vi'));
+  expect(response.headers.get('content-security-policy')).toContain("'strict-dynamic'");
+  expect(response.headers.get('content-security-policy-report-only')).toBeNull();
 });
 
 it('negotiates a locale without charging the redirect, then charges only the destination page', async () => {
