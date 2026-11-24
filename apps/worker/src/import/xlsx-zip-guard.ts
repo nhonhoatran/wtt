@@ -4,7 +4,9 @@ import { ImportFailure } from './import-row-types.js';
 const ZIP_LOCAL_SIGNATURE = [0x50, 0x4b, 0x03, 0x04];
 const EOCD_SIGNATURE = 0x06054b50;
 const EOCD_MAX_DISTANCE = 22 + 0xffff;
-const FEED_CHUNK_BYTES = 64 * 1024;
+// fflate inflates each pushed chunk in one go and deflate expands up to ~1032:1, so small input chunks keep
+// every output burst (and peak memory) near 256 KiB instead of letting one 64 KiB chunk inflate to 64 MiB.
+const FEED_CHUNK_BYTES = 256;
 
 class UnzippedTooLarge extends Error {}
 
