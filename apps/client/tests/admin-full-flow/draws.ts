@@ -14,15 +14,15 @@ const labels: Record<Kind, string> = { MAIN: 'Nhánh chính', QUALIFYING: 'Vòng
 export async function openDraw(page: Page, world: FullUiWorld, event: EventFixture, sub: SubFixture, kind: Kind): Promise<void> {
   await page.goto(`${world.adminOrigin}/events/${event.id}/draws?subEvent=${sub.id}`);
   const title = sub.code === 'WD' ? world.catalog.wdDisciplineName : world.catalog.msDisciplineName;
-  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  const tab = page.getByRole('tab', { name: labels[kind], exact: true });
-  if (await tab.count()) await tab.click();
+  await expect(page.getByRole('radio', { name: new RegExp(title) })).toBeChecked();
+  await expect(drawSection(page, kind)).toBeVisible();
 }
+
+const drawSection = (page: Page, kind: Kind) => page.locator(`[data-draw-kind="${kind}"]`);
 
 export async function createDraw(page: Page, world: FullUiWorld, event: EventFixture, evidence: RunEvidence, sub: SubFixture, kind: Kind, small = false): Promise<DrawFixture> {
   await openDraw(page, world, event, sub, kind);
-  const panel = page.locator('.ant-tabs-tabpane-active').last();
-  await panel.getByRole('button', { name: 'Bốc thăm', exact: true }).click();
+  await drawSection(page, kind).getByRole('button', { name: 'Bốc thăm', exact: true }).click();
   const wizard = page.getByRole('dialog', { name: `Bốc thăm ${labels[kind].toLowerCase()}`, exact: true });
   await expect(wizard.getByRole('button', { name: 'Tiếp tục', exact: true })).toBeEnabled();
   const seed = wizard.getByLabel('Số hạt giống', { exact: true });
@@ -41,9 +41,8 @@ export async function createDraw(page: Page, world: FullUiWorld, event: EventFix
   evidence.draws.push(draw.id);
   await saveEvidence(evidence);
   await expect(wizard).not.toBeVisible();
-  const livePanel = page.locator('.ant-tabs-tabpane-active').last();
-  await livePanel.getByRole('button', { name: 'Công bố', exact: true }).click();
-  const confirm = page.getByRole('dialog').filter({ hasText: 'Công bố nhánh đấu?' });
+  await drawSection(page, kind).getByRole('button', { name: 'Công bố', exact: true }).click();
+  const confirm = page.getByRole('dialog').filter({ hasText: 'sẽ thấy bảng đấu trên trang giải' });
   await uiResponse(page, 'POST', `/admin/draws/${draw.id}/publish`, () => confirm.getByRole('button', { name: 'Công bố', exact: true }).click());
   return { ...draw, kind, subEventId: sub.id };
 }
@@ -58,7 +57,7 @@ export async function publishEvent(page: Page, world: FullUiWorld, event: EventF
 export async function replaceUnplayed(page: Page, world: FullUiWorld, event: EventFixture, draw: DrawFixture): Promise<void> {
   const sub = event.subEvents.find((row) => row.id === draw.subEventId)!;
   await openDraw(page, world, event, sub, draw.kind);
-  const panel = page.locator('.ant-tabs-tabpane-active').last();
+  const panel = drawSection(page, draw.kind);
   const entry = panel.getByRole('button', { pressed: false }).filter({ hasText: new RegExp(world.tag) }).first();
   await entry.click();
   const modal = page.getByRole('dialog').filter({ hasText: 'Thao tác với' });

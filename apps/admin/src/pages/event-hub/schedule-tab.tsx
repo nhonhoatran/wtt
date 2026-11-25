@@ -1,13 +1,13 @@
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Empty, Flex, Result, Skeleton, Space, Tag, Typography, theme } from 'antd';
+import { App, Button, Empty, Flex, Result, Skeleton, Tag, theme } from 'antd';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { DAY_QUERY_PARAM, SESSION_QUERY_PARAM } from './entry-labels';
 import type { HubTabContext } from './hub-tab-context';
-import { ScheduleActions } from './schedule-actions';
+import { ScheduleStatusBar } from './schedule-status-bar';
 import { SideMenuLayout } from './side-menu-layout';
 import { scheduleAnnouncements, scheduleScreenReaderInstructions } from './schedule-dnd-accessibility';
 import { nearestCellCoordinates, SCHEDULE_KEYBOARD_CODES, scheduleCollisionDetection } from './schedule-keyboard-drag';
@@ -118,6 +118,7 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
     >
       <Flex vertical gap="middle">
         <SessionToolbar
+          eventId={event.id}
           days={days}
           day={day}
           sessionsOfDay={ofDay}
@@ -128,21 +129,13 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
           onEdit={() => setDialog({ session })}
           onDelete={() => removeSession(session)}
         />
+        <ScheduleStatusBar eventId={event.id} sessionId={session.id} canUpdate={canUpdate} />
         {/* Height-capped so a long panel scrolls inside itself; sticky beside the grid so it stays in view while dragging. */}
         <SideMenuLayout
           side={<UnscheduledPanel eventId={event.id} board={board} canUpdate={canUpdate} />}
           sideStyle={{ ...PANEL_COLUMN, position: 'sticky', top: token.marginMD, maxHeight: `calc(100vh - ${token.marginMD * 2}px)` }}
           stackedSideStyle={{ ...PANEL_COLUMN, maxHeight: STACKED_PANEL_MAX_HEIGHT }}
         >
-          <Flex justify="space-between" align="center" wrap gap="small">
-            <Space align="center" wrap>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {session.name ?? `Buổi ${session.code}`}
-              </Typography.Title>
-              <Tag>{session.code}</Tag>
-            </Space>
-            <ScheduleActions eventId={event.id} sessionId={session.id} canUpdate={canUpdate} />
-          </Flex>
           <SessionGrid eventId={event.id} timeZone={event.timezone} session={session} canUpdate={canUpdate} board={board} />
         </SideMenuLayout>
       </Flex>

@@ -26,6 +26,15 @@ export function draftFromDetail(detail: MatchDetail): GameDraft[] {
   return draft;
 }
 
+const GAME_RULE_CODES = new Set(['GAME_NOT_FINISHED', 'GAME_MARGIN', 'GAME_OVERRUN']);
+
+/** The game rule in words with examples, built from the match format. */
+export function gameRuleHint({ pointsPerGame: points, winBy }: ScoreFormat): string {
+  const base = `${points}–${Math.max(points - winBy, 0)}`;
+  const extended = winBy > 1 ? `, ${points + 1}–${points + 1 - winBy}` : '';
+  return `Quy tắc: thắng ván khi đạt ${points} điểm và hơn ${winBy} điểm (ví dụ ${base}${extended})`;
+}
+
 const filled = (game: GameDraft): boolean => game.a !== '' && game.b !== '';
 
 export function analyzeDraft(draft: readonly GameDraft[], format: ScoreFormat): DraftAnalysis {
@@ -37,7 +46,7 @@ export function analyzeDraft(draft: readonly GameDraft[], format: ScoreFormat): 
   const outcome = validateMatchScore({ games: entered, format, resultType: 'NORMAL' });
   const gameErrors: Record<number, string> = {};
   for (const issue of outcome.issues) {
-    if (issue.game !== undefined) gameErrors[issue.game] = issue.message;
+    if (issue.game !== undefined) gameErrors[issue.game] = `${issue.message}${GAME_RULE_CODES.has(issue.code) ? `. ${gameRuleHint(format)}` : ''}`;
   }
   const need = gamesToWin(format);
   const wins = { 1: 0, 2: 0 };
@@ -58,4 +67,16 @@ export function confirmSummary(winnerName: string, outcome: MatchScoreOutcome, g
   const winnerGames = outcome.winnerSide === 1 ? outcome.games1 : outcome.games2;
   const loserGames = outcome.winnerSide === 1 ? outcome.games2 : outcome.games1;
   return `${winnerName} thắng ${winnerGames}–${loserGames} (${games.map((game) => `${game.score1}–${game.score2}`).join(', ')})`;
+}
+
+const half = (game: GameDraft): boolean => (game.a === '') !== (game.b === '');
+
+/** Why the confirm button is off, in words that say what to fix; null when the result can be confirmed. */
+export function confirmBlockReason(draft: readonly GameDraft[], analysis: DraftAnalysis): string | null {
+  if (analysis.outcome.valid) return null;
+  const errored = Object.keys(analysis.gameErrors).map(Number).sort((a, b) => a - b)[0];
+  if (errored !== undefined) return `Sửa ván ${errored} để xác nhận`;
+  const partial = draft.findIndex(half);
+  if (partial >= 0) return `Nhập đủ điểm hai bên ở ván ${partial + 1} để xác nhận`;
+  return analysis.entered.length === 0 ? 'Nhập tỷ số các ván để xác nhận' : `${analysis.outcome.issues[0]?.message ?? 'Chưa đủ ván'}; nhập tiếp ván ${analysis.entered.length + 1}`;
 }

@@ -19,13 +19,16 @@ const WRITE_SIGNAL_ROOTS = new Set<unknown>([
   subEventsKey('')[0],
 ]);
 
+/** Shared by the hub (which also keeps it fresh) and read-only consumers such as the schedule status bar. */
+export const eventProgressQuery = (eventId: string) => ({
+  queryKey: eventProgressKey(eventId),
+  queryFn: async () => (await apiFetch<{ data: EventProgress }>(`/admin/events/${encodeURIComponent(eventId)}/progress`)).data,
+  retry: false,
+});
+
 export function useEventProgress(eventId: string) {
   const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: eventProgressKey(eventId),
-    queryFn: async () => (await apiFetch<{ data: EventProgress }>(`/admin/events/${encodeURIComponent(eventId)}/progress`)).data,
-    retry: false,
-  });
+  const query = useQuery(eventProgressQuery(eventId));
 
   useEffect(
     () =>

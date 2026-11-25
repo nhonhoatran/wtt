@@ -1,11 +1,13 @@
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, Flex, Radio } from 'antd';
-import dayjs from 'dayjs';
-import { ConfirmActionButton } from '../../components/confirm-action-button';
-import { DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
-import { sessionOptionLabel, type SessionRecord } from './schedule-types';
+import { Flex, Segmented } from 'antd';
+import { ScheduleActions } from './schedule-actions';
+import { dayPillLabel, sessionRangeLabel, type SessionRecord } from './schedule-types';
+import { SessionHeaderMenu } from './session-header-menu';
+
+// Long pill rows scroll inside themselves instead of widening the page on phones.
+const SCROLL_X = { maxWidth: '100%', overflowX: 'auto' } as const;
 
 interface SessionToolbarProps {
+  eventId: string;
   days: string[];
   day: string | undefined;
   sessionsOfDay: SessionRecord[];
@@ -17,28 +19,20 @@ interface SessionToolbarProps {
   onDelete: () => Promise<void>;
 }
 
-/** Day and session pickers with the session's Thêm / Sửa / Xóa kept together right after them. */
-export function SessionToolbar({ days, day, sessionsOfDay, session, canUpdate, onPick, onAdd, onEdit, onDelete }: SessionToolbarProps) {
+/** Day and session pills with the session menu, and the print / refresh / export actions on the right. */
+export function SessionToolbar({ eventId, days, day, sessionsOfDay, session, canUpdate, onPick, onAdd, onEdit, onDelete }: SessionToolbarProps) {
   return (
-    <Flex gap="middle" align="center" wrap>
-      <Radio.Group optionType="button" value={day} onChange={(e) => onPick(e.target.value)} options={days.map((value) => ({ value, label: dayjs(value).format(DISPLAY_DATE_FORMAT) }))} />
-      <Radio.Group optionType="button" value={session.id} onChange={(e) => onPick(day, e.target.value)} options={sessionsOfDay.map((item) => ({ value: item.id, label: sessionOptionLabel(item) }))} />
-      {canUpdate && (
-        <Flex gap="small" align="center">
-          <Button icon={<PlusOutlined />} onClick={onAdd}>
-            Thêm buổi thi đấu
-          </Button>
-          <Button onClick={onEdit}>Sửa</Button>
-          <ConfirmActionButton
-            label="Xóa"
-            danger
-            title={`Xóa buổi ${session.code}?`}
-            content="Chỉ xóa được buổi chưa có trận nào."
-            okText="Xóa buổi"
-            onConfirm={onDelete}
-          />
-        </Flex>
-      )}
+    <Flex gap="middle" align="center" justify="space-between" wrap>
+      <Flex gap="small" align="center" wrap style={{ minWidth: 0 }}>
+        <div style={SCROLL_X}>
+          <Segmented aria-label="Ngày thi đấu" value={day} onChange={(value) => onPick(String(value))} options={days.map((value) => ({ value, label: dayPillLabel(value) }))} />
+        </div>
+        <div style={SCROLL_X}>
+          <Segmented aria-label="Buổi thi đấu" value={session.id} onChange={(value) => onPick(day, String(value))} options={sessionsOfDay.map((item) => ({ value: item.id, label: sessionRangeLabel(item) }))} />
+        </div>
+        {canUpdate && <SessionHeaderMenu session={session} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} />}
+      </Flex>
+      <ScheduleActions eventId={eventId} sessionId={session.id} canUpdate={canUpdate} />
     </Flex>
   );
 }

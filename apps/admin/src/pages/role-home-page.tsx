@@ -3,14 +3,16 @@ import { Card, Col, Empty, Row, theme, Typography } from 'antd';
 import { Link } from 'react-router';
 import { homeKind, visibleMenuGroups } from '../layout/menu-groups';
 import type { CurrentUser } from '../providers/current-user';
+import { DashboardPage } from './dashboard/dashboard-page';
 import { ResultsEntryPage } from './results/results-entry-page';
 
-/** Result operators land straight on score entry; other roles get shortcuts to what they can open. */
+/** Result operators land straight on score entry; tournament managers get the dashboard; others get shortcuts to what they can open. */
 export function RoleHomePage() {
   const { data: user } = useGetIdentity<CurrentUser>();
   const { token } = theme.useToken();
   if (!user) return null;
   if (homeKind(user.role) === 'results') return <ResultsEntryPage />;
+  if (user.permissions.includes('tournaments.list')) return <DashboardPage user={user} />;
   const items = visibleMenuGroups(user.role).flatMap((group) => group.items.filter((item) => !item.external));
 
   return (

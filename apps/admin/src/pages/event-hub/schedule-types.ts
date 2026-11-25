@@ -51,9 +51,16 @@ export const tableLabel = (table: Pick<SessionTable, 'code' | 'displayName'>) =>
 export const sessionTimeRange = (session: Pick<SessionRecord, 'startTime' | 'endTime'>) =>
   session.endTime ? `${session.startTime}–${session.endTime}` : session.startTime;
 
-export const sessionOptionLabel = (session: SessionRecord) => `${session.code} · ${sessionTimeRange(session)}`;
-
 const SESSION_DATE_FORMAT = 'DD/MM';
+
+/** Day pill text such as "T4 11/11" (Sunday is "CN"). */
+export const dayPillLabel = (date: string): string => {
+  const day = dayjs(date);
+  return `${day.day() === 0 ? 'CN' : `T${day.day() + 1}`} ${day.format(SESSION_DATE_FORMAT)}`;
+};
+
+/** Session pill text: its name (or "Buổi <code>") followed by the time range. */
+export const sessionRangeLabel = (session: SessionRecord) => `${session.name ?? `Buổi ${session.code}`} ${sessionTimeRange(session)}`;
 
 /** For pickers that list sessions of every day: code, date and the session name (or its time range when unnamed). */
 export const sessionDatedLabel = (session: SessionRecord) =>

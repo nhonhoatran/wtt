@@ -1,8 +1,9 @@
-import { CloseOutlined, WarningOutlined } from '@ant-design/icons';
+import { CloseOutlined, HolderOutlined, PlusOutlined, WarningOutlined } from '@ant-design/icons';
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Button, Flex, Tag, Tooltip, Typography, theme } from 'antd';
 import { MATCH_STATUS_COLORS, MATCH_STATUS_LABELS, sideName } from '../results/match-types';
 import { roundTitle } from './draw-labels';
+import { CONFLICT_NOTE_ATTRIBUTE } from './schedule-status-bar';
 import { conflictText, timeInZone, type ScheduleMatch, type SessionTable } from './schedule-types';
 import { DRAGGABLE_ROLE_DESCRIPTION } from './schedule-dnd-accessibility';
 import type { SlotTarget, useScheduleBoard } from './use-schedule-board';
@@ -25,36 +26,42 @@ export const matchDragId = (matchId: string) => `match:${matchId}`;
 function MatchBody({ match, timeZone }: { match: ScheduleMatch; timeZone: string }) {
   const { token } = theme.useToken();
   return (
-    <Flex vertical gap={token.marginXXS} style={{ minWidth: 0, width: '100%' }}>
-      <Flex gap="small" align="center" wrap>
-        <Typography.Text strong>#{match.matchNo}</Typography.Text>
-        <Tag style={{ marginInlineEnd: 0 }}>{match.subEventCode}</Tag>
-        <Typography.Text type="secondary">
-          {roundTitle(match.roundCode)}
-          {match.groupCode ? ` · Bảng ${match.groupCode}` : ''}
-        </Typography.Text>
-      </Flex>
-      <Typography.Text ellipsis>{sideName(match.side1)}</Typography.Text>
-      <Typography.Text ellipsis>{sideName(match.side2)}</Typography.Text>
+    <Flex vertical gap={token.marginXXS} style={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
+      <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+        #{match.matchNo} · {match.subEventCode} · {roundTitle(match.roundCode)}
+        {match.groupCode ? ` · Bảng ${match.groupCode}` : ''}
+      </Typography.Text>
+      <Typography.Text strong>
+        {sideName(match.side1)}
+      </Typography.Text>
+      <Typography.Text strong>
+        {sideName(match.side2)}
+      </Typography.Text>
       <Flex gap="small" align="center">
-        <Tag color={MATCH_STATUS_COLORS[match.status]} style={{ marginInlineEnd: 0 }}>
-          {MATCH_STATUS_LABELS[match.status]}
-        </Tag>
+        {match.status !== 'SCHEDULED' && (
+          <Tag color={MATCH_STATUS_COLORS[match.status]} style={{ marginInlineEnd: 0 }}>
+            {MATCH_STATUS_LABELS[match.status]}
+          </Tag>
+        )}
         {match.scheduledAt && <Typography.Text type="secondary">{timeInZone(match.scheduledAt, timeZone)}</Typography.Text>}
       </Flex>
     </Flex>
   );
 }
 
-function SlotFrame({ children, warn, over }: { children: React.ReactNode; warn: boolean; over: boolean }) {
+type FrameKind = 'filled' | 'warn' | 'empty';
+
+function SlotFrame({ children, kind, over }: { children: React.ReactNode; kind: FrameKind; over: boolean }) {
   const { token } = theme.useToken();
+  const color = kind === 'warn' ? token.colorError : over ? token.colorPrimary : token.colorBorder;
   return (
     <div
       style={{
         padding: token.paddingXXS,
         borderRadius: token.borderRadius,
-        border: `${token.lineWidth}px ${token.lineType} ${warn ? token.colorWarning : 'transparent'}`,
-        background: over ? token.colorPrimaryBg : undefined,
+        border: `${token.lineWidth}px ${kind === 'empty' || over ? 'dashed' : token.lineType} ${color}`,
+        background: kind === 'warn' ? token.colorErrorBg : over ? token.colorPrimaryBg : undefined,
+        minHeight: token.controlHeightLG * 2,
       }}
     >
       {children}
@@ -83,7 +90,7 @@ function PlacedSlot({ board, canUpdate, timeZone, sessionId, table, order, match
   const body = <MatchBody match={match} timeZone={timeZone} />;
   return (
     <div ref={drop.setNodeRef}>
-      <SlotFrame warn={conflicts.length > 0} over={drop.isOver}>
+      <SlotFrame kind={conflicts.length > 0 ? 'warn' : 'filled'} over={drop.isOver}>
         {movable ? (
           <Flex align="start" gap={token.marginXXS}>
             <Button
@@ -107,7 +114,10 @@ function PlacedSlot({ board, canUpdate, timeZone, sessionId, table, order, match
               }}
               {...drag.listeners}
             >
-              {body}
+              <Flex align="start" gap={token.marginXXS} style={{ width: '100%' }}>
+                {body}
+                <HolderOutlined aria-hidden style={{ color: token.colorTextTertiary }} />
+              </Flex>
             </Button>
             <Button type="text" size="small" icon={<CloseOutlined />} disabled={board.busy} aria-label={`Bỏ xếp trận #${match.matchNo}`} onClick={() => board.unschedule(match)} />
           </Flex>
@@ -117,10 +127,11 @@ function PlacedSlot({ board, canUpdate, timeZone, sessionId, table, order, match
         {conflicts.length > 0 && (
           <Tooltip trigger={['hover', 'focus']} title={conflicts.map((conflict) => <div key={`${conflict.kind}-${conflict.withMatchId}`}>{conflictText(conflict)}</div>)}>
             <Typography.Text
+              {...{ [CONFLICT_NOTE_ATTRIBUTE]: true }}
               tabIndex={0}
               role="note"
               aria-label={`${conflicts.length} cảnh báo trùng lịch: ${conflicts.map(conflictText).join('; ')}`}
-              style={{ color: token.colorWarning }}
+              style={{ color: token.colorError }}
             >
               <WarningOutlined /> {conflicts.length} cảnh báo trùng lịch
             </Typography.Text>
@@ -132,18 +143,23 @@ function PlacedSlot({ board, canUpdate, timeZone, sessionId, table, order, match
 }
 
 function EmptySlot({ board, canUpdate, sessionId, table, order }: SlotProps) {
+  const { token } = theme.useToken();
   const target: SlotTarget = { sessionId, tableId: table.tableId, order, occupant: null };
   const drop = useDroppable({ id: slotDropId(table.tableId, order), disabled: !canUpdate, data: { target } });
   const armed = canUpdate && board.picked !== null;
   return (
     <div ref={drop.setNodeRef}>
-      <SlotFrame warn={false} over={drop.isOver}>
+      <SlotFrame kind="empty" over={drop.isOver}>
         {armed ? (
           <Button type="dashed" block size="small" disabled={board.busy} onClick={() => board.moveTo(board.picked!, target)}>
             Xếp vào đây
           </Button>
         ) : (
-          <Typography.Text type="secondary">Trống</Typography.Text>
+          <Flex align="center" justify="center" style={{ minHeight: token.controlHeightLG * 2 - token.paddingXS }}>
+            <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+              <PlusOutlined aria-hidden /> Thả trận vào đây
+            </Typography.Text>
+          </Flex>
         )}
       </SlotFrame>
     </div>

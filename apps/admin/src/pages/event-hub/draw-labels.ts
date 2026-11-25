@@ -31,6 +31,16 @@ export function overallDrawState(draws: DrawRef[] | undefined): OverallDrawState
 export const OVERALL_LABELS: Record<OverallDrawState, string> = { NONE: 'Chưa bốc', DRAFT: 'Nháp', PUBLISHED: 'Đã công bố' };
 export const OVERALL_COLORS: Record<OverallDrawState, string | undefined> = { NONE: undefined, DRAFT: undefined, PUBLISHED: 'green' };
 
+/** Antd Badge statuses for the status dot (colour is never the only cue: the dot also carries an aria-label). */
+export const OVERALL_BADGE_STATUS: Record<OverallDrawState, 'default' | 'warning' | 'success'> = { NONE: 'default', DRAFT: 'warning', PUBLISHED: 'success' };
+
+/** Section heading: in a group + knockout format the main draw is the knockout stage after the groups. */
+export function drawSectionTitle(kind: DrawKind, format: 'KNOCKOUT' | 'GROUP_KNOCKOUT'): string {
+  if (kind === 'GROUP') return 'Vòng bảng';
+  if (kind === 'QUALIFYING') return 'Vòng loại';
+  return format === 'GROUP_KNOCKOUT' ? 'Vòng loại trực tiếp' : DRAW_KIND_LABELS.MAIN;
+}
+
 export const overviewOf = (rows: DrawOverviewRow[] | undefined, subEventId: string) => rows?.find((row) => row.subEventId === subEventId);
 
 /** F, SF, QF are named rounds; R64.. are "Vòng 64"; GR1.. are group matchdays; anything else is shown as the API sent it. */

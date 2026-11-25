@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { ReactNode } from 'react';
 import { roundTitle } from '../event-hub/draw-labels';
 import { timeInZone } from '../event-hub/schedule-types';
+import { matchTableLabel } from '../event-hub/table-display-name';
 import { isOpenMatch, matchScoreText, MATCH_STATUS_COLORS, MATCH_STATUS_LABELS, sideName, type MatchListItem } from './match-types';
 
 const NO_VALUE = '—';
@@ -15,6 +16,7 @@ const PHONE: ['xs'] = ['xs'];
 const WIDE: ['sm'] = ['sm'];
 
 const tableOf = (row: MatchListItem) => row.tableName ?? row.tableCode ?? NO_VALUE;
+const tableLineOf = (row: MatchListItem) => matchTableLabel(row) ?? NO_VALUE;
 const timeOf = (row: MatchListItem, timeZone: string) => (row.scheduledAt ? timeInZone(row.scheduledAt, timeZone) : NO_VALUE);
 const roundOf = (row: MatchListItem) => `${roundTitle(row.roundCode)}${row.groupCode ? ` · Bảng ${row.groupCode}` : ''}`;
 
@@ -36,7 +38,7 @@ export function resultsColumns(timeZone: string, nextId: string | undefined): Co
       render: (_, row) => (
         <Flex vertical gap={2}>
           <Typography.Text type="secondary">
-            #{row.matchNo} · {row.tableId || row.scheduledAt ? `Bàn ${tableOf(row)} · ${timeOf(row, timeZone)}` : 'Chưa xếp lịch'}
+            #{row.matchNo} · {row.tableId || row.scheduledAt ? `${tableLineOf(row)} · ${timeOf(row, timeZone)}` : 'Chưa xếp lịch'}
           </Typography.Text>
           <Typography.Text>{sideName(row.side1)}</Typography.Text>
           <Typography.Text>{sideName(row.side2)}</Typography.Text>

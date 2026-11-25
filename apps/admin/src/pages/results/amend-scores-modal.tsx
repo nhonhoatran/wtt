@@ -59,7 +59,7 @@ export function AmendScoresModal({ detail, actions, onClose, onAmended, onReopen
           side1Name={names[1]}
           side2Name={names[2]}
           onChange={(index, patch) => setDraft((current) => current.map((game, i) => (i === index ? { ...game, ...patch } : game)))}
-          onEnter={() => void submit()}
+          onSubmit={() => void submit()}
         />
         {winnerChanged && (
           <Typography.Text type="danger" role="alert">

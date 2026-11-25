@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { apiFetch } from '../../api/http-client';
 import { ConfirmActionButton } from '../../components/confirm-action-button';
 import { blockedText } from './draw-impact-text';
+import { drawSectionTitle } from './draw-labels';
 import type { DrawKind, DrawRef, DrawSummary } from './draw-types';
 import type { EntrySubEvent } from './entry-labels';
+import { subEventTitle } from './sub-event-labels';
 import type { DrawCall } from './use-draw-call';
 
 interface DrawActionBarProps {
@@ -25,10 +27,11 @@ export function DrawActionBar({ subEvent, kind, draws, draw, call, report, onCha
   const { message } = App.useApp();
   const [placing, setPlacing] = useState<string | null>(null);
   const draft = draw.status === 'DRAFT';
+  const sectionTitle = drawSectionTitle(kind, subEvent.format);
 
   const publish = async () => {
     await call(() => apiFetch(`/admin/draws/${draw.id}/publish`, { method: 'POST', body: { expectedVersion: draw.version } }));
-    message.success('Đã công bố nhánh đấu');
+    message.success(`Đã công bố ${sectionTitle.toLowerCase()}`);
     await onChanged();
   };
 
@@ -72,11 +75,16 @@ export function DrawActionBar({ subEvent, kind, draws, draw, call, report, onCha
       )}
       {draft && (
         <>
-          <Button onClick={onReroll}>Bốc lại</Button>
+          <Button onClick={onReroll}>Bốc thăm lại</Button>
           <ConfirmActionButton
             label="Công bố"
-            title="Công bố nhánh đấu?"
-            content="Nhánh đấu hiện công khai; khi trận đầu tiên bắt đầu sẽ khóa cấu trúc."
+            title={`Công bố ${sectionTitle.toLowerCase()} ${subEventTitle(subEvent)}?`}
+            content={
+              <>
+                <p>VĐV và khán giả sẽ thấy bảng đấu trên trang giải. Sau khi công bố, muốn bốc thăm lại phải bỏ công bố trước, và khi trận đầu tiên bắt đầu thì cấu trúc bị khóa.</p>
+                {kind === 'GROUP' && subEvent.format === 'GROUP_KNOCKOUT' && <p>Vòng loại trực tiếp chỉ bốc thăm được sau khi vòng bảng đã công bố.</p>}
+              </>
+            }
             okText="Công bố"
             buttonProps={{ type: 'primary' }}
             onConfirm={publish}

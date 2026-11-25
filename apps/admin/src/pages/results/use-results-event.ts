@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '../../components/use-debounced-value';
 import { useListPageSize } from '../../providers/use-list-page-size';
@@ -26,7 +27,9 @@ const listUrl = (params: Record<string, string>) => `/admin/events?${new URLSear
  */
 export function useResultsEvent() {
   const pageSize = String(useListPageSize() ?? FALLBACK_PAGE_SIZE);
-  const [chosen, setChosen] = useState<string | null>(readStored);
+  const [params] = useSearchParams();
+  // A deep link (`?event=`) beats the remembered choice.
+  const [chosen, setChosen] = useState<string | null>(() => params.get('event') ?? readStored());
   const [text, setText] = useState('');
   const q = useDebouncedValue(text.trim(), SEARCH_DEBOUNCE_MS);
 
@@ -40,7 +43,7 @@ export function useResultsEvent() {
     enabled: Boolean(chosen),
     retry: false,
     initialData: () => found.data?.find((event) => event.id === chosen),
-    queryFn: async () => (await apiFetch<{ data: PickerEvent }>(`/admin/events/${chosen}`)).data,
+    queryFn: async () => (await apiFetch<{ data: PickerEvent }>(`/admin/events/${encodeURIComponent(chosen ?? '')}`)).data,
   });
   const needsDefault = !chosen || chosenEvent.isError;
   const fallback = useQuery({

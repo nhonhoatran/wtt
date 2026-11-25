@@ -77,10 +77,10 @@ export async function confirmResult(page: Page, publicPage: Page, world: FullUiW
   const before = await publicPage.locator('main').innerText();
   const drawer = page.locator('.ant-drawer-open');
   await fillWin(drawer, detail, winner);
-  await drawer.getByRole('button', { name: 'Chốt kết quả', exact: true }).click();
-  const modal = page.getByRole('dialog').filter({ hasText: 'Chốt kết quả?' });
+  await drawer.getByRole('button', { name: 'Xác nhận kết quả', exact: true }).click();
+  const modal = page.getByRole('dialog').filter({ hasText: 'Xác nhận kết quả?' });
   const started = performance.now();
-  const confirmed = await uiResponse<MatchDetail>(page, 'POST', `/admin/matches/${detail.id}/confirm`, () => modal.getByRole('button', { name: 'Chốt', exact: true }).click());
+  const confirmed = await uiResponse<MatchDetail>(page, 'POST', `/admin/matches/${detail.id}/confirm`, () => modal.getByRole('button', { name: 'Xác nhận', exact: true }).click());
   let changed = false;
   while (performance.now() - started < 5_000) {
     await publicPage.reload({ waitUntil: 'domcontentloaded', timeout: Math.max(1, Math.floor(5_000 - (performance.now() - started))) });

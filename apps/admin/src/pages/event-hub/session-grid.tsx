@@ -1,12 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
 import { Button, Flex, Result, Skeleton, Table, Typography } from 'antd';
-import { apiFetch } from '../../api/http-client';
 import { GridSlot, type ScheduleBoard } from './session-grid-cell';
 import { TruncatedNotice } from './truncated-notice';
-import { scheduleKey, tableLabel, type ScheduleMatch, type SessionRecord } from './schedule-types';
+import { tableLabel, type SessionRecord } from './schedule-types';
+import { useSessionGridMatches } from './use-session-grid-matches';
 
-const GRID_COLUMN_WIDTH = 240;
-const ORDER_COLUMN_WIDTH = 56;
+// Narrow enough for six tables beside the side panel; narrower screens scroll the grid sideways.
+const GRID_MIN_COLUMN_WIDTH = 104;
+const ORDER_COLUMN_WIDTH = 64;
+const MIN_CELL_STYLE = { style: { minWidth: GRID_MIN_COLUMN_WIDTH } };
 
 interface SessionGridProps {
   eventId: string;
@@ -20,13 +21,9 @@ interface SlotRow {
   order: number;
 }
 
-/** Columns are the session's tables, rows are order slots (existing matches plus one empty row to append to). */
+/** Columns are the session's tables, rows are turns (existing matches plus one empty row to append to). */
 export function SessionGrid({ eventId, timeZone, session, canUpdate, board }: SessionGridProps) {
-  const matches = useQuery({
-    queryKey: [...scheduleKey(eventId), 'grid', session.id],
-    queryFn: async () =>
-      apiFetch<{ data: ScheduleMatch[]; total: number; truncated?: boolean }>(`/admin/events/${eventId}/matches?${new URLSearchParams({ 'filter[sessionId]': session.id })}`),
-  });
+  const matches = useSessionGridMatches(eventId, session.id);
 
   if (matches.isLoading) return <Skeleton active />;
   if (matches.isError || !matches.data) {
@@ -47,7 +44,7 @@ export function SessionGrid({ eventId, timeZone, session, canUpdate, board }: Se
             ? board.picked.tableId
               ? `Đang chọn trận #${board.picked.matchNo}: bấm vào ô trống để dời, bấm vào ô có trận để đổi chỗ, Esc để bỏ chọn.`
               : `Đang chọn trận #${board.picked.matchNo}: bấm vào ô trống để xếp, Esc để bỏ chọn. Ô đã có trận chỉ đổi chỗ được với trận đã xếp.`
-            : 'Chọn một trận (ở danh sách bên trái hoặc trong lưới) rồi bấm ô muốn xếp, hoặc kéo trận thả vào ô.'}
+            : 'Kéo trận thả vào ô, hoặc chọn một trận (ở danh sách hoặc trong lưới) rồi bấm ô muốn xếp. Bàn phím: Space để nhấc, mũi tên để chuyển ô, Space để thả.'}
         </Typography.Text>
       )}
       <Table<SlotRow>
@@ -56,13 +53,14 @@ export function SessionGrid({ eventId, timeZone, session, canUpdate, board }: Se
         bordered
         pagination={false}
         dataSource={rows}
-        scroll={{ x: 'max-content' }}
+        tableLayout="fixed"
+        scroll={{ x: ORDER_COLUMN_WIDTH + GRID_MIN_COLUMN_WIDTH * session.tables.length }}
         columns={[
-          { title: '#', dataIndex: 'order', width: ORDER_COLUMN_WIDTH, fixed: 'left' },
+          { title: 'Lượt', dataIndex: 'order', width: ORDER_COLUMN_WIDTH, fixed: 'left' },
           ...session.tables.map((table) => ({
             title: tableLabel(table),
             key: table.tableId,
-            width: GRID_COLUMN_WIDTH,
+            onCell: () => MIN_CELL_STYLE,
             render: (_: unknown, row: SlotRow) => (
               <GridSlot
                 board={board}

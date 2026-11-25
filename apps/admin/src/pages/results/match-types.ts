@@ -5,6 +5,8 @@ export type MatchStatusFilter = 'OPEN' | MatchStatus;
 export interface EntryBrief {
   id: string;
   displayName: string;
+  /** Seed number from the draw; null or missing when the entry is not seeded. */
+  seed?: number | null;
   players: { id: string; fullName: string; club: string | null }[];
 }
 

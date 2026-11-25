@@ -18,7 +18,7 @@ export async function scheduleAndPrint(page: Page, world: FullUiWorld, event: Ev
   evidence.sessions.push(session.id);
   await saveEvidence(evidence);
   await expect(modal).not.toBeVisible();
-  const unscheduled = page.locator('.ant-card').filter({ has: page.getByText('Trận chưa xếp', { exact: true }) });
+  const unscheduled = page.locator('.ant-card').filter({ has: page.getByText(/^Trận chưa xếp lịch/) });
   const placed: number[] = [];
   for (let index = 0; index < 3; index++) {
     const match = unscheduled.getByRole('button', { pressed: false }).filter({ hasText: /^#/ }).first();

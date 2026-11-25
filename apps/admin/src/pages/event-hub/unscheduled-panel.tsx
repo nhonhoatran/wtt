@@ -1,3 +1,4 @@
+import { HolderOutlined } from '@ant-design/icons';
 import { useDraggable } from '@dnd-kit/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Empty, Flex, Input, Pagination, Select, Skeleton, Typography, theme } from 'antd';
@@ -33,22 +34,25 @@ function UnscheduledItem({ match, board, canUpdate }: { match: ScheduleMatch; bo
         whiteSpace: 'normal',
         cursor: canUpdate ? 'grab' : undefined,
         opacity: drag.isDragging ? token.opacityLoading : undefined,
+        border: `${token.lineWidth}px ${token.lineType} ${selected ? token.colorPrimary : token.colorBorderSecondary}`,
         background: selected ? token.colorPrimaryBg : undefined,
-        borderColor: selected ? token.colorPrimary : undefined,
       }}
       {...drag.listeners}
     >
-      <Flex vertical style={{ minWidth: 0, width: '100%' }}>
-        <Typography.Text strong>
-          #{match.matchNo} · {match.subEventCode} · {roundTitle(match.roundCode)}
-          {match.groupCode ? ` · Bảng ${match.groupCode}` : ''}
-        </Typography.Text>
-        <Typography.Text ellipsis type="secondary">
-          {sideName(match.side1)}
-        </Typography.Text>
-        <Typography.Text ellipsis type="secondary">
-          {sideName(match.side2)}
-        </Typography.Text>
+      <Flex align="start" gap={token.marginXXS} style={{ width: '100%' }}>
+        <Flex vertical style={{ minWidth: 0, flex: 1 }}>
+          <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+            #{match.matchNo} · {match.subEventCode} · {roundTitle(match.roundCode)}
+            {match.groupCode ? ` · Bảng ${match.groupCode}` : ''}
+          </Typography.Text>
+          <Typography.Text strong ellipsis>
+            {sideName(match.side1)}
+          </Typography.Text>
+          <Typography.Text strong ellipsis>
+            {sideName(match.side2)}
+          </Typography.Text>
+        </Flex>
+        <HolderOutlined aria-hidden style={{ color: token.colorTextTertiary }} />
       </Flex>
     </Button>
   );
@@ -91,8 +95,7 @@ export function UnscheduledPanel({ eventId, board, canUpdate }: { eventId: strin
   return (
     <Card
       size="small"
-      title="Trận chưa xếp"
-      extra={matches.data ? matches.data.total : undefined}
+      title={matches.data ? `Trận chưa xếp lịch (${matches.data.total})` : 'Trận chưa xếp lịch'}
       style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       styles={{ body: { flex: 1, minHeight: 0, overflowY: 'auto' } }}
     >
@@ -133,6 +136,7 @@ export function UnscheduledPanel({ eventId, board, canUpdate }: { eventId: strin
         {(matches.data?.total ?? 0) > 0 && (
           <Pagination size="small" simple current={page} pageSize={matches.data?.pageSize ?? 1} total={matches.data?.total ?? 0} showSizeChanger={false} onChange={setPage} />
         )}
+        {canUpdate && (matches.data?.total ?? 0) > 0 && <Typography.Text type="secondary">Kéo trận vào ô trống trong lưới.</Typography.Text>}
       </Flex>
     </Card>
   );

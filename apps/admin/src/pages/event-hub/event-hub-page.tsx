@@ -13,6 +13,7 @@ import { EventHubHeader } from './event-hub-header';
 import { EventProgressStepper } from './event-progress-stepper';
 import { EventInfoTab } from './event-info-tab';
 import type { HubTabContext } from './hub-tab-context';
+import { ResultsTab } from './results-tab';
 import { ScheduleTab } from './schedule-tab';
 import { SubEventsTab } from './sub-events-tab';
 import { SponsorsTab } from './sponsors-tab';
@@ -24,13 +25,13 @@ interface HubTabDef {
   render: (context: HubTabContext) => ReactNode;
 }
 
-/** Later phases append their tabs here (kết quả...). */
 const HUB_TABS: HubTabDef[] = [
   { key: 'info', label: 'Thông tin', render: (context) => <EventInfoTab {...context} /> },
   { key: 'sub-events', label: 'Nội dung thi đấu', render: (context) => <SubEventsTab {...context} /> },
   { key: 'entries', label: 'Danh sách đăng ký', render: (context) => <EntriesTab {...context} /> },
   { key: 'draws', label: 'Bốc thăm', render: (context) => <DrawsTab {...context} /> },
   { key: 'schedule', label: 'Lịch thi đấu', render: (context) => <ScheduleTab {...context} /> },
+  { key: 'results', label: 'Kết quả', render: (context) => <ResultsTab {...context} /> },
   { key: 'sponsors', label: 'Tài trợ', render: (context) => <SponsorsTab {...context} /> },
 ];
 const DEFAULT_TAB = HUB_TABS[0]!.key;
@@ -44,6 +45,7 @@ export function EventHubPage() {
   const canDelete = useCan({ resource: 'tournaments', action: 'delete' }).data?.can ?? false;
   const canPublish = useCan({ resource: 'tournaments', action: 'publish' }).data?.can ?? false;
   const canListSponsors = useCan({ resource: 'sponsors', action: 'list' }).data?.can ?? false;
+  const canListMatches = useCan({ resource: 'matches', action: 'list' }).data?.can ?? false;
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-event', id],
     queryFn: async () => (await apiFetch<{ data: EventRecord }>(`/admin/events/${encodeURIComponent(id)}`)).data,
@@ -78,7 +80,7 @@ export function EventHubPage() {
     );
   }
 
-  const tabs = HUB_TABS.filter((item) => item.key !== 'sponsors' || canListSponsors);
+  const tabs = HUB_TABS.filter((item) => (item.key !== 'sponsors' || canListSponsors) && (item.key !== 'results' || canListMatches));
   const activeKey = tabs.find((item) => item.key === tab)?.key ?? DEFAULT_TAB;
   const context: HubTabContext = { event: data, canUpdate, canCreate, canDelete, onChanged };
 
