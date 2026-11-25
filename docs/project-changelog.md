@@ -25,6 +25,7 @@ Plan: [261125-0951-figma-ui-redesign-admin-client](../plans/261125-0951-figma-ui
 - **API công khai và setting**
   - Khối `display` trong `/public/site`.
   - Setting mới, sửa được trên `/settings`: `site.nav.items`, `site.socialLinks`, `site.tagline`, `site.registrationUrl`; `site.name` giờ cũng sửa được ở đây.
+  - Khối `display` thêm `rankingPointsGuideSlug` (`ranking.pointsGuidePageSlug`), `matchRelatedLimit` (`public.matchRelatedLimit`) và `timezone` (dùng lại `event.defaultTimezone`).
   - Cache tag bổ sung:
     - Đổi tên hoặc mã buổi thi đấu thì làm mới mọi trang trận trong buổi.
     - Sửa bàn thì làm mới trang VĐV của hai bên (chỉ trận thuộc giải đã công bố).

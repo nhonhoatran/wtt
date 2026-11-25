@@ -79,6 +79,7 @@ Base `/api/v1/admin`. Quyền theo `PERMISSION_MATRIX` (`packages/shared/src/per
 | `GET /draws/:id/bracket` | `tournaments.read` | Ô, vòng, trận. `randomSeed` chỉ trả khi caller có `tournaments.update` |
 | `GET /draws/:id/groups` | `tournaments.read` | Bảng, thành viên, BXH, trận. Cùng quy tắc `randomSeed` |
 | `POST /draws/:id/swap` | `tournaments.update` | Đổi chỗ hai ô cùng nhánh con, chỉ khi nháp |
+| `POST /draws/:id/swap-group-members` | `tournaments.update` | Đổi chỗ hai VĐV của vòng bảng nháp (xem mục dưới) |
 | `POST /draws/:id/publish` | `tournaments.publish` | Kiểm VĐV còn hiệu lực, hoàn tất walkover treo |
 | `DELETE /draws/:id?expectedVersion=N` | `tournaments.delete` | Chỉ nháp |
 | `POST /draws/:id/place-qualifiers` | `tournaments.update` | Xếp suất vòng loại vào MAIN |
@@ -92,6 +93,24 @@ Base `/api/v1/admin`. Quyền theo `PERMISSION_MATRIX` (`packages/shared/src/per
 | `POST /sub-events/:id/entries/suggest-seeds` | `tournaments.create` | Trả rỗng tới phase 09 |
 
 Đổi stage của VĐV đang nằm trong nhánh đã công bố (`PATCH /entries/:id`, bulk `setStage`) bị chặn bằng 409 `ENTRY_IN_PUBLISHED_DRAW`.
+
+## Đổi chỗ thành viên vòng bảng (nháp)
+
+`POST /admin/draws/:id/swap-group-members`, quyền `tournaments.update`. Nguồn: `apps/api/src/modules/draws/group-member-swap.service.ts`.
+
+- Body: `{ entryA, entryB, expectedVersion }` (`entryA`, `entryB` là UUID của entry; `expectedVersion` là version nhánh hiện tại). Thành công trả `{ data: <tóm tắt nhánh> }` với version đã tăng.
+- Hai VĐV đổi nhóm và ô (`slot`) cho nhau, có thể khác bảng hoặc cùng một bảng. BXH khởi tạo (`GroupStanding`) đi theo VĐV.
+- Trận vòng bảng đã sinh được hoán VĐV theo: `Match.groupId` giữ nguyên, hai phía của các trận có hai VĐV này được đổi chỗ, mỗi trận tăng `version`. Trận đã xếp lịch giữ nguyên lịch nên sẽ mang lịch của VĐV mới. Xung đột lịch (nếu có) chỉ hiện khi đọc ở tab Lịch, không cảnh báo ngay lúc đổi.
+- Chạy trong một transaction: khóa SubEvent rồi Draw, so `expectedVersion`, ghi audit `draw.swapGroupMembers` (có trước và sau của cả hai VĐV).
+
+| Mã lỗi | HTTP | Khi nào |
+|---|---|---|
+| `DRAW_VERSION_CONFLICT` | 409 | `expectedVersion` đã cũ |
+| `DRAW_NOT_DRAFT` | 409 | Nhánh đã công bố |
+| `DRAW_STRUCTURE_LOCKED` | 409 | Đã có trận bắt đầu |
+| `KIND_NOT_ALLOWED` | 422 | Nhánh không phải vòng bảng |
+| `INVALID_PARAMS` | 422 | `entryA` trùng `entryB` |
+| `ENTRY_NOT_IN_DRAW` | 422 | Một trong hai VĐV không thuộc vòng bảng này |
 
 ## Xem trước và thao tác sau công bố (dryRun)
 

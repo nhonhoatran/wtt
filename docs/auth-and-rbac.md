@@ -180,7 +180,7 @@ Hai API:
 - Key không có hoặc không cho sửa → 404 `SETTING_NOT_FOUND`.
 - `AppSettingsService.get()` đọc DB mỗi lần, không còn cache RAM 10 giây riêng từng replica (bổ sung 2026-11-15). Hai instance service đã kiểm cùng thấy thay đổi mà không cần chờ TTL.
 
-**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`, `public-site-settings.ts`, `ranking-settings.ts`, `player-settings.ts`, `import-operational-settings.ts`). Cột "Nhóm" là tên nhóm trong code:
+**Danh sách key sửa được** (nguồn: `packages/shared/src/auth-settings.ts`, `list-settings.ts`, `tournament-settings.ts`, `public-site-settings.ts`, `public-site-display-settings.ts`, `dashboard-settings.ts`, `ranking-settings.ts`, `player-settings.ts`, `import-operational-settings.ts`). Cột "Nhóm" là tên nhóm trong code:
 
 | Key | Nhóm | Mặc định | Khoảng | Đơn vị |
 |---|---|---|---|---|
@@ -195,7 +195,7 @@ Hai API:
 | `auth.stepUp.ttlMinutes` | auth | 5 | 1–60 | phút |
 | `auth.password.minLength` | auth | 10 | 8–64 | ký tự |
 | `list.defaultPageSize` | list | 20 | 5–100 | dòng |
-| `event.defaultTimezone` | event | `Asia/Ho_Chi_Minh` | múi giờ IANA hợp lệ | — |
+| `event.defaultTimezone` | event | `Asia/Ho_Chi_Minh` | múi giờ IANA hợp lệ | điền sẵn khi tạo giải; cũng là múi giờ site công khai tính "hôm nay" (`site.display.timezone`) |
 | `event.defaultDurationDays` | event | 2 | 0–30 | ngày |
 | `venue.tablePrefix` | event | `T` | 1–8 ký tự: chữ, số, gạch ngang | — |
 | `header.resultsStrip.enabled` | display | false | bật/tắt | — |
@@ -226,8 +226,28 @@ Hai API:
 | `draw.defaultAdvancePerGroup` | draw | 2 | 1–2 | VĐV đi tiếp mỗi bảng |
 | `draw.defaultQualifierCount` | draw | 4 | 1–64 | suất vòng loại |
 | `ranking.defaultValidityDays` | ranking | 365 | 1–3650 | ngày. Điểm hết hạn sau số ngày này kể từ ngày kết thúc giải (phase 09) |
+| `ranking.pointsGuidePageSlug` | ranking | trống (ẩn link) | trống hoặc slug trang tĩnh (`[A-Za-z0-9_-]`, tối đa 128) | trang tồn tại và đã công bố thì trang xếp hạng hiện link "Cách tính điểm"; `/public/site` trả `null` khi trống |
 | `ranking.awardPointsOnWalkoverLoss` | ranking | tắt | bật/tắt | Tắt thì VĐV thua walkover ở trận thật đầu tiên không được điểm vòng đó (phase 09) |
 | `ranking.dirtySweepAgeMinutes` | ranking | 5 | 1–1440 | phút. Nội dung có dấu cần tính lại cũ hơn mức này thì được xếp lại vào hàng đợi (phase 09) |
+| `dashboard.liveEventLimit` | dashboard | 5 | 1–20 | giải. Số giải đang diễn ra tối đa ở khối "Giải đang diễn ra" của Tổng quan |
+| `dashboard.recentActivityLimit` | dashboard | 6 | 0–20 | dòng. Số dòng ở khối "Hoạt động gần đây" của Tổng quan, 0 thì ẩn khối |
+| `site.name` | display | `{vi: "Giải bóng bàn Kamito", en: "Kamito Table Tennis"}` | mỗi ngôn ngữ 1–120 ký tự, bắt buộc đủ hai | — |
+| `site.nav.items` | display | news, videos, players, events, rankings | ít nhất 1 mục, mỗi mục chỉ một lần, nhãn VI/EN tùy chọn tối đa 60 ký tự | — |
+| `site.socialLinks` | display | trống | tối đa 8 liên kết, chỉ `https` | — |
+| `site.tagline` | display | `null` (ẩn) | `null`, hoặc đủ cả tiếng Việt lẫn tiếng Anh (mỗi bản không rỗng, tối đa 300 ký tự) | — |
+| `site.registrationUrl` | display | trống (ẩn nút) | trống hoặc đường dẫn `https`, tối đa 2048 ký tự | — |
+| `public.matchRelatedLimit` | display | 4 | 1–12 | trận. Số trận cùng bảng hoặc cùng vòng ở cột bên của trang chi tiết trận |
+
+**Kiểu editor trên trang `/settings`.** Trường `editor` của mỗi key quyết định ô nhập. Zod của key vẫn là nguồn sự thật, editor chỉ chặn sớm ở giao diện:
+
+| `editor.kind` | Dùng cho | Ghi chú |
+|---|---|---|
+| `number`, `boolean`, `timezone`, `choice`, `event` | Số, bật/tắt, múi giờ, lựa chọn, chọn giải | Như trước |
+| `text` | Chuỗi ngắn | `optional: true` cho phép để trống (ví dụ `site.registrationUrl`: trống thì ẩn nút) |
+| `bilingual-text` | Cặp tiếng Việt và tiếng Anh (`site.name`, `site.tagline`) | `nullable: true` thì xóa cả hai ô sẽ lưu `null` (ẩn). Có điền thì phải đủ cả hai ngôn ngữ, cả zod lẫn editor đều kiểm. `site.name` không còn là JSON thô |
+| `nav-items` | Danh sách mục menu (`site.nav.items`) | Chọn, sắp thứ tự, đặt nhãn VI/EN tùy chọn |
+| `social-links` | Danh sách `{platform, url}` (`site.socialLinks`) | URL phải `https` |
+| `json` | Giá trị còn lại | Ô JSON thô |
 
 Mã VĐV mới = `player.codePrefix` + số thứ tự từ sequence, đệm `player.codeDigits` chữ số. Đổi tiền tố không đổi mã đã cấp.
 

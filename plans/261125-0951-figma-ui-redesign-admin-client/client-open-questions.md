@@ -25,3 +25,8 @@
 - Nếu Q4/Q6/Q7 chọn A: migration + form admin thuộc nửa admin; client chỉ hiện khi có dữ liệu.
 - File dùng chung (`packages/ui-tokens/src/tokens.ts`, `build-css-variables.test.ts`, `packages/shared/src/app-setting-registry.ts`, `packages/shared/src/public-*-contract.ts`, `apps/api/src/modules/revalidation/cache-tags.ts`): không sửa song song. Đã thấy trùng thật: A1 ↔ C1 (`ui-tokens`), A2 ↔ C2 (`app-setting-registry.ts`) → chạy nối tiếp từng cặp.
 - E2E `apps/client/tests/admin-full-flow/*` do nửa admin sửa (A1, A6, A7, A9, A10); nửa client chỉ sửa `apps/client/tests/e2e/*`, `tests/unit/*`, `tests/offline/*`.
+
+## Đã chốt thêm (2026-11-25)
+- `site.tagline` khi có giá trị phải đủ cả tiếng Việt và tiếng Anh; API kiểm cùng quy tắc với trang `/settings`.
+- Nhánh đấu nhiều nhánh con dùng chung tham số `?round` (chọn vòng thì mọi nhánh đổi theo). Tách theo từng nhánh để sau nếu có nhu cầu thật.
+- Danh sách trận trên desktop (từ ~1024px) hiển thị dạng bảng theo Figma 1-8; dưới mức đó giữ dạng thẻ.
