@@ -94,7 +94,7 @@ export function AddEntryForm({ subEvent, canOverride, onAdded }: AddEntryFormPro
           <Select value={stage} onChange={setStage} options={ENTRY_STAGE_OPTIONS} aria-label="Vòng" style={{ minWidth: 130 }} />
         )}
         <Button type="primary" icon={<PlusOutlined />} disabled={!ready} loading={saving} onClick={() => void submit()}>
-          {doubles ? 'Thêm cặp' : 'Thêm VĐV'}
+          {doubles ? 'Thêm cặp' : 'Thêm vào danh sách'}
         </Button>
       </Flex>
       {pendingNew && (

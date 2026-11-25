@@ -12,6 +12,7 @@ import {
   type ImportRowPlayer,
   type ImportRowStatus,
 } from '../resources/imports/import-labels';
+import { importFixHint } from '../resources/imports/import-fix-hints';
 import { ImportRowDecisionSelect } from './import-row-decision-select';
 import { useTableScroll } from './use-table-scroll';
 import { FormInstanceHost } from './form-instance-host';
@@ -116,9 +117,10 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
             row.messages.length ? (
               <Flex vertical style={{ maxWidth: MESSAGES_MAX_WIDTH, whiteSpace: 'normal' }}>
                 {row.messages.map((text) => (
-                  <Typography.Text key={text} type={row.status === 'ERROR' ? 'danger' : 'warning'}>
-                    {text}
-                  </Typography.Text>
+                  <span key={text}>
+                    <Typography.Text type={row.status === 'ERROR' ? 'danger' : 'warning'}>{text}</Typography.Text>
+                    {importFixHint(text) && <Typography.Text type="secondary"> Cách sửa: {importFixHint(text)}</Typography.Text>}
+                  </span>
                 ))}
               </Flex>
             ) : (

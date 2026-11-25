@@ -47,6 +47,13 @@ export function updateScopedRuleEdits(state: ScopedRuleEdits, scope: string, upd
 export const ruleCellValue = (edits: RuleEdits, original: OriginalPoints, eventTypeId: string, stageCode: string) =>
   edits[cellKey(eventTypeId, stageCode)]?.points ?? original.get(cellKey(eventTypeId, stageCode)) ?? null;
 
+export const originalRuleValue = (original: OriginalPoints, eventTypeId: string, stageCode: string) =>
+  original.get(cellKey(eventTypeId, stageCode)) ?? null;
+
+export const isValidRulePoints = (points: number) => Number.isInteger(points) && points >= 0;
+
+export const invalidRuleCells = (edits: RuleEdits): RuleCellEdit[] => Object.values(edits).filter((edit) => !isValidRulePoints(edit.points));
+
 /** A cleared input restores the stored value; an explicit zero is still a rule. */
 export function updateRuleCell(edits: RuleEdits, original: OriginalPoints, eventTypeId: string, stageCode: string, points: number | null): RuleEdits {
   const key = cellKey(eventTypeId, stageCode);

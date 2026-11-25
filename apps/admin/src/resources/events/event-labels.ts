@@ -1,4 +1,4 @@
-import { EVENT_LIFECYCLE_LABELS, EVENT_LIFECYCLES, type EventLifecycle } from '@kamito/shared';
+import type { EventLifecycle } from '@kamito/shared';
 import dayjs from 'dayjs';
 
 export interface EventRecord {
@@ -31,7 +31,11 @@ export interface EventRecord {
   venue: { id: string; name: string; city: string | null } | null;
   bannerMedia: { id: string; publicKey: string | null } | null;
   _count: { subEvents: number };
+  /** CONFIRMED entries across all contents; only the list endpoint sends it. */
+  entryCount?: number;
 }
+
+export type LifecycleCounts = Record<EventLifecycle | 'ALL', number>;
 
 export const EVENT_FORM_MAX_WIDTH = 720;
 /** Years offered by the list filter on each side of the current year. */
@@ -41,7 +45,7 @@ export const DATE_ONLY_FORMAT = 'YYYY-MM-DD';
 export const DISPLAY_DATE_FORMAT = 'DD/MM/YYYY';
 export const TIME_FORMAT = 'HH:mm';
 
-export const LIFECYCLE_OPTIONS = EVENT_LIFECYCLES.map((value) => ({ value, label: EVENT_LIFECYCLE_LABELS[value] }));
+export const LIFECYCLE_ALL_LABEL = 'Tất cả';
 export const PUBLISH_LABELS = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố' } as const;
 export const PUBLISH_OPTIONS = Object.entries(PUBLISH_LABELS).map(([value, label]) => ({ value, label }));
 

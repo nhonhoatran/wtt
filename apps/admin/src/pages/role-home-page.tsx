@@ -1,8 +1,7 @@
-import { can } from '@kamito/shared';
 import { useGetIdentity } from '@refinedev/core';
 import { Card, Col, Empty, Row, theme, Typography } from 'antd';
 import { Link } from 'react-router';
-import { visibleMenuGroups } from '../layout/menu-groups';
+import { homeKind, visibleMenuGroups } from '../layout/menu-groups';
 import type { CurrentUser } from '../providers/current-user';
 import { ResultsEntryPage } from './results/results-entry-page';
 
@@ -11,7 +10,7 @@ export function RoleHomePage() {
   const { data: user } = useGetIdentity<CurrentUser>();
   const { token } = theme.useToken();
   if (!user) return null;
-  if (user.role === 'RESULTS_OPERATOR' && can(user.role, 'matches', 'list')) return <ResultsEntryPage />;
+  if (homeKind(user.role) === 'results') return <ResultsEntryPage />;
   const items = visibleMenuGroups(user.role).flatMap((group) => group.items.filter((item) => !item.external));
 
   return (

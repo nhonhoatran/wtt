@@ -9,6 +9,7 @@ export interface CurrentUser {
   permissions: PermissionKey[];
   mustChangePassword: boolean;
   listDefaultPageSize: number;
+  siteName: { vi: string; en: string };
 }
 
 let pending: Promise<CurrentUser | null> | null = null;

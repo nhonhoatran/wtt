@@ -46,9 +46,9 @@ dayjs.locale('vi');
 
 const resources = [
   { name: 'users', list: '/users', create: '/users/create', edit: '/users/:id/edit', meta: { label: 'Tài khoản nhân viên' } },
-  { name: 'events', list: '/events', create: '/events/create', show: '/events/:id', meta: { label: 'Danh sách giải' } },
+  { name: 'events', list: '/events', create: '/events/create', show: '/events/:id', meta: { label: 'Giải đấu' } },
   ...catalogResources,
-  { name: 'players', list: '/players', create: '/players/create', edit: '/players/:id/edit', meta: { label: 'Danh sách VĐV' } },
+  { name: 'players', list: '/players', create: '/players/create', edit: '/players/:id/edit', meta: { label: 'Vận động viên' } },
   { name: 'pairs', list: '/pairs', meta: { label: 'Cặp đôi' } },
   { name: 'imports', list: '/imports', show: '/imports/:id', meta: { label: 'Lịch sử import' } },
   ...rankingResources,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cellKey, changedRuleCells, copyRuleColumn, editsInScope, ruleCellValue, updateRuleCell, updateScopedRuleEdits, visibleEventTypes } from '../src/pages/ranking/ranking-rules-state.ts';
+import { cellKey, changedRuleCells, copyRuleColumn, editsInScope, invalidRuleCells, isValidRulePoints, originalRuleValue, ruleCellValue, updateRuleCell, updateScopedRuleEdits, visibleEventTypes } from '../src/pages/ranking/ranking-rules-state.ts';
 
 const cell = (eventTypeId, stageCode, points) => ({ eventTypeId, stageCode, points });
 const originals = (...cells) => new Map(cells.map((item) => [cellKey(item.eventTypeId, item.stageCode), item.points]));
@@ -124,6 +124,22 @@ test('a future version with all edited values already in force produces no write
   const edits = [cell('major', 'W', 1200), cell('club', 'F', 100)];
   assert.deepEqual(changedRuleCells(edits, edits), []);
   assert.deepEqual(changedRuleCells([], edits), []);
+});
+
+test('negative and fractional points are invalid while zero and whole numbers are valid', () => {
+  assert.deepEqual([-5, 1.5, 0, 10].map(isValidRulePoints), [false, false, true, true]);
+});
+
+test('invalid cells list only pending edits that break the points rule', () => {
+  const edits = pending(cell('major', 'W', -5), cell('major', 'F', 600), cell('club', 'W', 2.5));
+  assert.deepEqual(invalidRuleCells(edits), [cell('major', 'W', -5), cell('club', 'W', 2.5)]);
+  assert.deepEqual(invalidRuleCells({}), []);
+});
+
+test('original value ignores unsaved edits and is null for a blank cell', () => {
+  const baseline = originals(cell('major', 'W', 1000));
+  assert.equal(originalRuleValue(baseline, 'major', 'W'), 1000);
+  assert.equal(originalRuleValue(baseline, 'major', 'F'), null);
 });
 
 test('inactive event types stay visible only when hiding them would conceal a stored rule', () => {

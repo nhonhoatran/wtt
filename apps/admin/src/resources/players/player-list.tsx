@@ -25,7 +25,7 @@ export function PlayerList() {
 
   return (
     <List
-      title="Danh sách VĐV"
+      title="Vận động viên"
       headerButtons={
         <CanAccess resource="players" action="create">
           <CreateButton>Thêm VĐV</CreateButton>

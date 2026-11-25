@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { DATE_ONLY_FORMAT } from '../../resources/events/event-labels';
 import type { DrawKind } from '../event-hub/draw-types';
-import { cellKey, copyRuleColumn, editsInScope, ruleCellValue, updateRuleCell, updateScopedRuleEdits, type CompetitorKind, type RuleEdits, type RulesMatrix, type ScopedRuleEdits } from './ranking-rules-state';
+import { cellKey, copyRuleColumn, editsInScope, invalidRuleCells, isValidRulePoints, originalRuleValue, ruleCellValue, updateRuleCell, updateScopedRuleEdits, type CompetitorKind, type RuleEdits, type RulesMatrix, type ScopedRuleEdits } from './ranking-rules-state';
 
 export { cellKey, visibleEventTypes } from './ranking-rules-state';
 export type { CompetitorKind, RuleCellEdit, RuleEventType, RulesMatrix } from './ranking-rules-state';
@@ -77,7 +77,13 @@ export function useRankingRulesMatrix() {
     query,
     stale: query.isPlaceholderData,
     edits: Object.values(edits),
+    invalidCount: invalidRuleCells(edits).length,
     isEdited: (eventTypeId: string, stageCode: string) => cellKey(eventTypeId, stageCode) in edits,
+    isInvalid: (eventTypeId: string, stageCode: string) => {
+      const edit = edits[cellKey(eventTypeId, stageCode)];
+      return edit !== undefined && !isValidRulePoints(edit.points);
+    },
+    originalOf: (eventTypeId: string, stageCode: string) => originalRuleValue(original, eventTypeId, stageCode),
     valueOf,
     setCell,
     copyColumn,

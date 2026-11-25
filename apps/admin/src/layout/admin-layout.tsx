@@ -1,19 +1,17 @@
-import { LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import { useGetIdentity, useLogout } from '@refinedev/core';
-import { Button, Drawer, Dropdown, Flex, Grid, Layout, Menu, Spin, Tag, theme, Typography } from 'antd';
+import { tokens } from '@kamito/ui-tokens';
+import { Drawer, Grid, Layout, Spin, theme } from 'antd';
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 import type { CurrentUser } from '../providers/current-user';
-import { ROLE_LABELS, visibleMenuGroups } from './menu-groups';
+import { BreadcrumbProvider } from './admin-breadcrumb';
+import { AdminHeader } from './admin-header';
+import { AdminSider, SIDER_WIDTH } from './admin-sider';
+import { homeKind, SHELL_LABELS, visibleMenuGroups } from './menu-groups';
 
-const SIDER_WIDTH = 240;
-
-export function AdminLayout() {
-  const { data: user, isLoading } = useGetIdentity<CurrentUser>();
+function AdminShell({ user }: { user: CurrentUser }) {
   const { mutate: logout } = useLogout();
   const { token } = theme.useToken();
-  const location = useLocation();
-  const navigate = useNavigate();
   // Below `lg` the menu is an overlay drawer, so opening it never squeezes the page.
   const compact = !Grid.useBreakpoint().lg;
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -22,39 +20,10 @@ export function AdminLayout() {
     if (!compact) setDrawerOpen(false);
   }, [compact]);
 
-  if (isLoading || !user) return <Spin fullscreen />;
-  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-
   const groups = visibleMenuGroups(user.role);
-  const items = [
-    { key: '/', label: 'Trang chủ' },
-    ...groups.map((group) => ({
-      key: group.key,
-      type: 'group' as const,
-      label: group.label,
-      children: group.items.map((item) => ({ key: item.external ? `external:${item.path}` : item.path, label: item.label })),
-    })),
-  ];
-  const selected = groups.flatMap((g) => g.items).find((item) => location.pathname.startsWith(item.path))?.path ?? '/';
-
-  const brand = (
-    <Typography.Title level={5} style={{ color: token.colorTextLightSolid, padding: token.padding, margin: 0 }}>
-      Kamito · Quản trị
-    </Typography.Title>
-  );
-  const menu = (
-    <Menu
-      theme="dark"
-      mode="inline"
-      items={items}
-      selectedKeys={[selected]}
-      onClick={({ key }) => {
-        if (key.startsWith('external:')) window.open(key.slice('external:'.length), '_blank', 'noopener');
-        else navigate(key);
-        setDrawerOpen(false);
-      }}
-    />
-  );
+  const home = homeKind(user.role);
+  const homeTitle = home === 'results' ? (groups.flatMap((g) => g.items).find((item) => item.key === 'results')?.label ?? SHELL_LABELS.overview) : SHELL_LABELS.overview;
+  const sider = <AdminSider groups={groups} showOverview={home === 'dashboard'} onNavigate={() => setDrawerOpen(false)} />;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -67,43 +36,30 @@ export function AdminLayout() {
           onClose={() => setDrawerOpen(false)}
           closable={false}
           destroyOnHidden
-          styles={{ body: { padding: 0 } }}
+          styles={{ body: { padding: 0, background: tokens.color.ink } }}
         >
-          <Layout.Sider width={SIDER_WIDTH} style={{ minHeight: '100%' }}>
-            {brand}
-            {menu}
-          </Layout.Sider>
+          <Layout.Sider width={SIDER_WIDTH} style={{ minHeight: '100%' }}>{sider}</Layout.Sider>
         </Drawer>
       ) : (
-        <Layout.Sider width={SIDER_WIDTH} style={{ position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}>
-          {brand}
-          {menu}
-        </Layout.Sider>
+        <Layout.Sider width={SIDER_WIDTH} style={{ position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}>{sider}</Layout.Sider>
       )}
-      <Layout>
-        <Layout.Header style={compact ? { paddingInline: token.paddingSM } : undefined}>
-          <Flex justify={compact ? 'space-between' : 'end'} align="center" style={{ height: '100%' }}>
-            {compact && (
-              <Button type="text" aria-label="Mở menu" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} style={{ color: token.colorTextLightSolid }} />
-            )}
-            <Dropdown
-              menu={{
-                items: [
-                  { key: 'password', label: 'Đổi mật khẩu', onClick: () => navigate('/change-password') },
-                  { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined />, onClick: () => logout() },
-                ],
-              }}
-            >
-              <Button type="text" icon={<UserOutlined />} style={{ color: token.colorTextLightSolid }}>
-                {user.name} <Tag style={{ marginInlineStart: token.marginXS }}>{ROLE_LABELS[user.role]}</Tag>
-              </Button>
-            </Dropdown>
-          </Flex>
-        </Layout.Header>
-        <Layout.Content style={{ padding: token.paddingLG }}>
+      <Layout style={{ minWidth: 0 }}>
+        <AdminHeader user={user} groups={groups} homeTitle={homeTitle} compact={compact} onOpenMenu={() => setDrawerOpen(true)} onLogout={() => logout()} />
+        <Layout.Content style={{ padding: compact ? token.paddingSM : token.paddingLG }}>
           <Outlet />
         </Layout.Content>
       </Layout>
     </Layout>
+  );
+}
+
+export function AdminLayout() {
+  const { data: user, isLoading } = useGetIdentity<CurrentUser>();
+  if (isLoading || !user) return <Spin fullscreen />;
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
+  return (
+    <BreadcrumbProvider>
+      <AdminShell user={user} />
+    </BreadcrumbProvider>
   );
 }

@@ -1,37 +1,29 @@
-import { getDefaultSortOrder, useTable } from '@refinedev/antd';
-import { App, Button, Flex, Space, Table, Tag, Tooltip, Typography, theme } from 'antd';
-import { useRef, useState, type Key } from 'react';
-import { Link } from 'react-router';
+import { useTable } from '@refinedev/antd';
+import { App, Card, Flex, Table, theme } from 'antd';
+import { useRef, useState, type Key, type ReactNode } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
-import { ConfirmActionButton } from '../../components/confirm-action-button';
 import { ListFilterBar, type FilterFieldDef } from '../../components/list-filter-bar';
-import { useListPageSize } from '../../providers/use-list-page-size';
-import { EntryBulkBar } from './entry-bulk-bar';
-import {
-  ENTRY_STAGE_LABELS,
-  ENTRY_STAGE_OPTIONS,
-  ENTRY_STATUS_LABELS,
-  ENTRY_STATUS_OPTIONS,
-  QUOTA_LABELS,
-  QUOTA_OPTIONS,
-  showWarnings,
-  type EntryRecord,
-  type EntrySubEvent,
-  type EntryWriteResult,
-} from './entry-labels';
-import { EntrySeedCell } from './entry-seed-cell';
 import { useTableScroll } from '../../components/use-table-scroll';
+import { useListPageSize } from '../../providers/use-list-page-size';
+import { entryColumns } from './entry-columns';
+import { EntryBulkBar } from './entry-bulk-bar';
+import { ENTRY_STAGE_OPTIONS, ENTRY_STATUS_OPTIONS, QUOTA_OPTIONS, showWarnings, type EntryRecord, type EntrySubEvent, type EntryWriteResult } from './entry-labels';
+import { entryUnit } from './sub-event-labels';
 
 export const entriesResource = (subEventId: string) => `sub-events/${subEventId}/entries`;
 
 interface EntryTableProps {
   subEvent: EntrySubEvent;
   canUpdate: boolean;
-  /** Counts in the side menu change with every status write. */
+  /** Pill counts change with every status write. */
   onCountsChanged: () => Promise<unknown>;
+  /** Buttons shown on the right of the filter row. */
+  toolbarActions?: ReactNode;
+  /** Add form / import panel, shown between the filter row and the table. */
+  panel?: ReactNode;
 }
 
-export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableProps) {
+export function EntryTable({ subEvent, canUpdate, onCountsChanged, toolbarActions, panel }: EntryTableProps) {
   const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const { message } = App.useApp();
@@ -45,6 +37,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
     sorters: { initial: [{ field: 'seed', order: 'asc' }] },
   });
   const rows = tableProps.dataSource ?? [];
+  const total = typeof tableProps.pagination === 'object' ? (tableProps.pagination.total ?? rows.length) : rows.length;
 
   const reload = () => Promise.all([tableQuery.refetch(), onCountsChanged()]);
   const setStatus = async (entry: EntryRecord, status: EntryRecord['status']) => {
@@ -63,7 +56,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
   };
 
   const filterFields: FilterFieldDef[] = [
-    { kind: 'search', field: 'q', placeholder: 'Tìm theo tên hoặc mã VĐV' },
+    { kind: 'search', field: 'q', placeholder: 'Tìm theo tên, mã VĐV hoặc CLB' },
     { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: ENTRY_STATUS_OPTIONS },
     ...(subEvent.hasQualifying ? [{ kind: 'select' as const, field: 'stage', placeholder: 'Vòng', options: ENTRY_STAGE_OPTIONS }] : []),
     { kind: 'select', field: 'quotaType', placeholder: 'Suất', options: QUOTA_OPTIONS },
@@ -71,7 +64,11 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
 
   return (
     <Flex vertical gap="middle">
-      <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={filterFields} />
+      <Flex justify="space-between" align="start" wrap gap="small">
+        <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={filterFields} />
+        {toolbarActions}
+      </Flex>
+      {panel}
       {selected.length > 0 && (
         <EntryBulkBar
           ids={selected.map(String)}
@@ -83,102 +80,25 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
           }}
         />
       )}
-      <Table<EntryRecord>
-        {...tableProps}
-        rowKey="id" scroll={tableScroll}
-        size="small"
-        rowSelection={canUpdate ? { selectedRowKeys: selected, onChange: setSelected, preserveSelectedRowKeys: true } : undefined}
-        onRow={(entry) => ({ style: entry.status === 'WITHDRAWN' ? { color: token.colorTextTertiary } : undefined })}
-      >
-        <Table.Column<EntryRecord>
-          dataIndex="seed"
-          title="Hạt giống"
-          sorter
-          defaultSortOrder={getDefaultSortOrder('seed', sorters)}
-          render={(seed: number | null, entry) =>
-            canUpdate && entry.status === 'CONFIRMED' ? (
-              <EntrySeedCell
-                entry={entry}
-                register={(element) => (element ? seedInputs.current.set(entry.id, element) : seedInputs.current.delete(entry.id))}
-                onTab={(backwards) => moveSeedFocus(entry, backwards)}
-              />
-            ) : (
-              (seed ?? '—')
-            )
-          }
+      <Card title={`Danh sách hiện có · ${total} ${entryUnit(subEvent.discipline.competitorKind)}`} styles={{ body: { padding: 0 } }}>
+        <Table<EntryRecord>
+          {...tableProps}
+          rowKey="id"
+          scroll={tableScroll}
+          size="small"
+          columns={entryColumns({
+            subEvent,
+            canUpdate,
+            sorters,
+            registerSeedInput: (id, element) => (element ? seedInputs.current.set(id, element) : seedInputs.current.delete(id)),
+            moveSeedFocus,
+            setStatus,
+            onError: (error) => message.error(error instanceof ApiError ? error.message : 'Không thực hiện được'),
+          })}
+          rowSelection={canUpdate ? { selectedRowKeys: selected, onChange: setSelected, preserveSelectedRowKeys: true } : undefined}
+          onRow={(entry) => ({ style: entry.status === 'WITHDRAWN' ? { color: token.colorTextTertiary } : undefined })}
         />
-        <Table.Column<EntryRecord>
-          key="displayName"
-          dataIndex={['competitor', 'displayName']}
-          title={subEvent.discipline.competitorKind === 'DOUBLES' ? 'Cặp' : 'VĐV'}
-          sorter
-          defaultSortOrder={getDefaultSortOrder('displayName', sorters)}
-          render={(_, entry) => (
-            <Flex vertical>
-              {entry.competitor.players.map((player) => (
-                <span key={player.id}>
-                  <Link to={`/players/${player.id}/edit`} style={entry.status === 'WITHDRAWN' ? { color: 'inherit' } : undefined}>
-                    {player.fullName}
-                  </Link>{' '}
-                  <Typography.Text type="secondary">
-                    {[player.code, player.club, player.birthYear].filter(Boolean).join(' · ')}
-                  </Typography.Text>
-                </span>
-              ))}
-            </Flex>
-          )}
-        />
-        {subEvent.hasQualifying && (
-          <Table.Column<EntryRecord>
-            dataIndex="stage"
-            title="Vòng"
-            render={(stage: EntryRecord['stage']) => <Tag color={stage === 'QUALIFYING' ? 'purple' : undefined}>{ENTRY_STAGE_LABELS[stage]}</Tag>}
-          />
-        )}
-        <Table.Column<EntryRecord>
-          dataIndex="quotaType"
-          title="Suất"
-          render={(quota: EntryRecord['quotaType']) => <Tag color={quota === 'DIRECT' ? undefined : 'blue'}>{QUOTA_LABELS[quota]}</Tag>}
-        />
-        <Table.Column<EntryRecord>
-          dataIndex="status"
-          title="Trạng thái"
-          render={(status: EntryRecord['status'], entry) => (
-            <Space size="small" wrap>
-              <Tag color={status === 'CONFIRMED' ? 'green' : undefined}>{ENTRY_STATUS_LABELS[status]}</Tag>
-              {entry.eligibilityOverrideReason && (
-                <Tooltip title={`Lý do ghi đè: ${entry.eligibilityOverrideReason}`}>
-                  <Tag color="orange">Ghi đè</Tag>
-                </Tooltip>
-              )}
-            </Space>
-          )}
-        />
-        <Table.Column<EntryRecord> dataIndex="notes" title="Ghi chú" render={(notes: string | null) => notes ?? '—'} />
-        {canUpdate && (
-          <Table.Column<EntryRecord>
-            key="actions"
-            title="Thao tác"
-            render={(_, entry) =>
-              entry.status === 'CONFIRMED' ? (
-                <ConfirmActionButton
-                  label="Rút"
-                  title={`Rút ${entry.competitor.displayName}?`}
-                  content="Đăng ký vẫn nằm trong danh sách (hiện mờ) và khôi phục được."
-                  okText="Rút"
-                  danger
-                  buttonProps={{ size: 'small' }}
-                  onConfirm={() => setStatus(entry, 'WITHDRAWN')}
-                />
-              ) : (
-                <Button size="small" onClick={() => void setStatus(entry, 'CONFIRMED').catch((error: unknown) => message.error(error instanceof ApiError ? error.message : 'Không thực hiện được'))}>
-                  Khôi phục
-                </Button>
-              )
-            }
-          />
-        )}
-      </Table>
+      </Card>
     </Flex>
   );
 }

@@ -39,6 +39,7 @@ export interface EntryCount {
   subEventId: string;
   confirmed: number;
   withdrawn: number;
+  seeded: number;
 }
 
 /** Entry writes answer with non-blocking warnings (e.g. a draft draw that must be redrawn). */

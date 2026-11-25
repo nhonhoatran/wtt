@@ -2,6 +2,7 @@ import { getDefaultFilter, type CrudFilter, type CrudFilters } from '@refinedev/
 import { Button, DatePicker, Flex, Grid, Input, Select, theme, type FormInstance } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useState } from 'react';
+import { ActiveFilterChips, type ActiveFilterChip } from './active-filter-chips';
 import { FormInstanceHost } from './form-instance-host';
 
 export type FilterFieldDef =
@@ -15,6 +16,8 @@ interface ListFilterBarProps {
   setFilters: (filters: CrudFilters, behavior?: 'merge' | 'replace') => void;
   /** `searchFormProps.form` from Refine's useTable. */
   searchForm?: FormInstance;
+  /** Adds a removable chip per applied filter below the row, and names the clear button "Đặt lại". */
+  showActiveChips?: boolean;
 }
 
 const eq = (field: string, value: unknown): CrudFilter => ({ field, operator: 'eq', value });
@@ -38,8 +41,22 @@ function SearchInput({ placeholder, applied, onSearch, compact }: { placeholder:
   );
 }
 
+function chipsFor(def: FilterFieldDef, current: (field: string) => string | undefined, set: (next: CrudFilter[]) => void): ActiveFilterChip[] {
+  if (def.kind === 'dateRange') {
+    const from = current(def.fromField);
+    const to = current(def.toField);
+    if (!from && !to) return [];
+    const show = (iso?: string) => (iso ? dayjs(iso).format('DD/MM/YYYY') : '…');
+    return [{ key: def.fromField, label: `${show(from)} – ${show(to)}`, onClear: () => set([eq(def.fromField, undefined), eq(def.toField, undefined)]) }];
+  }
+  const value = current(def.field);
+  if (!value) return [];
+  const label = def.kind === 'select' ? `${def.placeholder}: ${def.options.find((option) => option.value === value)?.label ?? value}` : `Từ khóa: ${value}`;
+  return [{ key: def.field, label, onClear: () => set([eq(def.field, undefined)]) }];
+}
+
 /** The one filter row above every admin table. Each change resets to page 1 (Refine's default). */
-export function ListFilterBar({ fields, filters, setFilters, searchForm }: ListFilterBarProps) {
+export function ListFilterBar({ fields, filters, setFilters, searchForm, showActiveChips = false }: ListFilterBarProps) {
   const { token } = theme.useToken();
   // Phones: the search takes a full row and the other filters share rows instead of leaving half the width empty.
   const compact = Grid.useBreakpoint().md === false;
@@ -52,6 +69,8 @@ export function ListFilterBar({ fields, filters, setFilters, searchForm }: ListF
   const current = (field: string) => getDefaultFilter(field, filters, 'eq') as string | undefined;
   const set = (next: CrudFilter[]) => setFilters(next, 'merge');
   const hasAny = filters.some((filter) => 'value' in filter && filter.value !== undefined && filter.value !== '');
+
+  const chips: ActiveFilterChip[] = showActiveChips ? fields.flatMap((def) => chipsFor(def, current, (next) => set(next))) : [];
 
   return (
     <Flex wrap gap="small" style={{ marginBottom: token.margin }}>
@@ -101,7 +120,8 @@ export function ListFilterBar({ fields, filters, setFilters, searchForm }: ListF
           />
         );
       })}
-      {hasAny && <Button onClick={clearAll}>Xóa lọc</Button>}
+      {hasAny && <Button onClick={clearAll}>{showActiveChips ? 'Đặt lại' : 'Xóa lọc'}</Button>}
+      <ActiveFilterChips chips={chips} />
     </Flex>
   );
 }

@@ -1,25 +1,22 @@
-import { EVENT_LIFECYCLE_LABELS } from '@kamito/shared';
 import { useCan, useInvalidate } from '@refinedev/core';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Flex, Result, Skeleton, Tabs, Tag, Typography } from 'antd';
+import { Button, Flex, Result, Skeleton, Tabs } from 'antd';
 import { useCallback, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ApiError, apiFetch } from '../../api/http-client';
-import {
-  formatDateRange,
-  LIFECYCLE_COLORS,
-  PUBLISH_LABELS,
-  type EventRecord,
-} from '../../resources/events/event-labels';
+import { useBreadcrumbTail } from '../../layout/admin-breadcrumb';
+import type { EventRecord } from '../../resources/events/event-labels';
 import { DrawsTab } from './draws-tab';
 import { EntriesTab } from './entries-tab';
 import { EventHubActions } from './event-hub-actions';
+import { EventHubHeader } from './event-hub-header';
+import { EventProgressStepper } from './event-progress-stepper';
 import { EventInfoTab } from './event-info-tab';
 import type { HubTabContext } from './hub-tab-context';
 import { ScheduleTab } from './schedule-tab';
 import { SubEventsTab } from './sub-events-tab';
 import { SponsorsTab } from './sponsors-tab';
-import { BackLink } from '../../components/back-link';
+import { useEventProgress } from './use-event-progress';
 
 interface HubTabDef {
   key: string;
@@ -27,13 +24,13 @@ interface HubTabDef {
   render: (context: HubTabContext) => ReactNode;
 }
 
-/** Later phases append their tabs here (lịch đấu...). */
+/** Later phases append their tabs here (kết quả...). */
 const HUB_TABS: HubTabDef[] = [
   { key: 'info', label: 'Thông tin', render: (context) => <EventInfoTab {...context} /> },
   { key: 'sub-events', label: 'Nội dung thi đấu', render: (context) => <SubEventsTab {...context} /> },
-  { key: 'entries', label: 'Danh sách', render: (context) => <EntriesTab {...context} /> },
+  { key: 'entries', label: 'Danh sách đăng ký', render: (context) => <EntriesTab {...context} /> },
   { key: 'draws', label: 'Bốc thăm', render: (context) => <DrawsTab {...context} /> },
-  { key: 'schedule', label: 'Lịch & kết quả', render: (context) => <ScheduleTab {...context} /> },
+  { key: 'schedule', label: 'Lịch thi đấu', render: (context) => <ScheduleTab {...context} /> },
   { key: 'sponsors', label: 'Tài trợ', render: (context) => <SponsorsTab {...context} /> },
 ];
 const DEFAULT_TAB = HUB_TABS[0]!.key;
@@ -53,9 +50,13 @@ export function EventHubPage() {
     retry: false,
   });
 
+  const progress = useEventProgress(id);
+  const refetchProgress = progress.refetch;
+  useBreadcrumbTail(data?.name);
+
   const onChanged = useCallback(async () => {
-    await Promise.all([refetch(), invalidate({ resource: 'events', invalidates: ['list'] })]);
-  }, [refetch, invalidate]);
+    await Promise.all([refetch(), refetchProgress(), invalidate({ resource: 'events', invalidates: ['list'] })]);
+  }, [refetch, refetchProgress, invalidate]);
 
   if (isLoading) return <Skeleton active />;
   if (error || !data) {
@@ -78,23 +79,17 @@ export function EventHubPage() {
   }
 
   const tabs = HUB_TABS.filter((item) => item.key !== 'sponsors' || canListSponsors);
-  const activeKey = tabs.some((item) => item.key === tab) ? tab : DEFAULT_TAB;
+  const activeKey = tabs.find((item) => item.key === tab)?.key ?? DEFAULT_TAB;
   const context: HubTabContext = { event: data, canUpdate, canCreate, canDelete, onChanged };
 
   return (
     <Flex vertical gap="middle">
-      <BackLink to="/events">Danh sách giải</BackLink>
-      <Flex justify="space-between" align="start" wrap gap="middle">
-        <Flex vertical gap="small">
-          <Typography.Title level={3} style={{ margin: 0 }}>{data.name}</Typography.Title>
-          <Flex gap="small" align="center" wrap>
-            <Tag color={LIFECYCLE_COLORS[data.lifecycle]}>{EVENT_LIFECYCLE_LABELS[data.lifecycle]}</Tag>
-            <Tag color={data.publishStatus === 'PUBLISHED' ? 'green' : undefined}>{PUBLISH_LABELS[data.publishStatus]}</Tag>
-            <Typography.Text type="secondary">{formatDateRange(data)}</Typography.Text>
-          </Flex>
-        </Flex>
-        <EventHubActions event={data} canUpdate={canUpdate} canPublish={canPublish} onChanged={onChanged} />
-      </Flex>
+      <EventHubHeader
+        event={data}
+        progress={progress.data}
+        actions={<EventHubActions event={data} activeTab={activeKey} canUpdate={canUpdate} canPublish={canPublish} onChanged={onChanged} />}
+      />
+      <EventProgressStepper eventId={data.id} progress={progress.data} loading={progress.isLoading} />
       <Tabs
         activeKey={activeKey}
         onChange={(key) => navigate(`/events/${data.id}/${key}`)}

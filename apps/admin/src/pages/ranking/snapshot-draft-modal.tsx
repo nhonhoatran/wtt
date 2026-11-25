@@ -10,6 +10,8 @@ interface DraftModalProps {
   open: boolean;
   onClose: () => void;
   onQueued: (jobs: SnapshotJobRef[]) => void;
+  /** Lists ticked when the modal opens. */
+  defaultListIds?: string[];
 }
 
 interface FormValues {
@@ -18,7 +20,7 @@ interface FormValues {
 }
 
 /** No list picked means every active list. */
-export function SnapshotDraftModal({ open, onClose, onQueued }: DraftModalProps) {
+export function SnapshotDraftModal({ open, onClose, onQueued, defaultListIds }: DraftModalProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
@@ -43,7 +45,7 @@ export function SnapshotDraftModal({ open, onClose, onQueued }: DraftModalProps)
 
   return (
     <Modal open={open} title="Tạo bản nháp" okText="Tạo bản nháp" cancelText="Hủy" confirmLoading={saving} onOk={() => form.submit()} onCancel={onClose} destroyOnHidden>
-      <Form form={form} layout="vertical" preserve={false} initialValues={{ asOfDate: dayjs() }} onFinish={submit}>
+      <Form form={form} layout="vertical" preserve={false} initialValues={{ asOfDate: dayjs(), listIds: defaultListIds }} onFinish={submit}>
         <Form.Item name="listIds" label="Bảng xếp hạng">
           <Select
             mode="multiple"

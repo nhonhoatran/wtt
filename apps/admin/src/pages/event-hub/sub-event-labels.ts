@@ -12,7 +12,7 @@ export interface SubEventRecord {
   rankingListId: string | null;
   discipline: { id: string; code: string; name: string; competitorKind: 'SINGLES' | 'DOUBLES'; genderRule: 'MEN' | 'WOMEN' | 'MIXED' | 'OPEN' };
   category: { id: string; code: string; name: string } | null;
-  matchFormat: { id: string; name: string };
+  matchFormat: { id: string; name: string; bestOf: number; pointsPerGame: number; winBy: number };
   groupScoringRule: { id: string; name: string } | null;
   rankingList: { id: string; code: string; name: string } | null;
 }
@@ -32,3 +32,9 @@ export const subEventTitle = (row: Pick<SubEventRecord, 'name' | 'discipline' | 
   row.name ?? (row.category ? `${row.discipline.name} – ${row.category.name}` : row.discipline.name);
 
 export const subEventsKey = (eventId: string) => ['admin-sub-events', eventId];
+
+export const matchFormatSummary = (format: Pick<SubEventRecord['matchFormat'], 'bestOf' | 'pointsPerGame' | 'winBy'>) =>
+  `${format.bestOf} ván, ván ${format.pointsPerGame} điểm, cách biệt ${format.winBy}`;
+
+/** Unit next to an entry count: players for singles, pairs for doubles. */
+export const entryUnit = (kind: SubEventRecord['discipline']['competitorKind']) => (kind === 'DOUBLES' ? 'cặp' : 'VĐV');

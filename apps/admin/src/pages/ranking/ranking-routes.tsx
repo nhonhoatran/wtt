@@ -3,6 +3,7 @@ import { Route } from 'react-router';
 import { RequireAccess } from '../../components/require-access';
 import { RankingListCreate, RankingListEdit } from '../../resources/ranking-lists/ranking-list-form';
 import { RankingListList } from '../../resources/ranking-lists/ranking-list-list';
+import { RankingBoardPage } from './ranking-board-page';
 import { RankingPointsPage } from './ranking-points-page';
 import { RankingRulesMatrixPage } from './ranking-rules-matrix-page';
 import { RankingSnapshotsPage } from './ranking-snapshots-page';
@@ -17,6 +18,7 @@ const guarded = (action: string, element: ReactNode) => (
 /** Rendered inside <Routes>; a plain fragment of <Route> elements, not a component. */
 export const rankingRoutes = (
   <Route>
+    <Route path="/rankings" element={guarded('list', <RankingBoardPage />)} />
     <Route path="/ranking-lists" element={guarded('list', <RankingListList />)} />
     <Route path="/ranking-lists/create" element={guarded('create', <RankingListCreate />)} />
     <Route path="/ranking-lists/:id/edit" element={guarded('edit', <RankingListEdit />)} />
@@ -28,7 +30,7 @@ export const rankingRoutes = (
 );
 
 export const rankingResources = [
-  { name: 'ranking-lists', list: '/ranking-lists', create: '/ranking-lists/create', edit: '/ranking-lists/:id/edit', meta: { label: 'Bảng xếp hạng' } },
+  { name: 'ranking-lists', list: '/ranking-lists', create: '/ranking-lists/create', edit: '/ranking-lists/:id/edit', meta: { label: 'Danh mục BXH' } },
   { name: 'ranking-points', list: '/ranking-points', meta: { label: 'Sổ điểm' } },
   { name: 'ranking-snapshots', list: '/ranking-snapshots', show: '/ranking-snapshots/:id', meta: { label: 'Kỳ chốt' } },
 ];
