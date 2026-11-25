@@ -35,7 +35,7 @@ export function RankingSnapshotsPage() {
   const pageSize = useListPageSize();
   const canCreate = useCan({ resource: 'rankings', action: 'create' }).data?.can ?? false;
   const lists = useCatalogRows('ranking-lists', { isActive: '' });
-  const { tableProps, sorters, filters, setFilters, tableQuery } = useTable<SnapshotRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters, tableQuery } = useTable<SnapshotRecord>({
     resource: 'ranking-snapshots',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -51,7 +51,7 @@ export function RankingSnapshotsPage() {
       <Flex vertical gap="middle">
         {jobs.length > 0 && <SnapshotJobsTracker key={jobs.map((job) => job.jobId).join()} jobs={jobs} onFinished={onFinished} />}
         <div>
-        <ListFilterBar
+        <ListFilterBar searchForm={searchFormProps.form}
           filters={filters}
           setFilters={setFilters}
           fields={[

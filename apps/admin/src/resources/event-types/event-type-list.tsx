@@ -1,4 +1,5 @@
-import { CreateButton, List, useSelect } from '@refinedev/antd';
+import { List, useSelect } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Space, Table, Tag } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
@@ -11,7 +12,7 @@ const RESOURCE = 'event-types';
 export function EventTypeList() {
   const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<EventTypeRecord>(RESOURCE, { field: 'order', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<EventTypeRecord>(RESOURCE, { field: 'order', order: 'asc' });
   const { selectProps: tierSelect } = useSelect({
     resource: 'tiers',
     optionLabel: 'name',
@@ -21,7 +22,7 @@ export function EventTypeList() {
 
   return (
     <List title="Hạng giải" headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm hạng giải</CreateButton> : undefined}>
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

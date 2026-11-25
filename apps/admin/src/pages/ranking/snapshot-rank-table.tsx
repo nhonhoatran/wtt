@@ -21,7 +21,7 @@ interface SnapshotRankRow {
 export function SnapshotRankTable({ snapshotId }: { snapshotId: string }) {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
-  const { tableProps, sorters, filters, setFilters } = useTable<SnapshotRankRow>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<SnapshotRankRow>({
     resource: `ranking-snapshots/${snapshotId}/rows`,
     syncWithLocation: true,
     pagination: { pageSize },
@@ -30,7 +30,7 @@ export function SnapshotRankTable({ snapshotId }: { snapshotId: string }) {
 
   return (
     <div>
-      <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên VĐV' }]} />
+      <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên VĐV' }]} />
       <Table<SnapshotRankRow>
         {...tableProps}
         rowKey="playerId" scroll={tableScroll}

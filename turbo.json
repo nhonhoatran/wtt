@@ -9,7 +9,19 @@
     "typecheck": { "dependsOn": ["^build"] },
     "@kamito/db#typecheck": { "dependsOn": ["@kamito/db#build"] },
     "lint": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"], "cache": false },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": [
+        "TZ", "CI", "LOG_LEVEL", "DATABASE_URL", "MIGRATE_CONFIRM_TARGET", "REDIS_URL", "QUEUE_PREFIX",
+        "S3_*", "STORAGE_DRIVER", "UPLOAD_*", "MEDIA_*", "IMPORT_*",
+        "AUTH_SECRET", "REVALIDATE_SECRET", "SSR_INTERNAL_SECRET", "IP_HASH_SALT",
+        "CLIENT_INTERNAL_URL", "PUBLIC_SITE_URL", "ADMIN_PUBLIC_URL", "API_INTERNAL_URL", "TRUST_PROXY_HOPS", "CSP_MODE",
+        "E2E_*", "REAL_TEST_DB_LEASE", "API_TEST_ARTIFACT_DIR",
+        "API_PORT", "PAGINATION_MAX_PAGE_SIZE", "QUERY_MAX_LENGTH", "REDIS_EVICTION_CHECK_OVERRIDE", "VIDEO_EMBED_HOSTS",
+        "API_FETCH_TIMEOUT_MS", "LIGHTHOUSE_OUTPUT_DIR"
+      ]
+    },
     "dev": { "dependsOn": ["^build"], "cache": false, "persistent": true }
   }
 }

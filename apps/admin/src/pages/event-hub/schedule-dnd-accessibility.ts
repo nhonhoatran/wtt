@@ -23,5 +23,5 @@ export function scheduleAnnouncements(tableName: (tableId: string) => string): A
 }
 
 export const scheduleScreenReaderInstructions: ScreenReaderInstructions = {
-  draggable: 'Kéo trận thả vào ô trong lưới để xếp lịch. Có thể bấm chọn trận rồi bấm vào ô trống để xếp.',
+  draggable: 'Nhấn Space để nhấc trận, dùng phím mũi tên để chuyển ô, nhấn Space hoặc Enter để thả, Esc hoặc Tab để hủy. Hoặc nhấn Enter chọn trận rồi Enter vào ô trống để xếp.',
 };

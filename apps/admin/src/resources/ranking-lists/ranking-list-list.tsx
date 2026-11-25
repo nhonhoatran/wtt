@@ -1,4 +1,5 @@
-import { CreateButton, List } from '@refinedev/antd';
+import { List } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Table } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { COMPETITOR_KIND_LABELS, COMPETITOR_KIND_OPTIONS, GENDER_RULE_LABELS, GENDER_RULE_OPTIONS } from '../../pages/ranking/ranking-labels';
@@ -13,11 +14,11 @@ const PERMISSION = 'rankings';
 export function RankingListList() {
   const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess(PERMISSION);
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<RankingListRecord>(RESOURCE, { field: 'order', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<RankingListRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
   return (
     <List title="Bảng xếp hạng" headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm bảng xếp hạng</CreateButton> : undefined}>
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

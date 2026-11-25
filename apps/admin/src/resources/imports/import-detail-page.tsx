@@ -1,4 +1,3 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useCan } from '@refinedev/core';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Flex, Result, Skeleton, Spin, Statistic, Tag, Typography, theme } from 'antd';
@@ -9,6 +8,7 @@ import { ImportStepsBar } from '../../components/import-wizard';
 import { ImportCommitBar } from './import-commit-bar';
 import { ImportRevalidateButton } from './import-revalidate-button';
 import { BUSY_STATUSES, formatFileSize, IMPORT_POLL_MS, IMPORT_STATUS_COLORS, IMPORT_STATUS_LABELS, importKey, type ImportJob } from './import-labels';
+import { BackLink } from '../../components/back-link';
 
 const BUSY_TEXT: Partial<Record<ImportJob['status'], string>> = {
   UPLOADED: 'Đã nhận file, đang chờ kiểm tra…',
@@ -50,9 +50,7 @@ export function ImportDetailPage() {
 
   return (
     <Flex vertical gap="middle">
-      <Link to={entriesLink}>
-        <ArrowLeftOutlined /> Danh sách đăng ký – {job.event.name}
-      </Link>
+      <BackLink to={entriesLink}>Danh sách đăng ký – {job.event.name}</BackLink>
       <Flex justify="space-between" align="start" wrap gap="middle">
         <Flex vertical gap="small">
           <Typography.Title level={3} style={{ margin: 0 }}>Import: {job.fileName}</Typography.Title>

@@ -29,7 +29,7 @@ const playerLink = (player: PairPlayer) => <Link to={`/players/${player.id}/edit
 export function PairList() {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
-  const { tableProps, sorters, filters, setFilters } = useTable<PairRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<PairRecord>({
     resource: 'pairs',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -38,7 +38,7 @@ export function PairList() {
 
   return (
     <List title="Cặp đôi">
-      <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên hoặc mã VĐV' }]} />
+      <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên hoặc mã VĐV' }]} />
       <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<PairRecord> key="playerA" title="VĐV 1" render={(_, pair) => playerLink(pair.playerA)} />
         <Table.Column<PairRecord> key="playerB" title="VĐV 2" render={(_, pair) => playerLink(pair.playerB)} />

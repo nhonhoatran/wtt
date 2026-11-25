@@ -19,4 +19,12 @@ describe('ui tokens', () => {
   it('feeds the same primary color to antd', () => {
     expect(buildAntdTheme().token?.colorPrimary).toBe(tokens.color.primary);
   });
+
+  it('draws focus in navy so it is not mistaken for an error', () => {
+    const theme = buildAntdTheme();
+    expect(theme.token?.colorPrimaryBorder).toBe(tokens.color.data);
+    expect(theme.token?.controlOutline).toBe('rgba(15, 40, 93, 0.16)');
+    expect(theme.components?.Input?.activeBorderColor).toBe(tokens.color.data);
+    expect(theme.components?.Select?.activeBorderColor).toBe(tokens.color.data);
+  });
 });

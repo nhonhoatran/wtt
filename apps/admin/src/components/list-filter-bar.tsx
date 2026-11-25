@@ -1,7 +1,8 @@
 import { getDefaultFilter, type CrudFilter, type CrudFilters } from '@refinedev/core';
-import { Button, DatePicker, Flex, Grid, Input, Select, theme } from 'antd';
+import { Button, DatePicker, Flex, Grid, Input, Select, theme, type FormInstance } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useState } from 'react';
+import { FormInstanceHost } from './form-instance-host';
 
 export type FilterFieldDef =
   | { kind: 'search'; field: string; placeholder: string }
@@ -12,6 +13,8 @@ interface ListFilterBarProps {
   fields: FilterFieldDef[];
   filters: CrudFilters;
   setFilters: (filters: CrudFilters, behavior?: 'merge' | 'replace') => void;
+  /** `searchFormProps.form` from Refine's useTable. */
+  searchForm?: FormInstance;
 }
 
 const eq = (field: string, value: unknown): CrudFilter => ({ field, operator: 'eq', value });
@@ -36,7 +39,7 @@ function SearchInput({ placeholder, applied, onSearch, compact }: { placeholder:
 }
 
 /** The one filter row above every admin table. Each change resets to page 1 (Refine's default). */
-export function ListFilterBar({ fields, filters, setFilters }: ListFilterBarProps) {
+export function ListFilterBar({ fields, filters, setFilters, searchForm }: ListFilterBarProps) {
   const { token } = theme.useToken();
   // Phones: the search takes a full row and the other filters share rows instead of leaving half the width empty.
   const compact = Grid.useBreakpoint().md === false;
@@ -52,6 +55,7 @@ export function ListFilterBar({ fields, filters, setFilters }: ListFilterBarProp
 
   return (
     <Flex wrap gap="small" style={{ marginBottom: token.margin }}>
+      <FormInstanceHost form={searchForm} />
       {fields.map((def) => {
         if (def.kind === 'search') {
           return (

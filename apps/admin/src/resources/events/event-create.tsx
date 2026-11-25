@@ -1,4 +1,5 @@
-import { Create, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create } from '../../components/crud-page';
 import { useQuery } from '@tanstack/react-query';
 import { App, Button, Form, Result, Skeleton } from 'antd';
 import { useNavigate } from 'react-router';
@@ -38,7 +39,7 @@ export function EventCreate() {
   }
 
   return (
-    <Create title="Tạo giải" saveButtonProps={{ ...saveButtonProps, children: 'Lưu nháp' }}>
+    <Create title="Thêm giải" saveButtonProps={{ ...saveButtonProps, children: 'Lưu nháp' }}>
       <Form
         {...formProps}
         layout="vertical"

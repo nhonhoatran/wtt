@@ -75,7 +75,7 @@ export async function confirmResult(page: Page, publicPage: Page, world: FullUiW
     return publicPage.getByLabel(detail.status === 'LIVE' ? 'Đang đấu' : 'Chưa đấu', { exact: true }).count();
   }, { message: 'Warmed public state must reflect the unfinished match before confirmation' }).toBe(1);
   const before = await publicPage.locator('main').innerText();
-  const drawer = page.locator('.ant-drawer:visible');
+  const drawer = page.locator('.ant-drawer-open');
   await fillWin(drawer, detail, winner);
   await drawer.getByRole('button', { name: 'Chốt kết quả', exact: true }).click();
   const modal = page.getByRole('dialog').filter({ hasText: 'Chốt kết quả?' });
@@ -100,7 +100,7 @@ export async function confirmResult(page: Page, publicPage: Page, world: FullUiW
 export async function amendResult(page: Page, detail: MatchDetail, publicPage: Page, world: FullUiWorld, event: EventFixture, evidence: RunEvidence): Promise<MatchDetail> {
   await publicPage.goto(`${world.siteOrigin}/vi/events/${event.slug}/matches/${detail.matchNo}`);
   expect(await publicScore(publicPage, detail), 'Public game points must match the original result before the amendment').toBe(true);
-  const drawer = page.locator('.ant-drawer:visible');
+  const drawer = page.locator('.ant-drawer-open');
   await expect(drawer.getByRole('button', { name: 'Mở lại', exact: true })).toHaveCount(0);
   await drawer.getByRole('button', { name: 'Sửa tỷ số', exact: true }).click();
   const modal = page.getByRole('dialog', { name: `Sửa tỷ số trận #${detail.matchNo}`, exact: true });
@@ -127,7 +127,7 @@ export async function amendResult(page: Page, detail: MatchDetail, publicPage: P
 }
 
 export async function reopenResult(page: Page, world: FullUiWorld, detail: MatchDetail): Promise<MatchDetail> {
-  await page.locator('.ant-drawer:visible').getByRole('button', { name: 'Mở lại', exact: true }).click();
+  await page.locator('.ant-drawer-open').getByRole('button', { name: 'Mở lại', exact: true }).click();
   const modal = page.getByRole('dialog', { name: `Mở lại trận #${detail.matchNo}`, exact: true });
   await expect(modal.getByText('Sẽ bị ảnh hưởng', { exact: true })).toBeVisible();
   await expect(modal.getByText('Có trận phía sau đã đấu', { exact: true })).toHaveCount(0);

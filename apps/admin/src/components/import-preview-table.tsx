@@ -14,6 +14,7 @@ import {
 } from '../resources/imports/import-labels';
 import { ImportRowDecisionSelect } from './import-row-decision-select';
 import { useTableScroll } from './use-table-scroll';
+import { FormInstanceHost } from './form-instance-host';
 
 const ALL_TAB = 'ALL';
 /** Long validation messages wrap inside this width instead of stretching a phone-width table. */
@@ -37,7 +38,7 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
   const { token } = theme.useToken();
   const pageSize = useListPageSize();
   const [tab, setTab] = useState(() => firstTab(job));
-  const { tableProps, setFilters, tableQuery } = useTable<ImportRow>({
+  const { tableProps, searchFormProps, setFilters, tableQuery } = useTable<ImportRow>({
     resource: `imports/${job.id}/rows`,
     syncWithLocation: false,
     pagination: { pageSize },
@@ -84,6 +85,7 @@ export function ImportPreviewTable({ job, editable, onDecided }: ImportPreviewTa
   return (
     <div>
       <Tabs size="small" activeKey={tab} onChange={changeTab} items={tabs} />
+      <FormInstanceHost form={searchFormProps.form} />
       <Table<ImportRow>
         {...tableProps}
         rowKey="rowNo" scroll={tableScroll}

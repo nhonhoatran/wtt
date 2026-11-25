@@ -7,6 +7,7 @@ import { useListPageSize } from '../../providers/use-list-page-size';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { BulkTablesModal, TableFormModal, type VenueTableRecord } from './venue-table-modals';
 import { useTableScroll } from '../../components/use-table-scroll';
+import { FormInstanceHost } from '../../components/form-instance-host';
 
 type Dialog = { kind: 'form'; table: VenueTableRecord | null } | { kind: 'bulk' } | null;
 
@@ -18,7 +19,7 @@ export function VenueTablesSection({ venueId }: { venueId: string }) {
   const { canCreate, canUpdate, canDelete } = useCatalogAccess();
   const pageSize = useListPageSize();
   const [dialog, setDialog] = useState<Dialog>(null);
-  const { tableProps, sorters, tableQuery } = useTable<VenueTableRecord>({
+  const { tableProps, searchFormProps, sorters, tableQuery } = useTable<VenueTableRecord>({
     resource: `venues/${venueId}/tables`,
     syncWithLocation: false,
     pagination: { pageSize },
@@ -50,6 +51,7 @@ export function VenueTablesSection({ venueId }: { venueId: string }) {
         )
       }
     >
+      <FormInstanceHost form={searchFormProps.form} />
       <Table {...tableProps} rowKey="id" size="small" scroll={tableScroll}>
         <Table.Column<VenueTableRecord> dataIndex="order" title="Thứ tự" sorter defaultSortOrder={getDefaultSortOrder('order', sorters)} />
         <Table.Column<VenueTableRecord> dataIndex="code" title="Mã bàn" sorter defaultSortOrder={getDefaultSortOrder('code', sorters)} />

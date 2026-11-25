@@ -1,8 +1,9 @@
-import { Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Edit } from '../../components/crud-page';
 import { useCan } from '@refinedev/core';
 import { Alert, App, Form, theme } from 'antd';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
-import { Link } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { cleanPlayerValues, fillBirthYear, PlayerFormFields } from './player-form';
 import { PLAYER_FORM_MAX_WIDTH, playerCodeName, type PlayerDetail } from './player-labels';
 
@@ -10,9 +11,11 @@ import { PLAYER_FORM_MAX_WIDTH, playerCodeName, type PlayerDetail } from './play
 export function PlayerEdit() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { id } = useParams();
   const { formProps, saveButtonProps, query, form } = useForm<PlayerDetail>({
     resource: 'players',
     action: 'edit',
+    id,
     redirect: 'list',
     onMutationSuccess: (result) => showWarnings(message, warningsOf(result)),
   });

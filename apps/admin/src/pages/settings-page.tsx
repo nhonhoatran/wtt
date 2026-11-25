@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Flex, Form, Result, Skeleton, Tabs, Typography } from 'antd';
-import { useState } from 'react';
+import { App, Badge, Button, Card, Flex, Form, Result, Skeleton, Tabs, Typography } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { ApiError, apiFetch } from '../api/http-client';
+import { useUnsavedGuard } from './ranking/ranking-rules-unsaved-guard';
 import { SettingField, type SettingValue, type SettingView } from './settings-field';
 
 interface SettingsResponse {
@@ -14,6 +15,16 @@ type SettingValues = Record<string, SettingValue>;
 
 const SETTINGS_KEY = ['admin-settings'];
 const GROUP_QUERY_PARAM = 'group';
+const UNSAVED_MESSAGE = 'Còn cài đặt chưa lưu. Bỏ thay đổi và rời trang?';
+
+// Key order is ignored: jsonb hands objects back with its own key order.
+const stable = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(stable)
+    : value && typeof value === 'object'
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, stable(v)]))
+      : (value ?? null);
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
 
 /** /settings: operational values edited without a redeploy; each change is audited by the API. One tab per group, kept in ?group=. */
 export function SettingsPage() {
@@ -24,27 +35,42 @@ export function SettingsPage() {
     queryKey: SETTINGS_KEY,
     queryFn: () => apiFetch<SettingsResponse>('/admin/settings'),
   });
+  const [dirtyGroups, setDirtyGroups] = useState<ReadonlySet<string>>(new Set());
+  const markDirty = useCallback((group: string, dirty: boolean) => {
+    setDirtyGroups((current) => {
+      if (current.has(group) === dirty) return current;
+      const next = new Set(current);
+      if (dirty) next.add(group);
+      else next.delete(group);
+      return next;
+    });
+  }, []);
+  useUnsavedGuard(dirtyGroups.size > 0, UNSAVED_MESSAGE, { allowSamePath: true });
 
   if (isLoading) return <Skeleton active />;
   if (isError || !data) {
     return <Result status="error" title="Không tải được cài đặt" extra={<Button onClick={() => refetch()}>Thử lại</Button>} />;
   }
 
-  const saveGroup = async (items: SettingView[], values: SettingValues) => {
-    const changed = items.filter((item) => values[item.key] !== item.value);
+  /** Returns the values as the API stored them (it trims text), so the form can show what was saved. */
+  const saveGroup = async (items: SettingView[], values: SettingValues): Promise<SettingValues> => {
+    const changed = items.filter((item) => !sameValue(values[item.key], item.value));
     if (changed.length === 0) {
       message.info('Không có thay đổi nào');
-      return;
+      return {};
     }
+    const saved: SettingValues = {};
     try {
       for (const item of changed) {
         try {
-          await apiFetch(`/admin/settings/${encodeURIComponent(item.key)}`, { method: 'PUT', body: { value: values[item.key] } });
+          const res = await apiFetch<{ data: { value: SettingValue } }>(`/admin/settings/${encodeURIComponent(item.key)}`, { method: 'PUT', body: { value: values[item.key] } });
+          saved[item.key] = res.data.value;
         } catch (error) {
           throw new SettingSaveError(item.key, error);
         }
       }
       message.success(`Đã lưu ${changed.length} cài đặt`);
+      return saved;
     } finally {
       // Earlier PUTs may have succeeded even if a later one failed.
       await queryClient.invalidateQueries({ queryKey: SETTINGS_KEY });
@@ -65,9 +91,14 @@ export function SettingsPage() {
         onChange={(key) => setParams((current) => { current.set(GROUP_QUERY_PARAM, key); return current; }, { replace: true })}
         items={data.groups.map((group) => ({
           key: group.key,
-          label: group.label,
+          label: dirtyGroups.has(group.key) ? <Badge status="warning" text={group.label} title="Có thay đổi chưa lưu" /> : group.label,
           children: (
-            <SettingsGroupCard title={group.label} items={data.data.filter((item) => item.group === group.key)} onSave={saveGroup} onReset={resetOne} />
+            <SettingsGroupCard
+              items={data.data.filter((item) => item.group === group.key)}
+              onSave={saveGroup}
+              onReset={resetOne}
+              onDirtyChange={(dirty) => markDirty(group.key, dirty)}
+            />
           ),
         }))}
       />
@@ -76,10 +107,10 @@ export function SettingsPage() {
 }
 
 interface GroupProps {
-  title: string;
   items: SettingView[];
-  onSave: (items: SettingView[], values: SettingValues) => Promise<void>;
+  onSave: (items: SettingView[], values: SettingValues) => Promise<SettingValues>;
   onReset: (item: SettingView) => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }
 
 class SettingSaveError extends Error {
@@ -91,16 +122,20 @@ class SettingSaveError extends Error {
   }
 }
 
-function SettingsGroupCard({ title, items, onSave, onReset }: GroupProps) {
+function SettingsGroupCard({ items, onSave, onReset, onDirtyChange }: GroupProps) {
   const [form] = Form.useForm<SettingValues>();
   const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const initialValues = Object.fromEntries(items.map((item) => [item.key, item.value]));
+  const values = Form.useWatch((all: SettingValues) => all, form);
+  const dirty = values !== undefined && items.some((item) => item.key in values && !sameValue(values[item.key], item.value));
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
   const submit = async (values: SettingValues) => {
     setSaving(true);
     try {
-      await onSave(items, values);
+      const saved = await onSave(items, values);
+      form.setFields(Object.entries(saved).map(([name, value]) => ({ name, value })));
     } catch (error) {
       const fieldErrors =
         error instanceof SettingSaveError && error.failure instanceof ApiError ? error.failure.errors : undefined;
@@ -115,7 +150,7 @@ function SettingsGroupCard({ title, items, onSave, onReset }: GroupProps) {
   };
 
   return (
-    <Card title={title}>
+    <Card>
       <Form form={form} layout="vertical" initialValues={initialValues} onFinish={submit} style={{ maxWidth: 640 }}>
         {items.map((item) => (
           <SettingField
@@ -128,9 +163,12 @@ function SettingsGroupCard({ title, items, onSave, onReset }: GroupProps) {
             }
           />
         ))}
-        <Button type="primary" htmlType="submit" loading={saving}>
-          Lưu
-        </Button>
+        <Flex align="center" gap="middle" wrap>
+          <Button type="primary" htmlType="submit" loading={saving}>
+            Lưu
+          </Button>
+          {dirty && <Typography.Text type="warning">Có thay đổi chưa lưu</Typography.Text>}
+        </Flex>
       </Form>
     </Card>
   );

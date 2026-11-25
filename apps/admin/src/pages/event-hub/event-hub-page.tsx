@@ -1,4 +1,3 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
 import { EVENT_LIFECYCLE_LABELS } from '@kamito/shared';
 import { useCan, useInvalidate } from '@refinedev/core';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +19,7 @@ import type { HubTabContext } from './hub-tab-context';
 import { ScheduleTab } from './schedule-tab';
 import { SubEventsTab } from './sub-events-tab';
 import { SponsorsTab } from './sponsors-tab';
+import { BackLink } from '../../components/back-link';
 
 interface HubTabDef {
   key: string;
@@ -83,9 +83,7 @@ export function EventHubPage() {
 
   return (
     <Flex vertical gap="middle">
-      <Link to="/events">
-        <ArrowLeftOutlined /> Danh sách giải
-      </Link>
+      <BackLink to="/events">Danh sách giải</BackLink>
       <Flex justify="space-between" align="start" wrap gap="middle">
         <Flex vertical gap="small">
           <Typography.Title level={3} style={{ margin: 0 }}>{data.name}</Typography.Title>

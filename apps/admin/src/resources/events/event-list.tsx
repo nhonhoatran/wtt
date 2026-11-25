@@ -1,5 +1,6 @@
 import { EVENT_LIFECYCLE_LABELS } from '@kamito/shared';
-import { CreateButton, getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { CanAccess, getDefaultFilter } from '@refinedev/core';
 import { Table, Tag } from 'antd';
 import { Link } from 'react-router';
@@ -21,7 +22,7 @@ import { useTableScroll } from '../../components/use-table-scroll';
 export function EventList() {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
-  const { tableProps, sorters, filters, setFilters } = useTable<EventRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<EventRecord>({
     resource: 'events',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -34,11 +35,11 @@ export function EventList() {
       title="Danh sách giải"
       headerButtons={
         <CanAccess resource="tournaments" action="create">
-          <CreateButton>Tạo giải</CreateButton>
+          <CreateButton>Thêm giải</CreateButton>
         </CanAccess>
       }
     >
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

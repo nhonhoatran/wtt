@@ -1,5 +1,8 @@
 import { ColorPicker } from 'antd';
 
+// '#RRGGBB'; the picker adds 'AA' when alpha was touched before a colour was set.
+const HEX_RGB_LENGTH = 7;
+
 interface ColorHexFieldProps {
   value?: string | null;
   onChange?: (hex: string | null) => void;
@@ -11,10 +14,10 @@ export function ColorHexField({ value, onChange, allowClear }: ColorHexFieldProp
   return (
     <ColorPicker
       showText
-      disabledAlpha
+      disabledAlpha={Boolean(value)}
       allowClear={allowClear}
       value={value || undefined}
-      onChange={(color) => onChange?.(color.toHexString().toUpperCase())}
+      onChange={(color) => onChange?.(color.toHexString().slice(0, HEX_RGB_LENGTH).toUpperCase())}
       onClear={() => onChange?.(null)}
     />
   );

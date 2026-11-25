@@ -38,7 +38,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
   const pageSize = useListPageSize();
   const [selected, setSelected] = useState<Key[]>([]);
   const seedInputs = useRef(new Map<string, HTMLInputElement>());
-  const { tableProps, sorters, filters, setFilters, tableQuery } = useTable<EntryRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters, tableQuery } = useTable<EntryRecord>({
     resource: entriesResource(subEvent.id),
     syncWithLocation: false,
     pagination: { pageSize },
@@ -71,7 +71,7 @@ export function EntryTable({ subEvent, canUpdate, onCountsChanged }: EntryTableP
 
   return (
     <Flex vertical gap="middle">
-      <ListFilterBar filters={filters} setFilters={setFilters} fields={filterFields} />
+      <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={filterFields} />
       {selected.length > 0 && (
         <EntryBulkBar
           ids={selected.map(String)}

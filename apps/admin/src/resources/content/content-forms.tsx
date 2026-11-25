@@ -1,18 +1,21 @@
-import { Create, Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create, Edit } from '../../components/crud-page';
 import { App, Flex, Form, Result, Skeleton, Button } from 'antd';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useCallback, useState } from 'react';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { StaticPageFields, VideoFields } from './content-form-fields';
 import { ArticleEditor } from './article-editor';
+import { FormInstanceHost } from '../../components/form-instance-host';
 
 function VideoEditor({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
-  const { formProps, form, saveButtonProps, query } = useForm({ resource: 'videos', action: edit ? 'edit' : 'create', redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/videos'); } });
+  const { id } = useParams();
+  const { formProps, form, saveButtonProps, query } = useForm({ resource: 'videos', action: edit ? 'edit' : 'create', id: edit ? id : undefined, redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/videos'); } });
   const record = query?.data?.data;
   const fieldRecord = record?.id === undefined ? undefined : { id: String(record.id) };
-  if (edit && query?.isLoading) return <Skeleton active />;
+  if (edit && query?.isLoading) return <><FormInstanceHost form={form} /><Skeleton active /></>;
   if (edit && (query?.isError || !record)) return <Result status="error" title="Không tải được video" extra={<Button onClick={() => void query?.refetch()}>Thử lại</Button>} />;
   const content = <Form {...formProps} form={form} layout="vertical" initialValues={{ status: 'DRAFT', isFeatured: false, ...formProps.initialValues }}><Flex vertical gap="middle" style={{ maxWidth: 720 }}><VideoFields record={fieldRecord} /></Flex></Form>;
   return edit ? <Edit title="Sửa video" saveButtonProps={{ ...saveButtonProps, children: 'Lưu video' }} deleteButtonProps={{ hidden: true }}>{content}</Edit> : <Create title="Thêm video" saveButtonProps={{ ...saveButtonProps, children: 'Lưu video' }}>{content}</Create>;
@@ -21,15 +24,16 @@ function VideoEditor({ edit = false }: { edit?: boolean }) {
 function StaticPageEditor({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { id } = useParams();
   const [uploads, setUploads] = useState({ vi: false, en: false });
   const imageUploading = uploads.vi || uploads.en;
   const onImageUploadingChange = useCallback((locale: 'vi' | 'en', uploading: boolean) => {
     setUploads((current) => current[locale] === uploading ? current : { ...current, [locale]: uploading });
   }, []);
-  const { formProps, form, saveButtonProps, query } = useForm({ resource: 'static-pages', action: edit ? 'edit' : 'create', redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/static-pages'); } });
+  const { formProps, form, saveButtonProps, query } = useForm({ resource: 'static-pages', action: edit ? 'edit' : 'create', id: edit ? id : undefined, redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/static-pages'); } });
   const record = query?.data?.data;
   const fieldRecord = record?.id === undefined ? undefined : { id: String(record.id) };
-  if (edit && query?.isLoading) return <Skeleton active />;
+  if (edit && query?.isLoading) return <><FormInstanceHost form={form} /><Skeleton active /></>;
   if (edit && (query?.isError || !record)) return <Result status="error" title="Không tải được trang tĩnh" extra={<Button onClick={() => void query?.refetch()}>Thử lại</Button>} />;
   const guardedSaveButton = { ...saveButtonProps, disabled: imageUploading || saveButtonProps.disabled, children: 'Lưu trang' };
   const content = <Form {...formProps} form={form} layout="vertical" initialValues={{ status: 'DRAFT', ...formProps.initialValues }} onFinish={(values) => {

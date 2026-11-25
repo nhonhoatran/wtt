@@ -1,6 +1,8 @@
-import { Create, Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create, Edit } from '../../components/crud-page';
 import { Form, Switch } from 'antd';
 import type { ReactNode } from 'react';
+import { useParams } from 'react-router';
 import { useInvalidateCatalogOptions } from '../events/use-catalog-options';
 
 export const FORM_MAX_WIDTH = 560;
@@ -47,7 +49,8 @@ interface EditPageProps<T> {
 
 export function CatalogEditPage<T extends object>({ resource, title, children, footer, onSaved }: EditPageProps<T>) {
   const invalidateOptions = useInvalidateCatalogOptions();
-  const { formProps, saveButtonProps, query } = useForm<T>({ resource, action: 'edit',
+  const { id } = useParams();
+  const { formProps, saveButtonProps, query } = useForm<T>({ resource, action: 'edit', id,
     redirect: 'list',
     onMutationSuccess: (response) => {
       void invalidateOptions();

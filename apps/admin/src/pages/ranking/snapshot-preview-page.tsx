@@ -1,4 +1,3 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useCan } from '@refinedev/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, App, Button, Descriptions, Flex, Result, Skeleton, Tag, Tooltip, Typography } from 'antd';
@@ -13,6 +12,7 @@ import { SNAPSHOT_STATUS_COLORS, SNAPSHOT_STATUS_LABELS } from './ranking-labels
 import { formatSnapshotDate, type SnapshotRecord } from './ranking-snapshots-page';
 import { SnapshotJobsTracker, type SnapshotJobRef, type SnapshotJobResult } from './snapshot-jobs-tracker';
 import { SnapshotRankTable } from './snapshot-rank-table';
+import { BackLink } from '../../components/back-link';
 
 const snapshotKey = (id: string) => ['admin-ranking-snapshot', id];
 
@@ -113,7 +113,7 @@ function SnapshotPreview({ id }: { id: string }) {
 
   return (
     <Flex vertical gap="middle">
-      <Link to="/ranking-snapshots"><ArrowLeftOutlined /> Kỳ chốt</Link>
+      <BackLink to="/ranking-snapshots">Kỳ chốt</BackLink>
       <Flex justify="space-between" align="start" wrap gap="middle">
         <Flex vertical gap="small">
           <Typography.Title level={3} style={{ margin: 0 }}>{title}</Typography.Title>

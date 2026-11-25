@@ -6,8 +6,10 @@ import { useBlocker } from 'react-router';
  * The data router blocks application links and native browser history before the route unmounts.
  * Full document navigation and tab close use the browser's beforeunload confirmation.
  */
-export function useUnsavedGuard(when: boolean, message: string) {
-  const blocker = useBlocker(when);
+export function useUnsavedGuard(when: boolean, message: string, options: { allowSamePath?: boolean } = {}) {
+  const { allowSamePath = false } = options;
+  // allowSamePath lets a page keep edits across its own query changes, e.g. switching tabs kept in ?group=.
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => when && !(allowSamePath && currentLocation.pathname === nextLocation.pathname));
   const { modal } = App.useApp();
 
   useEffect(() => {

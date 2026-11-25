@@ -8,6 +8,7 @@ import type { EntryRecord, EntrySubEvent } from './entry-labels';
 import { EntrySeedCell } from './entry-seed-cell';
 import { entriesResource } from './entry-table';
 import { useTableScroll } from '../../components/use-table-scroll';
+import { FormInstanceHost } from '../../components/form-instance-host';
 
 interface DrawSeedsStepProps {
   subEvent: EntrySubEvent;
@@ -21,7 +22,7 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
   const [suggesting, setSuggesting] = useState(false);
   const seedInputs = useRef(new Map<string, HTMLInputElement>());
   const stage = subEvent.hasQualifying ? [{ field: 'stage', operator: 'eq' as const, value: kind === 'QUALIFYING' ? 'QUALIFYING' : 'MAIN' }] : [];
-  const { tableProps } = useTable<EntryRecord>({
+  const { tableProps, searchFormProps } = useTable<EntryRecord>({
     resource: entriesResource(subEvent.id),
     syncWithLocation: false,
     pagination: { pageSize },
@@ -52,6 +53,7 @@ export function DrawSeedsStep({ subEvent, kind }: DrawSeedsStepProps) {
           </span>
         </Tooltip>
       </Flex>
+      <FormInstanceHost form={searchFormProps.form} />
       <Table<EntryRecord> {...tableProps} size="small" rowKey="id" scroll={tableScroll}>
         <Table.Column<EntryRecord>
           title="Hạt giống"

@@ -1,13 +1,16 @@
-import { Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Edit } from '../../components/crud-page';
 import { useGetIdentity } from '@refinedev/core';
 import { Form, Input, Select } from 'antd';
+import { useParams } from 'react-router';
 import type { CurrentUser } from '../../providers/current-user';
 import { ROLE_OPTIONS, type UserRecord } from './user-labels';
 
 /** Name and role only; lock, password and sessions are row actions on the list. */
 export function UserEdit() {
   const { data: me } = useGetIdentity<CurrentUser>();
-  const { formProps, saveButtonProps, query } = useForm<UserRecord>({ resource: 'users', action: 'edit', redirect: 'list' });
+  const { id } = useParams();
+  const { formProps, saveButtonProps, query } = useForm<UserRecord>({ resource: 'users', action: 'edit', id, redirect: 'list' });
   const record = query?.data?.data;
   const isSelf = record?.id === me?.id;
 

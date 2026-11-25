@@ -1,4 +1,5 @@
-import { CreateButton, List } from '@refinedev/antd';
+import { List } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Table } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
@@ -17,14 +18,14 @@ const RESOURCE = 'disciplines';
 export function DisciplineList() {
   const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<DisciplineRecord>(RESOURCE, { field: 'order', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<DisciplineRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
   return (
     <List
       title="Nội dung chuẩn"
       headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm nội dung</CreateButton> : undefined}
     >
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

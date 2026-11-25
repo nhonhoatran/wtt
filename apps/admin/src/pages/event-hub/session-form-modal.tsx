@@ -62,7 +62,8 @@ export function SessionFormModal({ event, session, defaultDate, onClose, onSaved
   useEffect(() => {
     if (!tables.data || !venueId || venueId === seededVenue) return;
     setSeededVenue(venueId);
-    form.setFieldValue('tableIds', tables.data.map((table) => table.id));
+    // setFieldValue swaps in fresh error arrays, which rc-util's isEqual misreports as circular references.
+    form.setFieldsValue({ tableIds: tables.data.map((table) => table.id) });
   }, [tables.data, venueId, seededVenue, form]);
 
   const submit = async (values: SessionFormValues) => {

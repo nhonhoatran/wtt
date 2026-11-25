@@ -40,7 +40,7 @@ export function RankingPointsPage() {
   const canDelete = useCan({ resource: 'rankings', action: 'delete' }).data?.can ?? false;
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<DeletablePoints | null>(null);
-  const { tableProps, sorters, filters, setFilters } = useTable<PointsRow>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<PointsRow>({
     resource: RESOURCE,
     syncWithLocation: true,
     pagination: { pageSize },
@@ -60,7 +60,7 @@ export function RankingPointsPage() {
         ) : undefined
       }
     >
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

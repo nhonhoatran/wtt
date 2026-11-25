@@ -1,21 +1,24 @@
-import { Create, Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create, Edit } from '../../components/crud-page';
 import { App, Button, Flex, Form, Input, InputNumber, Result, Select, Skeleton } from 'antd';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { MediaUploadField } from '../../components/media-upload-field';
 import { useContentEventOptions } from '../content/use-content-event-options';
 import type { SponsorRecord } from '../content/content-labels';
+import { FormInstanceHost } from '../../components/form-instance-host';
 
 function SponsorEditor({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { message } = App.useApp();
-  const { formProps, form, saveButtonProps, query } = useForm<SponsorRecord>({ resource: 'sponsors', action: edit ? 'edit' : 'create', redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/sponsors'); } });
+  const { id } = useParams();
+  const { formProps, form, saveButtonProps, query } = useForm<SponsorRecord>({ resource: 'sponsors', action: edit ? 'edit' : 'create', id: edit ? id : undefined, redirect: false, onMutationSuccess: (response) => { showWarnings(message, warningsOf(response)); navigate('/sponsors'); } });
   const record = query?.data?.data;
   const selectedEvent = Form.useWatch('eventId', form) as string | undefined;
   const eventId = selectedEvent ?? record?.eventId ?? searchParams.get('eventId');
   const events = useContentEventOptions(eventId ? [eventId] : []);
-  if (edit && query?.isLoading) return <Skeleton active />;
+  if (edit && query?.isLoading) return <><FormInstanceHost form={form} /><Skeleton active /></>;
   if (edit && (query?.isError || !record)) return <Result status="error" title="Không tải được nhà tài trợ" extra={<Button onClick={() => void query?.refetch()}>Thử lại</Button>} />;
   const formContent = <Form {...formProps} form={form} layout="vertical" initialValues={{ eventId: searchParams.get('eventId') ?? undefined, order: 0, isActive: true, ...formProps.initialValues }}><Flex vertical gap="middle" style={{ maxWidth: 680 }}>
     <Form.Item name="name" label="Tên nhà tài trợ" rules={[{ required: true, whitespace: true }]}><Input autoFocus maxLength={160} /></Form.Item>

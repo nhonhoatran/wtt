@@ -1,4 +1,4 @@
-import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Empty, Flex, Result, Skeleton, Space, Tag, Typography, theme } from 'antd';
@@ -10,6 +10,7 @@ import type { HubTabContext } from './hub-tab-context';
 import { ScheduleActions } from './schedule-actions';
 import { SideMenuLayout } from './side-menu-layout';
 import { scheduleAnnouncements, scheduleScreenReaderInstructions } from './schedule-dnd-accessibility';
+import { nearestCellCoordinates, SCHEDULE_KEYBOARD_CODES, scheduleCollisionDetection } from './schedule-keyboard-drag';
 import { scheduleKey, sessionsKey, tableLabel, todayInZone, type ScheduleMatch, type SessionRecord } from './schedule-types';
 import { SessionFormModal } from './session-form-modal';
 import { SessionGrid } from './session-grid';
@@ -37,7 +38,10 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [dragging, setDragging] = useState<ScheduleMatch | null>(null);
   const { token } = theme.useToken();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_START_DISTANCE } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_START_DISTANCE } }),
+    useSensor(KeyboardSensor, { keyboardCodes: SCHEDULE_KEYBOARD_CODES, coordinateGetter: nearestCellCoordinates }),
+  );
   const sessions = useQuery({
     queryKey: sessionsKey(event.id),
     queryFn: async () => (await apiFetch<{ data: SessionRecord[] }>(`/admin/events/${event.id}/sessions`)).data,
@@ -106,7 +110,7 @@ export function ScheduleTab({ event, canUpdate }: HubTabContext) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={scheduleCollisionDetection}
       accessibility={{ announcements, screenReaderInstructions: scheduleScreenReaderInstructions }}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}

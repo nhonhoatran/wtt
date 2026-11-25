@@ -40,7 +40,7 @@ function useEventOptions(selected?: string) {
 export function ImportList() {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
-  const { tableProps, sorters, filters, setFilters } = useTable<ImportJob>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<ImportJob>({
     resource: 'imports',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -50,7 +50,7 @@ export function ImportList() {
 
   return (
     <List title="Lịch sử import">
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

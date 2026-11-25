@@ -1,4 +1,5 @@
-import { CreateButton, getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { useGetIdentity } from '@refinedev/core';
 import { Space, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
@@ -17,7 +18,7 @@ export function UserList() {
   const tableScroll = useTableScroll();
   const { data: me } = useGetIdentity<CurrentUser>();
   const [tempPassword, setTempPassword] = useState<TempPasswordInfo | null>(null);
-  const { tableProps, sorters, filters, setFilters } = useTable<UserRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<UserRecord>({
     resource: 'users',
     syncWithLocation: true,
     pagination: { pageSize: me?.listDefaultPageSize },
@@ -26,7 +27,7 @@ export function UserList() {
 
   return (
     <List title="Tài khoản nhân viên" headerButtons={<CreateButton>Thêm người dùng</CreateButton>}>
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

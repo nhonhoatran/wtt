@@ -1,8 +1,8 @@
-import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
+import { PrinterOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Empty, Flex, Result, Select, Skeleton, Typography, theme } from 'antd';
 import dayjs from 'dayjs';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { apiFetch } from '../../api/http-client';
 import { DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import { roundTitle } from './draw-labels';
@@ -10,6 +10,7 @@ import { DAY_QUERY_PARAM, SESSION_QUERY_PARAM } from './entry-labels';
 import styles from './match-sheets-print.module.css';
 import { sessionsKey, tableLabel, timeInZone, type SessionRecord } from './schedule-types';
 import { TruncatedNotice } from './truncated-notice';
+import { BackLink } from '../../components/back-link';
 
 // Shared by the @page rule (which cannot read custom properties of a page element) and the sheet height math in the stylesheet.
 const SHEET_PAGE_MARGIN = '10mm';
@@ -137,9 +138,7 @@ export function MatchSheetsPrintPage() {
     <Flex className={styles.printPage} style={{ padding: token.paddingLG, '--sheet-page-margin': SHEET_PAGE_MARGIN } as React.CSSProperties} vertical gap="middle">
       <style>{PAGE_RULE}</style>
       <Flex className={styles.noPrint} vertical gap="middle">
-        <Link to={backTo}>
-          <ArrowLeftOutlined /> Về lịch & kết quả
-        </Link>
+        <BackLink to={backTo}>Về lịch & kết quả</BackLink>
         <Flex justify="space-between" align="center" wrap gap="small">
           <Typography.Title level={3} style={{ margin: 0 }}>
             {title}

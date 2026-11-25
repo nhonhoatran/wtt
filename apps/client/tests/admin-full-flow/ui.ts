@@ -82,7 +82,7 @@ export async function uiResponse<T>(page: Page, method: string, pathname: string
 }
 
 export async function closeDrawer(page: Page): Promise<void> {
-  const drawer = page.locator('.ant-drawer:visible');
+  const drawer = page.locator('.ant-drawer-open');
   if (await drawer.count()) {
     try {
       await drawer.getByRole('button', { name: 'Đóng', exact: true }).click({ timeout: 2_000 });

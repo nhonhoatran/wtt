@@ -1,7 +1,7 @@
 import { LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import { useGetIdentity, useLogout } from '@refinedev/core';
 import { Button, Drawer, Dropdown, Flex, Grid, Layout, Menu, Spin, Tag, theme, Typography } from 'antd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import type { CurrentUser } from '../providers/current-user';
 import { ROLE_LABELS, visibleMenuGroups } from './menu-groups';
@@ -17,6 +17,10 @@ export function AdminLayout() {
   // Below `lg` the menu is an overlay drawer, so opening it never squeezes the page.
   const compact = !Grid.useBreakpoint().lg;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Widening past `lg` unmounts the drawer; close it so narrowing again does not reopen it.
+  useEffect(() => {
+    if (!compact) setDrawerOpen(false);
+  }, [compact]);
 
   if (isLoading || !user) return <Spin fullscreen />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
@@ -57,6 +61,7 @@ export function AdminLayout() {
       {compact ? (
         <Drawer
           placement="left"
+          aria-label="Menu quản trị"
           width={SIDER_WIDTH}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}

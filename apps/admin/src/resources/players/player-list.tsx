@@ -1,5 +1,6 @@
 import { MoreOutlined } from '@ant-design/icons';
-import { CreateButton, EditButton, getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { EditButton, getDefaultSortOrder, List, useTable } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { CanAccess, useCan } from '@refinedev/core';
 import { Button, Dropdown, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
@@ -15,7 +16,7 @@ export function PlayerList() {
   const pageSize = useListPageSize();
   const canManage = useCan({ resource: 'players', action: 'manage' }).data?.can ?? false;
   const [mergeTarget, setMergeTarget] = useState<PlayerRecord | null>(null);
-  const { tableProps, sorters, filters, setFilters, tableQuery } = useTable<PlayerRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters, tableQuery } = useTable<PlayerRecord>({
     resource: 'players',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -31,7 +32,7 @@ export function PlayerList() {
         </CanAccess>
       }
     >
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

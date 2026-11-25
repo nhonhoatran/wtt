@@ -1,4 +1,5 @@
-import { CreateButton, List } from '@refinedev/antd';
+import { List } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Table, Tag } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
@@ -13,11 +14,11 @@ const unfinishedLabel = (value: GroupScoringRuleRecord['unfinishedMatchScoring']
 export function GroupScoringRuleList() {
   const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<GroupScoringRuleRecord>(RESOURCE, { field: 'name', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<GroupScoringRuleRecord>(RESOURCE, { field: 'name', order: 'asc' });
 
   return (
     <List title="Luật vòng bảng" headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm luật</CreateButton> : undefined}>
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

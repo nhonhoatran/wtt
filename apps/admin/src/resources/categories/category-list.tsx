@@ -1,4 +1,5 @@
-import { CreateButton, List } from '@refinedev/antd';
+import { List } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Table, Tag } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
@@ -17,14 +18,14 @@ const ageRange = ({ minAge, maxAge }: CategoryRecord) => {
 export function CategoryList() {
   const tableScroll = useTableScroll();
   const { canCreate } = useCatalogAccess();
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<CategoryRecord>(RESOURCE, { field: 'order', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<CategoryRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
   return (
     <List
       title="Nhóm tuổi / trình độ"
       headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm nhóm</CreateButton> : undefined}
     >
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

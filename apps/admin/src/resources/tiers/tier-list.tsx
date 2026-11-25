@@ -1,4 +1,5 @@
-import { CreateButton, List } from '@refinedev/antd';
+import { List } from '@refinedev/antd';
+import { CreateButton } from '../../components/crud-page';
 import { Space, Table, theme } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
@@ -12,11 +13,11 @@ export function TierList() {
   const tableScroll = useTableScroll();
   const { token } = theme.useToken();
   const { canCreate } = useCatalogAccess();
-  const { tableProps, sorters, filters, setFilters } = useCatalogTable<TierRecord>(RESOURCE, { field: 'order', order: 'asc' });
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<TierRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
   return (
     <List title="Nhóm giải" headerButtons={canCreate ? <CreateButton resource={RESOURCE}>Thêm nhóm giải</CreateButton> : undefined}>
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

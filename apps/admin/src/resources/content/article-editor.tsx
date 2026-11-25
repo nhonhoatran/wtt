@@ -1,21 +1,24 @@
-import { Create, Edit, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create, Edit } from '../../components/crud-page';
 import { Alert, App, Button, Flex, Form, Result, Skeleton } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { ApiError, apiFetch } from '../../api/http-client';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { useUnsavedGuard } from '../../pages/ranking/ranking-rules-unsaved-guard';
 import { ArticleFields, LAST_ARTICLE_CATEGORY_KEY } from './content-form-fields';
 import { ArticlePublishActions } from './article-publish-actions';
 import type { ContentStatus } from './content-labels';
+import { FormInstanceHost } from '../../components/form-instance-host';
 
 const OPTIONAL_TEXT_FIELDS = ['titleEn', 'summary', 'summaryEn', 'bodyEn', 'category', 'categoryEn', 'authorName'];
 
 export function ArticleEditor({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { id } = useParams();
   const { form, query } = useForm({
-    resource: 'articles', action: edit ? 'edit' : 'create', redirect: false, warnWhenUnsavedChanges: false,
+    resource: 'articles', action: edit ? 'edit' : 'create', id: edit ? id : undefined, redirect: false, warnWhenUnsavedChanges: false,
     queryOptions: { refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
   const [dirty, setDirty] = useState(false);
@@ -75,7 +78,7 @@ export function ArticleEditor({ edit = false }: { edit?: boolean }) {
     } finally { setBusy(false); }
   };
 
-  if (edit && query?.isLoading) return <Skeleton active />;
+  if (edit && query?.isLoading) return <><FormInstanceHost form={form} /><Skeleton active /></>;
   if (edit && (query?.isError || !record)) return <Result status="error" title="Không tải được bài viết" extra={<Button onClick={() => void query?.refetch()}>Thử lại</Button>} />;
   const content = <Form form={form} layout="vertical" disabled={busy} initialValues={{ status: 'DRAFT', isFeatured: false, eventIds: [] }} onValuesChange={() => setDirty(true)} onFinish={() => void save(form.getFieldValue('status') as ContentStatus, form.getFieldValue('publishAt') as string | null)}>
     <Flex vertical gap="middle">
@@ -84,5 +87,5 @@ export function ArticleEditor({ edit = false }: { edit?: boolean }) {
       <ArticlePublishActions form={form} busy={busy || imageUploading} validate={validate} save={save} />
     </Flex>
   </Form>;
-  return edit ? <Edit title="Sửa bài viết" footerButtons={() => null} deleteButtonProps={{ hidden: true }}>{content}</Edit> : <Create title="Viết bài" footerButtons={() => null}>{content}</Create>;
+  return edit ? <Edit title="Sửa bài viết" footerButtons={() => null} deleteButtonProps={{ hidden: true }}>{content}</Edit> : <Create title="Thêm bài viết" footerButtons={() => null}>{content}</Create>;
 }

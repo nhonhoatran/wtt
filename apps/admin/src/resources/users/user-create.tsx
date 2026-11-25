@@ -1,4 +1,5 @@
-import { Create, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create } from '../../components/crud-page';
 import { Form, Input, Select } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';

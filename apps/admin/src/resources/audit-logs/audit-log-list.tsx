@@ -12,7 +12,7 @@ const json = (value: unknown) => (value === null || value === undefined ? '—' 
 export function AuditLogList() {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
-  const { tableProps, sorters, filters, setFilters } = useTable<AuditLogRecord>({
+  const { tableProps, searchFormProps, sorters, filters, setFilters } = useTable<AuditLogRecord>({
     resource: 'audit-logs',
     syncWithLocation: true,
     pagination: { pageSize },
@@ -28,7 +28,7 @@ export function AuditLogList() {
 
   return (
     <List title="Nhật ký thao tác">
-      <ListFilterBar
+      <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
         fields={[

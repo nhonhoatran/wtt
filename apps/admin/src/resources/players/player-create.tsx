@@ -1,4 +1,5 @@
-import { Create, useForm } from '@refinedev/antd';
+import { useForm } from '@refinedev/antd';
+import { Create } from '../../components/crud-page';
 import { App, Form } from 'antd';
 import { showWarnings, warningsOf } from '../../api/write-warnings';
 import { cleanPlayerValues, fillBirthYear, PlayerFormFields } from './player-form';

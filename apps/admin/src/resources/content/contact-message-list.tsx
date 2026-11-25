@@ -4,13 +4,15 @@ import { App, Button, Descriptions, Drawer, Flex, Space, Table, Tag } from 'antd
 import { useState } from 'react';
 import { apiFetch } from '../../api/http-client';
 import { ListFilterBar } from '../../components/list-filter-bar';
+import { useTableScroll } from '../../components/use-table-scroll';
 import { useListPageSize } from '../../providers/use-list-page-size';
 import { CONTACT_STATUS_COLORS, CONTACT_STATUS_LABELS, CONTACT_STATUS_OPTIONS, dateTime, type ContactMessageRecord } from './content-labels';
 
 export function ContactMessageList() {
   const { message } = App.useApp();
   const [selected, setSelected] = useState<ContactMessageRecord | null>(null);
-  const { tableProps, filters, setFilters, tableQuery } = useTable<ContactMessageRecord>({ resource: 'contact-messages', syncWithLocation: true, pagination: { pageSize: useListPageSize() }, sorters: { initial: [{ field: 'createdAt', order: 'desc' }] } });
+  const tableScroll = useTableScroll();
+  const { tableProps, searchFormProps, filters, setFilters, tableQuery } = useTable<ContactMessageRecord>({ resource: 'contact-messages', syncWithLocation: true, pagination: { pageSize: useListPageSize() }, sorters: { initial: [{ field: 'createdAt', order: 'desc' }] } });
   const newCount = useQuery({ queryKey: ['contact-message-new-count'], queryFn: async () => (await apiFetch<{ data: ContactMessageRecord[]; total: number }>('/admin/contact-messages?page=1&pageSize=1&filter%5Bstatus%5D=NEW')).total, refetchInterval: 60_000 });
   const changeStatus = async (row: ContactMessageRecord, status: ContactMessageRecord['status']) => {
     try {
@@ -22,12 +24,12 @@ export function ContactMessageList() {
   };
   return <>
     <List title={<>Hộp thư liên hệ{newCount.data ? <Tag color="red" style={{ marginInlineStart: 8 }}>{newCount.data}</Tag> : null}</>}>
-      <ListFilterBar filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên, email, nội dung' }, { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: CONTACT_STATUS_OPTIONS }]} />
-      <Table {...tableProps} rowKey="id" scroll={{ x: true }}>
+      <ListFilterBar searchForm={searchFormProps.form} filters={filters} setFilters={setFilters} fields={[{ kind: 'search', field: 'q', placeholder: 'Tìm theo tên, email, nội dung' }, { kind: 'select', field: 'status', placeholder: 'Trạng thái', options: CONTACT_STATUS_OPTIONS }]} />
+      <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         <Table.Column<ContactMessageRecord> dataIndex="name" title="Người gửi" render={(name, row) => <Button type="link" onClick={() => { setSelected(row); if (row.status === 'NEW') void changeStatus(row, 'READ'); }}>{name}</Button>} />
         <Table.Column<ContactMessageRecord> dataIndex="email" title="Email" />
         <Table.Column<ContactMessageRecord> dataIndex="organization" title="Tổ chức" render={(value) => value ?? '—'} />
-        <Table.Column<ContactMessageRecord> dataIndex="message" title="Nội dung" ellipsis />
+        <Table.Column<ContactMessageRecord> dataIndex="message" title="Nội dung" ellipsis width={240} />
         <Table.Column<ContactMessageRecord> dataIndex="createdAt" title="Gửi lúc" sorter render={dateTime} />
         <Table.Column<ContactMessageRecord> dataIndex="status" title="Trạng thái" render={(status: ContactMessageRecord['status']) => <Tag color={CONTACT_STATUS_COLORS[status]}>{CONTACT_STATUS_LABELS[status]}</Tag>} />
         <Table.Column<ContactMessageRecord> key="actions" title="Thao tác" render={(_, row) => <Space><Button size="small" onClick={() => setSelected(row)}>Mở</Button></Space>} />

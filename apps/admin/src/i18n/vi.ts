@@ -20,7 +20,7 @@ export const vi: Record<string, string> = {
   'actions.edit': 'Sửa',
   'actions.show': 'Chi tiết',
   'articles.titles.list': 'Danh sách bài viết',
-  'articles.titles.create': 'Viết bài',
+  'articles.titles.create': 'Thêm bài viết',
   'articles.titles.edit': 'Sửa bài viết',
   'articles.titles.show': 'Chi tiết bài viết',
   'videos.titles.list': 'Danh sách video',
