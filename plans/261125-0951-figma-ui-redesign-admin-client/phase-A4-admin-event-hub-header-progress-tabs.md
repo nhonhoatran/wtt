@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q2 (xem trước giải nháp)
 
 ## Overview
-- Ưu tiên: P1 (A5–A9 dùng). Effort: ~5h. Trạng thái: pending. Phụ thuộc: A1.
+- Ưu tiên: P1 (A5–A9 dùng). Effort: ~5h. Trạng thái: done (API route + UI; kiểm trình duyệt có stub progress). Phụ thuộc: A1.
 - Header mới, stepper tiến độ 5 bước (bấm để sang tab), đổi nhãn tab, component `SubEventPills` thay side menu ở các tab sau.
 
 ## Key insights
@@ -78,14 +78,14 @@ Sửa
 8. typecheck/lint/build; chạy E2E admin-full-flow nếu stack local sẵn (theo `docs/code-standards.md` mục Kiểm thử).
 
 ## Todo
-- [ ] shared event-progress + test
-- [ ] progress service/route/e2e
-- [ ] public-site-url
-- [ ] header + actions "…"
-- [ ] stepper
-- [ ] SubEventPills
-- [ ] nhãn tab + breadcrumb
-- [ ] build/test xanh
+- [x] shared event-progress + test
+- [x] progress service/route/e2e
+- [x] public-site-url
+- [x] header + actions "…"
+- [x] stepper
+- [x] SubEventPills
+- [x] nhãn tab + breadcrumb
+- [x] build/test xanh
 
 ## Success criteria
 - Bốc thăm/xếp lịch xong trong tab → stepper đổi trạng thái không cần reload.

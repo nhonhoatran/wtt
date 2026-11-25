@@ -6,7 +6,7 @@
 - Code: `apps/admin/src/pages/event-hub/sub-events-tab.tsx`, `sub-event-labels.ts`, `draw-labels.ts` (`overallDrawState`), `entry-labels.ts`; API `sub-events/sub-event-items.ts:18-24`, `entries/entries-query.service.ts:58-69`
 
 ## Overview
-- Ưu tiên: P3. Effort: ~3h. Trạng thái: pending. Phụ thuộc: A4.
+- Ưu tiên: P3. Effort: ~3h. Trạng thái: done. Phụ thuộc: A4.
 - Bảng nội dung theo Figma: Nội dung · Thể thức (+ mô tả) · Thể thức trận (+ "N ván, ván X điểm, cách biệt Y") · Số VĐV/cặp · Hạt giống · Bốc thăm (Tag) · Thao tác.
 
 ## Key insights
@@ -50,10 +50,10 @@ Tạo
 4. typecheck/lint/build.
 
 ## Todo
-- [ ] API include + seeded + e2e
-- [ ] types + summary
-- [ ] columns + tab
-- [ ] build/test xanh
+- [x] API include + seeded + e2e
+- [x] types + summary
+- [x] columns + tab
+- [x] build/test xanh
 
 ## Success criteria
 - Không thêm request mạng mới khi mở tab (so network trước/sau: vẫn 3 GET).

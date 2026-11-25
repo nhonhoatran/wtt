@@ -20,21 +20,21 @@ Phân tích: [admin gap](./research/admin-figma-gap.md) · [client gap](./resear
 
 | Phase | Nội dung | Ước lượng | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|
-| [A1](./phase-A1-admin-shell-and-tokens.md) | Shell admin + token | 4h | — | Đang làm |
+| [A1](./phase-A1-admin-shell-and-tokens.md) | Shell admin + token | 4h | — | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A1-admin-shell.md) |
 | [A2](./phase-A2-admin-dashboard-overview.md) | Tổng quan | 6h | A1, sau C2 (chung `app-setting-registry.ts`) | Chờ |
-| [A3](./phase-A3-admin-events-list.md) | Danh sách giải | 4h | A1 | Chờ |
-| [A4](./phase-A4-admin-event-hub-header-progress-tabs.md) | Header hub + tiến độ + tab | 5h | A1 | Chờ |
-| [A5](./phase-A5-admin-sub-events-tab.md) | Tab nội dung thi đấu | 3h | A4 | Chờ |
-| [A6](./phase-A6-admin-entries-and-excel-import.md) | Đăng ký + nhập Excel | 5h | A4 | Chờ |
+| [A3](./phase-A3-admin-events-list.md) | Danh sách giải + thống nhất nhãn "Giải đấu"/"Vận động viên" | 4h | A1 | Xong (số đếm thật đã kiểm với API mới) — [báo cáo](../reports/fullstack-developer-261125-phase-A3-admin-events-list.md) |
+| [A4](./phase-A4-admin-event-hub-header-progress-tabs.md) | Header hub + tiến độ + tab | 5h | A1 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A4-admin-event-hub.md) |
+| [A5](./phase-A5-admin-sub-events-tab.md) | Tab nội dung thi đấu | 3h | A4 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A5-admin-sub-events.md) |
+| [A6](./phase-A6-admin-entries-and-excel-import.md) | Đăng ký + nhập Excel | 5h | A4 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A6-admin-entries-import.md) |
 | [A7](./phase-A7-admin-draw-preview-and-publish.md) | Bốc thăm | 5h | A4 | Chờ |
 | [A8](./phase-A8-admin-schedule-grid.md) | Lịch thi đấu | 4h | A4 | Chờ |
 | [A9](./phase-A9-admin-match-result-entry.md) | Nhập kết quả | 5h | A4 | Chờ |
-| [A10](./phase-A10-admin-ranking-points-rules.md) | Quy tắc điểm | 3h | A1 | Chờ |
-| [A11](./phase-A11-admin-ranking-board.md) | Bảng xếp hạng | 6h | A1, A10 | Chờ |
-| [C1](./phase-C1-design-tokens-and-ui-primitives.md) | Token + primitive client | — | sau A1 (chung `packages/ui-tokens`) | Chờ |
-| [C2](./phase-C2-public-api-read-extensions-and-display-settings.md) | API đọc + setting hiển thị + cache tag | — | — | Đang làm |
-| [C3](./phase-C3-site-shell-header-ticker-footer.md) | Header, ticker, footer | — | C1, C2 | Chờ |
-| [C4](./phase-C4-home-page.md) … [C10](./phase-C10-rankings.md) | Trang chủ → BXH (tuần tự, chung `vi.json`/`en.json`) | — | C3 | Chờ |
+| [A10](./phase-A10-admin-ranking-points-rules.md) | Quy tắc điểm | 3h | A1 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A10-ranking-rules.md) |
+| [A11](./phase-A11-admin-ranking-board.md) | Bảng xếp hạng | 6h | A1, A10 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-A11-ranking-board.md) |
+| [C1](./phase-C1-design-tokens-and-ui-primitives.md) | Token + primitive client | — | sau A1 (chung `packages/ui-tokens`) | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-C1-client-tokens.md) |
+| [C2](./phase-C2-public-api-read-extensions-and-display-settings.md) | API đọc + setting hiển thị + cache tag | — | — | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-C2-public-api.md) |
+| [C3](./phase-C3-site-shell-header-ticker-footer.md) | Header, ticker, footer | — | C1, C2 | Xong — [báo cáo](../reports/fullstack-developer-261125-phase-C3-site-shell.md) |
+| [C4](./phase-C4-home-page.md) … [C10](./phase-C10-rankings.md) | Trang chủ → BXH (tuần tự, chung `vi.json`/`en.json`) | — | C3 | C4 xong — [báo cáo](../reports/fullstack-developer-261125-phase-C4-home-page.md); C5 xong — [báo cáo](../reports/fullstack-developer-261125-phase-C5-events-list-calendar.md); C6–C10 chờ |
 | [C11](./phase-C11-mobile-regression-gates-and-docs.md) | Mobile, axe/Lighthouse, docs | — | C4–C10 | Chờ |
 
 Ước lượng client tổng khoảng 44h (chi tiết trong từng phase).

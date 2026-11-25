@@ -26,3 +26,7 @@ Phần trong Figma mà hệ thống chưa có dữ liệu/tính năng, hoặc Fi
 - Quy tắc điểm: không "Thêm vòng đấu"; thời hạn hiệu lực hiện theo từng BXH.
 - Stepper tiến độ chỉ là chỉ báo, không chặn công bố giải.
 - Mục menu đang chọn dùng đỏ đậm `primaryStrong` (đỏ thương hiệu + chữ trắng chưa đạt 4.5:1).
+
+## Đã chốt thêm (2026-11-25)
+- Một bảng xếp hạng được phép chốt nhiều kỳ trong cùng một ngày; API không chặn. "Kỳ trước" thống nhất là bản đã chốt mới nhất khác bản đang xem (khớp worker và bước chốt).
+- Tên site (`site.name`) sửa được trên `/settings`; sider admin và wordmark site công khai đọc từ setting này.

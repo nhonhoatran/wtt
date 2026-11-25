@@ -3,6 +3,43 @@
 > Cập nhật: 2026-11-25. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
 
+## 2026-11-25 — Redesign theo Figma, đợt 1: admin A1–A6, A10–A11; site công khai C1–C5
+
+Plan: [261125-0951-figma-ui-redesign-admin-client](../plans/261125-0951-figma-ui-redesign-admin-client/plan.md). Báo cáo từng phase và hai lượt review ở `plans/reports/*-261125-*`.
+
+- **Admin**
+  - Shell mới: sider tối có icon, header trắng với breadcrumb và thông tin người dùng. Tên trên sider đọc từ setting `site.name`.
+  - Danh sách giải có tab vòng đời kèm số đếm từ server (`GET /admin/events/lifecycle-counts`), chip lọc đang áp dụng và cột số lượt đăng ký.
+  - Trang giải có header với các thao tác, thanh "Tiến độ chuẩn bị" 5 bước (`GET /admin/events/:id/progress`), tab đổi tên và pill nội dung.
+  - Tab Nội dung thi đấu theo dạng bảng có số đăng ký và số hạt giống.
+  - Tab Danh sách đăng ký: nhập Excel 3 bước ngay trong tab, `?import=` giữ lượt nhập khi tải lại trang, gợi ý cách sửa cho từng dòng lỗi. Tìm kiếm thêm theo mã VĐV và CLB.
+  - Quy tắc điểm: báo lỗi ngay tại ô, mỗi ô đã sửa hiện "trước: n", thanh thay đổi chưa lưu dính đáy, card thời hạn theo từng BXH.
+  - Bảng xếp hạng mới ở `/rankings`: KPI, so sánh với kỳ trước (`GET /admin/ranking-snapshots/:id/summary`), lọc "có thay đổi", chốt kỳ có xác nhận và step-up.
+  - "Kỳ trước" thống nhất là bản đã chốt mới nhất khác bản đang xem. Với bản đã chốt, chỉ tính các bản chốt trước nó. Một BXH được chốt nhiều kỳ trong cùng một ngày.
+- **Site công khai**
+  - Token màu mới và primitive dùng chung (StatusPill, SectionHeading, InitialsAvatar, PillNav dạng tab).
+  - Header có menu lấy từ setting `site.nav.items` và nút đăng ký (ẩn khi chưa có URL). Wordmark header và footer hiển thị tên site từ setting.
+  - Ticker kết quả dạng thẻ, không tự chạy; footer có giới thiệu ngắn và mạng xã hội (ẩn khi trống).
+  - Trang chủ mới: hero, trận đang và sắp diễn ra, giải sắp tới, tin tức, top VĐV. Số mục mỗi khối lấy từ setting.
+  - Danh sách giải nhóm theo tháng, lọc trạng thái bằng pill, lịch tháng. Nút "Xem lịch & kết quả" chỉ hiện khi giải đã có trận công khai (`hasPublicMatches`).
+- **API công khai và setting**
+  - Khối `display` trong `/public/site`.
+  - Setting mới, sửa được trên `/settings`: `site.nav.items`, `site.socialLinks`, `site.tagline`, `site.registrationUrl`; `site.name` giờ cũng sửa được ở đây.
+  - Cache tag bổ sung:
+    - Đổi tên hoặc mã buổi thi đấu thì làm mới mọi trang trận trong buổi.
+    - Sửa bàn thì làm mới trang VĐV của hai bên (chỉ trận thuộc giải đã công bố).
+    - Publish và unpublish bốc thăm thì làm mới danh sách giải.
+  - Chi tiết ở [cache-revalidation.md](./cache-revalidation.md) và [public-site.md](./public-site.md).
+- **Kiểm chứng**
+  - typecheck 14/14, lint 9/9.
+  - Unit test: ui-tokens 8, shared 116, admin 71, client 135.
+  - API unit và e2e chạy trên DB test `kamito_tt_phase12_test`.
+  - Kiểm trên trình duyệt ở 1440 và 390: không tràn ngang, axe 0 lỗi.
+- **Còn mở**
+  - A2, A7–A9 và C6–C11.
+  - Playwright e2e và Lighthouse chưa chạy lại.
+  - Q5: worker chưa trả mã lỗi import, gợi ý cách sửa đang dựa trên câu chữ của thông báo.
+
 ## 2026-11-25 — Trả nợ admin UI, kiểm trang chưa audit, T1 (chưa commit)
 
 - Focus admin đổi sang xanh navy `#0F285D` thay cho đỏ thương hiệu (ô nhập, Select, DatePicker, nút; viền 2 px) để không lẫn với trạng thái lỗi (`packages/ui-tokens/src/antd-theme.ts`).
