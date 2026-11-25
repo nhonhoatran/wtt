@@ -34,6 +34,22 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.table {
+  padding: 0 6px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .foot {
   border-top: 1px solid var(--color-border);
   font-variant-numeric: tabular-nums;
@@ -90,4 +106,11 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* From 1024px the matches tab shows the table layout instead. */
+@media (min-width: 1024px) {
+  .cardsOnly {
+    display: none;
+  }
 }

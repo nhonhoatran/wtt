@@ -1,0 +1,12 @@
+.summary {
+  margin: 16px 0 0;
+  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  font-size: 15px;
+}
+
+.summary strong {
+  text-transform: uppercase;
+}

@@ -5,6 +5,7 @@ import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
 import { roundLabel, sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatMatchTime } from '../../lib/format-date-time';
+import { tableName } from '../../lib/match-display';
 import { LiveBadge } from '../common/live-badge';
 import { sideClubs } from './side-name';
 import { SidePlayers } from '../players/side-players';
@@ -28,6 +29,7 @@ export function matchStageLabel(m: PublicMatchCard, t: Dictionary): string {
 export function MatchCard({ match: m, eventSlug, locale, timeZone, t, showSubEvent = true }: MatchCardProps) {
   const result = m.resultType === 'WALKOVER' || m.resultType === 'RETIRED' || m.resultType === 'DISQUALIFIED' ? t.bracket.result[m.resultType] : null;
   const when = m.scheduledAt ? formatMatchTime(m.scheduledAt, locale, timeZone) : null;
+  const tableLabel = tableName(m.table, t.schedule.tableCode);
   const sides = [
     { side: m.side1, source: m.side1Source, games: m.games1, won: m.winnerSide === 1 },
     { side: m.side2, source: m.side2Source, games: m.games2, won: m.winnerSide === 2 },
@@ -39,7 +41,10 @@ export function MatchCard({ match: m, eventSlug, locale, timeZone, t, showSubEve
             {format(t.bracket.match, { matchNo: m.matchNo })}
             {showSubEvent && ` · ${pickLocalized(locale, m.subEvent.name, m.subEvent.nameEn)}`} · {matchStageLabel(m, t)}
           </span>
-          {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} /> : <span>{m.status === 'SCHEDULED' ? when : result}</span>}
+          <span className={styles.status}>
+            {tableLabel && <span className={styles.table}>{tableLabel}</span>}
+            {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} /> : <span>{m.status === 'SCHEDULED' ? when : result}</span>}
+          </span>
         </Link>
         {sides.map(({ side, source, games, won }, i) => (
           <div key={i} className={`${styles.side} ${won ? styles.winner : ''}`}>

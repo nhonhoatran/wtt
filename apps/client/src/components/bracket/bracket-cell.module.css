@@ -1,0 +1,196 @@
+/* Inside of a bracket match box; the box border and connector lines live in bracket.module.css. */
+.box {
+  font-size: 13px;
+}
+
+.live {
+  border-color: var(--color-primary-text);
+  box-shadow: 0 0 0 1px var(--color-primary-text);
+}
+
+.head,
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.head {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 10px;
+}
+
+.side + .side {
+  border-top: 1px solid var(--color-border);
+}
+
+.winner {
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.seed {
+  flex-shrink: 0;
+  min-width: 20px;
+  padding: 1px 4px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.club {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--color-text-subtle);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.mark {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.games {
+  display: flex;
+  flex-shrink: 0;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.game {
+  min-width: 18px;
+  padding: 1px 2px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.total {
+  flex-shrink: 0;
+  min-width: 16px;
+  font-size: 16px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.winner .total {
+  color: var(--color-primary-text);
+}
+
+.foot {
+  border-top: 1px solid var(--color-border);
+}
+
+.detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  color: var(--color-primary-text);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.detail:hover {
+  text-decoration: underline;
+}
+
+.detail:focus-visible {
+  outline: 2px solid var(--color-data);
+  outline-offset: 2px;
+}
+
+.next {
+  margin: 0;
+  padding: 0 10px 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+@media print {
+  .box {
+    break-inside: avoid;
+    font-size: 10px;
+  }
+
+  .head {
+    padding: 1px 8px;
+    font-size: 9px;
+  }
+
+  .head > :not(:first-child),
+  .games,
+  .club,
+  .foot,
+  .next {
+    display: none;
+  }
+
+  .side {
+    min-height: 0;
+    padding: 2px 8px;
+  }
+
+  .side + .side {
+    border-top: 0;
+  }
+
+  .winner {
+    box-shadow: none;
+  }
+
+  .name {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .mark,
+  .seed {
+    font-size: 9px;
+  }
+
+  .total {
+    font-size: 10px;
+  }
+}

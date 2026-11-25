@@ -5,6 +5,8 @@ export interface PillNavItem {
   href: string;
   label: string;
   current: boolean;
+  /** Marks the item as the current group rather than the exact page (aria-current="true"). */
+  group?: boolean;
 }
 
 /**
@@ -15,7 +17,7 @@ export function PillNav({ label, items, variant = 'pill' }: { label: string; ite
   return (
     <nav className={variant === 'tabs' ? `${styles.nav} ${styles.tabsNav}` : styles.nav} aria-label={label}>
       {items.map((item) => (
-        <Link key={item.href} href={item.href} className={variant === 'tabs' ? styles.tab : styles.pill} aria-current={item.current ? 'page' : undefined}>
+        <Link key={item.href} href={item.href} className={variant === 'tabs' ? styles.tab : styles.pill} aria-current={item.current ? (item.group ? 'true' : 'page') : undefined}>
           {item.label}
         </Link>
       ))}

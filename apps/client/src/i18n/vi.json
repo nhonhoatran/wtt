@@ -37,7 +37,7 @@
       "GROUP_PLACE_N": "Hạng {place} bảng {group}",
       "TBD": "Chờ xác định"
     },
-    "bye": "BYE",
+    "bye": "Miễn đấu",
     "live": "LIVE",
     "result": {
       "WALKOVER": "W/O",
@@ -48,7 +48,29 @@
       "WILDCARD": "WC",
       "QUALIFIER": "Q"
     },
-    "match": "Trận #{matchNo}"
+    "match": "Trận #{matchNo}",
+    "tableCode": "Bàn {code}",
+    "status": {
+      "SCHEDULED": "Sắp đấu",
+      "LIVE": "Đang đấu",
+      "OFFICIAL": "Đã có kết quả"
+    },
+    "detail": "Chi tiết",
+    "detailLabel": "Chi tiết trận #{matchNo}: {a} – {b}",
+    "winner": "Người thắng",
+    "seed": "Hạt giống",
+    "games": "Điểm từng ván",
+    "gamesTotal": "Tổng số ván",
+    "nextMatch": "Thắng → {target}",
+    "roundWithDate": "{round} · {date}",
+    "roundChips": "Chọn vòng",
+    "roundSummary": "Vòng {n}/{total} · {matches} trận",
+    "roundDone": "{n} đã có kết quả",
+    "championTitle": "Vô địch",
+    "championLabel": "Nhà vô địch",
+    "championTbd": "Chưa xác định",
+    "legend": "Chú thích",
+    "viewGroups": "Xem vòng bảng"
   },
   "common": {
     "pagination": "Phân trang",
@@ -169,13 +191,48 @@
     "ticket": "Mua vé",
     "presentedBy": "Tài trợ bởi {name}",
     "subEventChooser": "Nội dung thi đấu",
+    "backToEvents": "Tất cả giải đấu",
+    "hero": {
+      "players": "Vận động viên",
+      "contents": "Nội dung",
+      "matchDay": "Ngày thi đấu",
+      "todayMatches": "Xem trận hôm nay",
+      "map": "Xem bản đồ"
+    },
     "overview": {
       "champions": "Nhà vô địch",
-      "stats": "Số liệu",
-      "players": "Vận động viên",
-      "playedMatches": "Trận đã đấu",
-      "subEvents": "Nội dung thi đấu",
-      "entries": "{n} đăng ký"
+      "liveMatches": "Trận đang đấu & sắp đấu",
+      "allMatches": "Xem tất cả trận đấu",
+      "subEvents": "Nội dung thi đấu ({n})",
+      "entriesSingles": "{n} VĐV",
+      "entriesDoubles": "{n} cặp",
+      "formatLabel": "Thể thức",
+      "formats": {
+        "KNOCKOUT": "Loại trực tiếp",
+        "GROUP_KNOCKOUT": "Vòng bảng, sau đó loại trực tiếp"
+      },
+      "withQualifying": "có vòng loại",
+      "viewDraw": "Xem nhánh đấu",
+      "viewGroups": "Xem bảng đấu",
+      "viewEntries": "Xem danh sách VĐV",
+      "news": "Tin về giải",
+      "videos": "Video giải đấu"
+    },
+    "quickInfo": {
+      "title": "Thông tin nhanh",
+      "dates": "Thời gian diễn ra",
+      "days": "{n} ngày",
+      "venue": "Địa điểm",
+      "tier": "Hạng giải"
+    },
+    "days": {
+      "title": "Lịch theo ngày",
+      "done": "Xong",
+      "today": "Hôm nay",
+      "tomorrow": "Ngày mai"
+    },
+    "sponsors": {
+      "contact": "Liên hệ tài trợ giải đấu"
     }
   },
   "matches": {
@@ -198,7 +255,16 @@
       "upcoming": "Không có trận nào sắp tới."
     },
     "voided": "Không tính",
-    "group": "Bảng {code}"
+    "group": "Bảng {code}",
+    "table": {
+      "caption": "Danh sách trận đấu",
+      "time": "Giờ · Bàn",
+      "stage": "Nội dung · Vòng",
+      "players": "Vận động viên",
+      "score": "Tỉ số",
+      "status": "Trạng thái",
+      "detail": "Chi tiết"
+    }
   },
   "match": {
     "title": "Trận #{matchNo}",
@@ -210,14 +276,44 @@
     "scoreTable": "Điểm từng ván",
     "game": "Ván {n}",
     "games": "Ván thắng",
-    "scheduledAt": "Giờ thi đấu",
     "startedAt": "Bắt đầu",
     "officialAt": "Kết thúc",
     "toBracket": "Xem nhánh đấu",
     "toGroups": "Xem bảng đấu",
     "side": "Bên {n}",
     "sideColumn": "Bên thi đấu",
-    "voidedNote": "Kết quả trận này không được tính do vận động viên rút lui."
+    "voidedNote": "Kết quả trận này không được tính do vận động viên rút lui.",
+    "navLabel": "Vị trí của trận",
+    "resultNote": "Kết quả: {result}",
+    "scoreCaption": "Tỉ số ván",
+    "table": "Bàn",
+    "session": "Ca thi đấu",
+    "time": "Giờ thi đấu",
+    "duration": "Thời lượng",
+    "durationMinutes": "{n} phút",
+    "metaLabel": "Thông tin nhanh của trận",
+    "info": "Thông tin trận",
+    "infoEvent": "Giải",
+    "infoSubEvent": "Nội dung",
+    "infoRound": "Vòng",
+    "infoStatus": "Trạng thái",
+    "nextMatch": "Trận tiếp theo: {target}",
+    "sameRound": "Trận khác cùng vòng",
+    "sameGroup": "Trận khác trong bảng {code}",
+    "summaryLabel": "Tóm tắt",
+    "summary": {
+      "won": "{winner} thắng {a}–{b}.",
+      "wonInto": "{winner} thắng {a}–{b}, vào {round}.",
+      "wonIntoVs": "{winner} thắng {a}–{b}, vào {round} gặp {opponent}.",
+      "wonResult": "{winner} thắng ({result})."
+    },
+    "path": {
+      "title": "Đường đến trận này",
+      "groupStage": "Vòng bảng",
+      "qualifying": "Vòng loại",
+      "beat": "Thắng {opponent} {a}–{b}",
+      "beatResult": "Thắng {opponent} ({result})"
+    }
   },
   "groups": {
     "title": "Bảng đấu",
@@ -231,7 +327,14 @@
     "qualified": "Đi tiếp",
     "qualifiedMark": "Q",
     "matches": "Trận trong bảng",
-    "empty": "Nội dung này chưa có bảng đấu."
+    "empty": "Nội dung này chưa có bảng đấu.",
+    "club": "CLB",
+    "played": "Trận",
+    "won": "Thắng",
+    "lost": "Thua",
+    "seed": "Hạt giống",
+    "grid": "Các bảng đấu",
+    "viewBracket": "Xem nhánh đấu"
   },
   "players": {
     "title": "Vận động viên",
@@ -249,7 +352,11 @@
     "filters": "Lọc vận động viên",
     "search": "Tìm theo tên VĐV",
     "gender": "Giới tính",
-    "genders": { "MALE": "Nam", "FEMALE": "Nữ", "OTHER": "Khác" },
+    "genders": {
+      "MALE": "Nam",
+      "FEMALE": "Nữ",
+      "OTHER": "Khác"
+    },
     "sort": "Sắp xếp",
     "sortName": "Theo tên",
     "sortRank": "Theo thứ hạng",
@@ -267,10 +374,31 @@
       "noEvents": "Chưa có giải đã tham dự được công bố.",
       "noRanks": "Chưa có thứ hạng được công bố.",
       "hand": "Tay thuận",
-      "hands": { "RIGHT": "Phải", "LEFT": "Trái" },
+      "hands": {
+        "RIGHT": "Phải",
+        "LEFT": "Trái"
+      },
       "age": "Tuổi",
       "win": "Thắng",
-      "loss": "Thua"
+      "loss": "Thua",
+      "record": "Thắng – Thua",
+      "points": "Điểm xếp hạng",
+      "viewRanking": "Xem trên bảng xếp hạng",
+      "rankIn": "Hạng {list}",
+      "resultsTable": {
+        "caption": "Kết quả thi đấu của vận động viên",
+        "date": "Ngày",
+        "stage": "Giải · Vòng",
+        "opponent": "Đối thủ",
+        "partner": "Đồng đội:",
+        "score": "Tỉ số",
+        "result": "Kết quả"
+      },
+      "eventsTable": {
+        "caption": "Các giải đã tham dự",
+        "event": "Giải đấu",
+        "dates": "Thời gian"
+      }
     }
   },
   "rankings": {
@@ -280,7 +408,12 @@
     "disciplines": "Loại bảng xếp hạng",
     "singles": "Đơn",
     "doubles": "Đôi",
-    "genders": { "MEN": "Nam", "WOMEN": "Nữ", "MIXED": "Nam nữ", "OPEN": "Mở rộng" },
+    "genders": {
+      "MEN": "Nam",
+      "WOMEN": "Nữ",
+      "MIXED": "Nam nữ",
+      "OPEN": "Mở rộng"
+    },
     "viewAll": "Xem tất cả",
     "updated": "Cập nhật ngày {date}",
     "pending": "Chưa công bố kỳ xếp hạng.",
@@ -299,17 +432,31 @@
     "event": "Giải đấu",
     "tier": "Hạng giải",
     "round": "Vòng đạt",
-    "stages": { "winner": "Vô địch", "group": "Vòng bảng", "groupPlace": "Hạng {n} vòng bảng" },
+    "stages": {
+      "winner": "Vô địch",
+      "group": "Vòng bảng",
+      "groupPlace": "Hạng {n} vòng bảng"
+    },
     "expires": "Hết hạn",
     "manual": "Khoản điểm không gắn giải công khai",
-    "noExpiry": "Không có",
     "movementUp": "Tăng {n} bậc",
     "movementDown": "Giảm {n} bậc",
     "movementSame": "Giữ nguyên thứ hạng",
     "movementNew": "Mới vào bảng",
     "new": "Mới",
     "pointsByRound": "Điểm xếp hạng theo vòng",
-    "effective": "Quy tắc áp dụng tại ngày kết thúc giải: {date}"
+    "effective": "Quy tắc áp dụng tại ngày kết thúc giải: {date}",
+    "previousRank": "(trước: {n})",
+    "change": "Thay đổi",
+    "tournaments": "Số giải",
+    "expiringSoon": "Sắp hết hạn",
+    "total": "Tổng điểm",
+    "breakdownTitle": "Điểm theo từng giải – {name}",
+    "viewProfile": "Xem hồ sơ vận động viên",
+    "pointsGuide": "Cách tính điểm",
+    "listsNav": "Chọn bảng xếp hạng",
+    "kindsNav": "Chọn loại bảng xếp hạng",
+    "expiresOn": "hết hạn {date}"
   },
   "info": {
     "title": "Thông tin giải"

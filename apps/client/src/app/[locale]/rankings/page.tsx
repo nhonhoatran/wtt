@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EmptyState } from '../../../components/common/empty-state';
-import { RankingListTabs } from '../../../components/rankings/ranking-list-tabs';
+import { PillNav } from '../../../components/common/pill-nav';
 import { RankingTopCard } from '../../../components/rankings/ranking-top-card';
 import styles from '../../../components/rankings/rankings.module.css';
 import { getDictionary } from '../../../i18n/get-dictionary';
@@ -39,9 +39,13 @@ export default async function RankingsPage({ params, searchParams }: RankingsPro
   }
   return (
     <main id="content" className="container">
-      <h1 className="page-title">{t.rankings.title}</h1>
+      <h1 className="page-title heading-caps">{t.rankings.title}</h1>
       <p className={styles.intro}>{t.rankings.metaDescription}</p>
-      <RankingListTabs lists={data.items} selected={selected} locale={locale} t={t.rankings} />
+      <PillNav variant="tabs" label={t.rankings.disciplines} items={kinds.map((kind) => ({
+        href: `/${locale}/rankings?kind=${kind.toLowerCase()}`,
+        label: kind === 'SINGLES' ? t.rankings.singles : t.rankings.doubles,
+        current: kind === selected,
+      }))} />
       {lists.length === 0 ? <EmptyState text={t.rankings.empty} /> : [...groups.entries()].map(([code, items]) => (
         <section key={code}>
           <h2 className={styles.groupTitle}>

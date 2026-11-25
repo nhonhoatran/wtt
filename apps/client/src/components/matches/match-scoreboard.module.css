@@ -1,0 +1,140 @@
+.board {
+  display: grid;
+  gap: 16px;
+  padding: 20px 16px;
+  border-radius: var(--radius-card);
+  background: var(--color-data);
+  color: var(--color-surface);
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.avatars {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatars > * + * {
+  margin-left: -14px;
+}
+
+.avatar {
+  border: 2px solid var(--color-data);
+  background: var(--color-surface);
+  color: var(--color-data);
+}
+
+.who {
+  flex: 1;
+  min-width: 0;
+}
+
+.seed {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  color: var(--color-data);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.winner .name {
+  font-weight: 800;
+}
+
+.club {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.sideScore,
+.centerScore {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.winner .sideScore {
+  color: var(--color-live);
+}
+
+.center {
+  display: none;
+  text-align: center;
+}
+
+.caption {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.voided,
+.result {
+  margin: 0;
+  font-size: 13px;
+}
+
+@media (min-width: 768px) {
+  .board {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+  }
+
+  .right {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+
+  .right .avatars > * + * {
+    margin-left: 0;
+    margin-right: -14px;
+  }
+
+  .right .avatars {
+    flex-direction: row-reverse;
+  }
+
+  .name {
+    font-size: 22px;
+  }
+
+  .sideScore {
+    display: none;
+  }
+
+  .center {
+    display: block;
+  }
+
+  .centerScore {
+    font-size: 56px;
+    line-height: 1;
+  }
+
+  .voided,
+  .result {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}

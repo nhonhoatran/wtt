@@ -1,17 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { sideClubs, sideName } from '../../../../../../components/matches/side-name';
+import { sideName } from '../../../../../../components/matches/side-name';
 import { matchStageLabel } from '../../../../../../components/matches/match-card';
+import { MatchMetaRow } from '../../../../../../components/matches/match-meta-row';
+import { MatchPath } from '../../../../../../components/matches/match-path';
 import { MatchScoreTable } from '../../../../../../components/matches/match-score-table';
-import { LiveBadge } from '../../../../../../components/common/live-badge';
-import { SidePlayers } from '../../../../../../components/players/side-players';
+import { MatchScoreboard } from '../../../../../../components/matches/match-scoreboard';
+import { MatchSidebar } from '../../../../../../components/matches/match-sidebar';
+import { MatchSummary } from '../../../../../../components/matches/match-summary';
+import { StatusPill } from '../../../../../../components/common/status-pill';
 import styles from '../../../../../../components/matches/match-detail.module.css';
 import { format, getDictionary } from '../../../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../../../i18n/locales';
 import { pickLocalized } from '../../../../../../i18n/pick-localized';
-import { sideSourceLabel } from '../../../../../../i18n/render-bracket-labels';
-import { formatMatchTime } from '../../../../../../lib/format-date-time';
+import { followUpMatch, locateMatch } from '../../../../../../lib/bracket-derivations';
+import { MATCH_STATUS_PILL } from '../../../../../../lib/match-display';
+import { loadMatchContext } from '../../../../../../lib/load-match-context';
 import { getMatch, isUrlPart } from '../../../../../../lib/public-data';
 import { pageMetadata } from '../../../../../../lib/page-metadata';
 
@@ -38,23 +43,24 @@ export async function generateMetadata({ params }: MatchPageProps): Promise<Meta
 
 export default async function MatchPage({ params }: MatchPageProps) {
   const { locale, match: m, t } = await load(params);
+  const context = await loadMatchContext(m);
   const eventBase = `/${locale}/events/${m.event.slug}`;
   const back = m.drawKind === 'GROUP'
     ? { href: `${eventBase}/groups/${m.subEvent.code}`, label: t.match.toGroups }
     : { href: `${eventBase}/draws/${m.subEvent.code}${m.drawKind === 'QUALIFYING' ? '?draw=qualifying' : ''}`, label: t.match.toBracket };
-  const time = (iso: string | null) => (iso ? formatMatchTime(iso, locale, m.event.timezone) : null);
-  const sides = [
-    { side: m.side1, source: m.side1Source, games: m.games1, won: m.winnerSide === 1 },
-    { side: m.side2, source: m.side2Source, games: m.games2, won: m.winnerSide === 2 },
-  ];
-  const facts = [
-    { label: t.match.scheduledAt, value: time(m.scheduledAt) },
-    { label: t.match.startedAt, value: time(m.startedAt) },
-    { label: t.match.officialAt, value: time(m.officialAt) },
-  ].filter((f) => f.value);
+  const followUp = context.rounds ? followUpMatch(context.rounds, m.matchNo) : null;
+  const sameRound = context.rounds ? locateMatch(context.rounds, m.matchNo)?.round.matches.filter((x) => x.resultType !== 'BYE') : undefined;
+  const neighbours = (context.groupMatches ?? sameRound ?? []).filter((x) => x.matchNo !== m.matchNo).slice(0, context.listLimit);
 
   return (
     <main id="content" className="container">
+      <nav className={styles.crumbs} aria-label={t.match.navLabel}>
+        <Link href={back.href} className={styles.back}>
+          <span aria-hidden="true">← </span>
+          {back.label}
+        </Link>
+        <StatusPill variant={MATCH_STATUS_PILL[m.status]} label={t.match.status[m.status]} />
+      </nav>
       <p className="eyebrow">
         <Link href={eventBase}>{pickLocalized(locale, m.event.name, m.event.nameEn)}</Link>
       </p>
@@ -62,49 +68,29 @@ export default async function MatchPage({ params }: MatchPageProps) {
         {format(t.match.title, { matchNo: m.matchNo })} · {pickLocalized(locale, m.subEvent.name, m.subEvent.nameEn)} · {matchStageLabel(m, t)}
       </h1>
 
-      <section className={styles.board} aria-label={t.match.status[m.status]}>
-        <p className={styles.status}>
-          {m.status === 'LIVE' ? <LiveBadge label={t.bracket.live} variant="deep" /> : t.match.status[m.status]}
-          {m.resultType && m.resultType !== 'NORMAL' && ` · ${t.bracket.result[m.resultType]}`}
-        </p>
-        <div className={styles.sides}>
-          {sides.map(({ side, source, games, won }, i) => (
-            <div key={i} className={`${styles.side} ${won ? styles.winner : ''}`}>
-              <p className={styles.name}>
-                {side?.seed != null && <span className={styles.seed}>[{side.seed}] </span>}
-                {side ? <SidePlayers side={side} locale={locale} /> : sideSourceLabel(t.bracket, source)}
-              </p>
-              {side && sideClubs(side) && <p className={styles.club}>{sideClubs(side)}</p>}
-              <p className={styles.games}>{m.status === 'SCHEDULED' ? '–' : (games ?? 0)}</p>
-            </div>
-          ))}
+      <MatchScoreboard match={m} locale={locale} t={t} />
+      <MatchMetaRow match={m} locale={locale} t={t} />
+
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          {m.games.length > 0 && (
+            <>
+              <h2 className="section-title">{t.match.scoreTable}</h2>
+              <MatchScoreTable match={m} locale={locale} t={t.match} />
+            </>
+          )}
+          <MatchSummary match={m} locale={locale} t={t} followUp={followUp} />
+          {context.rounds && <MatchPath rounds={context.rounds} match={m} locale={locale} t={t} />}
         </div>
-        {m.voided && <p className={styles.voided}>{t.match.voidedNote}</p>}
-      </section>
-
-      {m.games.length > 0 && (
-        <>
-          <h2 className="section-title">{t.match.scoreTable}</h2>
-          <MatchScoreTable match={m} locale={locale} t={t.match} />
-        </>
-      )}
-
-      {facts.length > 0 && (
-        <dl className={styles.facts}>
-          {facts.map((f) => (
-            <div key={f.label}>
-              <dt>{f.label}</dt>
-              <dd>{f.value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
-      <p>
-        <Link href={back.href} className={styles.back}>
-          {back.label}
-        </Link>
-      </p>
+        <MatchSidebar
+          match={m}
+          locale={locale}
+          t={t}
+          followUp={followUp}
+          neighbours={neighbours}
+          neighboursTitle={m.groupCode ? format(t.match.sameGroup, { code: m.groupCode }) : t.match.sameRound}
+        />
+      </div>
     </main>
   );
 }

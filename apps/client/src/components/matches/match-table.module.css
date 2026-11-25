@@ -1,0 +1,140 @@
+.table {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-collapse: collapse;
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+.table thead th {
+  padding: 10px 12px;
+  background: var(--color-data);
+  color: var(--color-surface);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td,
+.table tbody th {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--color-surface-muted);
+}
+
+.timeCell {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.time,
+.subEvent,
+.score {
+  display: block;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableTag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0 6px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.round,
+.games,
+.note {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.side {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.side + .side {
+  margin-top: 4px;
+}
+
+.winner {
+  font-weight: 700;
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.seed {
+  flex-shrink: 0;
+  min-width: 20px;
+  padding: 1px 4px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.club {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.table .scoreCol {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.score {
+  font-size: 18px;
+}
+
+.link {
+  color: var(--color-data);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.view {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .view {
+    display: block;
+  }
+}
+
+/* Player links are flex children, so they need their own 24px target. */
+.side a {
+  display: inline-block;
+  min-height: 24px;
+  line-height: 24px;
+}

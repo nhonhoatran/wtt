@@ -1,88 +1,10 @@
-.board {
-  padding: 16px;
-  border-radius: var(--radius-card);
-  background: var(--color-data);
-  color: var(--color-surface);
-}
-
-.status {
-  margin: 0 0 12px;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.sides {
-  display: grid;
-  gap: 12px;
-}
-
-.side {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    'name games'
-    'club games';
-  column-gap: 16px;
-  align-items: center;
-}
-
-.name {
-  grid-area: name;
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.winner .name {
-  font-weight: 800;
-}
-
-.seed,
-.club {
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.club {
-  grid-area: club;
-  margin: 0;
-}
-
-.games {
-  grid-area: games;
-  margin: 0;
-  font-size: 40px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.winner .games {
-  color: var(--color-live);
-}
-
-.voided {
-  margin: 12px 0 0;
-  font-size: 13px;
-}
-
-.facts {
+.crumbs {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  margin: 24px 0;
-  font-size: 14px;
-}
-
-.facts dt {
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.facts dd {
-  margin: 4px 0 0;
-  font-weight: 600;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
 }
 
 .back {
@@ -90,14 +12,19 @@
   font-weight: 600;
 }
 
-.back:focus-visible {
-  outline: 2px solid var(--color-data);
-  outline-offset: 2px;
+.layout {
+  display: grid;
+  gap: 24px;
+  margin-top: 8px;
 }
 
-@media (min-width: 768px) {
-  .sides {
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
+.main {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 40px;
   }
 }

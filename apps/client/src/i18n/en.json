@@ -37,7 +37,7 @@
       "GROUP_PLACE_N": "Group {group} #{place}",
       "TBD": "To be decided"
     },
-    "bye": "BYE",
+    "bye": "Bye",
     "live": "LIVE",
     "result": {
       "WALKOVER": "W/O",
@@ -48,7 +48,29 @@
       "WILDCARD": "WC",
       "QUALIFIER": "Q"
     },
-    "match": "Match {matchNo}"
+    "match": "Match {matchNo}",
+    "tableCode": "Table {code}",
+    "status": {
+      "SCHEDULED": "Upcoming",
+      "LIVE": "Live",
+      "OFFICIAL": "Completed"
+    },
+    "detail": "Details",
+    "detailLabel": "Details of match #{matchNo}: {a} – {b}",
+    "winner": "Winner",
+    "seed": "Seed",
+    "games": "Game scores",
+    "gamesTotal": "Games won",
+    "nextMatch": "Winner → {target}",
+    "roundWithDate": "{round} · {date}",
+    "roundChips": "Choose round",
+    "roundSummary": "Round {n}/{total} · {matches} matches",
+    "roundDone": "{n} with a result",
+    "championTitle": "Champion",
+    "championLabel": "Champion",
+    "championTbd": "To be decided",
+    "legend": "Legend",
+    "viewGroups": "View the group stage"
   },
   "common": {
     "pagination": "Pagination",
@@ -169,13 +191,48 @@
     "ticket": "Tickets",
     "presentedBy": "Presented by {name}",
     "subEventChooser": "Events",
+    "backToEvents": "All tournaments",
+    "hero": {
+      "players": "Players",
+      "contents": "Events",
+      "matchDay": "Match day",
+      "todayMatches": "View today's matches",
+      "map": "View map"
+    },
     "overview": {
       "champions": "Champions",
-      "stats": "Facts",
-      "players": "Players",
-      "playedMatches": "Matches played",
-      "subEvents": "Events",
-      "entries": "{n} entries"
+      "liveMatches": "Live & upcoming matches",
+      "allMatches": "View all matches",
+      "subEvents": "Events ({n})",
+      "entriesSingles": "{n} players",
+      "entriesDoubles": "{n} pairs",
+      "formatLabel": "Format",
+      "formats": {
+        "KNOCKOUT": "Knockout",
+        "GROUP_KNOCKOUT": "Group stage, then knockout"
+      },
+      "withQualifying": "with qualifying",
+      "viewDraw": "View draw",
+      "viewGroups": "View groups",
+      "viewEntries": "View entry list",
+      "news": "Tournament news",
+      "videos": "Tournament videos"
+    },
+    "quickInfo": {
+      "title": "Quick info",
+      "dates": "Dates",
+      "days": "{n} days",
+      "venue": "Venue",
+      "tier": "Tournament tier"
+    },
+    "days": {
+      "title": "Daily schedule",
+      "done": "Done",
+      "today": "Today",
+      "tomorrow": "Tomorrow"
+    },
+    "sponsors": {
+      "contact": "Contact us about sponsoring"
     }
   },
   "matches": {
@@ -198,7 +255,16 @@
       "upcoming": "No upcoming matches."
     },
     "voided": "Void",
-    "group": "Group {code}"
+    "group": "Group {code}",
+    "table": {
+      "caption": "Match list",
+      "time": "Time · Table",
+      "stage": "Event · Round",
+      "players": "Players",
+      "score": "Score",
+      "status": "Status",
+      "detail": "Details"
+    }
   },
   "match": {
     "title": "Match {matchNo}",
@@ -210,14 +276,44 @@
     "scoreTable": "Game scores",
     "game": "Game {n}",
     "games": "Games",
-    "scheduledAt": "Scheduled",
     "startedAt": "Started",
     "officialAt": "Finished",
     "toBracket": "View draw",
     "toGroups": "View groups",
     "side": "Side {n}",
     "sideColumn": "Side",
-    "voidedNote": "This result does not count because a player withdrew."
+    "voidedNote": "This result does not count because a player withdrew.",
+    "navLabel": "Where this match sits",
+    "resultNote": "Result: {result}",
+    "scoreCaption": "Games won",
+    "table": "Table",
+    "session": "Session",
+    "time": "Match time",
+    "duration": "Duration",
+    "durationMinutes": "{n} min",
+    "metaLabel": "Match quick facts",
+    "info": "Match info",
+    "infoEvent": "Tournament",
+    "infoSubEvent": "Event",
+    "infoRound": "Round",
+    "infoStatus": "Status",
+    "nextMatch": "Next match: {target}",
+    "sameRound": "Other matches this round",
+    "sameGroup": "Other matches in group {code}",
+    "summaryLabel": "Summary",
+    "summary": {
+      "won": "{winner} won {a}–{b}.",
+      "wonInto": "{winner} won {a}–{b}. Next: {round}.",
+      "wonIntoVs": "{winner} won {a}–{b}. Next: {round} vs {opponent}.",
+      "wonResult": "{winner} won ({result})."
+    },
+    "path": {
+      "title": "Road to this match",
+      "groupStage": "Group stage",
+      "qualifying": "Qualifying",
+      "beat": "Beat {opponent} {a}–{b}",
+      "beatResult": "Beat {opponent} ({result})"
+    }
   },
   "groups": {
     "title": "Groups",
@@ -231,7 +327,14 @@
     "qualified": "Qualified",
     "qualifiedMark": "Q",
     "matches": "Group matches",
-    "empty": "This event has no group stage."
+    "empty": "This event has no group stage.",
+    "club": "Club",
+    "played": "P",
+    "won": "W",
+    "lost": "L",
+    "seed": "Seed",
+    "grid": "Groups",
+    "viewBracket": "View the draw"
   },
   "players": {
     "title": "Players",
@@ -249,7 +352,11 @@
     "filters": "Filter players",
     "search": "Search players by name",
     "gender": "Gender",
-    "genders": { "MALE": "Men", "FEMALE": "Women", "OTHER": "Other" },
+    "genders": {
+      "MALE": "Men",
+      "FEMALE": "Women",
+      "OTHER": "Other"
+    },
     "sort": "Sort by",
     "sortName": "Name",
     "sortRank": "Rank",
@@ -267,10 +374,31 @@
       "noEvents": "No published events played yet.",
       "noRanks": "No published rankings yet.",
       "hand": "Playing hand",
-      "hands": { "RIGHT": "Right", "LEFT": "Left" },
+      "hands": {
+        "RIGHT": "Right",
+        "LEFT": "Left"
+      },
       "age": "Age",
       "win": "Won",
-      "loss": "Lost"
+      "loss": "Lost",
+      "record": "Won – Lost",
+      "points": "Ranking points",
+      "viewRanking": "View on the ranking",
+      "rankIn": "Rank {list}",
+      "resultsTable": {
+        "caption": "Player match results",
+        "date": "Date",
+        "stage": "Event · Round",
+        "opponent": "Opponent",
+        "partner": "Partner:",
+        "score": "Score",
+        "result": "Result"
+      },
+      "eventsTable": {
+        "caption": "Events played",
+        "event": "Event",
+        "dates": "Dates"
+      }
     }
   },
   "rankings": {
@@ -280,7 +408,12 @@
     "disciplines": "Ranking discipline",
     "singles": "Singles",
     "doubles": "Doubles",
-    "genders": { "MEN": "Men", "WOMEN": "Women", "MIXED": "Mixed", "OPEN": "Open" },
+    "genders": {
+      "MEN": "Men",
+      "WOMEN": "Women",
+      "MIXED": "Mixed",
+      "OPEN": "Open"
+    },
     "viewAll": "View all",
     "updated": "Updated {date}",
     "pending": "No ranking period published yet.",
@@ -299,17 +432,31 @@
     "event": "Event",
     "tier": "Event tier",
     "round": "Stage reached",
-    "stages": { "winner": "Winner", "group": "Group stage", "groupPlace": "Group stage, place {n}" },
+    "stages": {
+      "winner": "Winner",
+      "group": "Group stage",
+      "groupPlace": "Group stage, place {n}"
+    },
     "expires": "Expires",
     "manual": "Points without a public event",
-    "noExpiry": "None",
     "movementUp": "Up {n} places",
     "movementDown": "Down {n} places",
     "movementSame": "Unchanged",
     "movementNew": "New to the ranking",
     "new": "New",
     "pointsByRound": "Ranking points by round",
-    "effective": "Rules as of the event end date: {date}"
+    "effective": "Rules as of the event end date: {date}",
+    "previousRank": "(was: {n})",
+    "change": "Change",
+    "tournaments": "Events",
+    "expiringSoon": "Expiring soon",
+    "total": "Total points",
+    "breakdownTitle": "Points by event – {name}",
+    "viewProfile": "View player profile",
+    "pointsGuide": "How points work",
+    "listsNav": "Choose a ranking",
+    "kindsNav": "Choose a ranking type",
+    "expiresOn": "expires {date}"
   },
   "info": {
     "title": "Event information"

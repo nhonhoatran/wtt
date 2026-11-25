@@ -1,0 +1,132 @@
+.hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px), (min-width: 1024px) {
+  .hint {
+    display: none;
+  }
+}
+
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin: 0 0 16px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.winnerSwatch {
+  width: 12px;
+  height: 12px;
+  background: var(--color-primary);
+}
+
+.groupsLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-primary-text);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.groupsLink:hover {
+  text-decoration: underline;
+}
+
+.groupsLink:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--color-data);
+  outline-offset: 2px;
+}
+
+.chips {
+  display: none;
+}
+
+.chipList {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0 0 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  min-height: 56px;
+  padding: 6px 12px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chip[aria-current] {
+  background: var(--color-data);
+  color: var(--color-surface);
+}
+
+.chipDate {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.summary strong {
+  color: var(--color-ink);
+}
+
+@media (max-width: 640px) {
+  .chips {
+    display: block;
+  }
+}
+
+@media print {
+  .chips,
+  .legendRow,
+  .hint {
+    display: none;
+  }
+}

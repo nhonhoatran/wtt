@@ -1,6 +1,67 @@
-.qualified th,
-.qualified td {
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-data);
+  color: var(--color-surface);
+  border-radius: var(--radius-button) var(--radius-button) 0 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.members {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table thead th {
+  padding: 10px 12px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td,
+.table tbody th {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.table .nameCol {
+  min-width: 160px;
+  text-align: left;
+}
+
+.table tbody .nameCol {
+  font-weight: 400;
 }
 
 .club {
@@ -9,6 +70,50 @@
   font-weight: 400;
 }
 
-.qualified abbr {
-  text-decoration: none;
+.seed {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 4px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.points {
+  font-weight: 700;
+}
+
+.qualified td,
+.qualified th {
+  font-weight: 700;
+}
+
+.qualified td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.narrow,
+.narrowClub {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .wide {
+    display: none;
+  }
+
+  .table .narrow {
+    display: table-cell;
+  }
+
+  .table tbody th .narrowClub {
+    display: block;
+  }
+
+  .table th,
+  .table td {
+    padding-inline: 8px;
+  }
 }

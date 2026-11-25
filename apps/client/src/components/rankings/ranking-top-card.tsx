@@ -16,7 +16,7 @@ export function RankingTopCard({ ranking, locale, t }: { ranking: PublicRankingT
         <h3><Link href={`/${locale}/rankings/${ranking.list.code}`}>{name}</Link></h3>
         <p className={styles.note}>{ranking.asOfDate ? format(t.rankings.updated, { date: formatFullDate(ranking.asOfDate, locale) }) : t.rankings.pending}</p>
       </div>
-      {ranking.items.length ? <RankingTable items={ranking.items} caption={name} locale={locale} t={t} compact /> : <EmptyState text={t.rankings.pending} />}
+      {ranking.items.length ? <RankingTable items={ranking.items} caption={name} locale={locale} t={t} /> : <EmptyState text={t.rankings.pending} />}
       <Link className={styles.viewAll} href={`/${locale}/rankings/${ranking.list.code}`}>{t.rankings.viewAll}<span aria-hidden="true"> →</span></Link>
     </section>
   );

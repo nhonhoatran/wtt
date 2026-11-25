@@ -5,6 +5,7 @@ import type { Locale } from '../../i18n/locales';
 import { pickLocalized, pickLocalizedOrNull } from '../../i18n/pick-localized';
 import { sideSourceLabel } from '../../i18n/render-bracket-labels';
 import { formatDay, formatMatchTime } from '../../lib/format-date-time';
+import { tableName } from '../../lib/match-display';
 import { EmptyState } from '../common/empty-state';
 import { ScrollRegion } from '../common/scroll-region';
 import { LiveBadge } from '../common/live-badge';
@@ -32,7 +33,7 @@ export function SessionTableSchedule({ schedule, locale, t }: { schedule: Public
         const sessionLabel = `${formatDay(session.date, locale)} · ${sessionName}`;
         const when = `${formatMatchTime(session.startsAt, locale, zone)}${session.endsAt ? ` – ${formatMatchTime(session.endsAt, locale, zone)}` : ''}`;
         return session.tables.filter((table) => table.matches.length > 0).map((table) => {
-          const tableLabel = table.displayName ?? format(t.schedule.tableCode, { code: table.code });
+          const tableLabel = tableName(table, t.schedule.tableCode)!;
           return (
             <section className={styles.sheet} key={`${session.code}-${table.code}`} data-schedule-table={table.code}>
               <div className={styles.sheetHead}>

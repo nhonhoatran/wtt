@@ -5,6 +5,7 @@ import { BracketBoard } from '../../../../../../components/bracket/bracket-board
 import { PillNav } from '../../../../../../components/common/pill-nav';
 import { EventShell } from '../../../../../../components/events/event-shell';
 import { SubEventChooser } from '../../../../../../components/events/sub-event-chooser';
+import { parseRoundParam } from '../../../../../../lib/bracket-derivations';
 import { pickLocalized } from '../../../../../../i18n/pick-localized';
 import { loadEventPage, requireSubEvent } from '../../../../../../lib/event-page';
 import { getBracket } from '../../../../../../lib/public-data';
@@ -12,7 +13,7 @@ import { eventPageMetadata } from '../../../../../../lib/page-metadata';
 
 interface DrawPageProps {
   params: Promise<{ locale: string; slug: string; subEventCode: string }>;
-  searchParams: Promise<{ draw?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const KIND_PARAMS: Record<PublicDrawKind, string> = { MAIN: 'main', QUALIFYING: 'qualifying' };
@@ -36,8 +37,17 @@ export async function generateMetadata(props: DrawPageProps): Promise<Metadata> 
 
 export default async function DrawPage(props: DrawPageProps) {
   const { locale, event, subEvent, bracket, t } = await loadDraw(props);
+  const query = await props.searchParams;
   const base = `/${locale}/events/${event.slug}/draws`;
   const subHref = `${base}/${subEvent.code}`;
+  const kindQuery = bracket.draw.kind === bracket.availableKinds[0] ? null : KIND_PARAMS[bracket.draw.kind];
+  const roundHref = (key: string, round: number) => {
+    const next = new URLSearchParams();
+    if (kindQuery) next.set('draw', kindQuery);
+    for (const [name, value] of Object.entries(query)) if (/^round\d*$/.test(name) && name !== key && parseRoundParam(value)) next.set(name, value as string);
+    next.set(key, String(round));
+    return `${subHref}?${next}`;
+  };
   return (
     <EventShell event={event} locale={locale} t={t} active="draws">
       <SubEventChooser
@@ -61,7 +71,14 @@ export default async function DrawPage(props: DrawPageProps) {
           }))}
         />
       )}
-      <BracketBoard bracket={bracket} locale={locale} t={t.bracket} />
+      <BracketBoard
+        bracket={bracket}
+        locale={locale}
+        t={t.bracket}
+        query={query}
+        roundHref={roundHref}
+        groupsHref={subEvent.hasGroups ? `/${locale}/events/${event.slug}/groups/${subEvent.code}` : null}
+      />
     </EventShell>
   );
 }

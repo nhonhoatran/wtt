@@ -32,8 +32,16 @@ test.describe('event overview', () => {
 
     const stat = (label: string) => page.locator('dl dt', { hasText: new RegExp(`^${label}$`) }).locator('xpath=following-sibling::dd[1]');
     await expect(stat('Vận động viên')).toHaveText('16');
-    await expect(stat('Trận đã đấu')).toHaveText('3');
-    await expect(stat('Nội dung thi đấu')).toHaveText('4');
+    await expect(stat('Nội dung')).toHaveText('4');
+    await expect(page.getByRole('heading', { level: 2, name: /^Nội dung thi đấu \(4\)$/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Thông tin nhanh' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Tất cả giải đấu' })).toHaveAttribute('href', '/vi/events');
+  });
+
+  test('other tabs use the slim hero without the figures', async ({ page, world }) => {
+    await page.goto(`${base(world.world.slug)}/matches`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(world.eventName);
+    await expect(page.locator('[data-event-hero] dl')).toHaveCount(0);
   });
 });
 
@@ -45,6 +53,22 @@ test.describe('draws tab', () => {
     await expect(page.getByRole('heading', { name: 'Chung kết' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Bán kết' })).toBeVisible();
     expect(await page.getByText(/^Trận #\d+$/).count()).toBeGreaterThanOrEqual(7);
+  });
+
+  test('each match box links to its match page and the champion column is present', async ({ page, world }) => {
+    await page.goto(`${base(world.world.slug)}/draws/MS`);
+    const link = page.getByRole('link', { name: /^Chi tiết trận #\d+:/ }).first();
+    await expect(link).toHaveAttribute('href', new RegExp(`${base(world.world.slug)}/matches/\\d+$`));
+    await expect(page.getByRole('heading', { name: 'Vô địch' })).toBeVisible();
+  });
+
+  test('on a phone ?round picks the single round that is shown', async ({ page, world }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${base(world.world.slug)}/draws/MS?round=2`);
+    await expect(page.getByRole('navigation', { name: /^Chọn vòng/ }).getByRole('link', { name: /Bán kết/ })).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('[data-screen-bracket] [data-match-number]:visible')).toHaveCount(2);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(page.locator('[data-screen-bracket] [data-match-number]:visible')).toHaveCount(7);
   });
 
   test('answers 404 for the unpublished WD draw', async ({ page, world }) => {

@@ -6,23 +6,11 @@
   display: none;
 }
 
-.hint {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-@media (min-width: 1024px) {
-  .hint {
-    display: none;
-  }
-}
-
 .rounds {
-  --cell-w: 216px;
+  --cell-w: 276px;
   --gap: 32px;
-  --cell-h: 76px;
-  --row-gap: 12px;
+  --cell-h: 184px;
+  --row-gap: 16px;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: var(--cell-w);
@@ -39,13 +27,15 @@
 }
 
 .roundTitle {
-  margin: 0 0 8px;
-  padding: 6px 8px;
+  margin: 0 0 16px;
+  padding: 10px 8px;
   background: var(--color-data);
   color: var(--color-surface);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: center;
+  text-transform: uppercase;
   border-radius: var(--radius-button);
 }
 
@@ -62,6 +52,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  gap: var(--row-gap);
   min-height: calc(2 * var(--cell-h) + 2 * var(--row-gap));
 }
 
@@ -76,10 +67,12 @@
 
 .cell {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--cell-h);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-button);
   background: var(--color-surface);
-  font-size: 13px;
 }
 
 .round:not(:last-child) .cell::after,
@@ -99,50 +92,39 @@
   left: calc(var(--gap) / -2 - 1px);
 }
 
-.cellHead {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 8px;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
+/* One round at a time: the chips pick it (?round=N), the other columns stay out of the page. */
+@media (max-width: 640px) {
+  .rounds {
+    display: block;
+    width: auto;
+  }
 
-.side {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  min-height: 26px;
-}
+  .round:not([data-selected]) {
+    display: none;
+  }
 
-.winner {
-  font-weight: 700;
-}
+  .roundTitle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 
-.name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .pair {
+    min-height: 0;
+  }
 
-.placeholder {
-  color: var(--color-text-subtle);
-  font-style: italic;
-}
+  .round .pair::after,
+  .round .cell::before,
+  .round .cell::after {
+    display: none;
+  }
 
-.mark {
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.score {
-  min-width: 16px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+  .cell {
+    min-height: 0;
+  }
 }
 
 /* Leave the paper format to the print dialog, while keeping bracket sheets in landscape. */
@@ -156,15 +138,15 @@
     page: bracket;
   }
 
-  .hint {
-    display: none;
-  }
-
   .rounds {
     --cell-w: 230px;
     --gap: 24px;
     --cell-h: 56px;
     --row-gap: 4px;
+  }
+
+  .round:not([data-selected]) {
+    display: flex;
   }
 
   .screenOnly {
@@ -195,13 +177,6 @@
     font-weight: 700;
   }
 
-  .name {
-    overflow: visible;
-    text-overflow: clip;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .section + .section {
     break-before: page;
     margin-top: 0;
@@ -209,11 +184,5 @@
 
   .cell {
     break-inside: avoid;
-    font-size: 10px;
-  }
-
-  .cellHead,
-  .mark {
-    font-size: 9px;
   }
 }

@@ -1,3 +1,28 @@
+.layout {
+  display: grid;
+  gap: 32px;
+  margin-top: 24px;
+}
+
+.main,
+.aside {
+  display: grid;
+  align-content: start;
+  gap: 32px;
+  min-width: 0;
+}
+
+.aside {
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 40px;
+  }
+}
+
 .champions,
 .subEvents {
   display: grid;
@@ -34,47 +59,67 @@
   color: var(--color-surface);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
-  gap: 12px;
-  margin: 0;
-}
-
-.stat {
+.subEvent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
+  background: var(--color-surface);
 }
 
-.stat dt {
+.subEventHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.subEventName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.entryCount {
+  padding: 1px 8px;
+  border: 1px solid var(--color-primary-text);
+  border-radius: var(--radius-button);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.subEventFormat {
+  flex: 1;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 13px;
 }
 
-.stat dd {
-  margin: 4px 0 0;
-  font-size: 24px;
+.subEventLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink);
+  font-size: 13px;
   font-weight: 800;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
-.subEvent {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-button);
-  font-size: 14px;
+.subEventLink:hover {
+  color: var(--color-primary-strong);
 }
 
-.subEvent a {
-  color: var(--color-data);
-  font-weight: 600;
-}
-
-.subEvent a:focus-visible {
+.subEventLink:focus-visible {
   outline: 2px solid var(--color-data);
   outline-offset: 2px;
 }

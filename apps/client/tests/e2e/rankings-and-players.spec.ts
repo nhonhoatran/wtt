@@ -11,14 +11,16 @@ test.describe('published rankings and player profiles', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(r.name);
     await page.getByRole('searchbox', { name: 'Tìm theo tên VĐV' }).fill(normalizePersonName(r.playerName));
     await page.getByRole('button', { name: 'Lọc', exact: true }).click();
-    const row = page.getByRole('row', { name: new RegExp(r.playerName) });
+    const row = page.getByRole('list', { name: r.name, exact: true }).getByRole('listitem').filter({ hasText: r.playerName });
     await expect(row).toBeVisible();
     await expect(page.getByRole('heading', { name: '1 kết quả', exact: true })).toBeVisible();
-    await expect(row.getByRole('link', { name: r.playerName, exact: true })).toHaveAttribute('href', `/vi/players/${r.playerSlug}`);
     await row.locator('summary').click();
     await expect(row.locator('details')).toHaveAttribute('open', '');
+    await expect(row.getByRole('link', { name: 'Xem hồ sơ vận động viên' })).toHaveAttribute('href', `/vi/players/${r.playerSlug}`);
     await expect(row.getByRole('link', { name: r.eventName, exact: true })).toBeVisible();
-    await expect(row.locator('details').getByRole('cell', { name: r.currentPoints.toLocaleString('vi'), exact: true })).toBeVisible();
+    const points = r.currentPoints.toLocaleString('vi');
+    await expect(row.locator('tbody').getByRole('cell', { name: points, exact: true })).toBeVisible();
+    await expect(row.locator('tfoot').getByRole('cell', { name: points, exact: true })).toBeVisible();
     await expect(row).not.toContainText('9.900');
     await expect(page.locator('main')).not.toContainText(r.hiddenName);
     await expect(page.locator(`a[href*="/players/${r.legacyPlayerSlug}"]`)).toHaveCount(0);
@@ -29,14 +31,15 @@ test.describe('published rankings and player profiles', () => {
     await page.goto(`/vi/rankings/${r.code}?q=${encodeURIComponent('Tay vợt')}`);
     const pages = page.getByRole('navigation', { name: 'Phân trang' });
     await expect(pages).toBeVisible();
-    const before = await page.getByRole('table', { name: r.name, exact: true }).locator('tbody > tr').first().innerText();
+    const rows = page.getByRole('list', { name: r.name, exact: true }).locator(':scope > li');
+    const before = await rows.first().innerText();
     const next = pages.getByRole('link', { name: 'Trang sau', exact: true });
     const href = await next.getAttribute('href');
     expect(href).toContain('page=2');
     expect(href).toContain('q=');
     await next.click();
     await expect(page).toHaveURL(/page=2/);
-    await expect(page.getByRole('table', { name: r.name, exact: true }).locator('tbody > tr').first()).not.toHaveText(before);
+    await expect(rows.first()).not.toHaveText(before);
     await page.goto(`/vi/rankings/${r.code}`);
     await page.getByRole('combobox', { name: 'CLB', exact: true }).selectOption(r.club);
     await page.getByRole('button', { name: 'Lọc', exact: true }).click();
@@ -76,7 +79,7 @@ test.describe('published rankings and player profiles', () => {
     await expect(ranks.getByRole('link', { name: r.name, exact: true })).toBeVisible();
     await expect(ranks.getByRole('link', { name: r.doublesName, exact: true })).toBeVisible();
     const results = page.getByRole('region', { name: 'Kết quả thi đấu' });
-    await expect(results.locator(`a[href$="/matches/${r.playedMatchNo}"]`)).toBeVisible();
+    await expect(results.locator(`a[href$="/matches/${r.playedMatchNo}"]:visible`)).toBeVisible();
     await expect(results.locator(`a[href$="/matches/${r.byeMatchNo}"]`)).toHaveCount(0);
     await expect(page.locator('main').getByText('Tuổi', { exact: true })).toHaveCount(0);
   });
@@ -84,7 +87,7 @@ test.describe('published rankings and player profiles', () => {
   test('private profiles answer 404 and their ranking labels have no profile link', async ({ page, world }) => {
     const r = world.ranking;
     await page.goto(`/vi/rankings/${r.code}`);
-    const row = page.getByRole('row', { name: new RegExp(r.privateName) });
+    const row = page.getByRole('list', { name: r.name, exact: true }).getByRole('listitem').filter({ hasText: r.privateName });
     await expect(row).toBeVisible();
     await expect(row.locator(`a[href*="/players/${r.privateSlug}"]`)).toHaveCount(0);
     const response = await page.goto(`/vi/players/${r.privateSlug}`);
@@ -130,6 +133,7 @@ test.describe('published rankings and player profiles', () => {
     await page.goto(`/en/players/${r.playerSlug}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(r.playerName);
     await expect(page.getByRole('heading', { name: 'Current rankings' })).toBeVisible();
+    await expect(page.locator('main')).not.toContainText(/Năm sinh|Born|Date of birth/);
   });
 
   test('profiles without results or rankings show stable empty states', async ({ page, world }) => {

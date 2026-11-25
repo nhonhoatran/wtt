@@ -6,8 +6,8 @@ import { SessionTableSchedule } from '../../../../../components/schedule/session
 import { RankingPointsByRoundTable } from '../../../../../components/events/ranking-points-by-round-table';
 import styles from '../../../../../components/events/event-info.module.css';
 import { pickLocalizedOrNull } from '../../../../../i18n/pick-localized';
-import { format } from '../../../../../i18n/get-dictionary';
 import { formatDay } from '../../../../../lib/format-date-time';
+import { tableName } from '../../../../../lib/match-display';
 import { loadEventPage } from '../../../../../lib/event-page';
 import { getEventInfo, getSchedule, getEventRankingPoints } from '../../../../../lib/public-data';
 import { oneOf, toQuery } from '../../../../../lib/public-query';
@@ -48,7 +48,7 @@ export default async function EventInfoPage({ params, searchParams }: InfoPagePr
           t={t.common}
           fields={[
             { kind: 'select', name: 'session', label: t.schedule.session, value: selected.get('session') ?? '', options: allSchedule.filters.sessions.map((session) => ({ value: session.code, label: `${formatDay(session.date, locale)} · ${pickLocalizedOrNull(locale, session.name, session.nameEn) ?? session.code}` })) },
-            { kind: 'select', name: 'table', label: t.schedule.table, value: selected.get('table') ?? '', options: allSchedule.filters.tables.map((table) => ({ value: table.code, label: table.displayName ?? format(t.schedule.tableCode, { code: table.code }) })) },
+            { kind: 'select', name: 'table', label: t.schedule.table, value: selected.get('table') ?? '', options: allSchedule.filters.tables.map((table) => ({ value: table.code, label: tableName(table, t.schedule.tableCode)! })) },
           ]}
         />
       )}

@@ -18,7 +18,7 @@ const group: GroupRecord = {
 
 function render(canWithdraw: boolean, fixture = group): string {
   return renderToStaticMarkup(createElement(GroupCard, {
-    group: fixture, canUpdate: true, canWithdraw,
+    group: fixture, canUpdate: true, canWithdraw, draft: false, flaggedIds: new Set<string>(),
     call: async <T>(operation: () => Promise<T>) => operation(),
     report: () => undefined, onChanged: async () => undefined, onTiebreak: () => undefined, onWithdraw: () => undefined,
   }));

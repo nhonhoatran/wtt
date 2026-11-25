@@ -1,12 +1,21 @@
+import Link from 'next/link';
 import type { PublicEventDetail } from '@kamito/shared';
 import { format, type Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { pickLocalized, pickLocalizedOrNull } from '../../i18n/pick-localized';
-import { formatDateRange } from '../../lib/format-date-time';
+import { StatusPill } from '../common/status-pill';
+import { EventHeroStats } from './event-hero-stats';
+import { EventWhenWhere, HeroBackLink } from './event-hero-parts';
+import { TierBadge } from './tier-badge';
 import styles from './event-hero.module.css';
+import actions from './event-hero-actions.module.css';
 
-export function EventHero({ event, locale, t }: { event: PublicEventDetail; locale: Locale; t: Dictionary }) {
-  const place = [event.venue ? pickLocalized(locale, event.venue.name, event.venue.nameEn) : null, event.city].filter(Boolean).join(', ');
+const PILL = { ONGOING: 'ongoing', UPCOMING: 'upcoming', COMPLETED: 'completed' } as const;
+
+/** Full hero of the overview: badges, name, when and where, summary, figures and the main calls to action. */
+export function EventHero({ event, locale, t, today }: { event: PublicEventDetail; locale: Locale; t: Dictionary; today: string }) {
+  const summary = pickLocalizedOrNull(locale, event.summary, event.summaryEn);
+  const showToday = event.lifecycle === 'ONGOING' && event.tabs.matches;
   return (
     <section className={styles.hero} data-event-hero>
       {event.banner && (
@@ -14,22 +23,34 @@ export function EventHero({ event, locale, t }: { event: PublicEventDetail; loca
         <img className={styles.banner} src={event.banner.url} width={event.banner.width} height={event.banner.height} alt="" fetchPriority="high" />
       )}
       <div className={styles.inner}>
-        <p className={styles.tier}>
-          <span className={styles.dot} style={{ background: event.tier.colorHex }} aria-hidden="true" />
-          {pickLocalized(locale, event.tier.name, event.tier.nameEn)} · {t.events.status[event.lifecycle]}
-        </p>
-        <h1 className="page-title">{pickLocalized(locale, event.name, event.nameEn)}</h1>
-        <p className={styles.meta}>
-          {formatDateRange(event.startDate, event.endDate, locale)}
-          {place && ` · ${place}`}
-        </p>
-        {event.presentedBy && <p className={styles.meta}>{format(t.event.presentedBy, { name: event.presentedBy })}</p>}
-        {pickLocalizedOrNull(locale, event.summary, event.summaryEn) && <p className={styles.summary}>{pickLocalizedOrNull(locale, event.summary, event.summaryEn)}</p>}
-        {event.ticketUrl && (
-          <a className={styles.ticket} href={event.ticketUrl} target="_blank" rel="noopener noreferrer">
-            {t.event.ticket}
-          </a>
-        )}
+        <HeroBackLink locale={locale} t={t} />
+        <div className={styles.badges}>
+          <TierBadge tier={event.tier} locale={locale} filled />
+          <span className={styles.type}>{pickLocalized(locale, event.eventType.name, event.eventType.nameEn)}</span>
+          <StatusPill variant={PILL[event.lifecycle]} label={t.events.status[event.lifecycle]} />
+        </div>
+        <h1 className={styles.title}>{pickLocalized(locale, event.name, event.nameEn)}</h1>
+        <EventWhenWhere event={event} locale={locale} t={t} />
+        {event.presentedBy && <p className={styles.presented}>{format(t.event.presentedBy, { name: event.presentedBy })}</p>}
+        {summary && <p className={styles.summary}>{summary}</p>}
+        <div className={actions.footer}>
+          <EventHeroStats event={event} today={today} t={t} />
+          {(showToday || event.ticketUrl) && (
+            <div className={actions.actions}>
+              {showToday && (
+                <Link href={`/${locale}/events/${event.slug}/matches?date=${today}`} className={actions.primary}>
+                  {t.event.hero.todayMatches}
+                </Link>
+              )}
+              {event.ticketUrl && (
+                <a className={actions.ticket} href={event.ticketUrl} target="_blank" rel="noopener noreferrer">
+                  {t.event.ticket}
+                  <span className="visually-hidden"> ({t.nav.opensInNewTab})</span>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

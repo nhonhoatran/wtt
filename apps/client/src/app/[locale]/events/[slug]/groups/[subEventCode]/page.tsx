@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { EmptyState } from '../../../../../../components/common/empty-state';
 import { EventShell } from '../../../../../../components/events/event-shell';
 import { SubEventChooser } from '../../../../../../components/events/sub-event-chooser';
+import styles from '../../../../../../components/groups/groups-page.module.css';
 import { GroupStandings } from '../../../../../../components/groups/group-standings';
 import { MatchCard } from '../../../../../../components/matches/match-card';
 import cardStyles from '../../../../../../components/matches/match-card.module.css';
@@ -39,27 +41,38 @@ export default async function GroupsPage({ params }: GroupsPageProps) {
       <h2 className="section-title">
         {t.groups.title} · {pickLocalized(locale, subEvent.name, subEvent.nameEn)}
       </h2>
+      {subEvent.drawKinds.length > 0 && (
+        <Link href={`/${locale}/events/${event.slug}/draws/${subEvent.code}`} className={styles.bracketLink}>
+          {t.groups.viewBracket} <span aria-hidden="true">→</span>
+        </Link>
+      )}
       {groups.length === 0 && <EmptyState text={t.groups.empty} />}
-      {groups.map((group) => (
-        <section key={group.code} aria-labelledby={`group-${group.code}`}>
-          <h3 id={`group-${group.code}`} className="section-title">
-            {format(t.groups.group, { code: group.code })}
-          </h3>
-          <GroupStandings group={group} locale={locale} t={t.groups} />
-          {group.matches.length > 0 && (
-            <>
-              <h4 className="visually-hidden">{t.groups.matches}</h4>
-              <ul className={cardStyles.list}>
-                {group.matches.map((m) => (
-                  <li key={m.matchNo}>
-                    <MatchCard match={m} eventSlug={event.slug} locale={locale} timeZone={event.timezone} t={t} showSubEvent={false} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      ))}
+      <div className={styles.grid}>
+        {groups.map((group) => (
+          <section key={group.code} aria-labelledby={`group-${group.code}`} className={styles.group}>
+            <GroupStandings
+              group={group}
+              locale={locale}
+              t={t.groups}
+              headingId={`group-${group.code}`}
+              members={group.standings.length ? format(subEvent.competitorKind === 'DOUBLES' ? t.event.overview.entriesDoubles : t.event.overview.entriesSingles, { n: group.standings.length }) : null}
+            />
+            {group.matches.length > 0 && (
+              <>
+                <h4 className="visually-hidden">{t.groups.matches}</h4>
+                <ul className={cardStyles.list}>
+                  {group.matches.map((m) => (
+                    <li key={m.matchNo}>
+                      <MatchCard match={m} eventSlug={event.slug} locale={locale} timeZone={event.timezone} t={t} showSubEvent={false} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        ))}
+      </div>
+      {groups.some((g) => g.standings.some((r) => r.qualified)) && <p className={styles.legend}><span className={styles.swatch} aria-hidden="true" />{t.groups.qualified}</p>}
     </EventShell>
   );
 }

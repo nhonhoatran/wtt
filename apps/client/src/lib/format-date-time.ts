@@ -41,3 +41,20 @@ export function formatDay(day: string, locale: Locale): string {
 export function formatFullDate(day: string, locale: Locale): string {
   return dayFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(asDate(day));
 }
+
+/** "14/03": day and month of a calendar date (YYYY-MM-DD), independent of the server time zone. */
+export function formatShortDay(day: string, locale: Locale): string {
+  const parts = dayFormat(locale, { day: '2-digit', month: '2-digit' }).formatToParts(asDate(day));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('day')}/${part('month')}`;
+}
+
+/** "14:30" in the event time zone. */
+export function formatClock(iso: string, locale: Locale, timeZone: string): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
+}
+
+/** "14/03/2027" of an instant, read in the event time zone. */
+export function formatInstantDate(iso: string, locale: Locale, timeZone: string): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
+}

@@ -5,7 +5,7 @@ test('an ongoing event with only upcoming matches opens its populated tab', asyn
   await page.goto(root);
   const states = page.getByRole('navigation', { name: 'Trạng thái trận' });
   await expect(states.getByRole('link', { name: 'Sắp tới', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator(`#content a[href="${root}/${world.longEvent.matchNo}"]`)).toBeVisible();
+  await expect(page.locator(`#content a[href="${root}/${world.longEvent.matchNo}"]:visible`)).toBeVisible();
   await page.goto(`${root}?state=live`);
   await expect(states.getByRole('link', { name: 'Đang đấu', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('Không có trận nào đang đấu.', { exact: true })).toBeVisible();
@@ -24,7 +24,7 @@ test('date filtering supports the full event duration with native bounds and GET
   await page.getByRole('search', { name: 'Lọc trận' }).getByRole('button', { name: 'Lọc', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`date=${lateDate}`));
   await expect(input).toHaveValue(lateDate);
-  await expect(page.locator(`#content a[href="${root}/${matchNo}"]`)).toBeVisible();
+  await expect(page.locator(`#content a[href="${root}/${matchNo}"]:visible`)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath('long-event-date-filter.png'), fullPage: true });
 });
@@ -37,6 +37,6 @@ test('invalid, repeated and outside-event date queries are discarded on the serv
     const response = await page.goto(`${root}?state=upcoming&${query}`);
     expect(response?.status()).toBe(200);
     await expect(page.getByLabel('Ngày', { exact: true })).toHaveValue('');
-    await expect(page.locator(`#content a[href="${root}/${matchNo}"]`)).toBeVisible();
+    await expect(page.locator(`#content a[href="${root}/${matchNo}"]:visible`)).toBeVisible();
   }
 });

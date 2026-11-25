@@ -7,6 +7,7 @@ import { PaginationLinks } from '../../../../../components/common/pagination-lin
 import { PillNav } from '../../../../../components/common/pill-nav';
 import { EventShell } from '../../../../../components/events/event-shell';
 import { MatchCard } from '../../../../../components/matches/match-card';
+import { MatchTable } from '../../../../../components/matches/match-table';
 import cardStyles from '../../../../../components/matches/match-card.module.css';
 import { pickLocalized } from '../../../../../i18n/pick-localized';
 import { loadEventPage } from '../../../../../lib/event-page';
@@ -84,13 +85,16 @@ export default async function EventMatchesPage({ params, searchParams }: Matches
       {list.items.length === 0 ? (
         <EmptyState text={t.matches.empty[state]} />
       ) : (
-        <ul className={cardStyles.list}>
-          {list.items.map((m) => (
-            <li key={m.matchNo}>
-              <MatchCard match={m} eventSlug={event.slug} locale={locale} timeZone={event.timezone} t={t} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className={`${cardStyles.list} ${cardStyles.cardsOnly}`}>
+            {list.items.map((m) => (
+              <li key={m.matchNo}>
+                <MatchCard match={m} eventSlug={event.slug} locale={locale} timeZone={event.timezone} t={t} />
+              </li>
+            ))}
+          </ul>
+          <MatchTable matches={list.items} eventSlug={event.slug} locale={locale} timeZone={event.timezone} t={t} />
+        </>
       )}
       <PaginationLinks
         page={list.page}

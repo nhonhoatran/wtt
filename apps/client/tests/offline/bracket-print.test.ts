@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -10,43 +10,21 @@ import { EventShell } from '../../src/components/events/event-shell';
 import { SubEventChooser } from '../../src/components/events/sub-event-chooser';
 import { PillNav } from '../../src/components/common/pill-nav';
 import bracketClasses from '../../src/components/bracket/bracket.module.css';
+import championClasses from '../../src/components/bracket/bracket-champion.module.css';
+import cellClasses from '../../src/components/bracket/bracket-cell.module.css';
+import bracketNavClasses from '../../src/components/bracket/bracket-nav.module.css';
+import actionClasses from '../../src/components/events/event-hero-actions.module.css';
+import pillClasses from '../../src/components/common/status-pill.module.css';
 import scrollClasses from '../../src/components/common/scroll-region.module.css';
 import playerClasses from '../../src/components/players/players.module.css';
 import badgeClasses from '../../src/components/common/live-badge.module.css';
 import heroClasses from '../../src/components/events/event-hero.module.css';
 import navClasses from '../../src/components/common/pill-nav.module.css';
+import { clientRoot, moduleCss, productionFonts } from './offline-css';
 import { getDictionary } from '../../src/i18n/get-dictionary';
 import { pickLocalized } from '../../src/i18n/pick-localized';
 
-const clientRoot = path.resolve(import.meta.dirname, '../..');
 const output = path.join(clientRoot, 'test-results/bracket-print');
-
-/** CSS-module class names are supplied by Vite, while declarations come from the actual source. */
-async function moduleCss(relative: string, names: Record<string, string>): Promise<string> {
-  const css = await readFile(path.join(clientRoot, relative), 'utf8');
-  return css.replace(/:global\(([^)]+)\)/g, '$1')
-    .replace(/\.([_a-z][\w-]*)/gi, (whole, name: string) => `.${names[name] ?? whole.slice(1)}`);
-}
-
-async function productionFonts(): Promise<string> {
-  const chunks = path.join(clientRoot, '.next/static/chunks');
-  const faces: string[] = [];
-  for (const file of await readdir(chunks)) {
-    if (!file.endsWith('.css')) continue;
-    const css = await readFile(path.join(chunks, file), 'utf8');
-    for (const [face] of css.matchAll(/@font-face\{[^}]+\}/g)) {
-      if (!face.includes('font-family:Archivo;')) continue;
-      let result = face;
-      for (const [reference, filename] of face.matchAll(/url\(\.\.\/media\/([^)]*)\)/g)) {
-        const bytes = await readFile(path.join(clientRoot, '.next/static/media', filename!));
-        result = result.replace(reference, `url(data:font/woff2;base64,${bytes.toString('base64')})`);
-      }
-      faces.push(result);
-    }
-  }
-  if (!faces.length) throw new Error('Build the Next client first: the offline print check uses its real Archivo font.');
-  return faces.join('\n');
-}
 
 function fixture(size: number, doubles: boolean): PublicBracket {
   const rounds: PublicBracketRound[] = [];
@@ -107,6 +85,11 @@ it('keeps 64-slot singles and doubles readable on screen and A4/A3 print sheets'
     readFile(path.join(clientRoot, '../../packages/ui-tokens/dist/tokens.css'), 'utf8'),
     readFile(path.join(clientRoot, 'src/app/[locale]/global.css'), 'utf8'),
     moduleCss('src/components/bracket/bracket.module.css', bracketClasses),
+    moduleCss('src/components/bracket/bracket-cell.module.css', cellClasses),
+    moduleCss('src/components/bracket/bracket-nav.module.css', bracketNavClasses),
+    moduleCss('src/components/bracket/bracket-champion.module.css', championClasses),
+    moduleCss('src/components/events/event-hero-actions.module.css', actionClasses),
+    moduleCss('src/components/common/status-pill.module.css', pillClasses),
     moduleCss('src/components/common/scroll-region.module.css', scrollClasses),
     moduleCss('src/components/players/players.module.css', playerClasses),
     moduleCss('src/components/common/live-badge.module.css', badgeClasses),
@@ -159,7 +142,7 @@ it('keeps 64-slot singles and doubles readable on screen and A4/A3 print sheets'
               screenHidden: getComputedStyle(document.querySelector<HTMLElement>('[data-screen-bracket]')!).display === 'none',
               chromeHidden: ['header', 'footer'].every((selector) => getComputedStyle(document.querySelector(selector)!).display === 'none'),
             };
-          }, { className: bracketClasses.name });
+          }, { className: cellClasses.name });
           const pdf = await page.pdf({ path: path.join(output, `${id}-${paper}.pdf`), format: paper, landscape: true, printBackground: true, preferCSSPageSize: true });
           // Chromium emits one plain Page dictionary per sheet; pypdf is also used for the manual PDF audit.
           const pdfPages = pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0;
