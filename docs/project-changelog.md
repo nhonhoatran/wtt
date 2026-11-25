@@ -1,7 +1,24 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-24. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-25. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-25 — Trả nợ admin UI, kiểm trang chưa audit, T1 (chưa commit)
+
+- Focus admin đổi sang xanh navy `#0F285D` thay cho đỏ thương hiệu (ô nhập, Select, DatePicker, nút; viền 2 px) để không lẫn với trạng thái lỗi (`packages/ui-tokens/src/antd-theme.ts`).
+- Lịch thi đấu kéo thả được bằng bàn phím: Space nhấc trận, phím mũi tên chuyển sang ô gần nhất theo hướng, Space/Enter thả, Esc hủy. Enter vẫn giữ cách chọn trận rồi chọn ô (`schedule-keyboard-drag.ts`).
+- Trang Cài đặt: tab có thay đổi chưa lưu hiện chấm cam, cạnh nút Lưu ghi "Có thay đổi chưa lưu"; rời trang thì hỏi "Ở lại / Bỏ thay đổi", đổi tab thì không hỏi. `useUnsavedGuard` thêm tùy chọn `allowSamePath`.
+- Trang tạo/sửa: thay nút mũi tên (quay lại lịch sử trình duyệt) bằng link "← <tên danh sách>" về đúng danh sách (`components/crud-page.tsx`, `back-link.tsx`). Nút tạo thống nhất icon + và chữ "Thêm …" ("Tạo giải" → "Thêm giải", "Viết bài" → "Thêm bài viết").
+- Drawer menu mobile tự đóng khi màn hình rộng qua breakpoint lg, có `aria-label`.
+- Hết 4 loại cảnh báo console: `ColorPicker disabledAlpha`; Refine `useForm` edit thiếu `id`; antd "useForm not connected" (search form của `useTable` và form trang sửa lúc đang tải — gắn qua `FormInstanceHost`); "There may be circular references" khi mở modal thêm buổi (`setFieldValue` → `setFieldsValue`). Kiểm 17 route: 0 cảnh báo theo dõi.
+- Hộp thư liên hệ: bảng dùng `useTableScroll`, cột tin nhắn có độ rộng cố định.
+- `turbo.json`: task `test` khai `passThroughEnv`, gọi `turbo run test` trực tiếp không còn bị lọc `DATABASE_URL`/`REDIS_URL`/`S3_*`.
+- Test admin-full-flow: selector drawer `.ant-drawer:visible` → `.ant-drawer-open`.
+- Kiểm trên trình duyệt với `localhost:5433/kamito_tt_phase12_test` (dữ liệu thử gắn tag, đã dọn): kéo nhà tài trợ bằng chuột + bàn phím; trang sửa bài viết/video/trang tĩnh/nhà tài trợ và drawer liên hệ ở 1440/390; toàn bộ admin dưới `RESULTS_OPERATOR`; bull-board (ADMIN 200, ẩn danh 401, operator 403); không còn nhảy layout khi mở modal.
+- Sau code review: Cài đặt so giá trị không phụ thuộc thứ tự key và lấy lại giá trị API đã lưu (trim) nên dấu "chưa lưu" không kẹt sau khi lưu (kiểm trên trình duyệt); kéo lịch bằng bàn phím chỉ thả vào ô đang đè lên, Tab là hủy (test 8/8); `ColorHexField` cắt alpha về `#RRGGBB`; trang sửa bỏ nút "Danh sách" trùng với link quay lại; `turbo.json` thêm 7 biến env còn thiếu (`APP_ENV`/`NODE_ENV` đã có trong `globalEnv`, dry-run xác nhận). Còn lại cho đợt làm lại giao diện theo Figma: focus sáng trên sider tối, kiểm kéo lịch bằng bàn phím trên trình duyệt.
+- Kiểm: admin typecheck/lint/build, test 37/37; ui-tokens test 4/4; toàn repo typecheck 14/14, lint 9/9.
+
+Bằng chứng: [nợ còn mở](../plans/261111-1512-kamito-table-tennis-tournament-platform/open-debts-backlog.md), [code review](../plans/reports/code-reviewer-261125-open-debts-admin.md).
 
 ## 2026-11-24 — CI, audit admin 1440/390, nợ phase 07
 

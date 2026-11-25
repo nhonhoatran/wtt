@@ -330,6 +330,6 @@ Rollback: migration thêm bảng; revert app; kết quả đã chốt nằm tron
 **Việc còn mở:**
 1. Deploy + migrate staging; đo chốt → HTML mới ≤ 5 s (chờ cổng phase 01).
 2. ~~Ghi nợ còn mở: chuỗi Q → BYE → R2 khi reopen chưa có e2e (chỉ unit).~~ **Đóng 2026-11-24:** suất vòng loại không bao giờ đứng cạnh BYE (`packages/competition-engine/src/knockout-generator.ts:66`, swap chặn ở `derive-matches.ts:133`), nên chuỗi thật là nhất bảng → BYE → R2: `apps/api/test/match-reopen-group-winner-through-bye.e2e-spec.ts` (2/2 đạt trên DB CI tạm).
-3. Lỗi thiết kế từ QA (theo báo cáo phiên): ~~chữ "session" tiếng Anh~~ đổi thành "buổi thi đấu"/"buổi" như trang công khai (2026-11-24). Còn mở: focus đỏ thương hiệu; nhảy 76 px khi mở hộp thoại (audit 2026-11-24 không thấy lại); kéo thả chưa có cảm biến bàn phím (thao tác 2 click vẫn chạy bằng bàn phím).
+3. ~~Lỗi thiết kế từ QA (theo báo cáo phiên)~~ **Đóng 2026-11-25:** chữ "session" đổi thành "buổi thi đấu"/"buổi" (2026-11-24); focus đổi sang xanh navy (`packages/ui-tokens/src/antd-theme.ts`); nhảy 76 px khi mở hộp thoại không tái hiện (vị trí nút trước/sau mở modal giữ nguyên); kéo thả lịch có cảm biến bàn phím (`schedule-keyboard-drag.ts`). Chi tiết: [open-debts-backlog.md](./open-debts-backlog.md) U2, U3, U11.
 4. Dữ liệu thử trong DB dev local (tiền tố "QA " và một tài khoản admin thử) chưa dọn; cần xác nhận của chủ repo trước khi xóa.
 5. Verifying UI còn thiếu: lưới (`session-grid*`), panel (`unscheduled-panel`), trang in (`match-sheets-print-page` + `print.css`).
