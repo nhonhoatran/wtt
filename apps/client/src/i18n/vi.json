@@ -58,7 +58,8 @@
     "all": "Tất cả",
     "filter": "Lọc",
     "clearFilters": "Xóa lọc",
-    "resultCount": "{n} kết quả"
+    "resultCount": "{n} kết quả",
+    "showingRange": "Hiển thị {from}–{to} trong {total} kết quả"
   },
   "nav": {
     "label": "Menu chính",
@@ -72,11 +73,28 @@
     "contact": "Liên hệ",
     "language": "Ngôn ngữ",
     "switchTo": "English",
-    "switchToCode": "EN"
+    "register": "Đăng ký thi đấu",
+    "opensInNewTab": "mở trong tab mới"
+  },
+  "footer": {
+    "links": "Liên kết chân trang",
+    "explore": "Khám phá",
+    "information": "Thông tin",
+    "sponsors": "Nhà tài trợ",
+    "social": "Mạng xã hội"
+  },
+  "social": {
+    "facebook": "Facebook",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "zalo": "Zalo"
   },
   "strip": {
     "label": "Kết quả mới",
-    "toggle": "Kết quả"
+    "all": "Tất cả trận đấu",
+    "official": "Có kết quả",
+    "table": "Bàn {name}"
   },
   "home": {
     "metaDescription": "Lịch thi đấu, kết quả, nhánh đấu, tin tức và bảng xếp hạng bóng bàn.",
@@ -90,12 +108,30 @@
     "rankings": "Bảng xếp hạng",
     "sponsors": "Nhà tài trợ",
     "allEvents": "Xem tất cả giải",
+    "heroSchedule": "Xem lịch & kết quả",
+    "heroDraws": "Xem nhánh đấu",
+    "heroDetails": "Xem chi tiết giải",
+    "matchesNow": "Trận đang đấu và sắp đấu",
+    "allMatches": "Tất cả trận",
+    "cardDetails": "Xem chi tiết",
+    "rankingsTabs": "Chọn bảng xếp hạng",
+    "rankingsMovement": "Biến động",
+    "rankingsFull": "Xem bảng xếp hạng đầy đủ",
     "empty": "Chưa có giải nào được công bố."
   },
   "events": {
     "title": "Giải đấu",
     "metaDescription": "Danh sách giải bóng bàn: lịch, kết quả, nhánh đấu.",
     "empty": "Không có giải nào khớp bộ lọc.",
+    "description": "Lịch và kết quả các giải bóng bàn.",
+    "breadcrumb": "Đường dẫn trang",
+    "breadcrumbHome": "Trang chủ",
+    "count": "{n} giải",
+    "countInYear": "{n} giải trong năm {year}",
+    "viewCalendar": "Xem theo lịch tháng",
+    "subEventCount": "{n} nội dung",
+    "scheduleCta": "Xem lịch & kết quả",
+    "detailsCta": "Xem chi tiết",
     "status": {
       "UPCOMING": "Sắp diễn ra",
       "ONGOING": "Đang diễn ra",
@@ -114,6 +150,8 @@
     "title": "Lịch thi đấu {year}",
     "metaDescription": "Lịch các giải bóng bàn theo tháng.",
     "empty": "Chưa có giải nào trong năm này.",
+    "description": "Các giải bóng bàn trong năm, xếp theo tháng.",
+    "viewList": "Xem danh sách",
     "year": "Năm",
     "tier": "Hạng giải"
   },

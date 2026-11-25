@@ -61,13 +61,11 @@ export async function addContents(page: Page, world: FullUiWorld, event: EventFi
 export async function importEntries(page: Page, world: FullUiWorld, event: EventFixture, evidence: RunEvidence, kind: 'MS' | 'WD'): Promise<void> {
   const sub = event.subEvents.find((row) => row.code === kind)!;
   await page.goto(`${world.adminOrigin}/events/${event.id}/entries?subEvent=${sub.id}`);
-  await page.getByRole('button', { name: /Import Excel$/ }).click();
-  const wizard = page.getByRole('dialog');
-  await wizard.getByRole('button', { name: 'Đã có file, tiếp tục', exact: true }).click();
-  const job = await uiResponse<{ id: string }>(page, 'POST', '/admin/imports', () => wizard.locator('input[type=file]').setInputFiles(kind === 'MS' ? world.files.msXlsx : world.files.wdXlsx));
+  await page.getByRole('button', { name: /Nhập từ Excel$/ }).click();
+  const job = await uiResponse<{ id: string }>(page, 'POST', '/admin/imports', () => page.locator('input[type=file]').setInputFiles(kind === 'MS' ? world.files.msXlsx : world.files.wdXlsx));
   evidence.imports.push(job.id);
   await saveEvidence(evidence);
-  await expect(page).toHaveURL(new RegExp(`/imports/${job.id}$`));
+  await expect(page).toHaveURL(new RegExp(`[?&]import=${job.id}`));
   const count = kind === 'MS' ? 40 : 12;
   if (kind === 'MS') {
     await expect(page.getByRole('tab', { name: /Cần xác nhận \(1\)/ })).toBeVisible({ timeout: 60_000 });
@@ -87,6 +85,7 @@ export async function importEntries(page: Page, world: FullUiWorld, event: Event
 export async function addReplacementEntry(page: Page, world: FullUiWorld, event: EventFixture): Promise<{ id: string; competitor: { displayName: string } }> {
   const ms = event.subEvents.find((row) => row.code === 'MS')!;
   await page.goto(`${world.adminOrigin}/events/${event.id}/entries?subEvent=${ms.id}`);
+  await page.getByRole('button', { name: /Thêm VĐV$/ }).click();
   const playerLookup = page.getByRole('combobox', { name: 'Thêm VĐV', exact: true });
   await expect(playerLookup).toHaveCount(1);
   await expect(playerLookup).toBeFocused();
@@ -98,7 +97,7 @@ export async function addReplacementEntry(page: Page, world: FullUiWorld, event:
   await pickOption(page, playerLookup, world.reference.replacementName, true, false);
   const lookupBody = await (await lookupResponse).json() as { data: { fullName: string }[] };
   expect(lookupBody.data.some((player) => player.fullName === world.reference.replacementName), 'The UI lookup must return the exact replacement player').toBe(true);
-  const addButton = page.getByRole('button', { name: /Thêm VĐV$/ });
+  const addButton = page.getByRole('button', { name: /Thêm vào danh sách$/ });
   await expect(addButton).toHaveCount(1);
   const added = await uiResponse<{ id: string; competitor: { displayName: string } }>(page, 'POST', `/admin/sub-events/${ms.id}/entries`, () => addButton.click());
   await expect(addButton).not.toHaveClass(/ant-btn-loading/);
@@ -112,6 +111,7 @@ export async function addReplacementEntry(page: Page, world: FullUiWorld, event:
 export async function addExistingSingles(page: Page, world: FullUiWorld, event: EventFixture, names: string[]): Promise<void> {
   const ms = event.subEvents.find((row) => row.code === 'MS')!;
   await page.goto(`${world.adminOrigin}/events/${event.id}/entries?subEvent=${ms.id}`);
+  await page.getByRole('button', { name: /Thêm VĐV$/ }).click();
   for (const name of names) {
     const playerLookup = page.getByRole('combobox', { name: 'Thêm VĐV', exact: true });
     await expect(playerLookup).toHaveCount(1);
@@ -124,7 +124,7 @@ export async function addExistingSingles(page: Page, world: FullUiWorld, event: 
     await pickOption(page, playerLookup, name, true, false);
     const lookupBody = await (await lookupResponse).json() as { data: { fullName: string }[] };
     expect(lookupBody.data.some((player) => player.fullName === name), `The UI search must return the exact requested player: ${name}`).toBe(true);
-    const addButton = page.getByRole('button', { name: /Thêm VĐV$/ });
+    const addButton = page.getByRole('button', { name: /Thêm vào danh sách$/ });
     await expect(addButton).toHaveCount(1);
     await expect(addButton).toBeEnabled();
     await uiResponse(page, 'POST', `/admin/sub-events/${ms.id}/entries`, () => addButton.click());

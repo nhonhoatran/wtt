@@ -66,7 +66,7 @@ function fixture(size: number, doubles: boolean): PublicBracket {
       });
       return {
         matchNo: number, orderInRound: index + 1, status: 'SCHEDULED', resultType: null,
-        winnerSide: null, games1: null, games2: null, scheduledAt: null, games: [],
+        winnerSide: null, games1: null, games2: null, scheduledAt: null, table: null, games: [],
         side1: slots === size ? side(0) : null, side2: slots === size ? side(1) : null,
         side1Source: slots === size ? null : { type: 'WINNER_OF', matchNo: previous[index * 2]!.matchNo },
         side2Source: slots === size ? null : { type: 'WINNER_OF', matchNo: previous[index * 2 + 1]!.matchNo },
@@ -83,16 +83,18 @@ function fixture(size: number, doubles: boolean): PublicBracket {
 }
 
 function fullEvent(bracket: PublicBracket): PublicEventDetail {
-  const sub = (code: string, name: string, nameEn: string) => ({ code, name, nameEn, format: 'KNOCKOUT' as const, drawKinds: ['MAIN', 'QUALIFYING'] as const, hasGroups: false, entryCount: 64 });
+  const sub = (code: string, name: string, nameEn: string) => ({ code, name, nameEn, format: 'KNOCKOUT' as const, competitorKind: 'SINGLES' as const, drawKinds: ['MAIN', 'QUALIFYING'] as const, hasGroups: false, entryCount: 64 });
   return {
     ...bracket.event, shortName: null, startDate: '2026-11-20', endDate: '2026-11-22', lifecycle: 'ONGOING',
-    city: 'Thành phố Hồ Chí Minh', venue: { name: 'Nhà thi đấu thể thao đa năng', nameEn: 'Indoor sports arena' },
+    city: 'Thành phố Hồ Chí Minh', venue: { name: 'Nhà thi đấu thể thao đa năng', nameEn: 'Indoor sports arena', address: null, mapUrl: null },
     tier: { code: 'OPEN', name: 'Giải mở rộng', nameEn: 'Open tournament', colorHex: '#EC1E24' },
     eventType: { code: 'OPEN', name: 'Mở rộng', nameEn: 'Open', colorHex: null }, banner: null,
     summary: 'Giải đấu quy tụ các vận động viên trên toàn quốc, thi đấu nội dung đơn và đôi trong ba ngày. Thông tin lịch thi đấu, nhánh đấu và kết quả được cập nhật để khán giả theo dõi xuyên suốt giải.',
     summaryEn: 'Players from across the country compete in singles and doubles over three days. The tournament provides schedules, draws and results so spectators can follow every stage of the competition.',
     presentedBy: 'Đơn vị đồng hành cùng giải đấu bóng bàn', ticketUrl: 'https://example.test/tickets',
     subEvents: [sub('MS', 'Đơn nam', "Men's singles"), sub('MD', 'Đôi nam', "Men's doubles")].map((value) => ({ ...value, drawKinds: [...value.drawKinds] })),
+    days: [],
+    hasPublicMatches: true,
     tabs: { draws: true, matches: true, groups: true, players: true, info: true },
     stats: { players: 128, playedMatches: 0 }, champions: [],
   };

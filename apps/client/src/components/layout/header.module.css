@@ -6,7 +6,7 @@
 .skipLink:focus {
   left: var(--layout-gutter-mobile);
   top: 8px;
-  z-index: 10;
+  z-index: 30;
   padding: 8px 12px;
   background: var(--color-surface);
   color: var(--color-ink);
@@ -15,24 +15,25 @@
 }
 
 .header {
+  position: relative;
+  z-index: 20;
   background: var(--color-ink);
   color: var(--color-surface);
 }
 
-.headerInner,
-.footerInner {
+.headerInner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
   max-width: var(--layout-container-max);
   margin: 0 auto;
   padding: 0 var(--layout-gutter-mobile);
-  display: flex;
-  align-items: center;
-}
-
-.headerInner {
-  height: 56px;
 }
 
 .wordmark {
+  display: inline-block;
+  padding: 10px 0;
   color: var(--color-surface);
   font-weight: 800;
   font-size: 22px;
@@ -40,34 +41,25 @@
   text-decoration: none;
 }
 
-.wordmark span {
-  color: var(--color-primary);
+.wordmarkText {
+  text-transform: uppercase;
 }
 
-.footer {
-  margin-top: var(--space-section-mobile);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface-alt);
-  font-size: 14px;
+.mark {
+  display: inline-block;
+  width: 4px;
+  height: 0.8em;
+  margin-left: 6px;
+  vertical-align: -0.05em;
+  background: var(--color-primary);
 }
 
-.footerInner {
-  min-height: 64px;
-}
-
-@media (min-width: 768px) {
-  .headerInner,
-  .footerInner {
-    padding: 0 var(--layout-gutter-desktop);
+@media (max-width: 640px) {
+  .wordmark {
+    max-width: 12em;
+    font-size: 16px;
+    line-height: 1.2;
   }
-
-  .headerInner {
-    height: 72px;
-  }
-}
-
-.headerInner {
-  gap: 16px;
 }
 
 .nav {
@@ -92,16 +84,23 @@
   font-weight: 600;
 }
 
+.navList a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .navList a:hover,
 .navList a[aria-current],
-.locale:hover {
+.localeLink:hover {
   color: var(--color-live);
 }
 
 .navList a:focus-visible,
-.locale:focus-visible,
+.localeLink:focus-visible,
 .navMenu summary:focus-visible,
-.wordmark:focus-visible {
+.wordmark:focus-visible,
+.header .register:focus-visible {
   outline: 2px solid var(--color-live);
   outline-offset: 2px;
 }
@@ -115,7 +114,10 @@
 }
 
 .navMenu summary {
-  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -126,30 +128,84 @@
   right: 0;
   top: 100%;
   z-index: 20;
-  min-width: 200px;
-  padding: 16px;
+  min-width: 220px;
+  padding: 8px 16px 16px;
   background: var(--color-ink);
   border-radius: 0 0 var(--radius-card) var(--radius-card);
 }
 
 .navPanel .navList {
   flex-direction: column;
+  gap: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
   gap: 16px;
 }
 
+.localeGroup {
+  display: flex;
+  align-items: center;
+}
+
+
 .locale {
-  padding: 4px 8px;
-  border: 1px solid var(--color-surface);
-  border-radius: var(--radius-button);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 44px;
   font-size: 12px;
 }
 
+.locale[aria-current] {
+  font-weight: 800;
+}
+
+.localeLink {
+  opacity: 0.85;
+}
+
+.localeSep {
+  opacity: 0.5;
+  font-size: 12px;
+}
+
+.register {
+  white-space: nowrap;
+}
+
+.registerBar {
+  display: none;
+}
+
+.registerPanel {
+  width: 100%;
+  margin-top: 12px;
+}
+
 @media (min-width: 768px) {
+  .headerInner {
+    height: 72px;
+    padding: 0 var(--layout-gutter-desktop);
+    gap: 32px;
+  }
+
+  .nav {
+    justify-content: flex-start;
+  }
+
   .navInline {
     display: block;
   }
 
   .navMenu {
     display: none;
+  }
+
+  .registerBar {
+    display: inline-flex;
   }
 }

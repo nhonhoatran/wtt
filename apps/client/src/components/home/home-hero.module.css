@@ -1,0 +1,108 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+/* Fixed overlay: the photo is dimmed to 30% so white text stays readable whatever the image. */
+.banner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.3;
+}
+
+.inner {
+  position: relative;
+  max-width: var(--layout-container-max);
+  margin: 0 auto;
+  padding: 40px var(--layout-gutter-mobile);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.type {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.title {
+  max-width: 18ch;
+  margin: 0 0 16px;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.summary {
+  max-width: 64ch;
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.primary {
+  border-color: var(--color-primary-strong);
+  background: var(--color-primary-strong);
+  color: var(--color-surface);
+}
+
+.primary:hover { background: var(--color-primary-text); border-color: var(--color-primary-text); }
+.secondary { background: transparent; color: var(--color-surface); }
+.secondary:hover { background: rgb(255 255 255 / 0.12); }
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 3px solid var(--color-live);
+  outline-offset: 3px;
+}
+
+@media (min-width: 768px) {
+  .inner { padding: 88px var(--layout-gutter-desktop); }
+  .title { max-width: 20ch; font-size: 60px; }
+}

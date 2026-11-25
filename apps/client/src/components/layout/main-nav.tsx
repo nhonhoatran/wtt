@@ -2,38 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 import type { Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
-import styles from './site-chrome.module.css';
+import { navCurrent, type NavItem } from '../../lib/nav-items';
+import styles from './header.module.css';
 
 /** Inline links on wide screens; on phones the same links fold into a <details> menu (works without JavaScript). */
-export function MainNav({ locale, t }: { locale: Locale; t: Dictionary['nav'] }) {
+export function MainNav({ locale, items, t, panelExtra }: { locale: Locale; items: NavItem[]; t: Dictionary['nav']; panelExtra?: ReactNode }) {
   const pathname = usePathname();
-  const eventsHref = `/${locale}/events`;
-  const calendarHref = `${eventsHref}/calendar`;
-  const rankingsHref = `/${locale}/rankings`;
-  const playersHref = `/${locale}/players`;
-  const newsHref = `/${locale}/news`;
-  const videosHref = `/${locale}/videos`;
-  const contactHref = `/${locale}/contact`;
-  const inEvents = pathname?.startsWith(`${eventsHref}/`) && pathname !== calendarHref;
   const links = (
     <ul className={styles.navList}>
-      <li>
-        <Link href={eventsHref} aria-current={pathname === eventsHref ? 'page' : inEvents ? 'location' : undefined}>{t.events}</Link>
-      </li>
-      <li>
-        <Link href={calendarHref} aria-current={pathname === calendarHref ? 'page' : undefined}>{t.calendar}</Link>
-      </li>
-      <li>
-        <Link href={rankingsHref} aria-current={pathname === rankingsHref ? 'page' : pathname?.startsWith(`${rankingsHref}/`) ? 'location' : undefined}>{t.rankings}</Link>
-      </li>
-      <li>
-        <Link href={playersHref} aria-current={pathname === playersHref ? 'page' : pathname?.startsWith(`${playersHref}/`) ? 'location' : undefined}>{t.players}</Link>
-      </li>
-      <li><Link href={newsHref} aria-current={pathname === newsHref || pathname?.startsWith(`${newsHref}/`) ? 'location' : undefined}>{t.news}</Link></li>
-      <li><Link href={videosHref} aria-current={pathname === videosHref || pathname?.startsWith(`${videosHref}/`) ? 'location' : undefined}>{t.videos}</Link></li>
-      <li><Link href={contactHref} aria-current={pathname === contactHref ? 'page' : undefined}>{t.contact}</Link></li>
+      {items.map((item) => (
+        <li key={item.key}>
+          <Link href={item.href} aria-current={navCurrent(item.key, pathname, locale)}>{item.label}</Link>
+        </li>
+      ))}
     </ul>
   );
   return (
@@ -41,7 +25,10 @@ export function MainNav({ locale, t }: { locale: Locale; t: Dictionary['nav'] })
       <div className={styles.navInline}>{links}</div>
       <details className={styles.navMenu}>
         <summary>{t.menu}</summary>
-        <div className={styles.navPanel}>{links}</div>
+        <div className={styles.navPanel}>
+          {links}
+          {panelExtra}
+        </div>
       </details>
     </nav>
   );

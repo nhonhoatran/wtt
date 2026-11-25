@@ -58,7 +58,8 @@
     "all": "All",
     "filter": "Filter",
     "clearFilters": "Clear filters",
-    "resultCount": "{n} results"
+    "resultCount": "{n} results",
+    "showingRange": "Showing {from}–{to} of {total} results"
   },
   "nav": {
     "label": "Main menu",
@@ -72,11 +73,28 @@
     "contact": "Contact",
     "language": "Language",
     "switchTo": "Tiếng Việt",
-    "switchToCode": "VI"
+    "register": "Register to compete",
+    "opensInNewTab": "opens in a new tab"
+  },
+  "footer": {
+    "links": "Footer links",
+    "explore": "Explore",
+    "information": "Information",
+    "sponsors": "Sponsors",
+    "social": "Social media"
+  },
+  "social": {
+    "facebook": "Facebook",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "zalo": "Zalo"
   },
   "strip": {
     "label": "Latest results",
-    "toggle": "Results"
+    "all": "All matches",
+    "official": "Final",
+    "table": "Table {name}"
   },
   "home": {
     "metaDescription": "Table tennis schedules, results, draws, news and player rankings.",
@@ -90,12 +108,30 @@
     "rankings": "Rankings",
     "sponsors": "Sponsors",
     "allEvents": "See all events",
+    "heroSchedule": "Schedule & results",
+    "heroDraws": "View draws",
+    "heroDetails": "Event details",
+    "matchesNow": "Live and upcoming matches",
+    "allMatches": "All matches",
+    "cardDetails": "View details",
+    "rankingsTabs": "Choose a ranking",
+    "rankingsMovement": "Change",
+    "rankingsFull": "Full rankings",
     "empty": "No events have been published yet."
   },
   "events": {
     "title": "Events",
     "metaDescription": "Table tennis events: schedules, results and draws.",
     "empty": "No events match these filters.",
+    "description": "Schedules and results of table tennis events.",
+    "breadcrumb": "Breadcrumb",
+    "breadcrumbHome": "Home",
+    "count": "Events: {n}",
+    "countInYear": "Events in {year}: {n}",
+    "viewCalendar": "View by month",
+    "subEventCount": "Categories: {n}",
+    "scheduleCta": "View schedule & results",
+    "detailsCta": "View details",
     "status": {
       "UPCOMING": "Upcoming",
       "ONGOING": "In progress",
@@ -114,6 +150,8 @@
     "title": "{year} calendar",
     "metaDescription": "Table tennis events by month.",
     "empty": "No events this year yet.",
+    "description": "Table tennis events of the year, grouped by month.",
+    "viewList": "View list",
     "year": "Year",
     "tier": "Tier"
   },

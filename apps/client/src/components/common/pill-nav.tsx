@@ -7,12 +7,15 @@ export interface PillNavItem {
   current: boolean;
 }
 
-/** Tabs and choosers as links: each option has its own URL and works without JavaScript. Scrolls sideways on narrow screens. */
-export function PillNav({ label, items }: { label: string; items: PillNavItem[] }) {
+/**
+ * Tabs and choosers as links: each option has its own URL and works without JavaScript. Scrolls sideways on narrow screens.
+ * `pill` is the rounded chooser; `tabs` is the underlined tab bar with a red mark on the current item.
+ */
+export function PillNav({ label, items, variant = 'pill' }: { label: string; items: PillNavItem[]; variant?: 'pill' | 'tabs' }) {
   return (
-    <nav className={styles.nav} aria-label={label}>
+    <nav className={variant === 'tabs' ? `${styles.nav} ${styles.tabsNav}` : styles.nav} aria-label={label}>
       {items.map((item) => (
-        <Link key={item.href} href={item.href} className={styles.pill} aria-current={item.current ? 'page' : undefined}>
+        <Link key={item.href} href={item.href} className={variant === 'tabs' ? styles.tab : styles.pill} aria-current={item.current ? 'page' : undefined}>
           {item.label}
         </Link>
       ))}

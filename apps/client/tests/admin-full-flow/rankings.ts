@@ -138,7 +138,7 @@ export async function editWinnerRule(page: Page, world: FullUiWorld): Promise<vo
   await expect(field).toHaveValue(String(world.ranking.oldWinnerPoints));
   await field.fill(String(world.ranking.newWinnerPoints));
   await field.press('Tab');
-  await page.getByRole('button', { name: 'Lưu', exact: true }).click();
+  await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   const modal = page.getByRole('dialog', { name: 'Lưu phiên bản quy tắc', exact: true });
   const date = modal.getByLabel('Áp dụng từ ngày', { exact: true });
   const [year, month, day] = world.today.split('-');

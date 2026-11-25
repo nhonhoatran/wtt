@@ -1,4 +1,5 @@
-import { expect, test } from './support/fixtures';
+import { expect, test } from './support/content-fixture';
+import { withSiteNavItems } from './support/content-settings';
 import { readFileSync } from 'node:fs';
 
 const root = (slug: string) => `/vi/events/${slug}`;
@@ -64,16 +65,20 @@ test.describe('SEO', () => {
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${process.env.E2E_SITE_URL}/vi/events/calendar?year=${other}`);
   });
 
-  test('navigation distinguishes the exact page and event section location', async ({ page, world }, testInfo) => {
+  test('navigation follows the configured items and distinguishes page from section location', async ({ page, world, cms }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Desktop navigation semantics');
     const nav = page.getByRole('navigation', { name: 'Menu chính' });
-    await page.goto('/vi/events');
-    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'page');
-    await page.goto('/vi/events/calendar');
-    await expect(nav.getByRole('link', { name: 'Lịch thi đấu', exact: true })).toHaveAttribute('aria-current', 'page');
-    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).not.toHaveAttribute('aria-current');
-    await page.goto(root(world.world.slug));
-    await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'location');
+      await withSiteNavItems(cms, [{ key: 'events' }, { key: 'calendar' }, { key: 'rankings', labelVi: 'BXH' }], async () => {
+      await page.goto('/vi/events');
+      await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'page');
+      await page.goto('/vi/events/calendar');
+      await expect(nav.getByRole('link', { name: 'Lịch thi đấu', exact: true })).toHaveAttribute('aria-current', 'page');
+      await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).not.toHaveAttribute('aria-current');
+      await page.goto(root(world.world.slug));
+      await expect(nav.getByRole('link', { name: 'Giải đấu', exact: true })).toHaveAttribute('aria-current', 'location');
+      await expect(nav.getByRole('link', { name: 'BXH', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Liên hệ' })).toHaveCount(0);
+    });
   });
   test('overview carries canonical and hreflang alternates', async ({ page, world }) => {
     const site = process.env.E2E_SITE_URL;

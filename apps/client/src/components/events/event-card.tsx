@@ -2,38 +2,33 @@ import Link from 'next/link';
 import type { PublicEventCard } from '@kamito/shared';
 import type { Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
-import { pickLocalized, pickLocalizedOrNull } from '../../i18n/pick-localized';
+import { pickLocalized } from '../../i18n/pick-localized';
 import { formatDateRange } from '../../lib/format-date-time';
+import { StatusPill } from '../common/status-pill';
+import { SubEventChips } from './sub-event-chips';
 import { TierBadge } from './tier-badge';
 import styles from './event-card.module.css';
 
+const PILL = { ONGOING: 'ongoing', UPCOMING: 'upcoming', COMPLETED: 'completed' } as const;
+
+/** Banner-less card of the home page: dates, tier, status, content chips and a details cue. The events list uses EventListRow. */
 export function EventCard({ event, locale, t }: { event: PublicEventCard; locale: Locale; t: Dictionary }) {
   const name = pickLocalized(locale, event.name, event.nameEn);
   const place = [event.venue ? pickLocalized(locale, event.venue.name, event.venue.nameEn) : null, event.city].filter(Boolean).join(', ');
   return (
     <article className={styles.card}>
       <Link href={`/${locale}/events/${event.slug}`} className={styles.link}>
-        <div className={styles.media}>
-          {event.banner && (
-            // Variants are pre-sized WebP from the media worker; next/image would re-encode them.
-            <img
-              src={event.banner.url}
-              width={event.banner.width}
-              height={event.banner.height}
-              alt={pickLocalizedOrNull(locale, event.banner.alt, event.banner.altEn) ?? ''}
-              loading="lazy"
-            />
-          )}
-        </div>
         <div className={styles.body}>
           <div className={styles.meta}>
-            <TierBadge tier={event.tier} locale={locale} />
-            <span className={styles.status}>{t.events.status[event.lifecycle]}</span>
+            <TierBadge tier={event.tier} locale={locale} filled />
+            <StatusPill variant={PILL[event.lifecycle]} label={t.events.status[event.lifecycle]} />
           </div>
-          <h3 className={styles.name}>{name}</h3>
           <p className={styles.when}>{formatDateRange(event.startDate, event.endDate, locale)}</p>
+          <h3 className={styles.name}>{name}</h3>
           {place && <p className={styles.where}>{place}</p>}
+          <SubEventChips subEvents={event.subEvents} locale={locale} />
         </div>
+        <span className={styles.cue}>{t.home.cardDetails} <span aria-hidden="true">→</span></span>
       </Link>
     </article>
   );

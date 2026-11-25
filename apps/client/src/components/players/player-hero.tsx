@@ -2,6 +2,7 @@ import type { PublicPlayerProfile } from '@kamito/shared';
 import type { Dictionary } from '../../i18n/get-dictionary';
 import type { Locale } from '../../i18n/locales';
 import { pickLocalized } from '../../i18n/pick-localized';
+import { initialsOf } from '../common/initials-avatar';
 import styles from './players.module.css';
 
 export function PlayerHero({ player, locale, t }: { player: PublicPlayerProfile; locale: Locale; t: Dictionary['players'] }) {
@@ -15,7 +16,7 @@ export function PlayerHero({ player, locale, t }: { player: PublicPlayerProfile;
   return (
     <section className={styles.hero} aria-label={name}>
       {player.photo ? <img className={styles.portrait} src={player.photo.url} width={192} height={208} alt={name} fetchPriority="high" /> : (
-        <div className={styles.portraitPlaceholder} aria-hidden="true">{name.split(/\s+/).filter(Boolean).map((word) => word[0]).slice(-2).join('')}</div>
+        <div className={styles.portraitPlaceholder} aria-hidden="true">{initialsOf(name)}</div>
       )}
       <div className={styles.heroBody}>
         <h1 className="page-title">{name}</h1>

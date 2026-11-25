@@ -1,10 +1,9 @@
-.badge {
+.badge.badge {
   padding: 0 6px;
-  background: var(--color-data);
-  color: var(--color-live);
-  font-weight: 700;
-  border-radius: var(--radius-pill);
+  border: 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
-.deep { background: var(--color-data-deep); }
-.schedule { padding: 2px 6px; }
+.badge.deep { background: var(--color-data-deep); }
+.badge.schedule { padding: 2px 6px; }

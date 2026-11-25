@@ -7,6 +7,8 @@ test.describe('public accessibility baseline', () => {
       test.setTimeout(180_000);
       const paths = [
         `/${locale}`,
+        `/${locale}/events?q=${world.world.tag}`,
+        `/${locale}/events/calendar`,
         `/${locale}/events/${world.world.slug}`,
         `/${locale}/events/${world.world.slug}/draws/MS`,
         `/${locale}/rankings/${world.ranking.code}`,

@@ -8,6 +8,14 @@
   letter-spacing: 0.04em;
 }
 
+.filled {
+  padding: 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+}
+
 .dot {
   width: 10px;
   height: 10px;

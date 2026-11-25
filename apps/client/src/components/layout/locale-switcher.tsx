@@ -3,29 +3,40 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { LOCALE_COOKIE } from '../../i18n/negotiate-locale';
-import type { Locale } from '../../i18n/locales';
-import styles from './site-chrome.module.css';
+import { LOCALES, type Locale } from '../../i18n/locales';
+import styles from './header.module.css';
 
 const ONE_YEAR_SECONDS = 31_536_000;
 
-/** Same page and filters in the other language; remembers the choice so "/" opens in it next time. */
-export function LocaleSwitcher({ target, label, code }: { target: Locale; label: string; code: string }) {
+/** "VI | EN": the current language is plain text, the other one keeps the page and filters and remembers the choice. */
+export function LocaleSwitcher({ current, label, switchLabel }: { current: Locale; label: string; switchLabel: string }) {
   const pathname = usePathname() ?? '/';
   const rest = pathname.split('/').slice(2).join('/');
   const search = useSearchParams()?.toString();
-  const href = `/${target}${rest ? `/${rest}` : ''}${search ? `?${search}` : ''}`;
+  const hrefFor = (target: Locale) => `/${target}${rest ? `/${rest}` : ''}${search ? `?${search}` : ''}`;
   return (
-    <Link
-      href={href}
-      hrefLang={target}
-      lang={target}
-      className={styles.locale}
-      aria-label={label}
-      onClick={() => {
-        document.cookie = `${LOCALE_COOKIE}=${target}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax`;
-      }}
-    >
-      {code}
-    </Link>
+    <div role="group" aria-label={label} className={styles.localeGroup}>
+      {LOCALES.map((code, index) => (
+        <span key={code} className={styles.localeItem}>
+          {index > 0 && <span aria-hidden="true" className={styles.localeSep}>|</span>}
+          {code === current ? (
+            <span className={styles.locale} aria-current="true">{code.toUpperCase()}</span>
+          ) : (
+            <Link
+              href={hrefFor(code)}
+              hrefLang={code}
+              lang={code}
+              className={`${styles.locale} ${styles.localeLink}`}
+              aria-label={`${code.toUpperCase()}, ${switchLabel}`}
+              onClick={() => {
+                document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax`;
+              }}
+            >
+              {code.toUpperCase()}
+            </Link>
+          )}
+        </span>
+      ))}
+    </div>
   );
 }

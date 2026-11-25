@@ -1,0 +1,138 @@
+.band {
+  background: var(--color-data);
+  color: var(--color-surface);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: -1px;
+  border-bottom: 3px solid transparent;
+  color: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.tab[aria-current='page'] {
+  border-bottom-color: var(--color-primary);
+  opacity: 1;
+}
+
+.tab:focus-visible,
+.name:focus-visible,
+.moreLink:focus-visible {
+  outline: 2px solid var(--color-live);
+  outline-offset: 2px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.2);
+  text-align: center;
+  font-weight: 400;
+}
+
+.table thead th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.table .left { text-align: left; }
+.rank { font-size: 18px; font-weight: 800; }
+.points { font-size: 18px; font-weight: 800; white-space: nowrap; }
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Two classes beat the avatar's navy fill so it stays visible on the navy band. */
+.band .avatar {
+  border: 1px solid rgb(255 255 255 / 0.5);
+  background: rgb(255 255 255 / 0.12);
+}
+
+.name {
+  display: block;
+  color: var(--color-surface);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.clubInline {
+  display: block;
+  font-size: 13px;
+}
+
+.up { color: var(--color-success-on-dark); font-weight: 700; }
+.down { color: var(--color-danger-on-dark); font-weight: 700; }
+.same { color: var(--color-surface); }
+
+.more {
+  margin: 24px 0 0;
+  text-align: center;
+}
+
+.moreLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-button);
+  color: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.moreLink:hover { background: rgb(255 255 255 / 0.12); }
+
+.clubCol { display: none; }
+
+@media (min-width: 600px) {
+  .clubCol { display: table-cell; }
+  .clubInline { display: none; }
+}
+
+@media (min-width: 768px) {
+  .title { font-size: 28px; }
+}

@@ -13,13 +13,17 @@ interface FilterFormProps {
   fields: FilterField[];
   /** Params that survive a filter change (e.g. the match state tab). Page resets to 1 by leaving it out. */
   keep?: Record<string, string>;
+  /** Where "clear" goes; default keeps the `keep` params. */
+  clearHref?: string;
+  /** A filter held outside the form (status pills) is on, so "clear" must show. */
+  extraActive?: boolean;
   t: Dictionary['common'];
 }
 
 /** A plain GET form: filtering changes the URL and the server renders the result; no JavaScript needed. */
-export function FilterForm({ label, action, fields, keep = {}, t }: FilterFormProps) {
-  const active = fields.some((f) => f.value && !(f.kind === 'select' && f.allLabel === null));
-  const clearHref = Object.keys(keep).length ? `${action}?${new URLSearchParams(keep)}` : action;
+export function FilterForm({ label, action, fields, keep = {}, clearHref: clearTo, extraActive = false, t }: FilterFormProps) {
+  const active = extraActive || fields.some((f) => f.value && !(f.kind === 'select' && f.allLabel === null));
+  const clearHref = clearTo ?? (Object.keys(keep).length ? `${action}?${new URLSearchParams(keep)}` : action);
   return (
     <form method="get" action={action} className={styles.form} aria-label={label} role="search">
       {Object.entries(keep).map(([name, value]) => (

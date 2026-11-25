@@ -1,61 +1,136 @@
-/* One 40px row under the bar: the toggle floats left, the list beside it scrolls sideways. Collapses to the toggle. */
+/* Horizontal scroll with snap; nothing moves by itself (WCAG 2.2.2). */
 .strip {
-  display: flow-root;
   background: var(--color-data);
   color: var(--color-surface);
-  font-size: 13px;
+  border-top: 1px solid rgb(255 255 255 / 12%);
 }
 
-.toggle {
-  float: left;
-  padding: 0 var(--layout-gutter-mobile);
-  line-height: 40px;
+.inner {
+  display: flex;
+  align-items: stretch;
+  max-width: var(--layout-container-max);
+  margin: 0 auto;
+  padding: 10px var(--layout-gutter-mobile);
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  flex: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.all {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-live);
+  font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
 }
 
-.toggle:focus-visible,
-.item:focus-visible {
+.all:focus-visible,
+.card:focus-visible {
   outline: 2px solid var(--color-live);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 .items {
   display: flex;
-  align-items: center;
-  gap: 24px;
-  height: 40px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  padding: 0 var(--layout-gutter-mobile) 0 0;
+  padding: 2px;
   list-style: none;
   overflow-x: auto;
-  white-space: nowrap;
+  scroll-snap-type: x proximity;
 }
 
-.item {
+.cell {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.card {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
+  width: 232px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: var(--radius-card);
   color: var(--color-surface);
+  font-size: 12px;
   text-decoration: none;
 }
 
-.sub {
-  font-size: 11px;
+.card:hover {
+  border-color: var(--color-live);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
 }
 
-.score {
-  font-variant-numeric: tabular-nums;
-  color: inherit;
-  text-decoration: none;
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.score:hover { text-decoration: underline; }
-.score:focus-visible { outline-color: var(--color-live); }
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.won .name,
+.won .total {
+  font-weight: 800;
+  color: var(--color-live);
+}
+
+.scores {
+  display: flex;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.total {
+  min-width: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 
 @media (min-width: 768px) {
-  .toggle {
-    padding: 0 var(--layout-gutter-desktop);
+  .inner {
+    padding-right: var(--layout-gutter-desktop);
+    padding-left: var(--layout-gutter-desktop);
   }
 }

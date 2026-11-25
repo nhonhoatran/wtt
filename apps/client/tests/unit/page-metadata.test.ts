@@ -8,7 +8,7 @@ const event = {
   city: null, venue: null, tier: { code: 'OPEN', name: 'Mở rộng', nameEn: 'Open', colorHex: '#000000' },
   eventType: { code: 'SINGLES', name: 'Đơn', nameEn: 'Singles', colorHex: null }, banner: null,
   summary: '  Mô tả tiếng Việt  ', summaryEn: '  English description  ', presentedBy: null, ticketUrl: null,
-  subEvents: [], tabs: { matches: false, draws: false, groups: false, players: false, info: false },
+  subEvents: [], hasPublicMatches: false, days: [], tabs: { matches: false, draws: false, groups: false, players: false, info: false },
   stats: { players: 0, playedMatches: 0 }, champions: [],
 } satisfies PublicEventDetail;
 

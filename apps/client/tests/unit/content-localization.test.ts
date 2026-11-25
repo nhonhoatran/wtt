@@ -12,6 +12,9 @@ import ArticlePage from '../../src/app/[locale]/news/[slug]/page';
 import VideoPage from '../../src/app/[locale]/videos/[slug]/page';
 import NewsPage from '../../src/app/[locale]/news/page';
 import { SiteFooter } from '../../src/components/layout/site-footer';
+import { getDictionary } from '../../src/i18n/get-dictionary';
+
+const chromeDisplay = { navItems: [{ key: 'events' as const }], socialLinks: [], tagline: null, registrationUrl: '' };
 
 // Request-aware Server Components can suspend; use the async renderer rather than a legacy sync root.
 async function renderPage(node: ReactNode) {
@@ -47,11 +50,11 @@ describe('public CMS localization', () => {
   it('uses English video duration and footer labels with Vietnamese fallback', async () => {
     const enVideo = await renderPage(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }));
     expect(enVideo).toContain('>4 minutes</p>');
-    expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', text: 'Kamito' }))).toContain('>Information</h2>');
+    expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', siteName: 'Kamito', t: getDictionary('en'), display: chromeDisplay }))).toContain('>Information</h2>');
     getVideo.mockResolvedValue({ ...video, durationTextEn: null });
     getFooter.mockResolvedValue({ pages: [{ slug: 'about', title: 'Giới thiệu', titleEn: null, group: 'Thông tin', groupEn: null, order: 0 }], sponsors: [] });
     expect(await renderPage(await VideoPage({ params: Promise.resolve({ locale: 'en', slug: 'final' }) }))).toContain('>4 phút</p>');
-    expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', text: 'Kamito' }))).toContain('>Thông tin</h2>');
+    expect(renderToStaticMarkup(await SiteFooter({ locale: 'en', siteName: 'Kamito', t: getDictionary('en'), display: chromeDisplay }))).toContain('>Thông tin</h2>');
   });
 
   it('translates news filter labels without changing the submitted category value', async () => {

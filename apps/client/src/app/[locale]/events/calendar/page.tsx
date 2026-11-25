@@ -2,12 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EmptyState } from '../../../../components/common/empty-state';
 import { FilterForm } from '../../../../components/common/filter-form';
-import { EventCard } from '../../../../components/events/event-card';
-import cardStyles from '../../../../components/events/event-card.module.css';
+import { EventMonthList } from '../../../../components/events/event-month-list';
+import { EventsPageHeader } from '../../../../components/events/events-page-header';
 import { format, getDictionary } from '../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../i18n/locales';
 import { pickLocalized } from '../../../../i18n/pick-localized';
-import { formatMonth } from '../../../../lib/format-date-time';
 import { getEventCalendar, getEventList } from '../../../../lib/public-data';
 import { isYearParam, oneOf, toQuery } from '../../../../lib/public-query';
 import { pageMetadata } from '../../../../lib/page-metadata';
@@ -43,9 +42,18 @@ export async function generateMetadata(props: CalendarPageProps): Promise<Metada
 export default async function CalendarPage(props: CalendarPageProps) {
   const { locale, query, calendar, t } = await load(props);
   const years = [...new Set([calendar.year, ...calendar.filters.years])].sort((a, b) => b - a);
+  const total = calendar.months.reduce((sum, group) => sum + group.events.length, 0);
   return (
     <main id="content" className="container">
-      <h1 className="page-title">{format(t.calendar.title, { year: calendar.year })}</h1>
+      <EventsPageHeader
+        locale={locale}
+        t={t}
+        title={format(t.calendar.title, { year: calendar.year })}
+        crumb={t.nav.calendar}
+        description={t.calendar.description}
+        chip={total > 0 ? format(t.events.countInYear, { n: total, year: calendar.year }) : undefined}
+        switchTo={{ href: `/${locale}/events?year=${calendar.year}`, label: t.calendar.viewList }}
+      />
       <FilterForm
         label={t.events.filters.label}
         action={`/${locale}/events/calendar`}
@@ -69,20 +77,7 @@ export default async function CalendarPage(props: CalendarPageProps) {
         ]}
       />
       {calendar.months.length === 0 && <EmptyState text={t.calendar.empty} />}
-      {calendar.months.map((group) => (
-        <section key={group.month} aria-labelledby={`month-${group.month}`}>
-          <h2 id={`month-${group.month}`} className="section-title">
-            {formatMonth(group.month, locale)}
-          </h2>
-          <ul className={cardStyles.grid}>
-            {group.events.map((event) => (
-              <li key={event.slug}>
-                <EventCard event={event} locale={locale} t={t} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <EventMonthList groups={calendar.months.map((group) => ({ month: group.month, items: group.events }))} locale={locale} t={t} />
     </main>
   );
 }

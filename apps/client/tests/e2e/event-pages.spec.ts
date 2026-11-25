@@ -8,6 +8,10 @@ test.describe('events list', () => {
     const card = page.getByRole('link', { name: new RegExp(world.eventName) });
     await expect(card).toBeVisible();
     await expect(card).toHaveAttribute('href', base(world.world.slug));
+    await expect(page.getByRole('heading', { level: 2 }).first()).toContainText(/\d{4}/);
+    await expect(page.getByRole('navigation', { name: 'Trạng thái' }).getByRole('link', { name: 'Tất cả' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByText('Thưởng')).toHaveCount(0);
+    await expect(page.getByText('Hạn đăng ký')).toHaveCount(0);
 
     const response = await page.goto('/vi/events?tier=bogus&page=abc');
     expect(response?.status()).toBe(200);

@@ -10,6 +10,7 @@ import { SiteHeader } from '../../components/layout/site-header';
 import { getDictionary } from '../../i18n/get-dictionary';
 import { isLocale } from '../../i18n/locales';
 import { serverEnv } from '../../lib/server-env';
+import { getSiteChromeDisplay } from '../../lib/site-display';
 import { getSiteName } from '../../lib/site-name';
 
 const archivo = Archivo({
@@ -40,13 +41,13 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const t = getDictionary(locale);
-  const siteName = await getSiteName(locale);
+  const [siteName, display] = await Promise.all([getSiteName(locale), getSiteChromeDisplay()]);
   return (
     <html lang={locale} className={archivo.className}>
       <body>
-        <SiteHeader locale={locale} siteName={siteName} t={t} />
+        <SiteHeader locale={locale} siteName={siteName} t={t} display={display} />
         {children}
-        <SiteFooter text={siteName} locale={locale} />
+        <SiteFooter siteName={siteName} locale={locale} t={t} display={display} />
       </body>
     </html>
   );

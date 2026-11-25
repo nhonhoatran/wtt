@@ -13,6 +13,8 @@ test.describe('CMS home configuration', () => {
       await expect(page.getByRole('heading', { name: 'Tin nổi bật', exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Video mới', exact: true })).toBeVisible();
     });
+    expect((await page.goto('/vi?ranking=bad'))?.status()).toBe(200);
+    await expect(page.locator('link[rel="canonical"]')).not.toHaveAttribute('href', /\?/);
     await withHomeSections(cms, off, async () => {
       await page.goto('/vi');
       await expect(page.locator('main #home-news, main #home-videos')).toHaveCount(0);
