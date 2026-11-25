@@ -4,13 +4,14 @@ import { can } from '@kamito/shared';
 import { getAuthContext } from '../auth/auth-context.js';
 import { parseBody } from '../../common/validation/parse-body.js';
 import { RequirePermission } from '../access-control/access-decorators.js';
-import { generateDrawBody, previewDrawBody, replaceEntryBody, roundFormatBody, suggestSeedsBody, swapBody, unpublishBody, versionedBody, withdrawEntryBody } from './draw-dtos.js';
+import { generateDrawBody, previewDrawBody, replaceEntryBody, roundFormatBody, suggestSeedsBody, swapBody, swapGroupMembersBody, unpublishBody, versionedBody, withdrawEntryBody } from './draw-dtos.js';
 import { DrawEditService } from './draw-edit.service.js';
 import { DrawGenerationService } from './draw-generation.service.js';
 import { DrawPostPublishService } from './draw-post-publish.service.js';
 import { DrawPublishService } from './draw-publish.service.js';
 import { DrawReadService } from './draw-read.service.js';
 import { DrawSeedSuggestionService } from './draw-seed-suggestion.service.js';
+import { GroupMemberSwapService } from './group-member-swap.service.js';
 import { GroupQualifierService } from './group-qualifier.service.js';
 import { RoundFormatService } from './round-format.service.js';
 
@@ -30,6 +31,7 @@ export class AdminDrawsController {
     private readonly postPublish: DrawPostPublishService,
     private readonly groupQualifiers: GroupQualifierService,
     private readonly seedSuggestion: DrawSeedSuggestionService,
+    private readonly groupSwap: GroupMemberSwapService,
   ) {}
 
   @Get('events/:eventId/draws')
@@ -68,6 +70,13 @@ export class AdminDrawsController {
   @RequirePermission('tournaments', 'update')
   swap(@Param('id') id: string, @Body() body: unknown) {
     return this.edit.swap(id, parseBody(swapBody, body));
+  }
+
+  @Post('draws/:id/swap-group-members')
+  @HttpCode(200)
+  @RequirePermission('tournaments', 'update')
+  swapGroupMembers(@Param('id') id: string, @Body() body: unknown) {
+    return this.groupSwap.swap(id, parseBody(swapGroupMembersBody, body));
   }
 
   @Post('draws/:id/place-qualifiers')

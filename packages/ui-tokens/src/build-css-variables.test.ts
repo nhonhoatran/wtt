@@ -20,6 +20,24 @@ describe('ui tokens', () => {
     expect(vars['--color-danger-on-dark']).toBe('#FF8A8A');
   });
 
+  it('exposes the caution pill colours as CSS variables', () => {
+    const vars = buildCssVariables();
+    expect(vars['--color-warning-surface']).toBe('#FEF3C7');
+    expect(vars['--color-warning-text']).toBe('#78350F');
+  });
+
+  it('keeps the caution pill text at WCAG AA contrast (4.5:1) on its surface', () => {
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const channel = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const [a, b] = [luminance(tokens.color.warningSurface), luminance(tokens.color.warningText)];
+    expect((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('leaves the primary red used by the admin theme untouched', () => {
     expect(tokens.color.primary).toBe('#EC1E24');
   });

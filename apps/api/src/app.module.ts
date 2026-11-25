@@ -3,6 +3,7 @@ import { AuditModule } from './common/audit/audit.module.js';
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { LoggerModule } from './common/logger/logger.module.js';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module.js';
+import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { EventsModule } from './modules/events/events.module.js';
 import { HealthModule } from './modules/health/health.module.js';
@@ -58,6 +59,7 @@ import { ContentModule } from './modules/content/content.module.js';
     HealthModule,
     UsersModule,
     AuditLogsModule,
+    DashboardModule,
     MediaModule,
     EventsModule,
     SubEventsModule,

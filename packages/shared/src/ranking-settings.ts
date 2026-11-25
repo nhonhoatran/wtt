@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { defineAppSetting, defineNumberSetting } from './app-setting-definition.js';
+import { PUBLIC_URL_PART_PATTERN } from './public-api.js';
 
 /** Defaults are examples; admins change them on /settings. */
 export const rankingSettings = {
@@ -32,6 +33,15 @@ export const rankingSettings = {
     min: 0,
     max: 365,
     defaultValue: 30,
+  }),
+  pointsGuidePageSlug: defineAppSetting({
+    key: 'ranking.pointsGuidePageSlug',
+    group: 'ranking',
+    label: 'Trang giải thích cách tính điểm',
+    description: 'Slug của trang tĩnh (mục Trang trong CMS) giải thích cách tính điểm. Trang tồn tại và đã công bố thì trang xếp hạng hiện link "Cách tính điểm"; để trống thì ẩn.',
+    schema: z.string().trim().refine((value) => value === '' || PUBLIC_URL_PART_PATTERN.test(value), 'Chỉ chữ, số, gạch ngang và gạch dưới'),
+    defaultValue: '',
+    editor: { kind: 'text', maxLength: 128, optional: true },
   }),
   awardPointsOnWalkoverLoss: defineAppSetting({
     key: 'ranking.awardPointsOnWalkoverLoss',

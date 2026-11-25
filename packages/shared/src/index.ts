@@ -3,6 +3,7 @@ export * from './queue-names.js';
 export * from './app-setting-registry.js';
 export * from './auth-settings.js';
 export * from './list-settings.js';
+export * from './dashboard-settings.js';
 export * from './redis-eviction-policy.js';
 export * from './env-validation.js';
 export * from './user-role.js';

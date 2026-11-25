@@ -8,7 +8,7 @@ import { PUBLIC, publicGet, sortedPaths } from './support/public-api-kit.js';
 
 const SETTINGS = '/api/v1/admin/settings';
 const MAX_REQUESTS_KEY = publicSiteSettings.rateLimitMaxRequests.key;
-const SITE_SETTINGS = [appSettingRegistry.siteName, ...Object.values(publicSiteSettings), ...Object.values(publicSiteDisplaySettings), rankingSettings.expiringSoonDays, tournamentSettings.featuredEventId, contentSettings.homeSections];
+const SITE_SETTINGS = [appSettingRegistry.siteName, ...Object.values(publicSiteSettings), ...Object.values(publicSiteDisplaySettings), rankingSettings.expiringSoonDays, rankingSettings.pointsGuidePageSlug, tournamentSettings.defaultTimezone, tournamentSettings.featuredEventId, contentSettings.homeSections];
 const SITE_SETTING_KEYS = SITE_SETTINGS.map((setting) => setting.key);
 
 describe('public site config and sitemap API (real Postgres)', () => {
@@ -58,7 +58,7 @@ describe('public site config and sitemap API (real Postgres)', () => {
     const { data } = (await site().expect(200)).body;
     expect(sortedPaths(data)).toEqual([
       'contactRateLimit', 'contactRateLimit.maxRequests', 'contactRateLimit.windowSeconds',
-      'display', 'display.navItems', 'display.navItems[].key', 'display.rankingExpiringSoonDays', 'display.registrationUrl', 'display.socialLinks', 'display.tagline',
+      'display', 'display.matchRelatedLimit', 'display.navItems', 'display.navItems[].key', 'display.rankingExpiringSoonDays', 'display.rankingPointsGuideSlug', 'display.registrationUrl', 'display.socialLinks', 'display.tagline', 'display.timezone',
       'rateLimit', 'rateLimit.maxRequests', 'rateLimit.maxTrackedIps', 'rateLimit.searchMaxRequests', 'rateLimit.windowSeconds', 'siteName', 'siteName.en', 'siteName.vi',
     ]);
   });
@@ -78,6 +78,9 @@ describe('public site config and sitemap API (real Postgres)', () => {
       tagline: null,
       registrationUrl: '',
       rankingExpiringSoonDays: rankingSettings.expiringSoonDays.defaultValue,
+      rankingPointsGuideSlug: null,
+      matchRelatedLimit: publicSiteDisplaySettings.matchRelatedLimit.defaultValue,
+      timezone: tournamentSettings.defaultTimezone.defaultValue,
     });
   });
 
@@ -88,17 +91,32 @@ describe('public site config and sitemap API (real Postgres)', () => {
     await put(publicSiteDisplaySettings.navItems.key, [{ key: 'events', labelVi: 'Giải' }, { key: 'news' }]).expect(200);
     await put(publicSiteDisplaySettings.registrationUrl.key, 'https://dangky.example.vn').expect(200);
     await put(rankingSettings.expiringSoonDays.key, 14).expect(200);
+    await put(rankingSettings.pointsGuidePageSlug.key, 'cach-tinh-diem').expect(200);
+    await put(publicSiteDisplaySettings.matchRelatedLimit.key, 6).expect(200);
+    await put(tournamentSettings.defaultTimezone.key, 'Asia/Bangkok').expect(200);
+    const tagline = { vi: 'Giải đấu bóng bàn', en: 'Table tennis tournaments' };
+    await put(publicSiteDisplaySettings.tagline.key, tagline).expect(200);
     try {
+      expect((await site().expect(200)).body.data.display.tagline).toEqual(tagline);
+      expect((await put(publicSiteDisplaySettings.tagline.key, { vi: 'Chỉ tiếng Việt', en: '' })).status).toBe(422);
+      expect((await put(publicSiteDisplaySettings.tagline.key, { vi: '  ', en: 'English only' })).status).toBe(422);
+      expect((await site().expect(200)).body.data.display.tagline).toEqual(tagline);
       const { display } = (await site().expect(200)).body.data;
       expect(display.socialLinks).toEqual(links);
       expect(display.navItems).toEqual([{ key: 'events', labelVi: 'Giải' }, { key: 'news' }]);
       expect(display.registrationUrl).toBe('https://dangky.example.vn');
       expect(display.rankingExpiringSoonDays).toBe(14);
+      expect(display).toMatchObject({ rankingPointsGuideSlug: 'cach-tinh-diem', matchRelatedLimit: 6, timezone: 'Asia/Bangkok' });
+      expect((await put(rankingSettings.pointsGuidePageSlug.key, 'a/b')).status).toBe(422);
+      expect((await put(publicSiteDisplaySettings.matchRelatedLimit.key, 13)).status).toBe(422);
+      expect((await put(tournamentSettings.defaultTimezone.key, 'Mars/Base')).status).toBe(422);
+      await put(rankingSettings.pointsGuidePageSlug.key, '').expect(200);
+      expect((await site().expect(200)).body.data.display.rankingPointsGuideSlug).toBeNull();
       expect((await put(publicSiteDisplaySettings.socialLinks.key, [{ platform: 'facebook', url: 'javascript:alert(1)' }])).status).toBe(422);
       expect((await put(publicSiteDisplaySettings.navItems.key, [{ key: 'news' }, { key: 'news' }])).status).toBe(422);
       expect((await put(publicSiteDisplaySettings.registrationUrl.key, 'http://insecure.example')).status).toBe(422);
     } finally {
-      for (const setting of [publicSiteDisplaySettings.socialLinks, publicSiteDisplaySettings.navItems, publicSiteDisplaySettings.registrationUrl, rankingSettings.expiringSoonDays]) {
+      for (const setting of [publicSiteDisplaySettings.socialLinks, publicSiteDisplaySettings.navItems, publicSiteDisplaySettings.registrationUrl, publicSiteDisplaySettings.tagline, publicSiteDisplaySettings.matchRelatedLimit, rankingSettings.expiringSoonDays, rankingSettings.pointsGuidePageSlug, tournamentSettings.defaultTimezone]) {
         await kit.write('delete', `${SETTINGS}/${setting.key}`, cookie).expect(200);
       }
     }

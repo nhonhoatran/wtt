@@ -31,6 +31,13 @@ export const swapBody = z.object({
 });
 export type SwapBody = z.infer<typeof swapBody>;
 
+export const swapGroupMembersBody = z.object({
+  entryA: z.string().uuid('VĐV không hợp lệ'),
+  entryB: z.string().uuid('VĐV không hợp lệ'),
+  expectedVersion,
+});
+export type SwapGroupMembersBody = z.infer<typeof swapGroupMembersBody>;
+
 export const roundFormatBody = z.object({
   matchFormatId: z.string().uuid('Thể thức không hợp lệ').nullable(),
   expectedVersion,

@@ -8,6 +8,9 @@ export const tokens = {
     success: '#15803D',
     successOnDark: '#4ADE80',
     dangerOnDark: '#FF8A8A',
+    // Caution pill (e.g. points expiring soon): text on its own surface.
+    warningSurface: '#FEF3C7',
+    warningText: '#78350F',
     ink: '#0A0A0A',
     data: '#0F285D',
     dataDeep: '#0F2452',

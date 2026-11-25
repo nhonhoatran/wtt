@@ -72,6 +72,21 @@ describe('match result entry: start, confirm, advance (real Postgres)', () => {
       expect(open.body.total).toBe(res.body.total);
     });
 
+    it('returns the entry seed on each side of a listed match and of its detail', async () => {
+      const seeded = await kit.prisma.entry.findMany({ where: { subEventId: sub('MS'), seed: { not: null } }, select: { id: true, seed: true } });
+      expect(seeded.length).toBeGreaterThan(0);
+      const seedOf = new Map(seeded.map((entry) => [entry.id, entry.seed]));
+      const res = await kit.get(`${API}/events/${fx.eventId}/matches?filter[subEventId]=${sub('MS')}&pageSize=50`, operatorCookie).expect(200);
+      type Side = { id: string; seed: number | null } | null;
+      const items = res.body.data as { id: string; side1: Side; side2: Side }[];
+      const sides = items.flatMap((m) => [m.side1, m.side2]).filter((side): side is NonNullable<Side> => side !== null);
+      expect(sides.some((side) => seedOf.has(side.id))).toBe(true);
+      for (const side of sides) expect(side.seed).toBe(seedOf.get(side.id) ?? null);
+      const withSeed = items.find((m) => [m.side1, m.side2].some((side) => side && seedOf.has(side.id)))!;
+      const one = (await detail(withSeed.id)) as { side1: Side; side2: Side };
+      for (const side of [one.side1, one.side2]) if (side) expect(side.seed).toBe(seedOf.get(side.id) ?? null);
+    });
+
     it('searches by match number', async () => {
       const [first] = await roundOne();
       const res = await kit.get(`${API}/events/${fx.eventId}/matches?q=%23${first!.matchNo}`, operatorCookie).expect(200);

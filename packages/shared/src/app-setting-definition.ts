@@ -10,6 +10,8 @@ export interface NumberSettingEditor {
 export interface TextSettingEditor {
   kind: 'text';
   maxLength: number;
+  /** An empty value is allowed (e.g. a link that hides its button when blank). */
+  optional?: boolean;
 }
 
 export interface BooleanSettingEditor {
@@ -33,6 +35,28 @@ export interface EventSettingEditor {
 
 export interface JsonSettingEditor { kind: 'json' }
 
+/** Vietnamese + English text pair; `nullable` lets both be left empty (stored as null). */
+export interface BilingualTextSettingEditor {
+  kind: 'bilingual-text';
+  maxLength: number;
+  nullable: boolean;
+}
+
+/** Ordered list of keys picked from `options`, each with optional VI/EN label overrides. */
+export interface NavItemsSettingEditor {
+  kind: 'nav-items';
+  options: { value: string; label: string }[];
+  maxItems: number;
+  maxLabelLength: number;
+}
+
+/** List of {platform, url} rows with https-only urls. */
+export interface SocialLinksSettingEditor {
+  kind: 'social-links';
+  platforms: { value: string; label: string }[];
+  maxItems: number;
+}
+
 export type AppSettingEditor =
   | NumberSettingEditor
   | TextSettingEditor
@@ -40,6 +64,9 @@ export type AppSettingEditor =
   | TimezoneSettingEditor
   | EventSettingEditor
   | JsonSettingEditor
+  | BilingualTextSettingEditor
+  | NavItemsSettingEditor
+  | SocialLinksSettingEditor
   | ChoiceSettingEditor;
 
 export const APP_SETTING_GROUPS = [
@@ -50,6 +77,7 @@ export const APP_SETTING_GROUPS = [
   { key: 'imports', label: 'Import Excel' },
   { key: 'auth', label: 'Đăng nhập & phiên' },
   { key: 'list', label: 'Danh sách' },
+  { key: 'dashboard', label: 'Tổng quan' },
   { key: 'draw', label: 'Bốc thăm & nhánh đấu' },
   { key: 'ranking', label: 'Xếp hạng' },
   { key: 'publicAccess', label: 'Truy cập site công khai' },

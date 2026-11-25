@@ -78,7 +78,7 @@ describe('permission coverage', () => {
       const list = await kit.get('/api/v1/admin/settings', cookie).expect(200);
       const item = list.body.data.find((setting: { key: string }) => setting.key === key);
       expect(item).toMatchObject({ group: 'auth', editor: { kind: 'number', min: 1, max: 60 } });
-      expect(list.body.data.find((setting: { key: string }) => setting.key === 'site.name')).toMatchObject({ group: 'display', editor: { kind: 'json' } });
+      expect(list.body.data.find((setting: { key: string }) => setting.key === 'site.name')).toMatchObject({ group: 'display', editor: { kind: 'bilingual-text', nullable: false } });
 
       const invalid = await kit.write('put', `/api/v1/admin/settings/${key}`, cookie, { value: 0 }).expect(422);
       expect(invalid.body.error.fields).toHaveProperty('value');

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { appSettingRegistry, contentSettings, publicSiteDisplaySettings, publicSiteSettings, rankingSettings, type PublicSiteConfig, type PublicSitemap } from '@kamito/shared';
+import { appSettingRegistry, contentSettings, publicSiteDisplaySettings, publicSiteSettings, rankingSettings, tournamentSettings, type PublicSiteConfig, type PublicSitemap } from '@kamito/shared';
 import { sanitizeRichHtmlOrNull } from '../../common/html/sanitize-rich-html.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { publicScope } from '../public-scope/public-scope.js';
@@ -15,7 +15,7 @@ export class PublicSiteQuery {
   ) {}
 
   async config(): Promise<PublicSiteConfig> {
-    const [siteName, windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps, contactWindowSeconds, contactMaxRequests, navItems, socialLinks, tagline, registrationUrl, expiringSoonDays] = await Promise.all([
+    const [siteName, windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps, contactWindowSeconds, contactMaxRequests, navItems, socialLinks, tagline, registrationUrl, expiringSoonDays, pointsGuideSlug, matchRelatedLimit, timezone] = await Promise.all([
       this.settings.get(appSettingRegistry.siteName),
       this.settings.get(publicSiteSettings.rateLimitWindowSeconds),
       this.settings.get(publicSiteSettings.rateLimitMaxRequests),
@@ -28,12 +28,15 @@ export class PublicSiteQuery {
       this.settings.get(publicSiteDisplaySettings.tagline),
       this.settings.get(publicSiteDisplaySettings.registrationUrl),
       this.settings.get(rankingSettings.expiringSoonDays),
+      this.settings.get(rankingSettings.pointsGuidePageSlug),
+      this.settings.get(publicSiteDisplaySettings.matchRelatedLimit),
+      this.settings.get(tournamentSettings.defaultTimezone),
     ]);
     return {
       siteName,
       rateLimit: { windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps },
       contactRateLimit: { windowSeconds: contactWindowSeconds, maxRequests: contactMaxRequests },
-      display: { navItems, socialLinks, tagline, registrationUrl, rankingExpiringSoonDays: expiringSoonDays },
+      display: { navItems, socialLinks, tagline, registrationUrl, rankingExpiringSoonDays: expiringSoonDays, rankingPointsGuideSlug: pointsGuideSlug || null, matchRelatedLimit, timezone },
     };
   }
 

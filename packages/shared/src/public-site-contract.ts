@@ -8,6 +8,12 @@ export interface PublicSiteDisplay {
   registrationUrl: string;
   /** 0 = the "expiring soon" label is off. */
   rankingExpiringSoonDays: number;
+  /** Slug of the CMS page explaining how points work; null = hide the link. */
+  rankingPointsGuideSlug: string | null;
+  /** Related matches listed beside a match. */
+  matchRelatedLimit: number;
+  /** IANA zone the public site uses for calendar-day computations ("today"). */
+  timezone: string;
 }
 
 /** Site-wide values the public site reads on every request (site name, proxy rate limits, display settings). */

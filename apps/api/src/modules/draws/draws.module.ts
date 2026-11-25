@@ -11,6 +11,7 @@ import { DrawPostPublishService } from './draw-post-publish.service.js';
 import { DrawPublishService } from './draw-publish.service.js';
 import { DrawReadService } from './draw-read.service.js';
 import { DrawSeedSuggestionService } from './draw-seed-suggestion.service.js';
+import { GroupMemberSwapService } from './group-member-swap.service.js';
 import { GroupQualifierService } from './group-qualifier.service.js';
 import { GroupWithdrawalService } from './group-withdrawal.service.js';
 import { RoundFormatService } from './round-format.service.js';
@@ -29,6 +30,7 @@ import { RoundFormatService } from './round-format.service.js';
     DrawPostPublishService,
     GroupWithdrawalService,
     GroupQualifierService,
+    GroupMemberSwapService,
     DrawSeedSuggestionService,
   ],
   exports: [DrawParamsService, DrawPersistenceService],

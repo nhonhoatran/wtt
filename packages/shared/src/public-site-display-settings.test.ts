@@ -44,6 +44,15 @@ describe('site.tagline and site.registrationUrl', () => {
     expect(display.tagline.schema.safeParse({ vi: 'a'.repeat(301), en: '' }).success).toBe(false);
   });
 
+  it('requires both languages when the tagline is not null', () => {
+    const schema = display.tagline.schema;
+    expect(schema.safeParse({ vi: 'Xin chào', en: '' }).success).toBe(false);
+    expect(schema.safeParse({ vi: '', en: 'Hello' }).success).toBe(false);
+    expect(schema.safeParse({ vi: '', en: '' }).success).toBe(false);
+    expect(schema.safeParse({ vi: '  ', en: ' Hello ' }).success).toBe(false);
+    expect(schema.safeParse({ vi: ' Xin chào ', en: ' Hello ' })).toMatchObject({ success: true, data: { vi: 'Xin chào', en: 'Hello' } });
+  });
+
   it('accepts empty or https registration urls only', () => {
     expect(display.registrationUrl.schema.safeParse('').success).toBe(true);
     expect(display.registrationUrl.schema.safeParse('https://dangky.kamito.vn').success).toBe(true);
@@ -71,5 +80,25 @@ describe('display settings registry', () => {
       expect(findAppSetting(key)?.group).toBe('display');
     }
     expect(resolveAppSetting(display.registrationUrl, 'http://bad')).toBe('');
+  });
+});
+
+describe('public.matchRelatedLimit and ranking.pointsGuidePageSlug', () => {
+  it('bounds the related matches count to 1-12', () => {
+    const def = appSettingRegistry.matchRelatedLimit;
+    expect(findAppSetting('public.matchRelatedLimit')).toBe(def);
+    expect(def.group).toBe('display');
+    expect(def.defaultValue).toBe(4);
+    for (const ok of [1, 12]) expect(def.schema.safeParse(ok).success).toBe(true);
+    for (const bad of [0, 13, 1.5]) expect(def.schema.safeParse(bad).success).toBe(false);
+  });
+
+  it('accepts an empty or url-safe page slug only', () => {
+    const def = appSettingRegistry.pointsGuidePageSlug;
+    expect(findAppSetting('ranking.pointsGuidePageSlug')).toBe(def);
+    expect(def.group).toBe('ranking');
+    expect(def.defaultValue).toBe('');
+    for (const ok of ['', 'cach-tinh-diem', 'Rules_2027']) expect(def.schema.safeParse(ok).success).toBe(true);
+    for (const bad of ['a/b', '../x', 'a b?', 'x'.repeat(129)]) expect(def.schema.safeParse(bad).success).toBe(false);
   });
 });

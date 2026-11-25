@@ -15,8 +15,8 @@ export const tournamentSettings = {
   defaultTimezone: defineAppSetting({
     key: 'event.defaultTimezone',
     group: 'event',
-    label: 'Múi giờ mặc định của giải mới',
-    description: 'Điền sẵn khi tạo giải; từng giải vẫn đổi được.',
+    label: 'Múi giờ mặc định',
+    description: 'Điền sẵn khi tạo giải (từng giải vẫn đổi được) và là múi giờ site công khai dùng để tính "hôm nay", ví dụ nhãn "Sắp hết hạn" của điểm xếp hạng.',
     schema: z.string().min(1).max(64).refine(isValidTimezone, 'Múi giờ không hợp lệ'),
     defaultValue: 'Asia/Ho_Chi_Minh',
     editor: { kind: 'timezone' },

@@ -73,6 +73,7 @@ export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
   'POST /admin/draws/:id/publish': tags('draw.publish'),
   'POST /admin/draws/:id/replace-entry': tags('draw.postPublishEdit'),
   'POST /admin/draws/:id/swap': none(`${DRAFT_DRAW}; draft only`),
+  'POST /admin/draws/:id/swap-group-members': none(`${DRAFT_DRAW}; draft only`),
   'POST /admin/draws/:id/unpublish': tags('draw.unpublish'),
   'POST /admin/draws/:id/withdraw-entry': tags('draw.postPublishEdit'),
   'POST /admin/entries/bulk': tags('entry.bulk'),

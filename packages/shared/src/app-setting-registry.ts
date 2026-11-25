@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { defineAppSetting, type AppSettingDefinition } from './app-setting-definition.js';
 import { authSettings } from './auth-settings.js';
+import { dashboardSettings } from './dashboard-settings.js';
 import { listSettings } from './list-settings.js';
 import { importOperationalSettings } from './import-operational-settings.js';
 import { importSettings, playerSettings } from './player-settings.js';
@@ -21,7 +22,7 @@ export const appSettingRegistry = {
     key: 'site.name',
     group: 'display',
     label: 'Tên site',
-    editor: { kind: 'json' },
+    editor: { kind: 'bilingual-text', maxLength: 120, nullable: false },
     schema: z.object({ vi: z.string().min(1).max(120), en: z.string().min(1).max(120) }),
     defaultValue: { vi: 'Giải bóng bàn Kamito', en: 'Kamito Table Tennis' },
     description: 'Tên site hiển thị ở header, tiêu đề trang',
@@ -29,6 +30,7 @@ export const appSettingRegistry = {
   ...authSettings,
   ...tournamentSettings,
   ...listSettings,
+  ...dashboardSettings,
   ...playerSettings,
   ...importSettings,
   ...importOperationalSettings,
