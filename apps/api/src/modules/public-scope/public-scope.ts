@@ -4,10 +4,14 @@ const publishedEvent = { publishStatus: 'PUBLISHED', isCancelled: false } satisf
 const publishedDraw = { status: 'PUBLISHED' } satisfies Prisma.DrawWhereInput;
 
 // `resultType <> 'BYE'` alone is NULL (so false) for unplayed matches in SQL.
-const publicMatchIn = (event: Prisma.EventWhereInput): Prisma.MatchWhereInput => ({
-  event: { ...event, ...publishedEvent },
+const publicMatchRows = {
   draw: publishedDraw,
   OR: [{ resultType: null }, { resultType: { not: 'BYE' } }],
+} satisfies Prisma.MatchWhereInput;
+
+const publicMatchIn = (event: Prisma.EventWhereInput): Prisma.MatchWhereInput => ({
+  event: { ...event, ...publishedEvent },
+  ...publicMatchRows,
 });
 
 /**
@@ -21,6 +25,8 @@ export const publicScope = {
   draw: publishedDraw,
   entry: { status: 'CONFIRMED' } satisfies Prisma.EntryWhereInput,
   /** Real (non-BYE) matches of published draws of a public event. */
+  /** Same rule for a relation already scoped to a public event (e.g. `_count.matches`). */
+  matchOfEvent: publicMatchRows,
   match: (slug: string): Prisma.MatchWhereInput => publicMatchIn({ slug }),
   matchIn: (event: Prisma.EventWhereInput): Prisma.MatchWhereInput => publicMatchIn(event),
 } as const;

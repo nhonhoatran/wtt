@@ -1,7 +1,7 @@
 import type { Prisma } from '@kamito/db';
 import type { PublicDrawKind, PublicMatchCard } from '@kamito/shared';
 import { PUBLIC_SIDE_SELECT } from './public-bracket.query.js';
-import { subEventNames, toPublicSource, toSide } from './public-bracket.serializer.js';
+import { subEventNames, toPublicSource, toPublicTable, toSide } from './public-bracket.serializer.js';
 
 const NAMED = { select: { name: true, nameEn: true } } as const;
 
@@ -14,6 +14,7 @@ export const PUBLIC_MATCH_CARD_SELECT = {
   games2: true,
   isVoided: true,
   scheduledAt: true,
+  table: { select: { code: true, displayName: true } },
   side1Source: true,
   side2Source: true,
   side1Entry: PUBLIC_SIDE_SELECT,
@@ -42,6 +43,7 @@ export function toPublicMatchCard(m: PublicMatchCardRow): PublicMatchCard {
     games1: m.games1,
     games2: m.games2,
     scheduledAt: m.scheduledAt?.toISOString() ?? null,
+    table: toPublicTable(m.table),
     side1: toSide(m.side1Entry),
     side2: toSide(m.side2Entry),
     side1Source: toPublicSource(m.side1Source),

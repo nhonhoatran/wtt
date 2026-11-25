@@ -80,19 +80,20 @@ Phase 10: mọi loader ngữ cảnh VĐV gửi cả `Player.slug` cũ và `publi
 |---|---|---|
 | Trận | `match.start`, `match.unStart`, `match.saveProgress` | Giải, lịch, nhánh, bảng (nếu là trận bảng), các `match-*` bị ảnh hưởng, `player-*` của VĐV |
 | Trận | `match.confirm`, `match.amend`, `match.reopen` | Như trên, cộng `results-strip` và `player-*` của mọi VĐV hai phía |
-| Nhánh | `draw.publish` | `event`, `schedule`, `draw-*`, `groups-*` nếu nhánh có bảng, `match-*` của các trận trong nhánh |
-| Nhánh | `draw.unpublish`, `draw.postPublishEdit` | Như trên, `match-*` của cả nội dung (cả nhánh vòng loại và nhánh chính, vì rút có thể lan sang nhánh kia). `draw.postPublishEdit` thêm `player-*` của VĐV cũ và mới (khi thay) hoặc của VĐV bị rút |
+| Nhánh | `draw.publish` | `events` (thẻ giải có cờ `hasPublicMatches`), `event`, `schedule`, `draw-*`, `groups-*` nếu nhánh có bảng, `match-*` của các trận trong nhánh |
+| Nhánh | `draw.unpublish`, `draw.postPublishEdit` | Như trên (`events` chỉ ở `draw.unpublish`), `match-*` của cả nội dung (cả nhánh vòng loại và nhánh chính, vì rút có thể lan sang nhánh kia). `draw.postPublishEdit` thêm `player-*` của VĐV cũ và mới (khi thay) hoặc của VĐV bị rút |
 | Nhánh | `draw.placeQualifiers` | Như `draw.publish`, nhưng chỉ cho các trận và VĐV vừa được xếp vào ô của nhánh MAIN đã công bố. Nhánh nháp không gửi tag |
 | Bảng | `group.standings` | Như nhánh (bảng và nhánh). Dùng cho nhập hạng tay và tính lại BXH |
-| Lịch | `schedule.update`, `session.create`, `session.update`, `session.delete` | Giải, lịch, `draw-*`, `groups-*`, `match-*` của các trận có giờ hoặc ô đổi |
+| Lịch | `schedule.update`, `session.create`, `session.update`, `session.delete` | Giải, lịch, `draw-*`, `groups-*`, `match-*` của các trận có giờ hoặc ô đổi. `session.update` đổi mã, tên hoặc tên tiếng Anh của buổi thì gửi `match-*` của mọi trận trong buổi, vì trang trận hiển thị nhãn buổi |
 | Giải | `event.create`, `event.update`, `event.delete` | `events`, `event-*`, `schedule-*`, `draw-*`, `groups-*`, `match-*` |
 | Giải | `event.publish`, `event.unpublish`, `event.cancel`, `event.uncancel` | Như `event.update`, cộng `results-strip` và các `match-*` của giải |
 | `event.refresh` | Mọi tag của giải, gồm `player-*` của VĐV trong giải (nút "Làm mới trang công khai") |
-| Nội dung thi đấu | `subEvent.create`, `subEvent.update`, `subEvent.delete` | `event-*`, `schedule-*`, `draw-*`, `groups-*` |
+| Nội dung thi đấu | `subEvent.create`, `subEvent.update`, `subEvent.delete` | `events` (thẻ giải hiển thị nội dung), `event-*`, `schedule-*`, `draw-*`, `groups-*` |
 | Đăng ký | `entry.create`, `entry.update`, `entry.bulk` | Giải, `draw-*`, `groups-*`, `player-*` của VĐV liên quan |
 | VĐV | `player.create`, `player.update`, `player.merge` | `players`, `rankings`, `player-*`, và tag giải và nội dung có đăng ký của VĐV |
 | Danh mục | `tier.write`, `eventType.write`, `venue.write` | `events`, `event-*` của các giải dùng mục đó |
-| Ảnh | `media.update` | `events`, `event-*`, `players`, `rankings` để ảnh và alt text của hồ sơ được làm mới |
+| Bàn | `venueTable.write` | Với mỗi trận công khai (giải đã công bố, nhánh đã công bố) chơi trên bàn: `event-*`, `schedule-*`, `draw-*`, `groups-*` nếu là trận bảng, `match-*`, `player-*` của VĐV hai phía (slug cũ và `p-<UUID>`), cộng `results-strip`. Trận của giải nháp không gửi tag. Bàn chưa có trận công khai thì không gửi gì |
+| Ảnh | `media.update` | `events`, `event-*`, `players`, `rankings`, `articles`, `sponsors`, `home` để ảnh và alt text của hồ sơ, tin và nhà tài trợ được làm mới |
 | Danh mục | `discipline.write`, `category.write` | `events`, các giải và trận dùng môn hoặc nhóm đó |
 | Xếp hạng | `rankingList.write`, `ranking.publish` | `rankings`, `ranking-<code>`, `players`, `player-*` đổi thứ hạng |
 | Quy tắc điểm | `rankingRules.write` | `events` và `event-*` của giải thuộc các hạng giải bị sửa; bảng điểm trong tab Thông tin đọc quy tắc theo ngày kết thúc giải |

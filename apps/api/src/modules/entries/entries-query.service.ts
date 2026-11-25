@@ -27,10 +27,12 @@ function orderBy(sort: PaginationQueryShape['sort']): Prisma.EntryOrderByWithRel
   return [primary, { createdAt: 'asc' }, { id: 'asc' }];
 }
 
-/** Matches the competitor name as typed, or any member's accent-free name. */
+/** Matches the competitor name as typed, or any member's accent-free name, code or club. */
 function searchWhere(q: string): Prisma.EntryWhereInput {
   const normalized = normalizePersonName(q);
-  const member: Prisma.PlayerWhereInput = { normalizedName: { contains: normalized } };
+  const member: Prisma.PlayerWhereInput = {
+    OR: [{ normalizedName: { contains: normalized } }, { code: { contains: q, mode: 'insensitive' } }, { club: { contains: q, mode: 'insensitive' } }],
+  };
   return {
     OR: [
       { competitor: { displayName: { contains: q, mode: 'insensitive' } } },
@@ -58,13 +60,15 @@ export class EntriesQueryService {
   async countsByEvent(eventId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
     if (!event) throw new NotFoundException({ code: 'EVENT_NOT_FOUND', message: 'Event not found' });
-    const [subEvents, groups] = await Promise.all([
+    const [subEvents, groups, seededGroups] = await Promise.all([
       this.prisma.subEvent.findMany({ where: { eventId }, select: { id: true }, orderBy: [{ order: 'asc' }, { code: 'asc' }] }),
       this.prisma.entry.groupBy({ by: ['subEventId', 'status'], where: { subEvent: { eventId } }, _count: { _all: true } }),
+      this.prisma.entry.groupBy({ by: ['subEventId'], where: { subEvent: { eventId }, status: 'CONFIRMED', seed: { not: null } }, _count: { _all: true } }),
     ]);
     return subEvents.map(({ id }) => {
       const count = (status: string) => groups.find((group) => group.subEventId === id && group.status === status)?._count._all ?? 0;
-      return { subEventId: id, confirmed: count('CONFIRMED'), withdrawn: count('WITHDRAWN') };
+      const seeded = seededGroups.find((group) => group.subEventId === id)?._count._all ?? 0;
+      return { subEventId: id, confirmed: count('CONFIRMED'), withdrawn: count('WITHDRAWN'), seeded };
     });
   }
 

@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { tournamentSettings, type PaginationQueryShape } from '@kamito/shared';
-import { enumFilter, idFilter, invalidQuery, prismaListQuery, type ListSpec } from '../../common/crud/prisma-list-query.js';
+import { buildListWhere, enumFilter, idFilter, invalidQuery, prismaListQuery, type ListSpec } from '../../common/crud/prisma-list-query.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { parseDateOnly } from './date-only.js';
+import { confirmedEntryCounts, lifecycleCounts } from './event-list-counts.js';
 import { lifecycleFilter } from './event-lifecycle-filter.js';
 import { isSlugTaken, suggestSlug } from './event-slug.js';
 import { EVENT_LIST_SELECT, EVENT_RELATIONS, toEventView } from './event-view.js';
@@ -25,6 +26,9 @@ export const EVENT_LIST_RULES = {
   filterable: ['eventTypeId', 'year', 'lifecycle', 'publishStatus'],
 } as const;
 
+/** The list filters minus lifecycle: the counts endpoint reports every lifecycle itself. */
+export const EVENT_COUNT_RULES = { sortable: SORTABLE, filterable: ['eventTypeId', 'year', 'publishStatus'] } as const;
+
 @Injectable()
 export class EventsQueryService {
   constructor(
@@ -32,9 +36,8 @@ export class EventsQueryService {
     private readonly settings: AppSettingsService,
   ) {}
 
-  async list(query: PaginationQueryShape) {
-    const timezones = query.filter.lifecycle ? await this.distinctTimezones() : [];
-    const spec: ListSpec = {
+  private listSpec(timezones: readonly string[]): ListSpec {
+    return {
       sortable: SORTABLE,
       defaultSort: { field: 'startDate', direction: 'desc' },
       searchFields: ['name', 'nameEn', 'slug'],
@@ -45,9 +48,22 @@ export class EventsQueryService {
         publishStatus: enumFilter('publishStatus', ['DRAFT', 'PUBLISHED']),
       },
     };
-    const page = await prismaListQuery(this.prisma, this.prisma.event, query, spec, { select: EVENT_LIST_SELECT });
+  }
+
+  async list(query: PaginationQueryShape) {
+    const timezones = query.filter.lifecycle ? await this.distinctTimezones() : [];
+    const page = await prismaListQuery(this.prisma, this.prisma.event, query, this.listSpec(timezones), { select: EVENT_LIST_SELECT });
     const now = new Date();
-    return { ...page, data: page.data.map((row) => toEventView(row, now)) };
+    const entryCounts = await confirmedEntryCounts(this.prisma, page.data.map((row) => row.id));
+    return { ...page, data: page.data.map((row) => ({ ...toEventView(row, now), entryCount: entryCounts.get(row.id) ?? 0 })) };
+  }
+
+  /** Per-lifecycle totals for the same q / year / type / publish filters as the list (lifecycle itself is not filterable here). */
+  async lifecycleCounts(query: PaginationQueryShape) {
+    const timezones = await this.distinctTimezones();
+    const spec = this.listSpec(timezones);
+    const toWhere = lifecycleFilter(timezones);
+    return lifecycleCounts(this.prisma, buildListWhere(query, spec), toWhere);
   }
 
   private async distinctTimezones(): Promise<string[]> {

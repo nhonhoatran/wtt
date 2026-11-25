@@ -29,6 +29,7 @@ export const PUBLIC_ROUND_INCLUDE = {
       games1: true,
       games2: true,
       scheduledAt: true,
+      table: { select: { code: true, displayName: true } },
       side1Source: true,
       side2Source: true,
       side1Entry: PUBLIC_SIDE_SELECT,

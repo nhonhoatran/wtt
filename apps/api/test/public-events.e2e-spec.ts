@@ -7,13 +7,14 @@ const CARD_KEYS = [
   'slug', 'name', 'nameEn', 'shortName', 'startDate', 'endDate', 'timezone', 'lifecycle', 'city', 'venue', 'banner',
   'tier', 'tier.code', 'tier.name', 'tier.nameEn', 'tier.colorHex',
   'eventType', 'eventType.code', 'eventType.name', 'eventType.nameEn', 'eventType.colorHex',
+  'subEvents', 'subEvents[].code', 'subEvents[].name', 'subEvents[].nameEn', 'hasPublicMatches',
 ];
 const DETAIL_KEYS = [
   ...CARD_KEYS,
   'summary', 'summaryEn', 'presentedBy', 'ticketUrl', 'champions',
-  'subEvents', 'subEvents[].code', 'subEvents[].name', 'subEvents[].nameEn', 'subEvents[].format',
-  'subEvents[].drawKinds', 'subEvents[].hasGroups', 'subEvents[].entryCount',
-  'tabs', 'tabs.matches', 'tabs.draws', 'tabs.groups', 'tabs.players', 'tabs.info',
+  'subEvents[].format',
+  'subEvents[].competitorKind', 'subEvents[].drawKinds', 'subEvents[].hasGroups', 'subEvents[].entryCount',
+  'days', 'tabs', 'tabs.matches', 'tabs.draws', 'tabs.groups', 'tabs.players', 'tabs.info',
   'stats', 'stats.players', 'stats.playedMatches',
 ];
 
@@ -54,6 +55,7 @@ describe('public events API (real Postgres)', () => {
     const { data } = (await event(`?q=${world.tag}`).expect(200)).body;
     expect(data.items.map((i: { slug: string }) => i.slug)).toEqual([slug]);
     expect(data.items[0].lifecycle).toBe('UPCOMING');
+    expect(data.items[0].hasPublicMatches).toBe(true);
     expect(sortedPaths(data.items)).toEqual(CARD_KEYS.map((k) => `[].${k}`).sort());
   });
 
@@ -75,6 +77,8 @@ describe('public events API (real Postgres)', () => {
     expect(upcoming).toEqual(['2099-03-01', '2099-05-01']);
     const other = (await event(`?q=${world.tag}`).expect(200)).body.data.items.map((i: { startDate: string }) => i.startDate);
     expect(other).toEqual(['2099-05-01', '2099-03-01']);
+    const flags = (await event(`?q=${world.tag}`).expect(200)).body.data.items.map((i: { hasPublicMatches: boolean }) => i.hasPublicMatches);
+    expect(flags).toEqual([true, false]);
   });
 
   it('lists the event in its calendar year under its month', async () => {

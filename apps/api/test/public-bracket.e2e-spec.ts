@@ -35,7 +35,7 @@ const EXPECTED_FIELDS = [
   'draw', 'draw.kind', 'draw.size', 'draw.publishedAt',
   'availableKinds',
   'sections', 'sections[].section', 'sections[].rounds', 'sections[].rounds[].code', 'sections[].rounds[].number', 'sections[].rounds[].matches',
-  ...['matchNo', 'orderInRound', 'status', 'resultType', 'winnerSide', 'games1', 'games2', 'scheduledAt', 'games', 'games[].number', 'games[].score1', 'games[].score2'].map((f) => `${M}.${f}`),
+  ...['matchNo', 'orderInRound', 'status', 'resultType', 'winnerSide', 'games1', 'games2', 'scheduledAt', 'table', 'games', 'games[].number', 'games[].score1', 'games[].score2'].map((f) => `${M}.${f}`),
   ...SIDE_FIELDS(`${M}.side1`), ...SIDE_FIELDS(`${M}.side2`),
   ...['side1Source', 'side1Source.type', 'side1Source.matchNo', 'side2Source', 'side2Source.type', 'side2Source.matchNo'].map((f) => `${M}.${f}`),
 ].sort();

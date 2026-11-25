@@ -91,6 +91,8 @@ export interface PublicPlayerProfile extends PublicPlayerListItem {
   bio: string | null;
   bioEn: string | null;
   events: PublicPlayerEvent[];
+  /** Wins and losses over the same match set as the player's results list. */
+  record: { wins: number; losses: number };
 }
 
 export interface PublicPlayerRedirect {

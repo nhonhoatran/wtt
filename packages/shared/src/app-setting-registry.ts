@@ -5,6 +5,7 @@ import { listSettings } from './list-settings.js';
 import { importOperationalSettings } from './import-operational-settings.js';
 import { importSettings, playerSettings } from './player-settings.js';
 import { publicSiteSettings } from './public-site-settings.js';
+import { publicSiteDisplaySettings } from './public-site-display-settings.js';
 import { contentSettings } from './content-settings.js';
 import { rankingSettings } from './ranking-settings.js';
 import { tournamentSettings } from './tournament-settings.js';
@@ -18,6 +19,9 @@ export * from './app-setting-definition.js';
 export const appSettingRegistry = {
   siteName: defineAppSetting({
     key: 'site.name',
+    group: 'display',
+    label: 'Tên site',
+    editor: { kind: 'json' },
     schema: z.object({ vi: z.string().min(1).max(120), en: z.string().min(1).max(120) }),
     defaultValue: { vi: 'Giải bóng bàn Kamito', en: 'Kamito Table Tennis' },
     description: 'Tên site hiển thị ở header, tiêu đề trang',
@@ -30,6 +34,7 @@ export const appSettingRegistry = {
   ...importOperationalSettings,
   ...rankingSettings,
   ...publicSiteSettings,
+  ...publicSiteDisplaySettings,
   ...contentSettings,
 } as const;
 

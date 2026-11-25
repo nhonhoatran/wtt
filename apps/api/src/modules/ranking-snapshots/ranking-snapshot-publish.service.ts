@@ -6,6 +6,7 @@ import { toIsoDate } from '../../common/validation/iso-date-field.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
+import { findPreviousSnapshot } from './ranking-snapshot-previous.js';
 
 type Tx = Prisma.TransactionClient;
 type RowKey = { playerId: string; rank: number; points: number };
@@ -67,11 +68,7 @@ export class RankingSnapshotPublishService {
     }
 
     const pick = { playerId: true, rank: true, points: true } as const;
-    const previous = await tx.rankingSnapshot.findFirst({
-      where: { rankingListId: snapshot.rankingListId, status: 'PUBLISHED' },
-      orderBy: [{ asOfDate: 'desc' }, { publishedAt: 'desc' }],
-      select: { id: true },
-    });
+    const previous = await findPreviousSnapshot(tx, snapshot);
     const [previousRows, rows] = await Promise.all([
       previous ? tx.rankingSnapshotRow.findMany({ where: { snapshotId: previous.id }, select: pick }) : Promise.resolve([]),
       tx.rankingSnapshotRow.findMany({ where: { snapshotId: id }, select: pick }),

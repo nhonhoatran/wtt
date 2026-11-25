@@ -6,6 +6,7 @@ import type { ApiEnv } from '../../common/config/env-schema.js';
 import { mediaPublicBaseUrl } from '../media/media-dtos.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { publicScope } from '../public-scope/public-scope.js';
+import { publicPlayerOutcomeWhere } from './public-player-results-where.js';
 import { publicPlayerRanks } from './public-player-ranks.query.js';
 import { toPublicPlayer, type PublicPlayerRow } from './public-player.serializer.js';
 
@@ -25,7 +26,7 @@ interface ProfileRow extends PublicPlayerRow {
 export class PublicPlayerProfileQuery {
   constructor(private readonly prisma: PrismaService, @Inject(API_ENV) private readonly env: ApiEnv) {}
 
-  /** Three SQL reads: resolved safe profile + settings, current ranks and public events entered. */
+  /** Resolved safe profile + settings, then current ranks, public events entered and the win-loss record. */
   async profile(slug: string): Promise<PublicPlayerProfile | PublicPlayerRedirect | null> {
     const id = publicPlayerIdFromSlug(slug);
     const identity = id ? Prisma.sql`p.id = ${id}` : Prisma.sql`p.slug = ${slug}`;
@@ -52,9 +53,11 @@ export class PublicPlayerProfileQuery {
     if (!player) return null;
     const publicSlug = publicPlayerSlug(player.id);
     if (publicSlug !== slug) return { redirectTo: publicSlug };
-    const [ranks, events] = await Promise.all([
+    const [ranks, events, wins, losses] = await Promise.all([
       publicPlayerRanks(this.prisma, [player.id]),
       this.events(player.id),
+      this.prisma.match.count({ where: publicPlayerOutcomeWhere(player.id, 'win') }),
+      this.prisma.match.count({ where: publicPlayerOutcomeWhere(player.id, 'loss') }),
     ]);
     const showAge = resolveAppSetting(playerSettings.showAge, player.showAgeValue);
     const timezone = resolveAppSetting(tournamentSettings.defaultTimezone, player.timezoneValue);
@@ -71,6 +74,7 @@ export class PublicPlayerProfileQuery {
       bio: player.bio,
       bioEn: player.bioEn,
       events,
+      record: { wins, losses },
     };
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAntdTheme } from './antd-theme.js';
+import { buildAntdTheme, buildSiderTheme } from './antd-theme.js';
 import { buildCssText, buildCssVariables } from './build-css-variables.js';
 import { tokens } from './tokens.js';
 
@@ -10,6 +10,18 @@ describe('ui tokens', () => {
     expect(vars['--color-primary-strong']).toBe(tokens.color.primaryStrong);
     expect(vars['--radius-pill']).toBe('999px');
     expect(vars['--layout-container-max']).toBe('1520px');
+  });
+
+  it('exposes the text-safe red, result colours and ink surface as CSS variables', () => {
+    const vars = buildCssVariables();
+    expect(vars['--color-primary-text']).toBe('#D71920');
+    expect(vars['--color-success']).toBe('#15803D');
+    expect(vars['--color-success-on-dark']).toBe('#4ADE80');
+    expect(vars['--color-danger-on-dark']).toBe('#FF8A8A');
+  });
+
+  it('leaves the primary red used by the admin theme untouched', () => {
+    expect(tokens.color.primary).toBe('#EC1E24');
   });
 
   it('emits a :root block', () => {
@@ -26,5 +38,17 @@ describe('ui tokens', () => {
     expect(theme.token?.controlOutline).toBe('rgba(15, 40, 93, 0.16)');
     expect(theme.components?.Input?.activeBorderColor).toBe(tokens.color.data);
     expect(theme.components?.Select?.activeBorderColor).toBe(tokens.color.data);
+  });
+
+  it('uses a white header and a strong red for the selected dark menu item', () => {
+    const theme = buildAntdTheme();
+    expect(theme.components?.Layout?.headerBg).toBe(tokens.color.surface);
+    expect(theme.components?.Menu?.darkItemSelectedBg).toBe(tokens.color.primaryStrong);
+  });
+
+  it('draws sider focus in the live accent', () => {
+    const theme = buildSiderTheme();
+    expect(theme.token?.colorPrimaryBorder).toBe(tokens.color.live);
+    expect(theme.token?.lineWidthFocus).toBe(2);
   });
 });

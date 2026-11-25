@@ -28,7 +28,7 @@ describe('auth: sign-in, throttling, password rules (real Postgres + Redis)', ()
     expect(me.body.data.permissions).toContain('matches.confirm');
     expect(me.body.data.permissions).not.toContain('users.list');
     expect(Object.keys(me.body.data).sort()).toEqual(
-      ['email', 'id', 'listDefaultPageSize', 'mustChangePassword', 'name', 'permissions', 'role'].sort(),
+      ['email', 'id', 'listDefaultPageSize', 'mustChangePassword', 'name', 'permissions', 'role', 'siteName'].sort(),
     );
 
     const row = await kit.prisma.user.findUnique({ where: { id: user.id }, select: { lastLoginAt: true } });

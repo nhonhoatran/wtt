@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { appSettingRegistry, contentSettings, publicSiteSettings, type PublicSiteConfig, type PublicSitemap } from '@kamito/shared';
+import { appSettingRegistry, contentSettings, publicSiteDisplaySettings, publicSiteSettings, rankingSettings, type PublicSiteConfig, type PublicSitemap } from '@kamito/shared';
 import { sanitizeRichHtmlOrNull } from '../../common/html/sanitize-rich-html.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { publicScope } from '../public-scope/public-scope.js';
@@ -15,7 +15,7 @@ export class PublicSiteQuery {
   ) {}
 
   async config(): Promise<PublicSiteConfig> {
-    const [siteName, windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps, contactWindowSeconds, contactMaxRequests] = await Promise.all([
+    const [siteName, windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps, contactWindowSeconds, contactMaxRequests, navItems, socialLinks, tagline, registrationUrl, expiringSoonDays] = await Promise.all([
       this.settings.get(appSettingRegistry.siteName),
       this.settings.get(publicSiteSettings.rateLimitWindowSeconds),
       this.settings.get(publicSiteSettings.rateLimitMaxRequests),
@@ -23,8 +23,18 @@ export class PublicSiteQuery {
       this.settings.get(publicSiteSettings.rateLimitMaxTrackedIps),
       this.settings.get(contentSettings.contactRateWindowSeconds),
       this.settings.get(contentSettings.contactRateMaxRequests),
+      this.settings.get(publicSiteDisplaySettings.navItems),
+      this.settings.get(publicSiteDisplaySettings.socialLinks),
+      this.settings.get(publicSiteDisplaySettings.tagline),
+      this.settings.get(publicSiteDisplaySettings.registrationUrl),
+      this.settings.get(rankingSettings.expiringSoonDays),
     ]);
-    return { siteName, rateLimit: { windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps }, contactRateLimit: { windowSeconds: contactWindowSeconds, maxRequests: contactMaxRequests } };
+    return {
+      siteName,
+      rateLimit: { windowSeconds, maxRequests, searchMaxRequests, maxTrackedIps },
+      contactRateLimit: { windowSeconds: contactWindowSeconds, maxRequests: contactMaxRequests },
+      display: { navItems, socialLinks, tagline, registrationUrl, rankingExpiringSoonDays: expiringSoonDays },
+    };
   }
 
   /** Every public event, newest change first; the client builds the per-locale URLs. */

@@ -24,6 +24,11 @@ export interface PublicSide {
   players: PublicPlayerName[];
 }
 
+export interface PublicTable {
+  code: string;
+  displayName: string | null;
+}
+
 export interface PublicGame {
   number: number;
   score1: number;
@@ -39,6 +44,7 @@ export interface PublicBracketMatch {
   games1: number | null;
   games2: number | null;
   scheduledAt: string | null;
+  table: PublicTable | null;
   side1: PublicSide | null;
   side2: PublicSide | null;
   side1Source: PublicSideSource | null;

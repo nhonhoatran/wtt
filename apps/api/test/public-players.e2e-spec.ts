@@ -114,7 +114,7 @@ describe('public players and profiles (real Postgres)', () => {
     const data = await profile() as PublicPlayerProfile;
     expect(data).toMatchObject({ slug: profileSlug, name: `Nguyễn Văn Ánh ${world.tag}`, nameEn: null, noindex: true, handedness: 'LEFT', age: null, bio: 'Tiểu sử thuần văn bản' });
     expect(sortedPaths(data)).toEqual([
-      'slug', 'name', 'nameEn', 'club', 'photo', 'gender', 'ranks', 'noindex', 'countryCode', 'handedness', 'age', 'bio', 'bioEn',
+      'slug', 'name', 'nameEn', 'club', 'photo', 'gender', 'ranks', 'noindex', 'countryCode', 'handedness', 'age', 'bio', 'bioEn', 'record', 'record.wins', 'record.losses',
       ...['rank', 'points', 'movement', 'asOfDate', 'list', 'list.code', 'list.name', 'list.nameEn', 'list.competitorKind', 'list.genderRule', 'list.category'].map((key) => `ranks[].${key}`),
       'events', ...['slug', 'name', 'nameEn', 'startDate', 'endDate'].map((key) => `events[].${key}`),
     ].sort());
@@ -219,6 +219,22 @@ describe('public players and profiles (real Postgres)', () => {
       }
       await kit.write('patch', `/api/v1/admin/players/${profileId}`, cookie, { club: 'x'.repeat(201) }).expect(422);
     } finally { await kit.prisma.player.update({ where: { id: profileId }, data: { club: original.club } }); }
+  });
+
+  it('counts the win-loss record over the same matches as the results list', async () => {
+    const match = await kit.prisma.match.findFirstOrThrow({ where: { drawId: world.wsDrawId, status: 'OFFICIAL', resultType: 'NORMAL' }, include: { side1Entry: { include: { competitor: true } }, side2Entry: { include: { competitor: true } } } });
+    const winner = publicPlayerSlug(match.side1Entry!.competitor.playerId!);
+    const loser = publicPlayerSlug(match.side2Entry!.competitor.playerId!);
+    expect(match.winnerSide).toBe(1);
+    expect((await profile(winner) as PublicPlayerProfile).record).toEqual({ wins: 1, losses: 0 });
+    expect((await profile(loser) as PublicPlayerProfile).record).toEqual({ wins: 0, losses: 1 });
+    expect((await results(winner))!.total).toBe(1);
+    try {
+      await kit.prisma.match.update({ where: { id: match.id }, data: { isVoided: true } });
+      expect((await profile(winner) as PublicPlayerProfile).record).toEqual({ wins: 0, losses: 0 });
+    } finally {
+      await kit.prisma.match.update({ where: { id: match.id }, data: { isVoided: false } });
+    }
   });
 
   it('lists only official real non-voided matches of public draws for either side', async () => {

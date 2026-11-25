@@ -10,6 +10,7 @@ import { RequireStepUp } from '../auth/auth-decorators.js';
 import { RankingSnapshotDraftsService } from './ranking-snapshot-drafts.service.js';
 import { createDraftsBody } from './ranking-snapshot-dtos.js';
 import { RankingSnapshotPublishService } from './ranking-snapshot-publish.service.js';
+import { RankingSnapshotSummaryService } from './ranking-snapshot-summary.service.js';
 import { RANKING_ROWS_RULES, RANKING_SNAPSHOT_SPEC, RankingSnapshotsQueryService } from './ranking-snapshots-query.service.js';
 
 @Controller('admin/ranking-snapshots')
@@ -18,6 +19,7 @@ export class AdminRankingSnapshotsController {
     private readonly queries: RankingSnapshotsQueryService,
     private readonly drafts: RankingSnapshotDraftsService,
     private readonly publisher: RankingSnapshotPublishService,
+    private readonly summary: RankingSnapshotSummaryService,
     private readonly pagination: PaginationLimitsService,
   ) {}
 
@@ -38,6 +40,12 @@ export class AdminRankingSnapshotsController {
   @RequirePermission('rankings', 'read')
   async get(@Param('id') id: string) {
     return { data: await this.queries.get(id) };
+  }
+
+  @Get(':id/summary')
+  @RequirePermission('rankings', 'read')
+  async summarize(@Param('id') id: string) {
+    return this.summary.summarize(id);
   }
 
   @Get(':id/rows')

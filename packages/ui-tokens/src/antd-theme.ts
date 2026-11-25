@@ -3,6 +3,7 @@ import { tokens, type Tokens } from './tokens.js';
 
 const FOCUS_RING_WIDTH = 2;
 const FOCUS_SHADOW_ALPHA = 0.16;
+const HEADER_HEIGHT = 56;
 
 const withAlpha = (hex: string, alpha: number) => {
   const [r, g, b] = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16));
@@ -31,15 +32,27 @@ export function buildAntdTheme(source: Tokens = tokens): ThemeConfig {
       lineWidthFocus: FOCUS_RING_WIDTH,
     },
     components: {
-      Layout: { headerBg: source.color.ink, siderBg: source.color.ink },
+      Layout: { headerBg: source.color.surface, headerColor: source.color.ink, headerHeight: HEADER_HEIGHT, headerPadding: `0 ${source.layout.gutterMobile}px`, siderBg: source.color.ink },
       // Dark menu sits on the sider; without this antd paints its own navy behind the items.
-      Menu: { darkItemBg: source.color.ink, darkSubMenuItemBg: source.color.ink, darkPopupBg: source.color.ink },
+      Menu: {
+        darkItemBg: source.color.ink,
+        darkSubMenuItemBg: source.color.ink,
+        darkPopupBg: source.color.ink,
+        darkItemSelectedBg: source.color.primaryStrong,
+        darkGroupTitleColor: source.color.lineStrong,
+        itemBorderRadius: source.radius.card,
+      },
       Input: focusedField,
       InputNumber: focusedField,
       DatePicker: focusedField,
       Select: { activeBorderColor: focus, hoverBorderColor: focus, activeOutlineColor: focusShadow },
     },
   };
+}
+
+/** Theme for the dark sider: navy focus is invisible on near-black, so focus switches to the live accent. */
+export function buildSiderTheme(source: Tokens = tokens): ThemeConfig {
+  return { token: { colorPrimaryBorder: source.color.live, lineWidthFocus: FOCUS_RING_WIDTH } };
 }
 
 export const antdTheme: ThemeConfig = buildAntdTheme();

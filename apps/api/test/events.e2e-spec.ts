@@ -3,6 +3,7 @@ import { todayInTimezone } from '@kamito/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { formatDateOnly, parseDateOnly } from '../src/modules/events/date-only.js';
 import { AuthTestKit } from './support/auth-test-kit.js';
+import { cleanupFixtures, createEventFixtures, createPlayer } from './support/entries-fixtures.js';
 
 const EVENTS = '/api/v1/admin/events';
 const TZ = 'Asia/Ho_Chi_Minh';
@@ -117,6 +118,53 @@ describe('admin events (real Postgres)', () => {
     await kit.get(`${EVENTS}?sort=infoBody:asc`, adminCookie).expect(400);
     await kit.get(`${EVENTS}?filter[lifecycle]=SOON`, adminCookie).expect(400);
     await kit.get(`${EVENTS}?filter[bogus]=1`, adminCookie).expect(400);
+  });
+
+  it('counts events per lifecycle with the list filters, and adds a confirmed entry count to list rows', async () => {
+    const today = todayInTimezone(TZ);
+    const ongoing = await createEvent({ name: `${tag} cnt dang dien ra`, startDate: addDays(today, -1), endDate: addDays(today, 1) });
+    const done = await createEvent({ name: `${tag} cnt da xong`, startDate: '2001-01-10', endDate: '2001-01-12' });
+    const cancelled = await createEvent({ name: `${tag} cnt da huy`, startDate: '2099-07-01', endDate: '2099-07-02' });
+    await kit.write('post', `${EVENTS}/${cancelled.id}/cancel`, adminCookie).expect(200);
+    await kit.write('post', `${EVENTS}/${ongoing.id}/publish`, adminCookie).expect(200);
+
+    const counts = async (query = '') => (await kit.get(`${EVENTS}/lifecycle-counts?q=${tag} cnt${query}`, adminCookie).expect(200)).body.data;
+    const all = await counts();
+    expect(all.ALL).toBe(3);
+    expect(all.UPCOMING + all.ONGOING + all.COMPLETED + all.CANCELLED).toBe(all.ALL);
+    expect(all).toMatchObject({ ONGOING: 1, COMPLETED: 1, CANCELLED: 1 });
+    expect(await counts('&filter[year]=2001')).toEqual({ ALL: 1, UPCOMING: 0, ONGOING: 0, COMPLETED: 1, CANCELLED: 0 });
+    expect((await counts('&filter[publishStatus]=PUBLISHED')).ALL).toBe(1);
+    const list = (await kit.get(`${EVENTS}?q=${tag} cnt&pageSize=100&filter[lifecycle]=ONGOING`, adminCookie).expect(200)).body;
+    expect(list.total).toBe(all.ONGOING);
+
+    await kit.get(`${EVENTS}/lifecycle-counts?filter[lifecycle]=ONGOING`, adminCookie).expect(400);
+    await kit.get(`${EVENTS}/lifecycle-counts?filter[year]=20x1`, adminCookie).expect(400);
+    await kit.get(`${EVENTS}/lifecycle-counts`, operatorCookie).expect(200);
+
+    const row = (await kit.get(`${EVENTS}?q=${tag} cnt&pageSize=100`, adminCookie).expect(200)).body.data.find((item: { id: string }) => item.id === done.id);
+    expect(row.entryCount).toBe(0);
+  });
+
+  it('counts only CONFIRMED entries across all sub-events in entryCount', async () => {
+    const fx = await createEventFixtures(kit, adminCookie, ['MS', 'WS']);
+    try {
+      const entryIds: string[] = [];
+      for (const [label, code] of [['a', 'MS'], ['b', 'MS'], ['c', 'WS']] as const) {
+        const player = await createPlayer(kit, adminCookie, fx, { fullName: `Cnt ${label} ${fx.tag}`, gender: code === 'MS' ? 'MALE' : 'FEMALE' });
+        const competitor = await kit.prisma.competitor.create({ data: { type: 'PLAYER', playerId: player.id, displayName: player.fullName } });
+        entryIds.push((await kit.prisma.entry.create({ data: { subEventId: fx.subEvents[code]!, competitorId: competitor.id } })).id);
+      }
+      const countFor = async () => {
+        const res = await kit.get(`${EVENTS}?q=Entries ${fx.tag}&pageSize=100`, adminCookie).expect(200);
+        return res.body.data.find((row: { id: string }) => row.id === fx.eventId).entryCount;
+      };
+      expect(await countFor()).toBe(3);
+      await kit.prisma.entry.update({ where: { id: entryIds[1]! }, data: { status: 'WITHDRAWN' } });
+      expect(await countFor()).toBe(2);
+    } finally {
+      await cleanupFixtures(kit, fx);
+    }
   });
 
   it('publishes, cancels and guards deletion', async () => {

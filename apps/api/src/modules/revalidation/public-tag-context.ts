@@ -1,6 +1,7 @@
 import type { Prisma } from '@kamito/db';
 import { publicPlayerSlug, type EntryChangeTagContext } from '@kamito/shared';
-import type { PlayerTagContext } from './cache-tags.js';
+import { publicScope } from '../public-scope/public-scope.js';
+import type { PlayerTagContext, VenueTableTagContext } from './cache-tags.js';
 
 type Db = Pick<Prisma.TransactionClient, 'subEvent' | 'entry' | 'player' | 'match'>;
 
@@ -63,4 +64,32 @@ export async function loadEventPlayerSlugs(db: Pick<Prisma.TransactionClient, 'e
     select: { competitor: { select: { player: slug, pair: { select: { playerA: slug, playerB: slug } } } } },
   });
   return [...new Set(rows.flatMap(({ competitor: c }) => (c.player ? profileSlugs(c.player) : c.pair ? [...profileSlugs(c.pair.playerA), ...profileSlugs(c.pair.playerB)] : [])))];
+}
+
+const sideSelect = {
+  select: { competitor: { select: { player: { select: { id: true, slug: true } }, pair: { select: { playerA: { select: { id: true, slug: true } }, playerB: { select: { id: true, slug: true } } } } } } },
+} as const;
+
+type SideRow = { competitor: { player: { id: string; slug: string } | null; pair: { playerA: { id: string; slug: string }; playerB: { id: string; slug: string } } | null } } | null;
+
+const sideSlugs = (side: SideRow): string[] => {
+  const c = side?.competitor;
+  return c?.player ? profileSlugs(c.player) : c?.pair ? [...profileSlugs(c.pair.playerA), ...profileSlugs(c.pair.playerB)] : [];
+};
+
+/** Public matches played on the table (draft events and draws are skipped) with the players of both sides. */
+export async function loadVenueTableTagContext(db: Pick<Prisma.TransactionClient, 'match'>, tableId: string): Promise<VenueTableTagContext> {
+  const rows = await db.match.findMany({
+    where: { tableId, ...publicScope.matchIn({}) },
+    select: { matchNo: true, groupId: true, event: { select: { slug: true } }, subEvent: { select: { code: true } }, side1Entry: sideSelect, side2Entry: sideSelect },
+  });
+  return {
+    matches: rows.map((m) => ({
+      eventSlug: m.event.slug,
+      subEventCode: m.subEvent.code,
+      matchNo: m.matchNo,
+      isGroupMatch: m.groupId !== null,
+      playerSlugs: [...sideSlugs(m.side1Entry), ...sideSlugs(m.side2Entry)],
+    })),
+  };
 }

@@ -125,7 +125,7 @@ Tiền tố `/api/v1/public`. Các API đọc nội dung dùng `GET`, `@Public()
 |---|---|
 | `events` | Danh sách thẻ gọn. Cỡ trang lấy từ `public.listPageSize` (mặc định 24, admin đổi được). Giải sắp tới xếp ngày tăng; các danh sách khác ngày giảm |
 | `events/calendar` | Nhóm theo tháng |
-| `events/:slug` | Giải, nội dung, tab khả dụng, nhà vô địch, số trận đã đấu |
+| `events/:slug` | Giải, nội dung, tab khả dụng, nhà vô địch, số trận đã đấu, `days` (ngày có trận công khai kèm các buổi), `venue.address`, `venue.mapUrl` |
 | `events/:slug/info` | `infoBody` đã sanitize lại khi trả |
 | `events/:slug/schedule` | `session`, `table`; session → bàn → trận. Chỉ trả ô đủ session + bàn + giờ, trận công khai, không BYE; mã lạ hợp lệ cho danh sách rỗng |
 | `events/:slug/matches` | Lọc `state`, `sub`, `date`, `q`. Không trả trận BYE |
@@ -134,7 +134,7 @@ Tiền tố `/api/v1/public`. Các API đọc nội dung dùng `GET`, `@Public()
 | `events/:slug/groups/:subEventCode` | Bảng, BXH, trận bảng |
 | `events/:slug/entries/:subEventCode` | `stage`, `page`. Không trả SĐT, email, ngày sinh |
 | `results/strip` | Trận `LIVE` và `OFFICIAL` gần nhất của giải đang diễn ra |
-| `site` | Tên site (`site.name`) và cấu hình rate limit |
+| `site` | Tên site (`site.name`), cấu hình rate limit và `display` (menu, mạng xã hội, giới thiệu ngắn, link đăng ký, ngưỡng "sắp hết hạn"). Cache theo tag `settings` |
 | `sitemap` | Dữ liệu slug/ngày sửa của giải, tin, video và trang tĩnh đã công bố; tab/nội dung giải khả dụng và trận `OFFICIAL` chưa void thuộc phạm vi công khai. Client dựng URL sitemap từ payload này |
 | `rankings` | Bảng đang bật và top N của kỳ `PUBLISHED` mới nhất; overview không tải breakdown |
 | `rankings/:listCode` | `page`, `pageSize` (trần kỹ thuật 100), `q`, `club`; trả đủ breakdown của các dòng trong trang |
@@ -146,6 +146,16 @@ Tiền tố `/api/v1/public`. Các API đọc nội dung dùng `GET`, `@Public()
 | `videos`, `videos/:slug` | Phân trang server; dữ liệu video dùng provider và mã nhúng đã kiểm tra phía API |
 | `pages/:slug`, `footer`, `sponsors`, `home`, `events/:slug/content` | Trang tĩnh, footer, tài trợ, khối trang chủ và tin/video/tài trợ liên quan giải |
 | `contact` (POST) | Honeypot, validation, rate limit theo IP đã xác minh; lưu hash IP có salt, không lưu IP thô |
+
+### Trường bổ sung cho giao diện mới
+
+- `events` (thẻ giải): `subEvents` theo thứ tự hiển thị (mã và tên). Lấy bằng select lồng, không thêm query theo từng giải. Chi tiết giải: mỗi `subEvents[]` có `competitorKind` (`SINGLES` hoặc `DOUBLES`).
+- Thẻ trận và trận trên nhánh: `table` (`code`, `displayName` có thể `null`), `null` khi trận chưa xếp bàn. Chi tiết trận có thêm `session` (`code`, `name`, `nameEn` có thể `null`).
+- `events/:slug`: `venue.address`; `venue.mapUrl` chỉ trả khi là URL https, ngược lại `null`. `days` gồm các ngày có ít nhất một trận công khai, theo lịch của giải.
+- `home`: `heroEventSlug` theo thứ tự giải ghim (`home.featuredEventId`, phải là giải công khai) rồi giải nổi bật còn diễn ra đầu tiên rồi giải còn diễn ra đầu tiên; `null` khi khối hero tắt hoặc không có giải phù hợp.
+- `players/:slug`: `record` (`wins`, `losses`) tính trên đúng tập trận của danh sách kết quả.
+
+Setting hiển thị (nhóm `display` trên `/settings`, trả qua `site.display`): `site.nav.items` (key menu không trùng, nhãn tuỳ chọn), `site.socialLinks` (nền tảng trong danh sách cố định, URL https), `site.tagline` (hai ngôn ngữ, `null` thì ẩn), `site.registrationUrl` (https, rỗng thì ẩn nút). Ngưỡng nhãn "sắp hết hạn" là `ranking.expiringSoonDays` (nhóm `ranking`, 0 đến 365, 0 là tắt). Mọi giá trị mặc định chỉ là ví dụ; các setting này đi qua `settings.update` nên có audit và làm mới tag `settings`.
 
 Quy tắc phạm vi và trả về:
 - Các query giải và thi đấu đi qua predicate dùng chung `publicScope` (`modules/public-scope/public-scope.ts`): giải `PUBLISHED` và không hủy, draw `PUBLISHED`, entry `CONFIRMED`, trận thuộc draw đã công bố. CMS dùng trạng thái công bố và thời điểm đăng riêng.

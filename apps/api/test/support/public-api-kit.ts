@@ -28,12 +28,14 @@ const side = (s: string) => [s, `${s}.seed`, `${s}.quota`, `${s}.players`, `${s}
 /** Match card keys without the placeholder-source sub-keys (those depend on the match, see MATCH_SOURCE_KEYS). */
 export const MATCH_CARD_KEYS = [
   'matchNo', 'subEvent', 'subEvent.code', 'subEvent.name', 'subEvent.nameEn', 'drawKind', 'round', 'round.code', 'round.number',
-  'groupCode', 'status', 'resultType', 'winnerSide', 'games1', 'games2', 'scheduledAt', 'voided',
+  'groupCode', 'status', 'resultType', 'winnerSide', 'games1', 'games2', 'scheduledAt', 'table', 'voided',
   'side1Source', 'side2Source', 'games', 'games[].number', 'games[].score1', 'games[].score2',
   ...side('side1'), ...side('side2'),
 ];
+/** Sub-keys of `table` when the match has a table (null in most worlds). */
+export const MATCH_TABLE_KEYS = ['table.code', 'table.displayName'];
 export const MATCH_SOURCE_KEYS = ['side1Source.type', 'side1Source.matchNo', 'side2Source.type', 'side2Source.matchNo'];
-export const MATCH_DETAIL_KEYS = ['event', 'event.slug', 'event.name', 'event.nameEn', 'event.timezone', 'startedAt', 'officialAt'];
+export const MATCH_DETAIL_KEYS = ['event', 'event.slug', 'event.name', 'event.nameEn', 'event.timezone', 'startedAt', 'officialAt', 'session'];
 export const ENTRY_ITEM_KEYS = ['seed', 'quota', 'players', 'players[].name', 'players[].nameEn', 'players[].club', 'players[].slug'];
 
 export function publicGet(kit: AuthTestKit, secret: string, path: string) {

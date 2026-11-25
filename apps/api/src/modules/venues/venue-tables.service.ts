@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { PaginationQueryShape } from '@kamito/shared';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
+import { loadVenueTableTagContext } from '../revalidation/public-tag-context.js';
 
 export const VENUE_TABLE_LIST_SPEC = {
   sortable: ['order', 'code', 'createdAt'],
@@ -65,15 +66,10 @@ export class VenueTablesService {
     );
   }
 
-  /** Table labels and codes appear in public schedule filters, including at a session-specific venue. */
+  /** Table labels and codes appear on public match cards, brackets, groups and schedule filters. */
   async updateRefreshed(venueId: string, tableId: string, input: object) {
     const data = await this.update(venueId, tableId, input);
-    const warnings = await this.revalidation.enqueue(async () => {
-      const events = await this.prisma.event.findMany({
-        where: { matches: { some: { tableId } } }, select: { slug: true },
-      });
-      return CACHE_TAGS['venueTable.write']({ eventSlugs: events.map(({ slug }) => slug) });
-    });
+    const warnings = await this.revalidation.enqueue(async () => CACHE_TAGS['venueTable.write'](await loadVenueTableTagContext(this.prisma, tableId)));
     return warnings.length ? { data, warnings } : { data };
   }
 

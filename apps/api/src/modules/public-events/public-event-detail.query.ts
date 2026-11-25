@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PublicDrawKind, PublicEventDetail, PublicEventInfo } from '@kamito/shared';
+import { isHttpsUrl, type PublicDrawKind, type PublicEventDay, type PublicEventDetail, type PublicEventInfo } from '@kamito/shared';
 import { sanitizeRichHtmlOrNull } from '../../common/html/sanitize-rich-html.js';
 import { API_ENV } from '../../common/config/app-config.module.js';
 import type { ApiEnv } from '../../common/config/env-schema.js';
+import { formatDateOnly } from '../events/date-only.js';
 import { mediaPublicBaseUrl } from '../media/media-dtos.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PUBLIC_SIDE_SELECT } from '../public-competition/public-bracket.query.js';
@@ -28,6 +29,7 @@ export class PublicEventDetailQuery {
       select: {
         id: true,
         ...PUBLIC_EVENT_CARD_SELECT,
+        venue: { select: { name: true, nameEn: true, address: true, mapUrl: true } },
         summary: true,
         summaryEn: true,
         presentedBy: true,
@@ -44,7 +46,7 @@ export class PublicEventDetailQuery {
             nameEn: true,
             format: true,
             rankingList: { select: { isActive: true } },
-            discipline: NAMED,
+            discipline: { select: { name: true, nameEn: true, competitorKind: true } },
             category: NAMED,
             draws: { where: publicScope.draw, select: { kind: true } },
             _count: { select: { entries: { where: publicScope.entry } } },
@@ -55,7 +57,7 @@ export class PublicEventDetailQuery {
     if (!event) return null;
 
     const playedWhere = { ...publicScope.match(slug), status: 'OFFICIAL' as const, isVoided: false };
-    const [realMatches, playedMatches, finals, players, scheduledMatches] = await Promise.all([
+    const [realMatches, playedMatches, finals, players, scheduledMatches, daySessions] = await Promise.all([
       this.prisma.match.count({ where: publicScope.match(slug) }),
       this.prisma.match.count({ where: playedWhere }),
       this.prisma.match.findMany({
@@ -64,12 +66,18 @@ export class PublicEventDetailQuery {
       }),
       this.countPlayers(event.id),
       this.prisma.match.count({ where: publicScheduledMatch(slug) }),
+      this.prisma.eventSession.findMany({
+        where: { event: publicScope.event(slug), matches: { some: publicScope.match(slug) } },
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { code: 'asc' }],
+        select: { code: true, name: true, nameEn: true, date: true },
+      }),
     ]);
 
     const subEvents = event.subEvents.map((s) => ({
       code: s.code,
       ...subEventNames(s),
       format: s.format,
+      competitorKind: s.discipline.competitorKind,
       drawKinds: KNOCKOUT_ORDER.filter((kind) => s.draws.some((d) => d.kind === kind)),
       hasGroups: s.draws.some((d) => d.kind === 'GROUP'),
       entryCount: s._count.entries,
@@ -80,13 +88,26 @@ export class PublicEventDetailQuery {
       .filter((c): c is PublicEventDetail['champions'][number] => c.side !== null)
       .sort((a, b) => (order.get(a.subEventCode) ?? 0) - (order.get(b.subEventCode) ?? 0));
 
+    const dayMap = new Map<string, PublicEventDay>();
+    for (const session of daySessions) {
+      const date = formatDateOnly(session.date);
+      const day = dayMap.get(date) ?? { date, sessions: [] };
+      day.sessions.push({ code: session.code, name: session.name, nameEn: session.nameEn });
+      dayMap.set(date, day);
+    }
+    const days = [...dayMap.values()];
+
     return {
       ...toPublicEventCard(event, mediaPublicBaseUrl(this.env), null),
+      venue: event.venue
+        ? { name: event.venue.name, nameEn: event.venue.nameEn, address: event.venue.address, mapUrl: event.venue.mapUrl && isHttpsUrl(event.venue.mapUrl) ? event.venue.mapUrl : null }
+        : null,
       summary: event.summary,
       summaryEn: event.summaryEn,
       presentedBy: event.presentedBy,
       ticketUrl: event.showTicket ? event.ticketUrl : null,
       subEvents,
+      days,
       tabs: {
         matches: realMatches > 0,
         draws: subEvents.some((s) => s.drawKinds.length > 0),

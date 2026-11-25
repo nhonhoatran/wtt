@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { authSettings, permissionsFor } from '@kamito/shared';
+import { appSettingRegistry, authSettings, permissionsFor } from '@kamito/shared';
 import { verifyPassword } from 'better-auth/crypto';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request, Response } from 'express';
@@ -28,7 +28,8 @@ export class AuthService {
   ) {}
 
   async me({ user }: AuthContext) {
-    return { ...user, permissions: permissionsFor(user.role), listDefaultPageSize: await this.pagination.defaultPageSize() };
+    const [listDefaultPageSize, siteName] = await Promise.all([this.pagination.defaultPageSize(), this.settings.get(appSettingRegistry.siteName)]);
+    return { ...user, permissions: permissionsFor(user.role), listDefaultPageSize, siteName };
   }
 
   /** Better Auth revokes every session and issues a fresh cookie, which we relay. */

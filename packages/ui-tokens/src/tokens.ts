@@ -3,6 +3,11 @@ export const tokens = {
   color: {
     primary: '#EC1E24',
     primaryStrong: '#A31115',
+    // Small red text and small filled pills: primary is only 4.4:1 on white. Pending design sign-off (Q10).
+    primaryText: '#D71920',
+    success: '#15803D',
+    successOnDark: '#4ADE80',
+    dangerOnDark: '#FF8A8A',
     ink: '#0A0A0A',
     data: '#0F285D',
     dataDeep: '#0F2452',

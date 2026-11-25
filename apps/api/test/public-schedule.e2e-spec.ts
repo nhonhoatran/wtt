@@ -3,7 +3,7 @@ import type { PublicSchedule } from '@kamito/shared';
 import { RevalidationEnqueueService } from '../src/modules/revalidation/revalidation-enqueue.service.js';
 import { vi } from 'vitest';
 import { AuthTestKit } from './support/auth-test-kit.js';
-import { cleanupPublicWorld, MATCH_CARD_KEYS, MATCH_SOURCE_KEYS, privateProfile, publicGet, type PublicWorld, setupPublicWorld, sortedPaths } from './support/public-api-kit.js';
+import { cleanupPublicWorld, MATCH_CARD_KEYS, MATCH_SOURCE_KEYS, MATCH_TABLE_KEYS, privateProfile, publicGet, type PublicWorld, setupPublicWorld, sortedPaths } from './support/public-api-kit.js';
 
 describe('public schedule API (real Postgres)', () => {
   let kit: AuthTestKit;
@@ -92,10 +92,32 @@ describe('public schedule API (real Postgres)', () => {
       '[].tables', '[].tables[].code', '[].tables[].displayName',
     ].sort());
     const cards = sessions.flatMap((s) => s.tables.flatMap((t) => t.matches));
-    expect(sortedPaths(cards)).toEqual([...MATCH_CARD_KEYS, ...MATCH_SOURCE_KEYS].map((k) => `[].${k}`).sort());
+    expect(sortedPaths(cards)).toEqual([...MATCH_CARD_KEYS, ...MATCH_TABLE_KEYS, ...MATCH_SOURCE_KEYS].map((k) => `[].${k}`).sort());
     const text = JSON.stringify(data);
     const { legalName, legalNameEn, email, phone } = privateProfile(world.tag);
     for (const value of [world.fx.eventId, venueId, legalName, legalNameEn, email, phone, 'Draft only table', 'Bye only table']) expect(text).not.toContain(value);
+  });
+
+  it('exposes the table on cards, the session on match detail, and days, venue and kind on event detail', async () => {
+    const data = await read();
+    const am = data.sessions.find((s) => s.code === 'AM')!;
+    const card = am.tables[0]!.matches[0]!;
+    expect(card.table).toEqual({ code: am.tables[0]!.code, displayName: am.tables[0]!.displayName });
+    const matchDetail = (await publicGet(kit, secret, `events/${world.slug}/matches/${card.matchNo}`).expect(200)).body.data;
+    expect(matchDetail.session).toEqual({ code: 'AM', name: 'Buổi sáng', nameEn: null });
+
+    await kit.prisma.venue.update({ where: { id: venueId }, data: { address: '1 Test Street', mapUrl: 'https://maps.example.com/hall' } });
+    await kit.prisma.event.update({ where: { id: world.fx.eventId }, data: { venueId } });
+    const detail = (await publicGet(kit, secret, `events/${world.slug}`).expect(200)).body.data;
+    expect(detail.venue).toEqual({ name: `Schedule ${world.tag}`, nameEn: 'Schedule hall', address: '1 Test Street', mapUrl: 'https://maps.example.com/hall' });
+    expect(detail.days).toEqual([{ date: '2099-05-01', sessions: [
+      { code: 'AM', name: 'Buổi sáng', nameEn: null }, { code: 'PM', name: null, nameEn: null },
+    ] }]);
+    expect(detail.subEvents.every((s: { competitorKind: string }) => s.competitorKind === 'SINGLES' || s.competitorKind === 'DOUBLES')).toBe(true);
+
+    await kit.prisma.venue.update({ where: { id: venueId }, data: { mapUrl: 'javascript:alert(1)' } });
+    expect((await publicGet(kit, secret, `events/${world.slug}`).expect(200)).body.data.venue.mapUrl).toBeNull();
+    await kit.prisma.event.update({ where: { id: world.fx.eventId }, data: { venueId: null } });
   });
 
   it('keeps the info tab available with a public schedule and no rich text', async () => {
@@ -125,6 +147,9 @@ describe('public schedule API (real Postgres)', () => {
       await kit.write('patch', `/api/v1/admin/venues/${venueId}/tables/${table.id}`, cookie, { displayName: 'Updated Table' }).expect(200);
       const tableTags = await enqueue.mock.calls.at(-1)![0]();
       expect(tableTags).toEqual(expect.arrayContaining([`event-${world.slug}`, `schedule-${world.slug}`]));
+      expect(tableTags).toContain('results-strip');
+      expect(tableTags.some((tag) => tag.startsWith(`draw-${world.slug}-`))).toBe(true);
+      expect(tableTags.some((tag) => tag.startsWith(`match-${world.slug}-`))).toBe(true);
       expect((await read()).filters.tables.find((t) => t.code === 'T1')?.displayName).toBe('Updated Table');
       // The event's main venue is null: only EventSession points to this venue.
       await kit.write('patch', `/api/v1/admin/venues/${venueId}`, cookie, { name: 'Updated hall' }).expect(200);

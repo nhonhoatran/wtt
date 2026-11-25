@@ -62,6 +62,13 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     expect(await rows(draftId, 'pageSize=1&page=2')).toMatchObject({ total: 2, page: 2, data: [{ rank: 2 }] });
     await kit.get(`${API}/ranking-snapshots/${draftId}/rows?sort=breakdown:asc`, cookie).expect(400);
 
+    const first = (await kit.get(`${API}/ranking-snapshots/${draftId}/summary`, cookie).expect(200)).body.data;
+    expect(first).toEqual({ rows: 2, changed: 0, newcomers: 0, expiredPoints: 0, previous: null });
+    expect(preview.data.every((r: { previousPoints: number | null }) => r.previousPoints === null)).toBe(true);
+    expect((await rows(draftId, 'filter[changed]=true')).total).toBe(0);
+    await kit.get(`${API}/ranking-snapshots/${draftId}/rows?filter[changed]=maybe`, cookie).expect(400);
+    await kit.get(`${API}/ranking-snapshots/${draftId}/rows?filter[bogus]=1`, cookie).expect(400);
+
     expect(await buildDraft('2099-06-01')).not.toBe(draftId);
     expect(await kit.prisma.rankingSnapshot.count({ where: { rankingListId: w.listId, status: 'DRAFT' } })).toBe(1);
   });
@@ -110,6 +117,20 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     const moved = (await rows(second, 'sort=rank:asc')).data.map((r: { playerId: string; rank: number; previousRank: number; movement: number }) => [r.playerId, r.rank, r.previousRank, r.movement]);
     expect(moved).toEqual([[w.playerIds[1], 1, 2, 1], [w.playerIds[0], 2, 1, -1]]);
 
+    const prior = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2099-06-01T00:00:00Z') } });
+    const withPrevious = (await rows(second, 'sort=rank:asc')).data.map((r: { playerId: string; points: number; previousPoints: number }) => [r.playerId, r.points, r.previousPoints]);
+    expect(withPrevious).toEqual([[w.playerIds[1], 1000, 700], [w.playerIds[0], 700, 1000]]);
+    await kit.prisma.player.update({ where: { id: w.playerIds[0]! }, data: { club: 'Zeta Smash Club' } });
+    const byClub = await rows(second, 'q=zeta%20smash');
+    expect(byClub.total).toBe(1);
+    expect(byClub.data[0]).toMatchObject({ playerId: w.playerIds[0], player: { club: 'Zeta Smash Club' } });
+    expect((await rows(second, 'filter[changed]=true')).total).toBe(2);
+
+    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 250, earnedAt: new Date('2099-05-01'), expiresAt: new Date('2099-06-15'), reason: 'expiry in period' } });
+    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 99, earnedAt: new Date('2099-05-01'), expiresAt: new Date('2099-06-01'), reason: 'expiry on previous asOf is outside' } });
+    const summary = (await kit.get(`${API}/ranking-snapshots/${second}/summary`, cookie).expect(200)).body.data;
+    expect(summary).toMatchObject({ rows: 2, changed: 2, newcomers: 0, expiredPoints: 250, previous: { id: prior.id } });
+
     await markDirtySql(kit, w.subEventId);
     const stale = await kit.write('post', `${API}/ranking-snapshots/${second}/publish`, cookie).expect(409);
     expect(stale.body.error).toMatchObject({ code: 'RANKING_SNAPSHOT_STALE', dirtySubEvents: [w.subEventId] });
@@ -118,5 +139,30 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     await kit.write('delete', `${API}/ranking-snapshots/${second}`, cookie).expect(200);
     expect(await kit.prisma.rankingSnapshot.findUnique({ where: { id: second } })).toBeNull();
     expect(await kit.prisma.auditLog.count({ where: { action: 'ranking.snapshot.delete', entityId: second } })).toBe(1);
+  });
+
+  it('previous period is the latest other published snapshot for same-day and back-dated drafts', async () => {
+    const published = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2099-06-01T00:00:00Z') } });
+    const summaryOf = async (id: string) => (await kit.get(`${API}/ranking-snapshots/${id}/summary`, cookie).expect(200)).body.data;
+    expect((await summaryOf(published.id)).previous).toBeNull();
+
+    await markDirtySql(kit, w.subEventId);
+    const sameDay = await buildDraft('2099-06-01');
+    expect((await summaryOf(sameDay)).previous).toMatchObject({ id: published.id });
+    const sameDayRows = (await rows(sameDay)).data as { previousRank: number | null }[];
+    expect(sameDayRows.every((r) => r.previousRank !== null)).toBe(true);
+    expect((await rows(sameDay, 'filter[changed]=true')).total).toBe((await summaryOf(sameDay)).changed);
+
+    await markDirtySql(kit, w.subEventId);
+    const backDated = await buildDraft('2099-05-15');
+    expect((await summaryOf(backDated)).previous).toMatchObject({ id: published.id });
+    expect(((await rows(backDated)).data as { previousRank: number | null }[]).every((r) => r.previousRank !== null)).toBe(true);
+    await kit.write('delete', `${API}/ranking-snapshots/${backDated}`, cookie).expect(200);
+
+    // Once a newer period is published, reopening the older one still compares against its own predecessor.
+    await kit.write('post', `${API}/ranking-snapshots/${sameDay}/publish`, cookie).expect(200);
+    expect((await summaryOf(sameDay)).previous).toMatchObject({ id: published.id });
+    expect((await summaryOf(published.id)).previous).toBeNull();
+    expect(((await rows(published.id)).data as { previousRank: number | null }[]).every((r) => r.previousRank === null)).toBe(true);
   });
 });

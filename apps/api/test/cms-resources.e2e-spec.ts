@@ -82,6 +82,8 @@ describe('CMS video, sponsors, and static pages (real Postgres + Redis)', () => 
     await cms.setting(contentSettings.homeSections.key, sections);
     const home = (await cms.publicGet('home').expect(200)).body.data;
     expect(home).toMatchObject({ sections, featuredEvents: [], upcomingEvents: [], featuredArticles: [], latestVideos: [], sponsors: [], topRankings: [] });
+    await cms.setting(contentSettings.homeItemsPerSection.key, 3);
+    expect((await cms.publicGet('home').expect(200)).body.data.itemsPerSection).toBe(3);
     for (const path of ['articles', 'videos', 'sponsors', 'footer', 'home', `pages/no-page-${cms.tag}`]) {
       await cms.kit.http.get(`/api/v1/public/${path}`).expect(403);
     }

@@ -41,6 +41,10 @@ export interface PublicEventCard extends PublicNamed {
   tier: PublicCoded & { colorHex: string };
   eventType: PublicCoded & { colorHex: string | null };
   banner: PublicImage | null;
+  /** Sub-events in display order, for the card's content chips. */
+  subEvents: PublicCoded[];
+  /** True when the event has at least one public (non-BYE, published-draw) match; its /matches page exists only then. */
+  hasPublicMatches: boolean;
 }
 
 export interface PublicEventFilters {
@@ -71,6 +75,7 @@ export interface PublicEventCalendar {
 
 export interface PublicSubEventSummary extends PublicCoded {
   format: 'KNOCKOUT' | 'GROUP_KNOCKOUT';
+  competitorKind: 'SINGLES' | 'DOUBLES';
   /** Published knockout draws (bracket tab) and whether a published group stage exists. */
   drawKinds: PublicDrawKind[];
   hasGroups: boolean;
@@ -90,13 +95,22 @@ export interface PublicEventTabs {
   info: boolean;
 }
 
+export interface PublicEventDay {
+  /** YYYY-MM-DD in the event's own calendar. */
+  date: string;
+  sessions: { code: string; name: string | null; nameEn: string | null }[];
+}
+
 export interface PublicEventDetail extends PublicEventCard {
+  venue: (PublicNamed & { address: string | null; mapUrl: string | null }) | null;
   summary: string | null;
   summaryEn: string | null;
   presentedBy: string | null;
   /** Only set while the organiser shows the ticket link. */
   ticketUrl: string | null;
   subEvents: PublicSubEventSummary[];
+  /** Days that have at least one public match, with the sessions those matches belong to. */
+  days: PublicEventDay[];
   tabs: PublicEventTabs;
   stats: { players: number; playedMatches: number };
   champions: PublicChampion[];

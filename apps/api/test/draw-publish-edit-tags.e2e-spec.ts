@@ -59,13 +59,13 @@ describe('draw publish, unpublish and post-publish edits refresh match and playe
     expect(res.body.warnings).toBeUndefined();
     const tags = await matchTags();
     expect(tags.length).toBe(3);
-    await expectQueued(since, [`draw-${slug}-MS`, ...tags]);
+    await expectQueued(since, ['events', `draw-${slug}-MS`, ...tags]);
   });
 
   it('queues the match tags on unpublish and publishes again', async () => {
     const since = await mark();
     await post(`/draws/${drawId}/unpublish`, { expectedVersion: await version(), reason: 'redo the draw' }).expect(200);
-    await expectQueued(since, [`draw-${slug}-MS`, ...(await matchTags())]);
+    await expectQueued(since, ['events', `draw-${slug}-MS`, ...(await matchTags())]);
     await post(`/draws/${drawId}/publish`, { expectedVersion: await version() }).expect(200);
   });
 

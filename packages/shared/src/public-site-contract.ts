@@ -1,8 +1,21 @@
-/** Site-wide values the public site reads on every request (site name, proxy rate limits). */
+import type { SiteNavKey, SiteSocialPlatform } from './public-site-display-settings.js';
+
+export interface PublicSiteDisplay {
+  navItems: { key: SiteNavKey; labelVi?: string; labelEn?: string }[];
+  socialLinks: { platform: SiteSocialPlatform; url: string }[];
+  tagline: { vi: string; en: string } | null;
+  /** Empty string = hide the registration button. */
+  registrationUrl: string;
+  /** 0 = the "expiring soon" label is off. */
+  rankingExpiringSoonDays: number;
+}
+
+/** Site-wide values the public site reads on every request (site name, proxy rate limits, display settings). */
 export interface PublicSiteConfig {
   siteName: { vi: string; en: string };
   rateLimit: { windowSeconds: number; maxRequests: number; searchMaxRequests: number; maxTrackedIps: number };
   contactRateLimit: { windowSeconds: number; maxRequests: number };
+  display: PublicSiteDisplay;
 }
 
 export interface PublicSitemap {

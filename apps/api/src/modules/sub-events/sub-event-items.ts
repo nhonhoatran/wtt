@@ -18,7 +18,7 @@ export interface ResolvedItem {
 export const SUB_EVENT_INCLUDE = {
   discipline: { select: { id: true, code: true, name: true, nameEn: true, competitorKind: true, genderRule: true } },
   category: { select: { id: true, code: true, name: true, nameEn: true } },
-  matchFormat: { select: { id: true, name: true, nameEn: true } },
+  matchFormat: { select: { id: true, name: true, nameEn: true, bestOf: true, pointsPerGame: true, winBy: true } },
   groupScoringRule: { select: { id: true, name: true, nameEn: true } },
   rankingList: { select: { id: true, code: true, name: true } },
 } as const;

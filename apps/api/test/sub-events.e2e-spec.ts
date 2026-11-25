@@ -111,6 +111,7 @@ describe('admin sub-events (real Postgres)', () => {
     const first = list.body.data[0];
     expect(list.body.total).toBe(list.body.data.length);
     expect(first.discipline).toMatchObject({ code: 'MS' });
+    expect(first.matchFormat).toMatchObject({ bestOf: expect.any(Number), pointsPerGame: expect.any(Number), winBy: expect.any(Number) });
 
     const patched = await kit.write('patch', `${base()}/${first.id}`, adminCookie, { format: 'KNOCKOUT', name: 'Đơn nam' }).expect(200);
     expect(patched.body.data).toMatchObject({ format: 'KNOCKOUT', groupScoringRuleId: null, name: 'Đơn nam' });

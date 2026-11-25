@@ -38,6 +38,8 @@ export interface PublicStaticPage { slug: string; title: string; titleEn: string
 export interface PublicSponsor { name: string; logo: PublicImage | null; logoDark: PublicImage | null; url: string | null; roleLabel: string | null; roleLabelEn: string | null }
 export interface PublicFooter { pages: Array<{ slug: string; title: string; titleEn: string | null; group: string | null; groupEn: string | null; order: number }>; sponsors: PublicSponsor[] }
 export interface PublicHome {
+  /** Slug of the event the home hero shows; null when the hero section is off or no event is current. */
+  heroEventSlug: string | null;
   featuredEvents: PublicEventCard[];
   upcomingEvents: PublicEventCard[];
   featuredArticles: PublicArticleCard[];
@@ -45,6 +47,8 @@ export interface PublicHome {
   sponsors: PublicSponsor[];
   topRankings: PublicRankingTop[];
   sections: { hero: boolean; events: boolean; news: boolean; videos: boolean; rankings: boolean; sponsors: boolean };
+  /** The admin setting `home.itemsPerSection`: how many items each home block shows. */
+  itemsPerSection: number;
 }
 export interface PublicEventContent { articles: PublicArticleCard[]; videos: PublicVideo[]; sponsors: PublicSponsor[] }
 export interface ContactSubmission { name: string; email: string; phone?: string | null; organization?: string | null; message: string; website?: string }

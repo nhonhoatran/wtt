@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@kamito/db';
 import { publicPlayerIdFromSlug, tournamentSettings, type PublicPlayerResults } from '@kamito/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { publicScope } from '../public-scope/public-scope.js';
 import { pageWindow, parsePublicPage } from '../public-scope/public-query-params.js';
 import { PUBLIC_MATCH_CARD_SELECT, toPublicMatchCard } from '../public-competition/public-match.serializer.js';
 import { AppSettingsService } from '../settings/app-settings.service.js';
 import { PUBLIC_PROFILE_WHERE } from './public-players.query.js';
+import { publicPlayerResultsWhere } from './public-player-results-where.js';
 
 @Injectable()
 export class PublicPlayerResultsQuery {
@@ -18,12 +17,7 @@ export class PublicPlayerResultsQuery {
     if (!player) return null;
     const page = parsePublicPage(pageParam);
     const pageSize = await this.settings.get(tournamentSettings.publicListPageSize);
-    const entry: Prisma.EntryWhereInput = { competitor: { OR: [{ playerId: player.id }, { pair: { OR: [{ playerAId: player.id }, { playerBId: player.id }] } }] } };
-    const where: Prisma.MatchWhereInput = { AND: [
-      publicScope.matchIn({}),
-      { status: 'OFFICIAL', isVoided: false },
-      { OR: [{ side1Entry: entry }, { side2Entry: entry }] },
-    ] };
+    const where = publicPlayerResultsWhere(player.id);
     const [rows, total] = await Promise.all([
       this.prisma.match.findMany({
         where,

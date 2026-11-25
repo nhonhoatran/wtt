@@ -1,6 +1,6 @@
 import type { Prisma } from '@kamito/db';
 import { PUBLIC_DRAW_KINDS, publicPlayerSlug } from '@kamito/shared';
-import type { PublicBracket, PublicBracketMatch, PublicBracketSection, PublicDrawKind, PublicPlayerName, PublicSide, PublicSideSource } from '@kamito/shared';
+import type { PublicBracket, PublicBracketMatch, PublicBracketSection, PublicDrawKind, PublicPlayerName, PublicSide, PublicSideSource, PublicTable } from '@kamito/shared';
 import type { PUBLIC_ROUND_INCLUDE, PUBLIC_SIDE_SELECT } from './public-bracket.query.js';
 
 const KIND_ORDER = Object.values(PUBLIC_DRAW_KINDS);
@@ -61,6 +61,10 @@ export function toSide(entry: SideRow | null): PublicSide | null {
   return { seed: entry.seed, quota, players: players.map(toPlayerName) };
 }
 
+export function toPublicTable(table: { code: string; displayName: string | null } | null): PublicTable | null {
+  return table ? { code: table.code, displayName: table.displayName } : null;
+}
+
 const isInt = (value: unknown): value is number => Number.isInteger(value);
 
 /** Copies only the known placeholder shapes; anything else stored in the JSON column is dropped. */
@@ -82,6 +86,7 @@ function toMatch(m: MatchRow): PublicBracketMatch {
     games1: m.games1,
     games2: m.games2,
     scheduledAt: m.scheduledAt?.toISOString() ?? null,
+    table: toPublicTable(m.table),
     side1: toSide(m.side1Entry),
     side2: toSide(m.side2Entry),
     side1Source: toPublicSource(m.side1Source),

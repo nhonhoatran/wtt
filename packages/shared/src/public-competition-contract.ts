@@ -1,5 +1,5 @@
 import type { PublicCoded, PublicNamed } from './public-event-contract.js';
-import type { PublicDrawKind, PublicGame, PublicSide, PublicSideSource } from './public-bracket-contract.js';
+import type { PublicDrawKind, PublicGame, PublicSide, PublicSideSource, PublicTable } from './public-bracket-contract.js';
 import type { PublicMatchState } from './public-event-contract.js';
 
 export interface PublicMatchContext {
@@ -17,6 +17,7 @@ export interface PublicMatchCard extends PublicMatchContext {
   games1: number | null;
   games2: number | null;
   scheduledAt: string | null;
+  table: PublicTable | null;
   side1: PublicSide | null;
   side2: PublicSide | null;
   side1Source: PublicSideSource | null;
@@ -38,6 +39,7 @@ export interface PublicMatchDetail extends PublicMatchCard {
   event: PublicNamed & { slug: string; timezone: string };
   startedAt: string | null;
   officialAt: string | null;
+  session: { code: string; name: string | null; nameEn: string | null } | null;
 }
 
 export interface PublicGroupStandingRow {

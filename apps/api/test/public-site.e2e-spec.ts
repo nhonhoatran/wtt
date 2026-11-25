@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { appSettingRegistry, publicSiteSettings, SSR_SECRET_HEADER } from '@kamito/shared';
+import { appSettingRegistry, contentSettings, publicSiteDisplaySettings, publicSiteSettings, rankingSettings, SSR_SECRET_HEADER, tournamentSettings } from '@kamito/shared';
 import { Prisma, type AppSetting } from '@kamito/db';
 import { AppSettingsService } from '../src/modules/settings/app-settings.service.js';
 import { AuthTestKit } from './support/auth-test-kit.js';
@@ -8,7 +8,7 @@ import { PUBLIC, publicGet, sortedPaths } from './support/public-api-kit.js';
 
 const SETTINGS = '/api/v1/admin/settings';
 const MAX_REQUESTS_KEY = publicSiteSettings.rateLimitMaxRequests.key;
-const SITE_SETTINGS = [appSettingRegistry.siteName, ...Object.values(publicSiteSettings)];
+const SITE_SETTINGS = [appSettingRegistry.siteName, ...Object.values(publicSiteSettings), ...Object.values(publicSiteDisplaySettings), rankingSettings.expiringSoonDays, tournamentSettings.featuredEventId, contentSettings.homeSections];
 const SITE_SETTING_KEYS = SITE_SETTINGS.map((setting) => setting.key);
 
 describe('public site config and sitemap API (real Postgres)', () => {
@@ -58,6 +58,7 @@ describe('public site config and sitemap API (real Postgres)', () => {
     const { data } = (await site().expect(200)).body;
     expect(sortedPaths(data)).toEqual([
       'contactRateLimit', 'contactRateLimit.maxRequests', 'contactRateLimit.windowSeconds',
+      'display', 'display.navItems', 'display.navItems[].key', 'display.rankingExpiringSoonDays', 'display.registrationUrl', 'display.socialLinks', 'display.tagline',
       'rateLimit', 'rateLimit.maxRequests', 'rateLimit.maxTrackedIps', 'rateLimit.searchMaxRequests', 'rateLimit.windowSeconds', 'siteName', 'siteName.en', 'siteName.vi',
     ]);
   });
@@ -71,6 +72,36 @@ describe('public site config and sitemap API (real Postgres)', () => {
       searchMaxRequests: publicSiteSettings.rateLimitSearchMaxRequests.defaultValue,
       maxTrackedIps: publicSiteSettings.rateLimitMaxTrackedIps.defaultValue,
     });
+    expect(data.display).toEqual({
+      navItems: publicSiteDisplaySettings.navItems.defaultValue,
+      socialLinks: [],
+      tagline: null,
+      registrationUrl: '',
+      rankingExpiringSoonDays: rankingSettings.expiringSoonDays.defaultValue,
+    });
+  });
+
+  it('serves display settings changed on /settings and rejects unsafe links', async () => {
+    const put = (key: string, value: unknown) => kit.write('put', `${SETTINGS}/${key}`, cookie, { value });
+    const links = [{ platform: 'facebook', url: 'https://facebook.com/kamito' }];
+    await put(publicSiteDisplaySettings.socialLinks.key, links).expect(200);
+    await put(publicSiteDisplaySettings.navItems.key, [{ key: 'events', labelVi: 'Giải' }, { key: 'news' }]).expect(200);
+    await put(publicSiteDisplaySettings.registrationUrl.key, 'https://dangky.example.vn').expect(200);
+    await put(rankingSettings.expiringSoonDays.key, 14).expect(200);
+    try {
+      const { display } = (await site().expect(200)).body.data;
+      expect(display.socialLinks).toEqual(links);
+      expect(display.navItems).toEqual([{ key: 'events', labelVi: 'Giải' }, { key: 'news' }]);
+      expect(display.registrationUrl).toBe('https://dangky.example.vn');
+      expect(display.rankingExpiringSoonDays).toBe(14);
+      expect((await put(publicSiteDisplaySettings.socialLinks.key, [{ platform: 'facebook', url: 'javascript:alert(1)' }])).status).toBe(422);
+      expect((await put(publicSiteDisplaySettings.navItems.key, [{ key: 'news' }, { key: 'news' }])).status).toBe(422);
+      expect((await put(publicSiteDisplaySettings.registrationUrl.key, 'http://insecure.example')).status).toBe(422);
+    } finally {
+      for (const setting of [publicSiteDisplaySettings.socialLinks, publicSiteDisplaySettings.navItems, publicSiteDisplaySettings.registrationUrl, rankingSettings.expiringSoonDays]) {
+        await kit.write('delete', `${SETTINGS}/${setting.key}`, cookie).expect(200);
+      }
+    }
   });
 
   it('reflects a /settings change and falls back to the default after reset', async () => {
@@ -82,6 +113,22 @@ describe('public site config and sitemap API (real Postgres)', () => {
       await kit.write('delete', `${SETTINGS}/${MAX_REQUESTS_KEY}`, cookie).expect(200);
     }
     expect((await site().expect(200)).body.data.rateLimit.maxRequests).toBe(original);
+  });
+
+  it('picks the home hero event: pinned public event, else a fallback, null when the hero section is off', async () => {
+    const put = (def: { key: string }, value: unknown) => kit.write('put', `${SETTINGS}/${def.key}`, cookie, { value }).expect(200);
+    const hero = async () => (await publicGet(kit, secret, 'home').expect(200)).body.data.heroEventSlug as string | null;
+    try {
+      await put(tournamentSettings.featuredEventId, fixtures.published!.eventId);
+      expect(await hero()).toBe(slugs.published);
+      await put(tournamentSettings.featuredEventId, fixtures.draft!.eventId);
+      expect(await hero()).not.toBe(slugs.draft);
+      await put(tournamentSettings.featuredEventId, fixtures.published!.eventId);
+      await put(contentSettings.homeSections, { ...contentSettings.homeSections.defaultValue, hero: false });
+      expect(await hero()).toBeNull();
+    } finally {
+      for (const def of [tournamentSettings.featuredEventId, contentSettings.homeSections]) await kit.write('delete', `${SETTINGS}/${def.key}`, cookie).expect(200);
+    }
   });
 
   it('lists only published, non-cancelled events in the sitemap, with ISO updatedAt', async () => {

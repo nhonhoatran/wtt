@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Query, HttpException, HttpStatus, UnprocessableEntityException, UseGuards } from '@nestjs/common';
-import { contentSettings, rankingSettings, PUBLIC_API_SEGMENT, PublicArticleList, PublicHome, PublicSponsor, PublicVideoList } from '@kamito/shared';
+import { contentSettings, rankingSettings, tournamentSettings, PUBLIC_API_SEGMENT, PublicArticleList, PublicHome, PublicSponsor, PublicVideoList } from '@kamito/shared';
 import { REDIS_CONNECTION } from '../queue/redis-connection.provider.js';
 import type { Redis } from 'ioredis';
 import { z } from 'zod';
@@ -18,7 +18,8 @@ import { publicUrlFor } from '@kamito/shared/media';
 import { publicScope } from '../public-scope/public-scope.js';
 import { toPublicEventCard } from '../public-events/public-event.serializer.js';
 import { publicHomeEvents } from '../public-events/public-home-events.query.js';
-import { PUBLIC_RANKING_LIST_SELECT, PUBLIC_RANKING_ROW_SELECT, toPublicRankingList, toPublicRankingRow } from '../public-rankings/public-ranking.serializer.js';
+import { resolveHeroEventSlug } from './public-home-hero.js';
+import { findHomeRankingLists, toHomeTopRankings } from './public-home-rankings.js';
 
 const contactBody = z.object({
   name: z.string().trim().min(1).max(120),
@@ -71,8 +72,8 @@ export class PublicContentController {
   @Get('home')
   async home(): Promise<{ data: PublicHome }> {
     const sections = await this.settings.get(contentSettings.homeSections);
-    const [itemLimit, topN] = await Promise.all([
-      this.settings.get(contentSettings.homeItemsPerSection), this.settings.get(rankingSettings.overviewTopN),
+    const [itemLimit, topN, pinnedEventId] = await Promise.all([
+      this.settings.get(contentSettings.homeItemsPerSection), this.settings.get(rankingSettings.overviewTopN), this.settings.get(tournamentSettings.featuredEventId),
     ]);
     const now = new Date();
     const [featuredEventRows, eventRows, articles, videos, sponsors, rankingLists] = await Promise.all([
@@ -81,24 +82,19 @@ export class PublicContentController {
       this.prisma.article.findMany({ where: { status: 'PUBLISHED', isFeatured: true, publishedAt: { not: null, lte: now } }, orderBy: { publishedAt: 'desc' }, take: itemLimit, include: { events: articleEvents, coverMedia: true } }),
       this.prisma.video.findMany({ where: { status: 'PUBLISHED', publishedAt: { not: null, lte: now } }, orderBy: { publishedAt: 'desc' }, take: itemLimit, include: { event: videoEvent } }),
       this.prisma.sponsor.findMany({ where: { isActive: true, eventId: null }, orderBy: [{ order: 'asc' }, { name: 'asc' }], take: itemLimit, include: { logoMedia: true, logoDarkMedia: true } }),
-      sections.rankings ? this.prisma.rankingList.findMany({ where: { isActive: true }, orderBy: [{ order: 'asc' }, { code: 'asc' }], take: itemLimit, select: { ...PUBLIC_RANKING_LIST_SELECT, snapshots: { where: { status: 'PUBLISHED' }, orderBy: [{ asOfDate: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }], take: 1, select: { asOfDate: true, publishedAt: true, rows: { orderBy: [{ rank: 'asc' }, { playerId: 'asc' }], take: topN, select: { ...PUBLIC_RANKING_ROW_SELECT, breakdown: false } } } } } }) : Promise.resolve([]),
+      sections.rankings ? findHomeRankingLists(this.prisma, itemLimit, topN) : Promise.resolve([]),
     ]);
+    const heroEventSlug = sections.hero ? await resolveHeroEventSlug(this.prisma, pinnedEventId, featuredEventRows, eventRows) : null;
     return { data: {
+      heroEventSlug,
       featuredEvents: sections.hero ? featuredEventRows.map((event) => toPublicEventCard(event, mediaPublicBaseUrl(this.env))) : [],
       upcomingEvents: sections.events ? eventRows.map((event) => toPublicEventCard(event, mediaPublicBaseUrl(this.env))) : [],
       featuredArticles: sections.news ? articles.map((article) => this.articleCard(article)) : [],
       latestVideos: sections.videos ? videos.map((video) => this.videoView(video)) : [],
       sponsors: sections.sponsors ? sponsors.map((sponsor) => this.sponsorView(sponsor)) : [],
-      topRankings: sections.rankings ? rankingLists.map((list) => {
-        const snapshot = list.snapshots[0];
-        return {
-          list: toPublicRankingList(list),
-          asOfDate: snapshot?.asOfDate.toISOString().slice(0, 10) ?? null,
-          publishedAt: snapshot?.publishedAt?.toISOString() ?? null,
-          items: (snapshot?.rows ?? []).map((row) => toPublicRankingRow({ ...row, breakdown: [] }, mediaPublicBaseUrl(this.env), new Map())),
-        };
-      }) : [],
+      topRankings: sections.rankings ? toHomeTopRankings(rankingLists, mediaPublicBaseUrl(this.env)) : [],
       sections,
+      itemsPerSection: itemLimit,
     } };
   }
 

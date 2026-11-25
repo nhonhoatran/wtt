@@ -23,6 +23,16 @@ export const rankingSettings = {
     max: 3650,
     defaultValue: 365,
   }),
+  expiringSoonDays: defineNumberSetting({
+    key: 'ranking.expiringSoonDays',
+    group: 'ranking',
+    label: 'Ngưỡng nhãn "Sắp hết hạn"',
+    description: 'Điểm xếp hạng còn không quá số ngày này trước khi hết hạn thì site công khai gắn nhãn "Sắp hết hạn". 0 = tắt nhãn.',
+    unit: 'ngày',
+    min: 0,
+    max: 365,
+    defaultValue: 30,
+  }),
   awardPointsOnWalkoverLoss: defineAppSetting({
     key: 'ranking.awardPointsOnWalkoverLoss',
     group: 'ranking',

@@ -2,6 +2,8 @@ import type { Prisma } from '@kamito/db';
 import { lifecycleFromDates, todayInTimezone, type PublicEventCard, type PublicImage } from '@kamito/shared';
 import { publicUrlFor } from '@kamito/shared/media';
 import { readVariants } from '../media/media-dtos.js';
+import { subEventNames } from '../public-competition/public-bracket.serializer.js';
+import { publicScope } from '../public-scope/public-scope.js';
 
 const CODED = { code: true, name: true, nameEn: true } as const;
 
@@ -19,6 +21,11 @@ export const PUBLIC_EVENT_CARD_SELECT = {
   venue: { select: { name: true, nameEn: true } },
   eventType: { select: { ...CODED, colorHex: true, tier: { select: { ...CODED, colorHex: true } } } },
   bannerMedia: MEDIA_SELECT,
+  subEvents: {
+    orderBy: [{ order: 'asc' }, { code: 'asc' }],
+    select: { ...CODED, discipline: { select: { name: true, nameEn: true } }, category: { select: { name: true, nameEn: true } } },
+  },
+  _count: { select: { matches: { where: publicScope.matchOfEvent } } },
 } satisfies Prisma.EventSelect;
 
 export type PublicEventCardRow = Prisma.EventGetPayload<{ select: typeof PUBLIC_EVENT_CARD_SELECT }>;
@@ -58,5 +65,7 @@ export function toPublicEventCard(e: PublicEventCardRow, baseUrl: string, imageM
     tier: { code: tier.code, name: tier.name, nameEn: tier.nameEn, colorHex: tier.colorHex },
     eventType: { code: type.code, name: type.name, nameEn: type.nameEn, colorHex: type.colorHex },
     banner: toPublicImage(e.bannerMedia, baseUrl, imageMinWidth),
+    subEvents: e.subEvents.map((s) => ({ code: s.code, ...subEventNames(s) })),
+    hasPublicMatches: e._count.matches > 0,
   };
 }

@@ -269,6 +269,16 @@ describe('admin entries (real Postgres)', () => {
     await kit.write('post', `${API}/entries/bulk`, adminCookie, { ids: [entry.id], action: 'setStage', stage: 'QUALIFYING' }).expect(422);
   });
 
+  it('searches entries by member club and player code as well as name', async () => {
+    const club = `CLB Tim ${fx.tag}`;
+    const player = await man('Tim CLB', { club });
+    await add('MS', { playerIds: [player.id] }).expect(201);
+    const byClub = await kit.get(`${entriesUrl('MS')}?q=${encodeURIComponent(club.toLowerCase())}`, adminCookie).expect(200);
+    expect(byClub.body.data.map((row: { competitor: { displayName: string } }) => row.competitor.displayName)).toEqual([`Nam Tim CLB ${fx.tag}`]);
+    const byCode = await kit.get(`${entriesUrl('MS')}?q=${encodeURIComponent(player.code)}`, adminCookie).expect(200);
+    expect(byCode.body.data.map((row: { competitor: { displayName: string } }) => row.competitor.displayName)).toEqual([`Nam Tim CLB ${fx.tag}`]);
+  });
+
   it('lists with server-side search, filter, sort and paging; counts per sub-event', async () => {
     const list = await kit.get(`${entriesUrl('MS')}?q=${encodeURIComponent(`nam don ${fx.tag}`)}`, adminCookie).expect(200);
     expect(list.body).toMatchObject({ total: 1, page: 1 });
@@ -285,13 +295,15 @@ describe('admin entries (real Postgres)', () => {
     await kit.get(`${entriesUrl('MS')}?filter[status]=NOPE`, adminCookie).expect(400);
     await kit.get(`${API}/sub-events/${randomUUID()}/entries`, adminCookie).expect(404);
 
-    const counts = (await kit.get(`${API}/events/${fx.eventId}/entry-counts`, adminCookie).expect(200)).body.data as { subEventId: string; confirmed: number; withdrawn: number }[];
+    const counts = (await kit.get(`${API}/events/${fx.eventId}/entry-counts`, adminCookie).expect(200)).body.data as { subEventId: string; confirmed: number; withdrawn: number; seeded: number }[];
     const actual = async (subEventId: string, status: 'CONFIRMED' | 'WITHDRAWN') => kit.prisma.entry.count({ where: { subEventId, status } });
     expect(counts.map((row) => row.subEventId).sort()).toEqual([...Object.values(fx.subEvents), capacityEventSubEventId].sort());
     for (const row of counts) {
       expect(row.confirmed).toBe(await actual(row.subEventId, 'CONFIRMED'));
       expect(row.withdrawn).toBe(await actual(row.subEventId, 'WITHDRAWN'));
+      expect(row.seeded).toBe(await kit.prisma.entry.count({ where: { subEventId: row.subEventId, status: 'CONFIRMED', seed: { not: null } } }));
     }
+    expect(counts.find((row) => row.subEventId === fx.subEvents.MS)!.seeded).toBeGreaterThan(0);
     expect(counts.find((row) => row.subEventId === fx.subEvents.WS)).toMatchObject({ confirmed: 0, withdrawn: 3 });
     await kit.get(`${API}/events/${randomUUID()}/entry-counts`, adminCookie).expect(404);
   });

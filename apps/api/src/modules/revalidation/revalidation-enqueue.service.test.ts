@@ -54,8 +54,9 @@ describe('CACHE_TAGS', () => {
     expect(tags).toEqual(['events', 'event-cu', 'schedule-cu', 'draw-cu-MS', 'groups-cu-MS', 'event-moi', 'schedule-moi', 'draw-moi-MS', 'groups-moi-MS']);
   });
 
-  it('maps a sub-event change to its event, schedule, draw and groups tags for old and new code', () => {
+  it('maps a sub-event change to the event list, event, schedule, draw and groups tags for old and new code', () => {
     expect(CACHE_TAGS['subEvent.update']({ eventSlug: 'g', subEventCodes: ['MS', 'MS2'] })).toEqual([
+      'events',
       'event-g',
       'schedule-g',
       'draw-g-MS',

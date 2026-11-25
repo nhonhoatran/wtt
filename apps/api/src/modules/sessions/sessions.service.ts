@@ -10,6 +10,7 @@ import { lockScheduleScope, lockSessionsInOrder } from '../scheduling/schedule-l
 import { loadScheduleTagContext } from '../scheduling/schedule-tag-context.js';
 import { SCHEDULE_TX_TIMEOUT_MS } from '../scheduling/schedule-tx.js';
 import { recomputeSessionTimes } from '../scheduling/session-timeline.js';
+import { sessionMatchNosToRefresh, sessionRelabeled } from './session-affected-matches.js';
 import type { CreateSessionBody, UpdateSessionBody } from './session-dtos.js';
 import { instantToHhmm, zonedTimeToInstant } from './session-time.js';
 import { SESSION_INCLUDE, toSessionView } from './session-view.js';
@@ -83,7 +84,7 @@ export class SessionsService {
   async update(eventId: string, id: string, body: UpdateSessionBody) {
     const event = await this.requireEvent(eventId);
     try {
-      const { view, retimed } = await this.prisma.$transaction(async (tx) => {
+      const { view, affected } = await this.prisma.$transaction(async (tx) => {
         await lockScheduleScope(tx, { sessionIds: [id] });
         const current = await tx.eventSession.findFirst({ where: { id, eventId }, include: SESSION_INCLUDE });
         if (!current) throw sessionNotFound();
@@ -115,6 +116,7 @@ export class SessionsService {
           await tx.eventSessionTable.createMany({ data: effective.tableIds.map((tableId, order) => ({ sessionId: id, tableId, order })) });
         }
         const retimed = await recomputeSessionTimes(tx, id);
+        const affected = await sessionMatchNosToRefresh(tx, id, sessionRelabeled(current, row), retimed);
         const fresh = await tx.eventSession.findUniqueOrThrow({ where: { id }, include: SESSION_INCLUDE });
         await this.audit.record(
           {
@@ -126,9 +128,9 @@ export class SessionsService {
           },
           tx,
         );
-        return { view: toSessionView(fresh, event.timezone), retimed };
+        return { view: toSessionView(fresh, event.timezone), affected };
       }, { timeout: SCHEDULE_TX_TIMEOUT_MS });
-      return this.withRefresh({ data: view }, 'session.update', event, retimed);
+      return this.withRefresh({ data: view }, 'session.update', event, affected);
     } catch (error) {
       throw mapDuplicateCode(error, body.code);
     }

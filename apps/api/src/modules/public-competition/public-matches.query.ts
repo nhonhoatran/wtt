@@ -75,6 +75,7 @@ export class PublicMatchesQuery {
         ...PUBLIC_MATCH_CARD_SELECT,
         startedAt: true,
         officialAt: true,
+        session: { select: { code: true, name: true, nameEn: true } },
         event: { select: { slug: true, name: true, nameEn: true, timezone: true } },
       },
     });
@@ -84,6 +85,7 @@ export class PublicMatchesQuery {
       event: { slug: row.event.slug, name: row.event.name, nameEn: row.event.nameEn, timezone: row.event.timezone },
       startedAt: row.startedAt?.toISOString() ?? null,
       officialAt: row.officialAt?.toISOString() ?? null,
+      session: row.session ? { code: row.session.code, name: row.session.name, nameEn: row.session.nameEn } : null,
     };
   }
 }

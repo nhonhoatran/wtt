@@ -1,74 +1,31 @@
 import { entryChangeTags, publicCacheTags as t, type EntryChangeTagContext } from '@kamito/shared';
+import type {
+  MatchTagContext,
+  DrawTagContext,
+  RankingTagContext,
+  EventTagContext,
+  SubEventTagContext,
+  PlayerTagContext,
+  ScheduleTagContext,
+  VenueTableTagContext,
+  EventSlugsTagContext,
+  SubEventUsageTagContext,
+  RankingListTagContext,
+} from './cache-tag-contexts.js';
 
-export interface MatchTagContext {
-  eventSlug: string;
-  subEventCode: string;
-  /** The match itself plus every match it fed (winner advanced into). */
-  matchNos: number[];
-  isGroupMatch: boolean;
-  playerSlugs: string[];
-}
-
-export interface DrawTagContext {
-  eventSlug: string;
-  subEventCode: string;
-  hasGroups: boolean;
-  /** Set when match pages change too (publish, unpublish, post-publish edits). */
-  matchNos?: number[];
-  /** Players whose pages show the changed entry. */
-  playerSlugs?: string[];
-}
-
-export interface RankingTagContext {
-  listCode: string;
-  /** Players whose rank or points changed (new, moved or dropped) in the published snapshot. */
-  playerSlugs: string[];
-}
-
-export interface EventTagContext {
-  /** Old and new slug when the slug changed. */
-  eventSlugs: string[];
-  subEventCodes: string[];
-  /** Set for publish, unpublish and cancel flips: the event's matches appear on results and match pages. */
-  matchNos?: number[];
-  /** Players of the event; set only by the manual refresh button. */
-  playerSlugs?: string[];
-}
-
-export interface SubEventTagContext {
-  eventSlug: string;
-  /** Old and new code when the code changed. */
-  subEventCodes: string[];
-}
-
-export interface PlayerTagContext {
-  playerSlugs: string[];
-  /** Events whose pages show the player's name or entries, with the match numbers the player appears in. */
-  events: { eventSlug: string; subEventCodes: string[]; matchNos: number[] }[];
-}
-
-export interface ScheduleTagContext {
-  eventSlug: string;
-  /** Matches whose slot or derived start time changed; their public pages show the time and table. */
-  matchNos?: number[];
-  /** Sub-events of those matches: bracket and group pages show each match's time and table. */
-  subEventCodes?: string[];
-}
-
-export interface EventSlugsTagContext {
-  /** Events whose cards and detail pages show the changed catalog row or image; empty for a change that only touches list filters. */
-  eventSlugs: string[];
-}
-
-export interface SubEventUsageTagContext {
-  /** Per event: the sub-events (and their matches) that show the renamed discipline or category. */
-  events: { eventSlug: string; subEventCodes: string[]; matchNos: number[] }[];
-}
-
-export interface RankingListTagContext {
-  /** Old and new code when the code changed. */
-  codes: string[];
-}
+export type {
+  MatchTagContext,
+  DrawTagContext,
+  RankingTagContext,
+  EventTagContext,
+  SubEventTagContext,
+  PlayerTagContext,
+  ScheduleTagContext,
+  VenueTableTagContext,
+  EventSlugsTagContext,
+  SubEventUsageTagContext,
+  RankingListTagContext,
+} from './cache-tag-contexts.js';
 
 const eventTags = (c: EventTagContext) => [
   t.events(),
@@ -84,6 +41,7 @@ const eventVisibilityTags = (c: EventTagContext) => [
 ];
 
 const subEventTags = (c: SubEventTagContext) => [
+  t.events(),
   t.event(c.eventSlug),
   t.schedule(c.eventSlug),
   ...c.subEventCodes.flatMap((code) => [t.draw(c.eventSlug, code), t.groups(c.eventSlug, code)]),
@@ -98,6 +56,18 @@ const playerTags = (c: PlayerTagContext) => [
     t.schedule(event.eventSlug),
     ...event.matchNos.map((no) => t.match(event.eventSlug, no)),
   ]),
+];
+
+const venueTableTags = (c: VenueTableTagContext) => [
+  ...c.matches.flatMap((m) => [
+    t.event(m.eventSlug),
+    t.schedule(m.eventSlug),
+    t.draw(m.eventSlug, m.subEventCode),
+    ...(m.isGroupMatch ? [t.groups(m.eventSlug, m.subEventCode)] : []),
+    t.match(m.eventSlug, m.matchNo),
+    ...m.playerSlugs.map(t.player),
+  ]),
+  ...(c.matches.length ? [t.resultsStrip()] : []),
 ];
 
 const eventCardTags = (c: EventSlugsTagContext) => [t.events(), ...c.eventSlugs.map(t.event)];
@@ -129,6 +99,9 @@ const matchWithPlayerTags = (c: MatchTagContext) => [...matchTags(c), ...c.playe
 
 const matchResultTags = (c: MatchTagContext) => [...matchTags(c), t.resultsStrip(), ...c.playerSlugs.map(t.player)];
 
+/** Publishing or unpublishing a draw adds or removes public matches, which the event cards show. */
+const drawVisibilityTags = (c: DrawTagContext) => [t.events(), ...drawTags(c)];
+
 const drawTags = (c: DrawTagContext) => [
   t.event(c.eventSlug),
   t.schedule(c.eventSlug),
@@ -151,9 +124,9 @@ export const CACHE_TAGS = {
   'match.reopen': matchResultTags,
   // Group standings (manual ranks, recompute): event, schedule, draw and groups pages of the sub-event; the results strip shows matches, not standings.
   'group.standings': drawTags,
-  'draw.publish': drawTags,
+  'draw.publish': drawVisibilityTags,
   // Unpublish and every edit of a published draw; the draw tag covers both MAIN and QUALIFYING of the sub-event.
-  'draw.unpublish': drawTags,
+  'draw.unpublish': drawVisibilityTags,
   'draw.postPublishEdit': drawTags,
   // Qualifiers or group places filling slots of a published MAIN draw.
   'draw.placeQualifiers': drawTags,
@@ -166,7 +139,7 @@ export const CACHE_TAGS = {
   'tier.write': eventCardTags,
   'eventType.write': eventCardTags,
   'venue.write': eventCardTags,
-  'venueTable.write': (c: EventSlugsTagContext) => c.eventSlugs.flatMap((slug) => [t.event(slug), t.schedule(slug)]),
+  'venueTable.write': venueTableTags,
   'media.update': (c: EventSlugsTagContext) => [...eventCardTags(c), t.players(), t.rankings(), t.articles(), t.sponsors(), t.home()],
   'discipline.write': subEventUsageTags,
   'category.write': subEventUsageTags,

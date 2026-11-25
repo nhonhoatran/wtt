@@ -6,7 +6,8 @@ import { parseBody } from '../../common/validation/parse-body.js';
 import { RequirePermission } from '../access-control/access-decorators.js';
 import { requireAuthContext } from '../auth/auth-context.js';
 import { createEventBody, slugAvailableQuery, updateEventBody } from './event-dtos.js';
-import { EVENT_LIST_RULES, EventsQueryService } from './events-query.service.js';
+import { EVENT_COUNT_RULES, EVENT_LIST_RULES, EventsQueryService } from './events-query.service.js';
+import { EventProgressService } from './event-progress.service.js';
 import { EventsService } from './events.service.js';
 
 @Controller('admin/events')
@@ -14,6 +15,7 @@ export class AdminEventsController {
   constructor(
     private readonly events: EventsService,
     private readonly query: EventsQueryService,
+    private readonly progress: EventProgressService,
     private readonly pagination: PaginationLimitsService,
   ) {}
 
@@ -21,6 +23,12 @@ export class AdminEventsController {
   @RequirePermission('tournaments', 'list')
   async list(@Query() raw: Record<string, unknown>) {
     return this.query.list(parsePaginationQuery(raw, EVENT_LIST_RULES, await this.pagination.limits()));
+  }
+
+  @Get('lifecycle-counts')
+  @RequirePermission('tournaments', 'list')
+  async lifecycleCounts(@Query() raw: Record<string, unknown>) {
+    return { data: await this.query.lifecycleCounts(parsePaginationQuery(raw, EVENT_COUNT_RULES, await this.pagination.limits())) };
   }
 
   @Get('slug-available')
@@ -34,6 +42,12 @@ export class AdminEventsController {
   @RequirePermission('tournaments', 'read')
   async defaults(@Req() req: Request) {
     return { data: await this.query.defaults(requireAuthContext(req).user.id) };
+  }
+
+  @Get(':id/progress')
+  @RequirePermission('tournaments', 'read')
+  async getProgress(@Param('id') id: string) {
+    return { data: await this.progress.get(id) };
   }
 
   @Get(':id')
