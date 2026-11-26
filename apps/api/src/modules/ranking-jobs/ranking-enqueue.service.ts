@@ -65,8 +65,12 @@ export class RankingEnqueueService implements OnModuleDestroy {
   async jobStatus(jobId: string): Promise<RankingJobStatus> {
     const notFound = () => new NotFoundException({ code: 'RANKING_JOB_NOT_FOUND', message: 'Không tìm thấy tác vụ' });
     if (!RANKING_JOB_ID.test(jobId)) throw notFound();
+    let state;
     let job;
     try {
+      // State first: a job that finishes between the two reads then shows as unfinished with its result, which callers
+      // poll again. The other order reports it finished with no result.
+      state = await withTimeout(this.queue.getJobState(jobId), ENQUEUE_TIMEOUT_MS);
       job = await withTimeout(this.queue.getJob(jobId), ENQUEUE_TIMEOUT_MS);
     } catch (error) {
       this.logger.warn({ msg: 'ranking job lookup failed', err: safeErrorSummary(error) });
@@ -76,7 +80,7 @@ export class RankingEnqueueService implements OnModuleDestroy {
     return {
       id: jobId,
       name: job.name,
-      state: await job.getState(),
+      state,
       attemptsMade: job.attemptsMade,
       failedReason: job.failedReason || null,
       result: job.returnvalue ?? null,
