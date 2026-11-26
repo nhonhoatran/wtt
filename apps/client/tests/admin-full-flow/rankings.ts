@@ -108,26 +108,26 @@ export async function publishSnapshot(page: Page, world: FullUiWorld, id: string
 }
 
 export async function publicRanking(page: Page, world: FullUiWorld, list: ListFixture, expected: SnapshotRow[], event: EventFixture, points: number): Promise<void> {
+  // The public ranking is an <ol> of <details> rows; each summary holds exactly two <strong>: rank, then points.
+  const rows = page.getByRole('list', { name: list.name, exact: true }).locator(':scope > li');
   await expect.poll(async () => {
     await page.goto(`${world.siteOrigin}/vi/rankings/${list.code}`);
-    const row = page.getByRole('table', { name: list.name, exact: true }).locator(':scope > tbody > tr').first();
-    return await row.count() ? row.locator(':scope > td').nth(1).locator('strong').first().textContent() : null;
+    const first = rows.first();
+    return await first.count() ? first.locator('summary strong').last().textContent() : null;
   }, { timeout: 15_000 }).toBe(expected[0]!.points.toLocaleString('vi'));
-  const table = page.getByRole('table', { name: list.name, exact: true });
-  const visible = table.locator(':scope > tbody > tr');
-  const count = await visible.count();
+  const count = await rows.count();
   expect(count).toBeLessThanOrEqual(expected.length);
   for (let index = 0; index < count; index++) {
-    const row = visible.nth(index);
+    const summary = rows.nth(index).locator('summary');
     const source = expected[index]!;
-    await expect(row.locator(':scope > th')).toContainText(source.player.fullName);
-    await expect(row.locator(':scope > td').nth(0).locator('strong')).toHaveText(String(source.rank));
-    await expect(row.locator(':scope > td').nth(1).locator('strong').first()).toHaveText(source.points.toLocaleString('vi'));
+    await expect(summary).toContainText(source.player.fullName);
+    await expect(summary.locator('strong').first()).toHaveText(String(source.rank));
+    await expect(summary.locator('strong').last()).toHaveText(source.points.toLocaleString('vi'));
   }
-  const top = table.locator(':scope > tbody > tr').first();
-  await expect(top).toContainText(expected[0]!.player.fullName);
-  await expect(top.locator(':scope > td').nth(1).locator('strong').first()).toHaveText(expected[0]!.points.toLocaleString('vi'));
+  const top = rows.first();
+  await expect(top.locator('summary')).toContainText(expected[0]!.player.fullName);
   await top.locator('summary').click();
+  await expect(top.locator('details')).toHaveAttribute('open', '');
   const breakdown = top.locator('details tbody tr').filter({ hasText: event.name });
   await expect(breakdown.locator('td').nth(2)).toHaveText(String(points));
 }

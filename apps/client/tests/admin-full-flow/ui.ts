@@ -21,42 +21,32 @@ export async function pickOption(page: Page, field: Locator, text: string, searc
     await expect(field).toHaveAttribute('aria-expanded', 'true');
     const listboxId = await field.getAttribute('aria-controls') ?? await field.getAttribute('aria-owns');
     expect(listboxId, 'The active Select must own its dropdown listbox').toBeTruthy();
-    const listbox = page.locator(`[id="${listboxId}"]`);
-    await expect(listbox).toBeAttached();
-    const options = listbox.locator('[role="option"]');
-    const optionNodes = await options.evaluateAll((items) => items.map((item) => ({
-      id: item.id,
-      label: item.getAttribute('aria-label') ?? item.textContent?.trim() ?? '',
-    })));
-    const targetIndex = optionNodes.findIndex((item) => exact ? item.label === text : item.label.includes(text));
-    expect(targetIndex, `The open dropdown must contain the requested option: ${text}`).toBeGreaterThanOrEqual(0);
-    const targetId = optionNodes[targetIndex]!.id;
-    await expect(field).toBeFocused();
-    let activeId = await field.getAttribute('aria-activedescendant');
-    let activeIndex = optionNodes.findIndex((item) => item.id === activeId);
-    if (activeIndex < 0) {
+    await expect(page.locator(`[id="${listboxId}"]`)).toBeAttached();
+    // Ant Design's accessible listbox only renders a window around the active option, so walk the active descendant.
+    const activeLabel = () => field.evaluate((element) => {
+      const id = element.getAttribute('aria-activedescendant');
+      return (id && document.getElementById(id)?.getAttribute('aria-label')) || '';
+    });
+    const matches = (label: string) => exact ? label === text : label.includes(text);
+    // Options fetched from the API can arrive after the dropdown opens; walking an empty list ends before the target exists.
+    await expect(dropdown.locator('.ant-select-item-option').first(), 'The open dropdown must load its options').toBeVisible();
+    const start = await field.getAttribute('aria-activedescendant');
+    let found = matches(await activeLabel());
+    for (let step = 0; !found && step < 100; step++) {
       await page.keyboard.press('ArrowDown');
-      activeId = await field.getAttribute('aria-activedescendant');
-      activeIndex = optionNodes.findIndex((item) => item.id === activeId);
-    }
-    expect(activeIndex, 'The focused Select must expose its active dropdown option').toBeGreaterThanOrEqual(0);
-    const optionCount = optionNodes.length;
-    const down = (targetIndex - activeIndex + optionCount) % optionCount;
-    const up = (activeIndex - targetIndex + optionCount) % optionCount;
-    const key = down <= up ? 'ArrowDown' : 'ArrowUp';
-    for (let index = 0; index < Math.min(down, up); index++) {
-      await page.keyboard.press(key);
       await expect(field).toBeFocused();
+      found = matches(await activeLabel());
+      if (!found && await field.getAttribute('aria-activedescendant') === start) break;
     }
-    await expect(field).toHaveAttribute('aria-activedescendant', targetId);
-    const active = page.locator(`[id="${targetId}"]`);
-    await expect(active).toHaveAttribute('aria-label', text);
+    expect(found, `The open dropdown must contain the requested option: ${text}`).toBe(true);
     await page.keyboard.press('Enter');
     const selector = field.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " ant-select-selector ")]');
     await expect(selector.getByText(text, { exact })).toBeVisible();
   } else {
     const option = exact ? dropdown.getByText(text, { exact: true }) : dropdown.locator('.ant-select-item-option').filter({ hasText: text }).first();
     await expect(option).toBeVisible();
+    // A popup wider than a phone screen rescales the page while it slides in; a click aimed mid-motion keeps missing its option.
+    await expect(page.locator('.ant-select-dropdown.ant-slide-up-appear, .ant-select-dropdown.ant-slide-up-enter')).toHaveCount(0);
     await option.click();
   }
 }
@@ -84,12 +74,11 @@ export async function uiResponse<T>(page: Page, method: string, pathname: string
 export async function closeDrawer(page: Page): Promise<void> {
   const drawer = page.locator('.ant-drawer-open');
   if (await drawer.count()) {
-    try {
-      await drawer.getByRole('button', { name: 'Đóng', exact: true }).click({ timeout: 2_000 });
-    } catch {
-      // Successful confirmation can already be closing the drawer during its CSS animation.
-      await expect(drawer, 'A failed close click is acceptable only when the drawer actually closes').not.toBeVisible();
-    }
-    await expect(drawer).not.toBeVisible();
+    // After a confirmation the drawer moves on to the next match instead of closing, and the confirm modal may still be fading out.
+    await expect(page.locator('.ant-modal-wrap:visible')).toHaveCount(0);
+    await expect(async () => {
+      if (await drawer.isVisible()) await drawer.getByRole('button', { name: 'Đóng', exact: true }).click({ timeout: 2_000 });
+      await expect(drawer).not.toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
   }
 }

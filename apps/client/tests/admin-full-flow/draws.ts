@@ -49,7 +49,7 @@ export async function createDraw(page: Page, world: FullUiWorld, event: EventFix
 
 export async function publishEvent(page: Page, world: FullUiWorld, event: EventFixture): Promise<void> {
   await page.goto(`${world.adminOrigin}/events/${event.id}/info`);
-  await page.getByRole('button', { name: 'Công bố', exact: true }).click();
+  await page.getByRole('button', { name: 'Công bố giải', exact: true }).click();
   const confirm = page.getByRole('dialog').filter({ hasText: 'Công bố giải?' });
   await uiResponse(page, 'POST', `/admin/events/${event.id}/publish`, () => confirm.getByRole('button', { name: 'Công bố', exact: true }).click());
 }

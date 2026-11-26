@@ -49,8 +49,15 @@ async function fillWin(scope: Locator, detail: MatchDetail, winner: 1 | 2, loser
   const wins = Math.ceil(detail.format.bestOf / 2);
   for (let index = 1; index <= wins; index++) {
     const inputs = scope.getByRole('textbox', { name: new RegExp(`^Ván ${index}: điểm `) });
-    await inputs.nth(0).fill(String(winner === 1 ? detail.format.pointsPerGame : loserPoints));
-    await inputs.nth(1).fill(String(winner === 2 ? detail.format.pointsPerGame : loserPoints));
+    const side1 = String(winner === 1 ? detail.format.pointsPerGame : loserPoints);
+    const side2 = String(winner === 2 ? detail.format.pointsPerGame : loserPoints);
+    // The score grid focuses its first cell shortly after mounting, which can redirect a fill in progress; refill until both values stick.
+    await expect(async () => {
+      await inputs.nth(0).fill(side1, { timeout: 2_000 });
+      await inputs.nth(1).fill(side2, { timeout: 2_000 });
+      await expect(inputs.nth(0)).toHaveValue(side1, { timeout: 1_000 });
+      await expect(inputs.nth(1)).toHaveValue(side2, { timeout: 1_000 });
+    }).toPass({ timeout: 10_000 });
   }
 }
 
@@ -106,6 +113,8 @@ export async function amendResult(page: Page, detail: MatchDetail, publicPage: P
   const modal = page.getByRole('dialog', { name: `Sửa tỷ số trận #${detail.matchNo}`, exact: true });
   const winner = detail.winnerSide;
   if (winner !== 1 && winner !== 2) throw new Error('An official fixture result must identify its winner before amendment');
+  // The modal moves focus to its first score cell shortly after opening; text typed before that lands in the cell instead of its own field.
+  await expect(modal.getByRole('textbox', { name: /^Ván 1: điểm / }).first()).toBeFocused();
   await fillWin(modal, detail, winner, 1);
   await modal.getByLabel('Lý do', { exact: true }).fill('Correct the recorded game points without changing the winner.');
   const started = performance.now();
