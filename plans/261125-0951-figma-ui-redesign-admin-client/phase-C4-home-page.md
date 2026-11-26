@@ -1,7 +1,7 @@
 ---
 phase: C4
 title: "Trang chủ theo Figma (desktop 1-28, mobile 1-37)"
-status: pending
+status: completed
 priority: P1
 effort: 4h
 depends_on: [C1, C2, C3]
@@ -69,13 +69,21 @@ Tạo:
 8. Chạy kiểm + Lighthouse `/vi`, `/en`.
 
 ## Todo
-- [ ] Ghép khối `page.tsx`
-- [ ] Hero + CTA theo tab khả dụng
-- [ ] Trận hôm nay (chỉ khi ongoing)
-- [ ] Thẻ giải + chip nội dung
-- [ ] Tin nổi bật + danh sách
-- [ ] Top VĐV navy + tab link
-- [ ] Test trang chủ, axe, Lighthouse
+- [x] Ghép khối `page.tsx`
+- [x] Hero + CTA theo tab khả dụng
+- [x] Trận hôm nay (chỉ khi ongoing)
+- [x] Thẻ giải + chip nội dung
+- [x] Tin nổi bật + danh sách
+- [x] Top VĐV navy + tab link
+- [x] Unit, Playwright trang chủ và axe đạt (báo cáo C11)
+- [x] Lighthouse production (lượt cuối C11: 100/100/100)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C4-home-page.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Playwright/axe tích hợp đã đạt ở báo cáo C11. Lighthouse production cuối C11: trang chủ 100/100/100, `runtimeError=null`; không dùng số Next dev thay cho đo production.
 
 ## Success criteria
 - `content-home.spec.ts`, `accessibility.spec.ts` (route `/vi`, `/en`, hai viewport), `site-chrome-and-seo.spec.ts` (mobile 390 không tràn) đạt.

@@ -1,7 +1,7 @@
 ---
 phase: C1
 title: "Token thiết kế và thành phần UI dùng chung (client)"
-status: pending
+status: completed
 priority: P1
 effort: 3h
 depends_on: []
@@ -18,7 +18,7 @@ cross_half: "Không chạy song song với A1 (A1 sửa packages/ui-tokens/src/a
 
 ## Overview
 - Ưu tiên: P1 (mọi phase giao diện sau dùng lại).
-- Trạng thái: chưa làm.
+- Trạng thái: completed.
 - Thêm token còn thiếu (màu chữ đỏ đạt AA, màu thắng/thua trên nền sáng và navy), các primitive dùng lại: tiêu đề khối có eyebrow + vạch đỏ, pill trạng thái, nút chính/viền, avatar chữ cái, biến thể tab gạch chân của `PillNav`, badge hạng giải nền màu đọc được.
 
 ## Key insights
@@ -75,12 +75,17 @@ Tạo:
 8. Chạy `pnpm --filter @kamito/ui-tokens build test`, `pnpm --filter @kamito/client typecheck lint test`.
 
 ## Todo
-- [ ] Token mới + test build CSS
-- [ ] `readable-text-color` + unit test
-- [ ] `TierBadge filled`
-- [ ] `StatusPill`, `SectionHeading`, `InitialsAvatar`
-- [ ] `PillNav variant="tabs"`
-- [ ] typecheck/lint/unit client và ui-tokens
+- [x] Token mới + test build CSS
+- [x] `readable-text-color` + unit test
+- [x] `TierBadge filled`
+- [x] `StatusPill`, `SectionHeading`, `InitialsAvatar`
+- [x] `PillNav variant="tabs"`
+- [x] typecheck/lint/unit client và ui-tokens
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C1-client-tokens.md).
 
 ## Success criteria
 - `tokens.css` có 5 biến mới; admin build không đổi (`pnpm --filter @kamito/admin build` đạt, theme antd giữ giá trị).

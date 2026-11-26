@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q2 (xem trước giải nháp)
 
 ## Overview
-- Ưu tiên: P1 (A5–A9 dùng). Effort: ~5h. Trạng thái: done (API route + UI; kiểm trình duyệt có stub progress). Phụ thuộc: A1.
+- Ưu tiên: P1 (A5–A9 dùng). Effort: ~5h. Trạng thái: completed (API route + UI; kiểm trình duyệt ban đầu có stub progress). Phụ thuộc: A1.
 - Header mới, stepper tiến độ 5 bước (bấm để sang tab), đổi nhãn tab, component `SubEventPills` thay side menu ở các tab sau.
 
 ## Key insights
@@ -86,6 +86,11 @@ Sửa
 - [x] SubEventPills
 - [x] nhãn tab + breadcrumb
 - [x] build/test xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A4-admin-event-hub.md).
 
 ## Success criteria
 - Bốc thăm/xếp lịch xong trong tab → stepper đổi trạng thái không cần reload.

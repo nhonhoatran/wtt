@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q5 ("Cách sửa" + tải danh sách lỗi), Q6 (trạng thái "Chờ xác nhận")
 
 ## Overview
-- Ưu tiên: P2. Effort: ~5h. Trạng thái: done (2026-11-25). Phụ thuộc: A4 (`SubEventPills`).
+- Ưu tiên: P2. Effort: ~5h. Trạng thái: completed (2026-11-25). Phụ thuộc: A4 (`SubEventPills`).
 - Pill nội dung thay side menu; hàng công cụ gọn; "Thêm VĐV" mở form thu gọn; nhập Excel hiển thị cả 3 bước trong tab (không rời trang).
 
 ## Key insights
@@ -72,6 +72,11 @@ Tạo
 - [x] ghép entries-tab + `?import=`
 - [x] E2E selector
 - [x] build xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A6-admin-entries-import.md).
 
 ## Success criteria
 - Nhập 1 file từ đầu tới cuối không rời tab: đếm thao tác = chọn "Nhập từ Excel" → kéo file → (chờ kiểm) → "Nhập N dòng" → Xác nhận (4 thao tác; hiện tại 6 gồm chuyển trang + quay lại).

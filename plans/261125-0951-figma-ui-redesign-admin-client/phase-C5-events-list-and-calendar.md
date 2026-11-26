@@ -1,7 +1,7 @@
 ---
 phase: C5
 title: "Danh sách giải (1-14) và lịch tháng dùng chung hàng giải"
-status: pending
+status: completed
 priority: P2
 effort: 3h
 depends_on: [C1, C2, C3, C4]
@@ -63,12 +63,17 @@ Tạo:
 8. Cập nhật test, chạy kiểm.
 
 ## Todo
-- [ ] `group-events-by-month` + test
-- [ ] Pill trạng thái + filter giữ trạng thái
-- [ ] `EventListRow`
-- [ ] Phạm vi phân trang
-- [ ] Lịch tháng dùng hàng mới
-- [ ] Test + axe route danh sách
+- [x] `group-events-by-month` + test
+- [x] Pill trạng thái + filter giữ trạng thái
+- [x] `EventListRow`
+- [x] Phạm vi phân trang
+- [x] Lịch tháng dùng hàng mới
+- [x] Test + axe route danh sách
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C5-events-list-calendar.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
 
 ## Success criteria
 - `event-pages.spec.ts` (danh sách: filter rác vẫn render), `site-chrome-and-seo.spec.ts` (calendar canonical năm, mobile 390) đạt; thêm `/events` vào danh sách axe ở C11 (hoặc ngay phase này).

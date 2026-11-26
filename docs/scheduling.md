@@ -262,11 +262,11 @@ Thông báo cảnh báo `warnings` được hiện qua `apps/admin/src/api/write
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
 | Kiểm tích hợp lịch công khai theo session/bàn | Đã triển khai và kiểm local (2026-11-15) | Endpoint `GET /public/events/:slug/schedule?session&table`, trang `/:locale/events/:slug/info`, bản in theo lịch đang lọc. Chỉ dùng mã công khai, không nhận ID nội bộ. Xem [public-site](./public-site.md#in-ấn) |
-| Nhãn session ở màn nhập tỷ số thiếu ngày | Chưa xong | Giải nhiều ngày thì không phân biệt được session cùng giờ (`ui-verifier-261114-phase-07`, mục F) |
-| Panel chưa xếp: thông báo khi lọc không ra kết quả | Chưa xong | Hiện "Đã xếp hết trận" dù đang lọc (mục D) |
-| Kéo thả chỉ có `PointerSensor` | Chưa xong | Bàn phím vẫn xếp được bằng hai cú bấm. Checklist ghi có `KeyboardSensor` (mục C) |
-| Tooltip cảnh báo trùng không focus được | Chưa xong | Chữ "N cảnh báo trùng lịch" vẫn đọc được (mục C) |
-| Trang in: lỗi tải session không có nút thử lại | Chưa xong | Mục E |
+| Nhãn session ở màn nhập tỷ số thiếu ngày | Đã sửa (đối chiếu code 2026-11-26) | Bộ lọc dùng `sessionDatedLabel` (`apps/admin/src/pages/results/results-filters.tsx:31`). Nguồn: `ui-verifier-261114-phase-07`, mục F |
+| Panel chưa xếp: thông báo khi lọc không ra kết quả | Đã sửa (đối chiếu code 2026-11-26) | Đang lọc hiện "Không có trận nào", không lọc mới hiện "Đã xếp hết trận" (`unscheduled-panel.tsx:132`). Mục D |
+| Kéo thả chỉ có `PointerSensor` | Đã sửa 2026-11-25 | Space nhấc, mũi tên chuyển ô, Space/Enter thả, Esc hủy (`schedule-keyboard-drag.ts`); đã kiểm trên Chromium, Firefox, WebKit ([báo cáo](../plans/reports/tester-261125-a8-browser-gates.md)). Mục C |
+| Tooltip cảnh báo trùng không focus được | Đã sửa (đối chiếu code 2026-11-26) | Dòng cảnh báo có `tabIndex={0}`, `role="note"` và `aria-label` đầy đủ (`session-grid-cell.tsx:131`). Mục C |
+| Trang in: lỗi tải session không có nút thử lại | Đã sửa (đối chiếu code 2026-11-26) | Cả lỗi tải phiếu và lỗi tải danh sách buổi đều có nút "Thử lại" (`match-sheets-print-page.tsx:125`, `:161`). Mục E |
 | Chưa render: cỡ lưới thật, khổ A4, focus, tương phản | Chưa kiểm | `ui-verifier-261114-phase-07` chỉ đọc code, không chạy trình duyệt |
 
 Nguồn báo cáo: `plans/reports/reviewer-261114-phase07-scheduling.md` (review trước các sửa, đã đối chiếu lại một phần trong code ngày 2026-11-14), `plans/reports/ui-verifier-261114-phase-07.md`.

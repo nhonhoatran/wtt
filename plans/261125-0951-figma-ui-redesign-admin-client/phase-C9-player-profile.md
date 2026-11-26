@@ -1,7 +1,7 @@
 ---
 phase: C9
 title: "Hồ sơ vận động viên (1-19)"
-status: pending
+status: completed
 priority: P2
 effort: 3h
 depends_on: [C1, C2, C6]
@@ -63,11 +63,18 @@ Tạo:
 5. Cập nhật e2e (hồ sơ ẩn 404, redirect, noindex, empty state vẫn đạt).
 
 ## Todo
-- [ ] Hàm góc nhìn VĐV + test
-- [ ] Hero + thống kê
-- [ ] Bảng kết quả
-- [ ] Bảng giải đã tham dự
-- [ ] e2e + axe hồ sơ
+- [x] Hàm góc nhìn VĐV + test
+- [x] Hero + thống kê
+- [x] Bảng kết quả
+- [x] Bảng giải đã tham dự
+- [x] e2e + axe hồ sơ
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C9-player-profile.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Playwright/axe tích hợp đã đạt ở C11. Build production cuối được theo dõi tại C11; các nhánh dữ liệu chưa thấy trên trình duyệt vẫn giữ giới hạn của báo cáo triển khai.
 
 ## Success criteria
 - `rankings-and-players.spec.ts` (hồ sơ ẩn 404, 301, noindex, empty state, 390) và `accessibility.spec.ts` route hồ sơ đạt.

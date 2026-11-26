@@ -1,7 +1,7 @@
 ---
 phase: C3
 title: "Khung site: header, menu theo setting, ticker kết quả, footer"
-status: pending
+status: completed
 priority: P1
 effort: 5h
 depends_on: [C1, C2]
@@ -67,13 +67,20 @@ Tạo:
 9. Cập nhật fixture setting e2e và test nav; chạy kiểm.
 
 ## Todo
-- [ ] `nav-items.ts` + unit test
-- [ ] Header + menu mobile + VI | EN + nút đăng ký ẩn mặc định
-- [ ] Ticker thẻ mới
-- [ ] Footer + MXH + bỏ chuỗi cứng
-- [ ] Tách CSS < 200 dòng
-- [ ] (tùy Q2) `/search`
-- [ ] Sửa test nav, fixture setting; chạy bộ kiểm
+- [x] `nav-items.ts` + unit test
+- [x] Header + menu mobile + VI | EN + nút đăng ký ẩn mặc định
+- [x] Ticker thẻ mới
+- [x] Footer + MXH + bỏ chuỗi cứng
+- [x] Tách CSS < 200 dòng
+- [ ] (tùy Q2, chờ quyết định sản phẩm) `/search`
+- [x] Sửa test nav, fixture setting; chạy bộ kiểm
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C3-site-shell.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Playwright/axe tích hợp đã đạt ở báo cáo C11. `/search` là tính năng tùy chọn chưa chốt Q2, không thuộc phần triển khai đã hoàn tất.
 
 ## Success criteria
 - `pnpm --filter @kamito/client typecheck lint test build` đạt (gồm `i18n-keys.test.ts`).

@@ -1,7 +1,7 @@
 ---
 phase: C10
 title: "Bảng xếp hạng (desktop 1-3, mobile 1-31) và trang tổng quan"
-status: pending
+status: completed
 priority: P1
 effort: 4h
 depends_on: [C1, C2, C4]
@@ -70,12 +70,20 @@ Tạo:
 7. Lighthouse + axe; so kích thước HTML.
 
 ## Todo
-- [ ] `expiring-soon` + test
-- [ ] Panel điểm + tổng + link hồ sơ
-- [ ] Danh sách accordion (không link trong summary)
-- [ ] Bộ chọn bảng
-- [ ] Tổng quan navy
-- [ ] e2e/axe/Lighthouse
+- [x] `expiring-soon` + test
+- [x] Panel điểm + tổng + link hồ sơ
+- [x] Danh sách accordion (không link trong summary)
+- [x] Bộ chọn bảng
+- [x] Tổng quan navy
+- [x] E2E và axe đạt (báo cáo C11)
+- [x] Lighthouse production (lượt cuối C11: 100/100/100)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C10-rankings.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Setting link hướng dẫn điểm, múi giờ và token cảnh báo được bổ sung ở review vòng 4. Playwright/axe đã đạt ở C11; Lighthouse production cuối BXH 100/100/100, `runtimeError=null`.
 
 ## Success criteria
 - `rankings-and-players.spec.ts` đạt toàn bộ (gồm không JS, phân trang giữ filter, 390); `accessibility.spec.ts` route BXH 0 vi phạm (đặc biệt `nested-interactive`, `list`).

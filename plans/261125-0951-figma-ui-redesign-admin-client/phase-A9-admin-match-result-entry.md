@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q10 (ghi chú trận)
 
 ## Overview
-- Ưu tiên: P2. Effort: ~5h. Trạng thái: pending. Phụ thuộc: A4 (tab), A2 (deep link từ dashboard — không chặn).
+- Ưu tiên: P2. Effort: ~5h. Trạng thái: in-progress. Phụ thuộc: A4 (tab), A2 (deep link từ dashboard — không chặn).
 - Giữ luồng danh sách + drawer + tự mở trận kế tiếp cùng bàn (nhanh cho trọng tài bàn). Áp bố cục Figma vào drawer; thêm điều hướng Trận trước/sau; tab "Kết quả" trong hub dùng chung màn.
 
 ## Key insights
@@ -72,13 +72,21 @@ Tạo
 8. typecheck/lint/test/build.
 
 ## Todo
-- [ ] ResultsWorkspace
-- [ ] deep link
-- [ ] navigation + test
-- [ ] drawer tách + restyle
-- [ ] lỗi có ví dụ
-- [ ] tab hub
-- [ ] E2E + build xanh
+- [x] ResultsWorkspace
+- [x] deep link
+- [x] navigation + test
+- [x] drawer tách + restyle
+- [x] lỗi có ví dụ
+- [x] tab hub
+- [x] Build và unit test đạt
+- [x] E2E admin-full-flow sau redesign (kiểm cùng C11) — đạt 2026-11-26: desktop 8/8 một lượt, mobile 8/8 hai lượt; [báo cáo](../reports/tester-261126-1620-admin-full-flow-after-redesign.md)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A9-admin-results.md).
+
+Các bước triển khai, build và kiểm tay đã có bằng chứng; E2E admin-full-flow sau redesign đạt ngày 2026-11-26 sau khi sửa helper `amendResult`/`fillWin` cho khớp với việc lưới điểm tự focus ô đầu sau 80 ms.
 
 ## Success criteria
 - Nhập kết quả 1 trận: mở trận → nhập ván → Xác nhận → drawer tự sang trận kế (≤ 1 thao tác chuyển trận, như hiện tại).

@@ -68,6 +68,8 @@ Tag được dựng từ `publicCacheTags` (`packages/shared/src/public-cache-ta
 | `sponsors()` | `sponsors` | Dải tài trợ site và trang giải |
 | `home()` | `home` | Trang chủ và nội dung các khối |
 
+Tham số chỉ để xem (`round`, `round<nhánh>` ở trang nhánh đấu; `ranking` ở trang chủ) không đi vào `toQuery`, khóa cache hay tag: server luôn lấy cùng một bản bracket/trang chủ rồi chọn phần hiển thị. Trang trận lấy thêm bracket hoặc bảng đấu của đúng nội dung cho cột bên và "Đường đến trận này", dùng cùng hàm và tag `draw-*`/`groups-*` với hai trang đó, nên chốt trận làm mới cả ba. Tag `events` còn phủ `subEvent.*` (thẻ giải hiển thị nội dung) và bàn đổi tên (`venueTable.write`) làm mới trang trận, nhánh, bảng đấu và hồ sơ VĐV liên quan.
+
 Entry dùng `entryChangeTags` (`packages/shared/src/public-cache-tag-sets.ts`): tag giải, `draw-*`, `groups-*` của các nội dung bị ảnh hưởng, `players` khi có VĐV mới, và `player-*` của các VĐV liên quan. Hàm này dùng chung cho API và worker.
 
 Phase 10: mọi loader ngữ cảnh VĐV gửi cả `Player.slug` cũ và `publicPlayerSlug(id)` dạng `p-<UUID>`. Áp cho entry, sửa/gộp VĐV, chốt/sửa trận, thay đổi nhánh, công bố kỳ và commit import. Trang bảng/hồ sơ còn dùng tag chung `players`, `rankings`, `events`, `settings` theo `apps/client/src/lib/public-data.ts`, nên đổi quyền công khai/tên/ảnh, gỡ giải nguồn hoặc đổi tuổi/top N không giữ dữ liệu cũ tới hết TTL. Phạm vi breakdown kiểm bằng `eventId` nội bộ ổn định, không tin slug được tái sử dụng; snapshot cũ thiếu id che nhãn/link, vẫn giữ điểm/ngày.
@@ -166,7 +168,7 @@ Bảng dưới đây liệt kê route theo mutation (cột "route") và theo lý
 | Bàn đang được dùng trong phiên hoặc trận thì không được xóa | `DELETE /admin/venues/:id/tables/:tableId` |
 | Mới tạo, chưa có giải nào dùng | `POST /admin/categories`, `POST /admin/disciplines`, `POST /admin/group-scoring-rules`, `POST /admin/match-formats`, `POST /admin/venues`, `POST /admin/venues/:id/tables`, `POST /admin/venues/:id/tables/bulk` |
 | Chỉ đọc hoặc chỉ là gợi ý | `POST /admin/sub-events/:id/draws/preview`, `POST /admin/sub-events/:id/entries/suggest-seeds` |
-| Nhánh nháp, chưa công bố | `DELETE /admin/draws/:id`, `POST /admin/sub-events/:id/draws`, `POST /admin/draws/:id/swap` |
+| Nhánh nháp, chưa công bố | `DELETE /admin/draws/:id`, `POST /admin/sub-events/:id/draws`, `POST /admin/draws/:id/swap`, `POST /admin/draws/:id/swap-group-members` |
 | Ghi bảng import, chưa đổi dữ liệu công khai (worker gửi tag khi commit) | `POST /admin/imports`, `PUT /admin/imports/:id/file`, `POST .../uploaded`, `POST .../validate`, `POST .../commit`, `PATCH .../rows/:rowNo` |
 | Upload, tạo phiên tải ảnh; ảnh chỉ công khai khi giải tham chiếu tới | `POST /admin/media/intents`, `PUT /admin/media/:id/content`, `POST /admin/media/:id/complete` |
 | Người dùng không hiển thị công khai | `POST`, `PATCH /admin/users...`, `POST /admin/users/:id/reset-password`, `POST /admin/users/:id/revoke-sessions` |

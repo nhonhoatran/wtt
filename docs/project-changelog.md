@@ -1,7 +1,56 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-25. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-26. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-26 — Admin-full-flow sau redesign; dọn dòng nợ cũ
+
+Chưa commit. Đổi helper test, tài liệu và một chỗ trong API (E1 bên dưới).
+
+- Admin-full-flow tám bước trên `localhost:5433/kamito_tt_phase12_test`, bản dựng production, cổng 3371–3373: desktop đạt 8/8 một lượt (60 lần làm mới trang công khai, chậm nhất 1380 ms), mobile đạt 8/8 hai lượt (chậm nhất 796 ms). Đóng backlog L4 và ô E2E của A8, A9, A10, C11. [Báo cáo](../plans/reports/tester-261126-1620-admin-full-flow-after-redesign.md).
+- Sửa helper `apps/client/tests/admin-full-flow` (mức thấp, chỉ ảnh hưởng test): `pickOption` chờ option tải xong rồi mới dò bằng bàn phím, và chờ dropdown trượt xong rồi mới bấm; `amendResult` chờ ô điểm đầu được focus rồi mới gõ; `fillWin` giới hạn thời gian mỗi lần gõ. Bốn lượt ngày 2026-11-25 rớt vì các lỗi đua thời điểm này.
+- Sáu lượt rớt còn lại không do redesign: worker Vitest thoát `0xC0000409` (T2), server mất kết nối hai lần (chưa rõ nguyên nhân), và API trạng thái tác vụ xếp hạng trả `completed` kèm `result: null` (E1).
+- Sửa E1 (mức trung bình): `GET /admin/ranking/jobs/:id` đọc job trước, trạng thái sau bằng hai lệnh Redis; tác vụ xong giữa hai lần đọc thì admin báo dựng xong nhưng không mở được bản nháp vừa tạo. Nay đọc trạng thái trước (`ranking-enqueue.service.ts:73-74`); trường hợp xấu nhất còn lại là "chưa xong nhưng đã có kết quả", admin tự hỏi lại. Test hồi quy `ranking-enqueue.service.test.ts` rớt trước khi sửa, đạt sau khi sửa; API typecheck, lint, build exit 0.
+- Chạy lại trên bản có sửa E1 và helper cuối: desktop 8/8 (chậm nhất 851 ms), mobile 8/8 (chậm nhất 913 ms). Đóng E1 và E3. Ghi nợ mới E4: admin coi 404 từ API trạng thái tác vụ là xong mà không có `snapshotId` (`snapshot-jobs-tracker.tsx:50-59`), có sẵn từ trước.
+- Ghi nợ mới E2: dropdown chọn VĐV ở bước xem trước nhập Excel rộng 667 px trên màn 390 px.
+- Roadmap và `scheduling.md`: gạch các dòng nợ đã xong từ trước (phase 09/10 đã commit `723c30b`, `a5d0128`, `92fe3c9`; năm mục UI phase 07 đã sửa, có dẫn file và dòng).
+
+## 2026-11-25 — C11: kiểm lại production và dọn chuỗi dịch còn sót
+
+- Form liên hệ lấy thông báo validation/429 từ dictionary vi/en, tái dùng success/error hiện có. Nhãn trang tin, trang video và ảnh thay thế thẻ tin dùng khóa dictionary. Không đổi locale coercion, giới hạn đầu vào, honeypot hoặc xử lý API.
+- Hai màu hex cũ ở form liên hệ/nút phát video được thay bằng token có sẵn; giữ ngưỡng kiểm chất lượng C11.
+- Root `pnpm build` đạt 9/9 task (8 cache; client build mới). Lượt production API dist 3421 / Next start 3422, CSP enforce, DB test riêng: 119 đạt/15 bỏ qua theo điều kiện môi trường/viewport/0 lỗi/0 flaky trong 134 ca liệt kê; 229,031 giây. Sáu ca CSP enforce đã chạy, không cộng số này vào lượt Next dev 113/21 bên dưới.
+- Axe production 72 lượt không có violation mọi mức; target-size được kiểm cả 72 lượt. Kiểm tiếp sau sửa: client unit 188/188, kiểm in 9/9, root typecheck 14/14 và lint 9/9 task đạt; mọi exit 0.
+- Lighthouse r01: bốn route bắt buộc đạt (home/BXH Performance 98, giải/nhánh 100; Accessibility/SEO 100). Danh sách giải tham khảo 99/100/100; trang trận 100/100/92 thiếu `meta-description`, runner sáu route chưa đạt. Giữ nguyên ngưỡng và bằng chứng lỗi.
+- Đã bổ sung description/OG/Twitter trang trận từ dictionary vi/en và dữ liệu công khai, TBD khi chưa biết người đấu; regression trước sửa 3 lỗi/12 đạt, sau sửa + parity 16/16 đạt. Client typecheck/lint/build exit 0. Focused hai spec trên build cuối 56/12 đạt, 0 lỗi/flaky; full 119/15 và unit 188 là trước sửa metadata.
+- Lighthouse cuối bốn route bắt buộc đều 100/100/100; danh sách giải và trang trận tham khảo 99/100/100, cả sáu `runtimeError=null`. Log focused vẫn có assertion native Windows `UV_HANDLE_CLOSING` dù Playwright exit 0; giữ T2 mở, không gọi log sạch.
+- A8 L1/L2 đạt trên Chromium/Firefox/WebKit và sáu bàn thật ở 1280 px; các lượt harness thất bại được giữ trong [báo cáo](../plans/reports/tester-261125-a8-browser-gates.md). Đã lưu 28 ảnh client; mới đối chiếu 7 ảnh chính với 10 frame Figma. Chưa chạy admin-full-flow sau redesign, chưa mở đủ ảnh/PDF. [Báo cáo C11](../plans/261125-0951-figma-ui-redesign-admin-client/reports/tester-261125-client-figma-regression.md); [nhật ký](./journals/261125-client-final-gates.md).
+
+## 2026-11-25 — Redesign theo Figma, đợt 2: admin A2, A7–A9, bảng nháp đổi chỗ; site công khai C6–C10; C11 rà mobile và cổng kiểm
+
+Plan: [261125-0951-figma-ui-redesign-admin-client](../plans/261125-0951-figma-ui-redesign-admin-client/plan.md). Commit: `4a23d31` (API và shared), `66cc931` (admin), `1ca5582` (client), `136b10b` (báo cáo, review, tài liệu). Báo cáo từng phase và hai vòng review (3 và 4) ở `plans/reports/*-261125-*`.
+
+- **Admin**
+  - A2 Tổng quan: số giải đang diễn ra, trận chờ hôm nay và quá giờ, VĐV đang hoạt động, bảng trận chờ có phân trang server, hoạt động gần đây (`GET /admin/dashboard/summary`, `GET /admin/dashboard/pending-matches`). Trang `/settings` có thêm trình sửa cho setting hai ngôn ngữ, menu và mạng xã hội.
+  - A7 Bốc thăm: "Đổi chỗ" hai VĐV trong bảng nháp (`POST /admin/draws/:id/swap-group-members`, audit `draw.swapGroupMembers`, hoán cả trận vòng bảng đã sinh); cảnh báo cùng CLB gợi ý dùng nút này.
+  - A8 Lịch thi đấu và A9 Nhập kết quả theo Figma; tên bàn dùng `displayName`, chỉ khi rỗng mới ghi "Bàn {mã}".
+- **Site công khai**
+  - C6 Trang giải: hero đầy đủ ở Tổng quan, hero gọn ở các tab còn lại; thẻ trận, nội dung thi đấu, lịch theo ngày.
+  - C7 Nhánh đấu: ô trận có CLB, điểm từng ván, bàn · giờ, trạng thái, link "Chi tiết", dòng "Thắng → …"; tiêu đề vòng kèm ngày; cột "Vô địch"; chú thích; trên điện thoại chỉ hiện một vòng theo `?round=N` (nhiều nhánh con dùng `round<nhánh>`), kèm thẻ "Vòng sau". Bảng đấu dạng thẻ mỗi bảng.
+  - C8 Trang trận: bảng điểm hai bên, thông tin bàn/ca/giờ, tóm tắt, "Đường đến trận này", cột bên (trận tiếp theo, trận cùng vòng/bảng); tab Trận dạng bảng từ 1024 px.
+  - C9 Hồ sơ VĐV: hero tối, thắng–thua, bảng kết quả (từ 768 px), giải đã tham dự. Không hiện năm sinh (luật riêng tư).
+  - C10 Bảng xếp hạng: mỗi dòng là một `<details>` có chi tiết điểm theo giải, nhãn "Sắp hết hạn", chọn bảng theo tab.
+- **Setting mới** (sửa trên `/settings`, có mặc định, có audit): `dashboard.liveEventLimit` (5), `dashboard.recentActivityLimit` (6; 0 ẩn khối), `public.matchRelatedLimit` (4, 1–12), `ranking.pointsGuidePageSlug` (rỗng thì ẩn link "Cách tính điểm"). `event.defaultTimezone` được dùng thêm làm múi giờ "hôm nay" của site công khai. Cache tag: không thêm tag mới ở đợt này; `round`, `ranking` không vào khóa cache và không vào canonical.
+- **C11 (client)**
+  - Thẻ "Vòng sau: Bán kết · 15/03" cuối nhánh trên điện thoại (dữ liệu thật: tên vòng kế và ngày sớm nhất của vòng đó; ẩn ở vòng cuối).
+  - Hero gọn không còn đặt huy hiệu hạng giải trong `<h1>` (tên truy cập của `<h1>` bị dính "Hệ thống giải KamitoTên giải").
+  - Điểm trong dòng xếp hạng bọc `<strong>` lại (test seed API đọc `<strong>137</strong>`).
+  - Test e2e: axe quét 18 route × vi/en × hai viewport; kiểm 390 px không tràn ngang cho 10 route; canonical bỏ `round`, `ranking`; ca nhánh chạy theo viewport (điện thoại mở `?round=3`).
+- **Kiểm chứng** (DB test `kamito_tt_phase12_test`, Next dev + API chạy từ mã nguồn, cổng 3413/3414, workers 1, retries 0)
+  - Playwright toàn bộ: **113 đạt, 21 bỏ qua theo viewport (desktop 54 đạt/13 bỏ qua; mobile 59 đạt/8 bỏ qua), 0 lỗi, 0 flaky**.
+  - Axe: 72 lượt quét (18 route × vi/en × desktop/mobile), 0 vi phạm ở mọi mức.
+  - Client: typecheck, lint sạch; unit 188/188; `test:print` 9/9. Root `pnpm typecheck` 14/14, `pnpm lint` 9/9.
+  - Chưa chạy: build production, Lighthouse, `admin-full-flow` (cần bản dựng và cổng riêng 3371–3373).
 
 ## 2026-11-25 — Redesign theo Figma, đợt 1: admin A1–A6, A10–A11; site công khai C1–C5
 

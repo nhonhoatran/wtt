@@ -55,6 +55,7 @@ Nguyên tắc:
 | Lát cắt local API → BullMQ → SSR | 2026-11-20 | ADMIN tạo/công bố giải và bốn entry, operator chốt trận; SSR nhánh/trận cập nhật 133 ms. Không phải full UI tám bước hoặc staging M1 |
 | UI công khai Phase 11 với API mẫu | 2026-11-19 | 7 route × 2 viewport (1440/390): 14/14 lượt trang và các tương tác đạt, không có `pageerror`; đã mở ảnh kiểm trực quan ([báo cáo](../plans/reports/tester-261119-phase-11-cms-mock-ui.md)) |
 | UI admin Phase 11 với API/media mẫu | 2026-11-19 | 8/8 ca browser đạt; kiểm thêm payload lưu/nạp form 4/4 đạt, không có `pageerror` ([báo cáo](../plans/reports/tester-261119-phase-11-admin-mock-ui.md)) |
+| Redesign theo Figma (C1–C11) | 2026-11-25 | Build production đạt; full public 119/15 trước sửa metadata, focused sau sửa 56/12, cả hai 0 lỗi/0 flaky. Axe 72 lượt 0 vi phạm; Lighthouse cuối bốn route bắt buộc 100/100/100. Admin-full-flow đạt 2026-11-26; C11 còn kiểm ảnh/PDF đầy đủ. Xem mục [Giao diện theo Figma](#giao-diện-theo-figma-2026-11-25) |
 | Mốc M1 (deploy staging, Playwright trên staging) | — | Chưa làm |
 
 Bằng chứng mới: [API thật](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-api.md), [public E2E/axe](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-real-public-and-axe.md), [lát cắt 5 giây](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-local-vertical-slice.md), [review độc lập](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261120-real-services.md). Browser dùng API/DB/Redis thật; chỉ tài liệu iframe YouTube sau click được fixture để không phụ thuộc bên thứ ba. Không suy kết quả này thành toàn site/admin hoặc nghiệm thu staging.
@@ -84,7 +85,7 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 
 | Route | Tham số query | Hàm dữ liệu (`lib/public-data.ts`) | Ghi chú |
 |---|---|---|---|
-| `/` | — | `getHomeContent`, `getSiteName` | Các khối bật/tắt bằng setting; top xếp hạng nằm trong payload trang chủ |
+| `/` | `ranking` (mã bảng của khối top VĐV) | `getHomeContent`, `getSiteName` | Các khối bật/tắt bằng setting; top xếp hạng nằm trong payload trang chủ. `ranking` chỉ chọn tab hiển thị, mã lạ hoặc lặp thì về bảng đầu; không vào canonical hay khóa cache |
 | `/events` | `q`, `tier`, `type`, `year`, `status`, `page` | `getEventList` | `q` có → không cache |
 | `/events/calendar` | `year`, `tier` | `getEventCalendar` | Nhóm theo tháng |
 | `/events/:slug` | — | `getEvent` | Tab Tổng quan |
@@ -92,7 +93,7 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 | `/events/:slug/matches` | `state` (live, completed, upcoming), `sub`, `date`, `q`, `page` | `getMatches` | `q` có → không cache |
 | `/events/:slug/matches/:matchNo` | — | `getMatch` | Trang trận |
 | Dải kết quả (header, mọi trang) | — | `getResultsStrip` | `GET /results/strip` |
-| `/events/:slug/draws/:subEventCode` | `draw` (`main`, `qualifying`) | `getBracket` | Gọi API với `kind=` |
+| `/events/:slug/draws/:subEventCode` | `draw` (`main`, `qualifying`), `round` (một nhánh) hoặc `round<nhánh>` (nhiều nhánh) | `getBracket` | Gọi API với `kind=`. `round` chỉ chọn vòng hiện trên điện thoại (≤ 640 px: chip vòng, thẻ "Vòng sau"); desktop và bản in luôn đủ vòng; giá trị sai thì về vòng mặc định (vòng đầu còn trận chưa xong). Không vào canonical hay khóa cache |
 | `/events/:slug/draws` | — | — | Chỉ chuyển hướng tới nội dung đầu tiên có nhánh |
 | `/events/:slug/groups/:subEventCode` | — | `getGroups` | Bảng đấu |
 | `/events/:slug/groups` | — | — | Chỉ chuyển hướng |
@@ -116,6 +117,56 @@ Quy tắc chung:
 - Slug `calendar` là slug dành riêng (API chặn tạo giải có slug này).
 - Trang không có dữ liệu hoặc chưa công bố thì `notFound()`.
 - Tab Trận tự chọn trạng thái có dữ liệu: giải đang diễn ra thử live → upcoming → completed, dừng ngay khi có trận; URL chọn state rõ ràng được giữ kể cả rỗng. Bộ lọc ngày là date input có min/max theo giải, server bỏ ngày sai/lặp/ngoài biên trước khi tạo cached query; không còn giới hạn 62 ngày. Nội dung chỉ có vòng loại thì mở thẳng vòng loại.
+
+## Giao diện theo Figma (2026-11-25)
+
+Nguồn: hai file Figma "Kamito Tournament – Admin/Client" (chỉ có ảnh mockup, màu và khoảng cách đọc bằng mắt). Phase C1–C11 trong [plan](../plans/261125-0951-figma-ui-redesign-admin-client/plan.md). Mọi con số trong ảnh là dữ liệu mẫu; trang chỉ hiện dữ liệu thật từ API, mục nào chưa có dữ liệu thì ẩn.
+
+### Lệch Figma có lý do
+
+| Figma | Thực tế | Lý do |
+|---|---|---|
+| Vòng bảng nằm ngay dưới nhánh | Tab "Bảng đấu" riêng, có link "Xem vòng bảng" trên nhánh và "Xem nhánh đấu" trên bảng | Không lặp dữ liệu; mỗi tab có URL, metadata và tag cache riêng |
+| Ô "Tìm VĐV trong nhánh" | Không có | Ctrl+F đủ trên desktop; YAGNI |
+| Nhãn trận "Tứ kết 1" | "Trận #N" | Số trận là định danh công khai và e2e dùng |
+| Tên VĐV đầy đủ trong ô nhánh | Desktop cắt "…" (đủ ở trang trận và `aria-label` của link "Chi tiết"); mobile đủ chỗ | Giữ ô nhánh gọn như Figma |
+| Chọn nội dung bằng select (mobile 1-34) | Pill cuộn ngang | Không cần nút gửi form |
+| Lọc: select "Trạng thái" cùng pill | Chỉ pill; giữ ô tìm `q` và lọc loại giải | Trùng chức năng; `q`/loại giải là dữ liệu thật mà Figma thiếu |
+| Nhóm tháng "· 2 giải" | Chỉ tên tháng | Số sai khi tháng bị cắt giữa hai trang |
+| Thẻ giải: số VĐV, thưởng, hạn đăng ký | Số nội dung; ẩn thưởng và hạn đăng ký | API chưa có dữ liệu (Q4) |
+| "Trận hôm nay" ở trang chủ | "Trận đang đấu và sắp đấu" | Đúng dữ liệu live + upcoming |
+| Ban tổ chức, Tổng trọng tài, trọng tài trận | Ẩn | Chưa có dữ liệu (Q6) |
+| Hồ sơ: năm sinh, kiểu cầm vợt, lối đánh | Ẩn | Năm sinh theo luật riêng tư; cầm vợt/lối đánh chưa có dữ liệu (Q7) |
+| Hồ sơ: trận sắp tới, thành tích nổi bật, phong độ 10 trận | Ẩn | Cần API mới (Q8); phong độ lặp bảng kết quả |
+| Trang trận: ảnh VĐV, hạng và điểm, "Diễn biến trận đấu" | Ẩn | Cần API mới, không bịa dữ liệu |
+| "Cách tính điểm →" | Link tới trang tĩnh theo setting `ranking.pointsGuidePageSlug`; ẩn khi trống hoặc trang chưa công bố | Nội dung do BTC viết trong CMS (Q9) |
+| Thẻ "Vòng sau" cuối nhánh (mobile 1-34) | Có, chỉ ≤ 640 px: "Vòng sau: Bán kết · 15/03" là link `?round=` tới vòng kế; ẩn ở vòng cuối | Tên vòng và ngày lấy từ trận thật; ngày bỏ khi vòng chưa có giờ |
+
+### Kiểm chứng C11 (2026-11-25)
+
+Lượt kiểm cuối dùng DB `localhost:5433/kamito_tt_phase12_test`, API đã build cổng 3421, Next production cổng 3422, CSP `enforce`, workers 1, retries 0. Lượt Next dev trước đó (cổng 3413/3414) đạt 113/21; số sau đây là lượt production riêng, không cộng trùng.
+
+| Hạng mục | Kết quả |
+|---|---|
+| Build production | Root `pnpm build`: 9/9 task đạt, 8 task cache, client build mới; 18,372 giây |
+| Playwright toàn bộ (desktop 1440 + mobile 390) | 134 ca liệt kê: 119 đạt, 15 bỏ qua theo điều kiện môi trường/viewport, 0 lỗi, 0 flaky; 229,031 giây (desktop 57 đạt/10 bỏ qua, mobile 62 đạt/5 bỏ qua). Sáu ca CSP enforce được thực thi ở production |
+| Axe (`accessibility.spec.ts`) | 18 route × vi/en × 2 viewport = 72 lượt, 0 vi phạm ở mọi mức. Route: trang chủ, danh sách giải (có và không `q`), lịch, giải, tab trận, nhánh (có `?round=2`), bảng đấu, hai trang trận (nhánh, bảng), `/rankings`, bảng xếp hạng, hồ sơ VĐV, tin, video, trang tĩnh, liên hệ |
+| 390 px không tràn ngang | 10 route: danh sách giải, giải, tab trận, nhánh, nhánh có `?round=2`, bảng đấu, trận, `/rankings`, bảng xếp hạng, hồ sơ VĐV |
+| Canonical | `?round=…` và `?ranking=…` không có trong canonical |
+| Client unit / in | 188/188; `test:print` 9/9 |
+| Root typecheck / lint | 14/14 và 9/9 task đạt; lượt kiểm tiếp sau dọn i18n/token, exit 0 |
+| Lighthouse r01 (Performance/Accessibility/SEO) | Home 98/100/100; giải 100/100/100; nhánh 100/100/100; BXH 98/100/100. Bốn route bắt buộc đạt ngưỡng 85/90/95. Danh sách giải tham khảo 99/100/100; trang trận tham khảo 100/100/92, thiếu `meta-description` nên runner sáu route chưa đạt |
+| Sau sửa metadata trang trận | Regression mới: trước sửa 3 lỗi/12 đạt; sau sửa metadata + i18n parity 16/16 đạt. Client typecheck/lint/build exit 0, build mới `9vBGS8wTDm5ESGhYCFyEg` |
+| Focused trên build cuối | Hai spec `event-pages`, `site-chrome-and-seo`, hai viewport: 68 ca liệt kê, 56 đạt/12 bỏ qua theo điều kiện môi trường/viewport/0 lỗi/0 flaky; 44,023 giây. Có kiểm description/OG/Twitter trang trận vi/en |
+| Lighthouse cuối | Home, giải, nhánh, BXH đều 100/100/100; danh sách giải và trang trận tham khảo 99/100/100. Cả sáu đạt ngưỡng 85/90/95, `runtimeError=null` |
+
+Thông báo validation và lỗi gửi liên hệ lấy từ dictionary vi/en; nhãn tin/video dùng lại khóa hiện có. Hai màu cứng cũ của form liên hệ và nút phát video đã đổi sang token. Giữ nguyên kiểm locale, validation, honeypot và luồng gọi API.
+
+Raw: `test-results/261125-c11-public-bedb9d04-2764-4475-8884-842af5e96167/{playwright.log,qa-summary.json}`, `test-results/261125-c11-production-build.log`, `test-results/261125-c11-{client-unit,client-print,root-typecheck,root-lint}.log`. Báo cáo cuối: [tester C11](../plans/261125-0951-figma-ui-redesign-admin-client/reports/tester-261125-client-figma-regression.md). Axe có mục incomplete cần kiểm tay, không phải chứng nhận WCAG đầy đủ.
+
+Trang trận đã bổ sung mô tả theo dictionary từ tên công khai, giải, nội dung, vòng và trạng thái; giữ TBD khi chưa có người đấu, canonical và luồng đọc API. Full suite 119/15 và unit 188 là trên build trước sửa metadata; sau sửa chỉ chạy tập trung như bảng, không gọi đó là full suite mới. Lighthouse 13.6.0 mobile/simulated; raw r01 ở artifact đầu, lượt cuối tại `test-results/261125-c11-public-07f833ec-9bb3-4401-8e02-abcb6df3b3fe/{playwright-results.json,lighthouse/summary.json}`.
+
+Log focused có assertion native Windows `UV_HANDLE_CLOSING` sau test cuối; Playwright exit 0, JSON không có errors/flaky nhưng chưa xác định tiến trình con gây ra. Không gọi log sạch; tiếp tục theo dõi T2. Đã có 28 ảnh 1440/390 tại `reports/screenshots-client/`; mới mở đối chiếu 7 ảnh chính với 10 frame Figma, chưa mở riêng mọi ảnh/PDF. A8 kéo bàn phím/lưới 6 bàn đã đạt ([báo cáo](../plans/reports/tester-261125-a8-browser-gates.md)); `admin-full-flow` sau redesign đạt ngày 2026-11-26 (desktop 8/8 một lượt, mobile 8/8 hai lượt; [báo cáo](../plans/reports/tester-261126-1620-admin-full-flow-after-redesign.md)). C11 giữ `in-progress` vì còn đối chiếu ảnh/PDF và review diff cuối.
 
 ## API công khai
 

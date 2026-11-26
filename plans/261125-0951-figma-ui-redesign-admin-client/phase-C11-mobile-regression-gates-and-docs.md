@@ -1,7 +1,7 @@
 ---
 phase: C11
 title: "Rà mobile 390, cổng axe/Lighthouse/SEO/in và cập nhật tài liệu"
-status: pending
+status: in-progress
 priority: P1
 effort: 3h
 depends_on: [C3, C4, C5, C6, C7, C8, C9, C10]
@@ -59,11 +59,24 @@ Tạo:
 6. `docs-manager` cập nhật tài liệu; `code-reviewer` review toàn bộ diff client + API.
 
 ## Todo
-- [ ] Mở rộng axe + 390 + canonical
-- [ ] Chạy toàn bộ suite + Lighthouse + in
+- [x] Mở rộng axe + 390 + canonical
+- [x] Playwright client, unit và test in đạt
+- [x] Build production đạt (root 9/9 task, 8 cache; client build mới)
+- [x] Lighthouse production đạt (bốn route bắt buộc 100/100/100; hai route tham khảo 99/100/100)
+- [x] E2E admin-full-flow sau redesign đạt — 2026-11-26: desktop 8/8 hai lượt, mobile 8/8 ba lượt; sáu lượt rớt vì nguyên nhân ngoài redesign, ghi nợ E1–E3 và T2 (E1 đã sửa, E3 đã đóng cùng ngày); [báo cáo](../reports/tester-261126-1620-admin-full-flow-after-redesign.md)
 - [ ] Ảnh chụp + đối chiếu Figma
-- [ ] Rà grep chất lượng
-- [ ] Cập nhật docs + review
+- [x] Rà grep chất lượng
+- [x] Cập nhật docs theo thay đổi đã triển khai
+- [ ] Review diff cuối và báo cáo tester
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Báo cáo ban đầu C11 xác nhận Next dev 113 đạt/21 bỏ qua theo cấu hình/0 lỗi/0 flaky. Lượt production có 134 ca: 119 đạt/15 bỏ qua theo điều kiện môi trường/viewport/0 lỗi/0 flaky, axe 72 lượt không vi phạm; root build 9/9 task đạt. Client unit 188, kiểm in 9, root typecheck 14/14 và lint 9/9 đạt sau dọn i18n/token. Lighthouse r01 phát hiện trang trận thiếu mô tả (SEO 92); đã thêm dictionary và regression, trước sửa 3 lỗi/12 đạt, sau sửa + parity 16/16 đạt. Client typecheck/lint/build mới exit 0. Focused production trên build cuối 56/12 đạt, 0 lỗi/flaky; Lighthouse cuối bốn route bắt buộc 100/100/100, hai route tham khảo 99/100/100, cả sáu `runtimeError=null`.
+
+Full suite 119/15 và unit 188 là trước sửa metadata; không gọi focused là full suite mới. Raw ở `test-results/261125-c11-public-bedb9d04-2764-4475-8884-842af5e96167/` và `test-results/261125-c11-public-07f833ec-9bb3-4401-8e02-abcb6df3b3fe/`; [báo cáo tester](./reports/tester-261125-client-figma-regression.md). Focused có assertion native `UV_HANDLE_CLOSING` dù Playwright exit 0, chưa xác định tiến trình con. A8 L1/L2 đã đạt; admin-full-flow chưa chạy sau redesign. Đã lưu 28 ảnh, mới mở đối chiếu 7 ảnh chính; giữ ảnh/PDF và review cuối ở trạng thái mở.
 
 ## Success criteria
 - Playwright toàn bộ đạt (desktop + mobile), axe 0 vi phạm mọi mức trên route mở rộng, `test:print` đạt, i18n-keys đạt.

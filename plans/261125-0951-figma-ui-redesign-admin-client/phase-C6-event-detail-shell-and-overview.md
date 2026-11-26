@@ -1,7 +1,7 @@
 ---
 phase: C6
 title: "Chi tiết giải: hero, tab, tổng quan 2 cột, thẻ trận dùng chung"
-status: pending
+status: completed
 priority: P1
 effort: 5h
 depends_on: [C1, C2, C3, C5]
@@ -79,12 +79,20 @@ Tạo:
 8. Cập nhật test, chạy kiểm, chụp 1440/390.
 
 ## Todo
-- [ ] Shell 2 kiểu hero + tab gạch chân
-- [ ] Helper ngày thi đấu + test
-- [ ] `MatchCard` mới (dùng chung)
-- [ ] Tổng quan 2 cột + sidebar
-- [ ] Chuỗi cứng → dictionary
-- [ ] Test e2e/axe/Lighthouse/in
+- [x] Shell 2 kiểu hero + tab gạch chân
+- [x] Helper ngày thi đấu + test
+- [x] `MatchCard` mới (dùng chung)
+- [x] Tổng quan 2 cột + sidebar
+- [x] Chuỗi cứng → dictionary
+- [x] E2E, axe và test in đạt (báo cáo C11)
+- [x] Lighthouse production (lượt cuối C11: 100/100/100)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C6-event-detail.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Lỗi typecheck/unit do props admin được sửa ở A7; báo cáo sửa review vòng 4 và C11 xác nhận các bộ kiểm đã đạt. Lighthouse production cuối C11: trang giải 100/100/100, `runtimeError=null`.
 
 ## Success criteria
 - `event-pages.spec.ts`, `match-filter-debts.spec.ts`, `schedule.spec.ts`, `accessibility.spec.ts`, `site-chrome-and-seo.spec.ts` (in nhánh, mobile 390) đạt, desktop + mobile.

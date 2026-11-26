@@ -1,7 +1,7 @@
 ---
 phase: C8
 title: "Chi tiết trận (1-11)"
-status: pending
+status: completed
 priority: P2
 effort: 3h
 depends_on: [C1, C2, C7]
@@ -67,11 +67,18 @@ Tạo:
 6. Thêm route trang trận vào axe (C11 gom) và chạy e2e.
 
 ## Todo
-- [ ] `pathToMatch` + test
-- [ ] Câu tóm tắt + test
-- [ ] Tách component, dữ liệu phụ song song
-- [ ] Sidebar trận kế/cùng vòng
-- [ ] e2e trang trận + axe
+- [x] `pathToMatch` + test
+- [x] Câu tóm tắt + test
+- [x] Tách component, dữ liệu phụ song song
+- [x] Sidebar trận kế/cùng vòng
+- [x] e2e trang trận + axe
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C8-match-detail.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Locator e2e được sửa ở review vòng 4; Playwright/axe tích hợp đã đạt ở C11. Build production cuối được theo dõi tại C11.
 
 ## Success criteria
 - `event-pages.spec.ts` (trang trận có bảng điểm từng ván) đạt desktop + mobile; axe route trang trận 0 vi phạm (vi, en).

@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q4 (xuất Excel danh sách giải)
 
 ## Overview
-- Ưu tiên: P2. Effort: ~4h. Trạng thái: pending. Phụ thuộc: A1 (PageHeader).
+- Ưu tiên: P2. Effort: ~4h. Trạng thái: completed. Phụ thuộc: A1 (PageHeader).
 - Thêm tab vòng đời có số đếm, dòng phụ số đăng ký, chip "Đang lọc" + "Đặt lại", cột Thao tác "Xem | Sửa".
 
 ## Key insights
@@ -66,11 +66,16 @@ Tạo
 6. typecheck/lint/build; api e2e events.
 
 ## Todo
-- [ ] event-list-counts + route + e2e
-- [ ] entryCount trong list
-- [ ] chip + Đặt lại (tương thích ngược)
-- [ ] tabs + columns
-- [ ] build/test xanh
+- [x] event-list-counts + route + e2e
+- [x] entryCount trong list
+- [x] chip + Đặt lại (tương thích ngược)
+- [x] tabs + columns
+- [x] build/test xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A3-admin-events-list.md).
 
 ## Success criteria
 - Tổng các tab vòng đời (trừ "Tất cả") = "Tất cả" với cùng lọc (do vòng đời loại trừ nhau) — kiểm bằng e2e.

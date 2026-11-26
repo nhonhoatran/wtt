@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q1 (chuông), Q11 (câu hoạt động có tên đối tượng)
 
 ## Overview
-- Ưu tiên: P2. Effort: ~6h (API 3h, UI 3h). Trạng thái: pending. Phụ thuộc: A1.
+- Ưu tiên: P2. Effort: ~6h (API 3h, UI 3h). Trạng thái: completed. Phụ thuộc: A1.
 - ADMIN vào "/" thấy: KPI hôm nay, giải đang diễn ra + tiến độ trận, bảng trận chờ kết quả hôm nay (phân trang server), thao tác nhanh, hoạt động gần đây. RESULTS_OPERATOR vẫn vào thẳng Nhập tỷ số.
 
 ## Key insights
@@ -87,14 +87,19 @@ Sửa (admin)
 9. `pnpm --filter @kamito/api test` (dừng dev worker trước), admin typecheck/lint/test/build.
 
 ## Todo
-- [ ] Setting + nhóm "Tổng quan"
-- [ ] today-window + test
-- [ ] summary service
-- [ ] pending-matches service
-- [ ] controller/module/e2e
-- [ ] UI 5 khối + status helper + test
-- [ ] nhãn audit
-- [ ] build/test xanh
+- [x] Setting + nhóm "Tổng quan"
+- [x] today-window + test
+- [x] summary service
+- [x] pending-matches service
+- [x] controller/module/e2e
+- [x] UI 5 khối + status helper + test
+- [x] nhãn audit
+- [x] build/test xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A2-admin-dashboard.md).
 
 ## Success criteria
 - Với dữ liệu seed có 1 giải ONGOING hôm nay: KPI khớp truy vấn SQL kiểm tay (ghi số vào báo cáo).

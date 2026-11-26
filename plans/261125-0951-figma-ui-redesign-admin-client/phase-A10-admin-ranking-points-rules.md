@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q12 (khôi phục mặc định)
 
 ## Overview
-- Ưu tiên: P3. Effort: ~3h. Trạng thái: pending. Phụ thuộc: A1. Không đổi API.
+- Ưu tiên: P3. Effort: ~3h. Trạng thái: in-progress. Phụ thuộc: A1. Không đổi API.
 
 ## Key insights
 - Giữ các control Figma bỏ sót nhưng có nghĩa nghiệp vụ: Vòng chính/Vòng loại (`RULE_DRAW_OPTIONS`), xem phiên bản cũ (chỉ đọc), "Chép cột", modal lưu có ngày hiệu lực (quy tắc có phiên bản theo `effectiveFrom`).
@@ -59,11 +59,19 @@ Tạo
 5. E2E selector; typecheck/lint/test/build.
 
 ## Todo
-- [ ] state + test
-- [ ] cell/grid
-- [ ] toolbar / unsaved bar / validity card
-- [ ] ghép page
-- [ ] E2E + build xanh
+- [x] state + test
+- [x] cell/grid
+- [x] toolbar / unsaved bar / validity card
+- [x] ghép page
+- [x] Build và unit test đạt
+- [x] E2E admin-full-flow sau redesign (kiểm cùng C11) — đạt 2026-11-26: desktop 8/8 một lượt, mobile 8/8 hai lượt; [báo cáo](../reports/tester-261126-1620-admin-full-flow-after-redesign.md)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A10-ranking-rules.md).
+
+Các bước triển khai, unit, build và kiểm tay đã có bằng chứng; E2E admin-full-flow sau đổi nhãn nút đạt ngày 2026-11-26 (bước 8 sửa ma trận điểm qua giao diện).
 
 ## Success criteria
 - Nhập "-5" → ô đỏ ngay, nút Lưu khoá, thanh hiện "1 ô cần sửa".

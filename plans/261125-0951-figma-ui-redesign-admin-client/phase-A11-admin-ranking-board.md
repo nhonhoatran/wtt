@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q4 (xuất Excel BXH)
 
 ## Overview
-- Ưu tiên: P2. Effort: ~6h (API 2.5h, UI 3.5h). Trạng thái: pending. Phụ thuộc: A1, A10 xong trước để tránh đụng `menu-groups.ts` song song.
+- Ưu tiên: P2. Effort: ~6h (API 2.5h, UI 3.5h). Trạng thái: completed. Phụ thuộc: A1, A10 xong trước để tránh đụng `menu-groups.ts` song song.
 - Trang mới `/rankings`: pill BXH → bản đang làm (DRAFT mới nhất, nếu không có thì bản PUBLISHED mới nhất) với KPI, bảng hạng so kỳ trước, "Chốt bảng kỳ này" (= công bố bản nháp, vẫn step-up).
 
 ## Key insights
@@ -72,13 +72,18 @@ Tạo (admin)
 5. typecheck/lint/test/build; api e2e ranking.
 
 ## Todo
-- [ ] summary API + e2e
-- [ ] rows: club, previousPoints, changed, q club
-- [ ] labels + test
-- [ ] hook + actions (step-up)
-- [ ] stats/table/page
-- [ ] route + menu
-- [ ] build/test xanh
+- [x] summary API + e2e
+- [x] rows: club, previousPoints, changed, q club
+- [x] labels + test
+- [x] hook + actions (step-up)
+- [x] stats/table/page
+- [x] route + menu
+- [x] build/test xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A11-ranking-board.md).
 
 ## Success criteria
 - Chốt bảng: hỏi xác nhận (nêu số VĐV đổi hạng từ summary) → hỏi mật khẩu → công bố; sai mật khẩu không công bố.

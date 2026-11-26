@@ -1,7 +1,7 @@
 ---
 phase: C2
 title: "Mở rộng API đọc công khai, setting hiển thị và tag cache"
-status: pending
+status: completed
 priority: P1
 effort: 6h
 depends_on: []
@@ -97,16 +97,21 @@ Không sửa client trong phase này (client chỉ cập nhật type, compile v�
 11. `pnpm --filter @kamito/client typecheck build` để chắc client vẫn compile.
 
 ## Todo
-- [ ] Setting hiển thị + test schema
-- [ ] `/public/site` trả `display`
-- [ ] A1 thẻ giải có nội dung
-- [ ] A2 bàn trên trận/nhánh
-- [ ] A3–A5 chi tiết giải
-- [ ] A6 giải hero trang chủ
-- [ ] A7 thắng–thua hồ sơ
-- [ ] A8 session chi tiết trận
-- [ ] Tag `subEvent.*`, `venueTable.write` + test
-- [ ] Snapshot whitelist cập nhật có chủ đích; API e2e công khai đạt
+- [x] Setting hiển thị + test schema
+- [x] `/public/site` trả `display`
+- [x] A1 thẻ giải có nội dung
+- [x] A2 bàn trên trận/nhánh
+- [x] A3–A5 chi tiết giải
+- [x] A6 giải hero trang chủ
+- [x] A7 thắng–thua hồ sơ
+- [x] A8 session chi tiết trận
+- [x] Tag `subEvent.*`, `venueTable.write` + test
+- [x] Snapshot whitelist cập nhật có chủ đích; API e2e công khai đạt
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C2-public-api.md).
 
 ## Success criteria
 - API e2e công khai (15 spec `apps/api/test/public-*.e2e-spec.ts`) đạt; snapshot chỉ thêm đúng các trường trong bảng.

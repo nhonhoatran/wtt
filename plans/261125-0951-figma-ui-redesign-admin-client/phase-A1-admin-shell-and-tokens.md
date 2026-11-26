@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q1 (chuông) trong [admin-open-questions.md](./admin-open-questions.md)
 
 ## Overview
-- Ưu tiên: P1 (mọi phase sau dựa vào). Effort: ~4h. Trạng thái: pending.
+- Ưu tiên: P1 (mọi phase sau dựa vào). Effort: ~4h. Trạng thái: completed.
 - Dựng lại khung: sider đen có logo, icon từng mục, nhóm chính + nhóm đáy; header trắng có breadcrumb + avatar/tên/vai trò; component dùng chung `PageHeader`, `StatCard`.
 
 ## Key insights
@@ -76,15 +76,22 @@ Tạo
 11. Kiểm tay 1440 / 390 với ADMIN và RESULTS_OPERATOR; Tab qua menu thấy vòng vàng.
 
 ## Todo
-- [ ] Commit đợt audit trước
-- [ ] Theme header/menu + `buildSiderTheme` + test
-- [ ] menu-groups (icon, placement, homeKind)
-- [ ] build-breadcrumb + test
-- [ ] admin-sider / admin-header / admin-breadcrumb
-- [ ] admin-layout gọn lại
-- [ ] PageHeader, StatCard
-- [ ] typecheck/lint/test/build xanh
-- [ ] Kiểm 1440/390, 2 vai trò, focus bàn phím
+- [x] Commit đợt audit trước
+- [x] Theme header/menu + `buildSiderTheme` + test
+- [x] menu-groups (icon, placement, homeKind)
+- [x] build-breadcrumb + test
+- [x] admin-sider / admin-header / admin-breadcrumb
+- [x] admin-layout gọn lại
+- [x] PageHeader, StatCard
+- [x] typecheck/lint/test/build xanh
+- [x] Kiểm 1280/390, 2 vai trò, focus bàn phím (viewport thực tế trong báo cáo)
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A1-admin-shell.md).
+
+Đợt audit trước đã có commit `64c8b69`, báo cáo `10e3431`. Focus sider tối đã kiểm trên trình duyệt trong báo cáo A1; không mở lại nợ focus cũ.
 
 ## Success criteria
 - Mọi route cũ vẫn tới được từ menu (đếm: số mục menu ADMIN trước = sau).

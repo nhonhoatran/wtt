@@ -1,7 +1,7 @@
 ---
 phase: C7
 title: "Nhánh đấu (1-24, mobile 1-34) và bảng đấu"
-status: pending
+status: in-progress
 priority: P1
 effort: 5h
 depends_on: [C1, C2, C6]
@@ -71,14 +71,23 @@ Tạo:
 8. Chạy `test:print`, e2e, axe, Lighthouse; mở ảnh PDF và ảnh 390.
 
 ## Todo
-- [ ] Hàm suy dữ liệu + test
-- [ ] Ô trận mới + link
-- [ ] Ngày vòng + cột vô địch + chú thích
-- [ ] Chọn vòng mobile `?round`
-- [ ] CSS in giữ nguyên hành vi
-- [ ] Bảng đấu restyle + link
-- [ ] Tách CSS < 200 dòng
-- [ ] Kiểm in/e2e/axe/Lighthouse
+- [x] Hàm suy dữ liệu + test
+- [x] Ô trận mới + link
+- [x] Ngày vòng + cột vô địch + chú thích
+- [x] Chọn vòng mobile `?round`
+- [x] CSS in giữ nguyên hành vi
+- [x] Bảng đấu restyle + link
+- [x] Tách CSS < 200 dòng
+- [x] Test in, e2e và axe đạt (báo cáo C11)
+- [x] Lighthouse production (lượt cuối C11: nhánh 100/100/100)
+- [ ] Mở kiểm đầy đủ ảnh/PDF theo C11
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C7-bracket-groups.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
+
+Playwright/axe và test in đã đạt ở C11; Lighthouse production cuối nhánh 100/100/100, `runtimeError=null`. Đã lưu ảnh và đối chiếu một số ảnh chính; vẫn giữ mục mở kiểm đầy đủ ảnh/PDF.
 
 ## Success criteria
 - `pnpm --filter @kamito/client test:print` đạt (8 PDF, đủ trận/tên, ngữ cảnh mỗi trang); ảnh PDF đã mở kiểm.

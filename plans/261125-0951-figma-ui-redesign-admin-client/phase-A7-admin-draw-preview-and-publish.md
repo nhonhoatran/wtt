@@ -7,7 +7,7 @@
 - Câu hỏi mở: Q7 (tách VĐV cùng CLB khi sinh bảng)
 
 ## Overview
-- Ưu tiên: P2. Effort: ~5h. Trạng thái: pending. Phụ thuộc: A4.
+- Ưu tiên: P2. Effort: ~5h. Trạng thái: completed. Phụ thuộc: A4.
 - Giữ nghiệp vụ bốc thăm hiện có (wizard, swap, thay/rút VĐV, công bố riêng từng loại draw); đổi bố cục theo Figma.
 
 ## Key insights
@@ -58,13 +58,20 @@ Tạo
 6. Cập nhật E2E `draws.ts`; typecheck/lint/build.
 
 ## Todo
-- [ ] same-club-groups + test
-- [ ] process steps
-- [ ] group grid + cờ
-- [ ] sticky actions
-- [ ] ghép panel/tab
-- [ ] E2E selector
-- [ ] build xanh
+- [x] same-club-groups + test
+- [x] process steps
+- [x] group grid + cờ
+- [x] sticky actions
+- [x] ghép panel/tab
+- [x] E2E selector
+- [x] build xanh
+
+
+## Đồng bộ trạng thái 2026-11-25
+
+Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A7-admin-draws.md).
+
+Đổi chỗ thành viên bảng nháp đã bổ sung sau báo cáo A7: xem `fullstack-developer-261125-draft-group-swap.md`. Checklist E2E ở đây chỉ yêu cầu cập nhật selector; lượt chạy admin-full-flow theo dõi riêng tại C11.
 
 ## Success criteria
 - Vòng bảng + nhánh chính: thấy cả hai khu trên một trang; khu nhánh chính trước khi công bố vòng bảng hiện lý do, không có nút bốc thăm bấm được.
