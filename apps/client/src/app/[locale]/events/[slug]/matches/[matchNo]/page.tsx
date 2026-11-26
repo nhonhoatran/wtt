@@ -35,9 +35,14 @@ async function load(params: MatchPageProps['params']) {
 
 export async function generateMetadata({ params }: MatchPageProps): Promise<Metadata> {
   const { locale, match, t } = await load(params);
-  const title = `${sideName(locale, match.side1) || '?'} – ${sideName(locale, match.side2) || '?'}`;
+  const participants = `${sideName(locale, match.side1) || t.bracket.source.TBD} – ${sideName(locale, match.side2) || t.bracket.source.TBD}`;
+  const title = `${participants} · ${format(t.match.title, { matchNo: match.matchNo })} · ${pickLocalized(locale, match.event.name, match.event.nameEn)}`;
   return pageMetadata(locale, `/events/${match.event.slug}/matches/${match.matchNo}`, {
-    title: `${title} · ${format(t.match.title, { matchNo: match.matchNo })} · ${pickLocalized(locale, match.event.name, match.event.nameEn)}`,
+    title,
+    description: format(t.match.metaDescription, {
+      title, subEvent: pickLocalized(locale, match.subEvent.name, match.subEvent.nameEn),
+      stage: matchStageLabel(match, t), status: t.match.status[match.status],
+    }),
   });
 }
 

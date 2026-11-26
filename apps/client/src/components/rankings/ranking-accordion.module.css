@@ -41,6 +41,7 @@
 .clubInline { color: var(--color-text-muted); font-size: 13px; }
 .club, .count { display: none; }
 .points { grid-area: points; font-size: 18px; font-weight: 800; white-space: nowrap; }
+.points strong { font-weight: inherit; }
 .chevron { grid-area: chevron; width: 8px; height: 8px; justify-self: center; border: solid var(--color-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .row[open] .chevron { transform: rotate(-135deg); }
 

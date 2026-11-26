@@ -66,6 +66,7 @@
     "roundChips": "Choose round",
     "roundSummary": "Round {n}/{total} · {matches} matches",
     "roundDone": "{n} with a result",
+    "nextRound": "Next round: {round}",
     "championTitle": "Champion",
     "championLabel": "Champion",
     "championTbd": "To be decided",
@@ -268,6 +269,7 @@
   },
   "match": {
     "title": "Match {matchNo}",
+    "metaDescription": "Schedule and results for {title}. {subEvent} · {stage}. Status: {status}.",
     "status": {
       "SCHEDULED": "Scheduled",
       "LIVE": "Live",
@@ -505,6 +507,14 @@
     "submit": "Send message",
     "sending": "Sending...",
     "success": "Thank you. Your message has been received.",
-    "error": "Your message could not be sent. Please try again later."
+    "error": "Your message could not be sent. Please try again later.",
+    "rateLimited": "Too many messages. Please try again later.",
+    "validation": {
+      "name": "Enter a name between 2 and 120 characters.",
+      "email": "Enter a valid email address.",
+      "phone": "Phone number is too long.",
+      "organization": "Organization name is too long.",
+      "message": "Enter a message between 10 and 5000 characters."
+    }
   }
 }

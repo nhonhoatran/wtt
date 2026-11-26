@@ -13,10 +13,10 @@ export function EventHeroCompact({ event, locale, t }: { event: PublicEventDetai
       <div className={styles.inner}>
         <HeroBackLink locale={locale} t={t} />
         <div className={styles.compactRow}>
-          <h1 className={styles.compactTitle}>
+          <div className={styles.compactTitle}>
             <TierBadge tier={event.tier} locale={locale} filled />
-            <span>{pickLocalized(locale, event.name, event.nameEn)}</span>
-          </h1>
+            <h1 className={styles.compactName}>{pickLocalized(locale, event.name, event.nameEn)}</h1>
+          </div>
           <EventWhenWhere event={event} locale={locale} t={t} />
         </div>
       </div>

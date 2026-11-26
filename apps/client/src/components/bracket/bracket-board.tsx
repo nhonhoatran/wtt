@@ -6,6 +6,7 @@ import { EmptyState } from '../common/empty-state';
 import { ScrollRegion } from '../common/scroll-region';
 import { BracketChampion } from './bracket-champion';
 import { BracketLegend } from './bracket-legend';
+import { BracketNextRoundCard } from './bracket-next-round-card';
 import { BracketPrintSheets } from './bracket-print-sheets';
 import { BracketRoundChips } from './bracket-round-chips';
 import { BracketRoundColumn } from './bracket-round-column';
@@ -56,6 +57,7 @@ export function BracketBoard({ bracket, locale, t, query = {}, roundHref, groups
                   {final && <BracketChampion side={championSide(final)} locale={locale} t={t} heading={many ? 'h4' : 'h3'} selected={rounds.at(-1)?.number === selected} />}
                 </ol>
               </ScrollRegion>
+              {roundHref && <BracketNextRoundCard rounds={rounds} selected={selected} hrefFor={(round) => roundHref(roundKey, round)} locale={locale} t={t} timeZone={timezone} />}
             </div>
             {split && <BracketPrintSheets bracket={bracket} section={section} many={many} pages={pages} {...shared} />}
           </section>

@@ -66,6 +66,7 @@
     "roundChips": "Chọn vòng",
     "roundSummary": "Vòng {n}/{total} · {matches} trận",
     "roundDone": "{n} đã có kết quả",
+    "nextRound": "Vòng sau: {round}",
     "championTitle": "Vô địch",
     "championLabel": "Nhà vô địch",
     "championTbd": "Chưa xác định",
@@ -268,6 +269,7 @@
   },
   "match": {
     "title": "Trận #{matchNo}",
+    "metaDescription": "Lịch thi đấu và kết quả {title}. {subEvent} · {stage}. Trạng thái: {status}.",
     "status": {
       "SCHEDULED": "Chưa đấu",
       "LIVE": "Đang đấu",
@@ -505,6 +507,14 @@
     "submit": "Gửi liên hệ",
     "sending": "Đang gửi...",
     "success": "Cảm ơn bạn. Lời nhắn đã được gửi.",
-    "error": "Chưa gửi được lời nhắn. Vui lòng thử lại sau."
+    "error": "Chưa gửi được lời nhắn. Vui lòng thử lại sau.",
+    "rateLimited": "Bạn gửi quá nhiều tin. Vui lòng thử lại sau.",
+    "validation": {
+      "name": "Vui lòng nhập họ tên từ 2 đến 120 ký tự.",
+      "email": "Vui lòng nhập email hợp lệ.",
+      "phone": "Số điện thoại quá dài.",
+      "organization": "Tên đơn vị quá dài.",
+      "message": "Nội dung cần từ 10 đến 5000 ký tự."
+    }
   }
 }

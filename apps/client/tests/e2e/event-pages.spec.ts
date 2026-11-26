@@ -46,17 +46,19 @@ test.describe('event overview', () => {
 });
 
 test.describe('draws tab', () => {
-  test('renders the published bracket', async ({ page, world }) => {
-    const response = await page.goto(`${base(world.world.slug)}/draws/MS`);
+  test('renders the published bracket', async ({ page, world, isMobile }) => {
+    // A phone shows one round at a time (chips switch it); wider screens show every round column.
+    const response = await page.goto(`${base(world.world.slug)}/draws/MS${isMobile ? '?round=3' : ''}`);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 2, name: /^Nhánh đấu · / })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Chung kết' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Bán kết' })).toBeVisible();
+    if (isMobile) await expect(page.getByRole('navigation', { name: /^Chọn vòng/ }).getByRole('link', { name: /Bán kết/ })).toBeVisible();
+    else await expect(page.getByRole('heading', { name: 'Bán kết' })).toBeVisible();
     expect(await page.getByText(/^Trận #\d+$/).count()).toBeGreaterThanOrEqual(7);
   });
 
-  test('each match box links to its match page and the champion column is present', async ({ page, world }) => {
-    await page.goto(`${base(world.world.slug)}/draws/MS`);
+  test('each match box links to its match page and the champion column is present', async ({ page, world, isMobile }) => {
+    await page.goto(`${base(world.world.slug)}/draws/MS${isMobile ? '?round=3' : ''}`);
     const link = page.getByRole('link', { name: /^Chi tiết trận #\d+:/ }).first();
     await expect(link).toHaveAttribute('href', new RegExp(`${base(world.world.slug)}/matches/\\d+$`));
     await expect(page.getByRole('heading', { name: 'Vô địch' })).toBeVisible();
@@ -67,6 +69,10 @@ test.describe('draws tab', () => {
     await page.goto(`${base(world.world.slug)}/draws/MS?round=2`);
     await expect(page.getByRole('navigation', { name: /^Chọn vòng/ }).getByRole('link', { name: /Bán kết/ })).toHaveAttribute('aria-current', 'true');
     await expect(page.locator('[data-screen-bracket] [data-match-number]:visible')).toHaveCount(2);
+    await expect(page.getByRole('link', { name: /^Vòng sau: Chung kết/ })).toHaveAttribute('href', /[?&]round=3$/);
+    await page.goto(`${base(world.world.slug)}/draws/MS?round=3`);
+    await expect(page.getByRole('link', { name: /^Vòng sau:/ })).toHaveCount(0);
+    await page.goto(`${base(world.world.slug)}/draws/MS?round=2`);
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('[data-screen-bracket] [data-match-number]:visible')).toHaveCount(7);
   });

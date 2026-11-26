@@ -121,6 +121,12 @@
   overflow-wrap: anywhere;
 }
 
+.compactName {
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 @media (min-width: 768px) {
   .inner {
     padding: 24px var(--layout-gutter-desktop) 32px;

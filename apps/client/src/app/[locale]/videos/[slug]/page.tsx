@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { VideoEmbedFacade } from '../../../../components/content/video-embed-facade';
 import styles from '../../../../components/content/content.module.css';
+import { getDictionary } from '../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../i18n/locales';
 import { pickLocalized, pickLocalizedOrNull } from '../../../../i18n/pick-localized';
 import { pageMetadata } from '../../../../lib/page-metadata';
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VideoPage({ params }: Props) {
   const { locale, video } = await load(params);
+  const t = getDictionary(locale).videos;
   const title = pickLocalized(locale, video.title, video.titleEn);
   const duration = pickLocalizedOrNull(locale, video.durationText, video.durationTextEn);
   const siteName = await getSiteName(locale);
@@ -56,9 +58,9 @@ export default async function VideoPage({ params }: Props) {
   return (
     <main id="content" className="container">
       <StructuredData value={structuredData} />
-      <p className="eyebrow"><Link href={`/${locale}/videos`}>{locale === 'vi' ? 'Video' : 'Videos'}</Link></p>
+      <p className="eyebrow"><Link href={`/${locale}/videos`}>{t.title}</Link></p>
       <h1 className="page-title">{pickLocalized(locale, video.title, video.titleEn)}</h1>
-      <VideoEmbedFacade video={video} label={locale === 'vi' ? 'Phát video' : 'Play video'} />
+      <VideoEmbedFacade video={video} label={t.play} />
       {duration && <p className={styles.meta}>{duration}</p>}
     </main>
   );

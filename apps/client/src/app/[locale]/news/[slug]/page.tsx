@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import styles from '../../../../components/content/content.module.css';
+import { getDictionary } from '../../../../i18n/get-dictionary';
 import { isLocale } from '../../../../i18n/locales';
 import { pickLocalized, pickLocalizedOrNull } from '../../../../i18n/pick-localized';
 import { pageMetadata } from '../../../../lib/page-metadata';
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArticlePage({ params }: Props) {
   const { locale, article } = await load(params);
+  const t = getDictionary(locale).news;
   const title = pickLocalized(locale, article.title, article.titleEn);
   const body = pickLocalized(locale, article.body, article.bodyEn);
   const summary = pickLocalizedOrNull(locale, article.summary, article.summaryEn);
@@ -52,7 +54,7 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <main id="content" className="container">
       <StructuredData value={structuredData} />
-      <p className="eyebrow"><Link href={`/${locale}/news`}>{locale === 'vi' ? 'Tin tức' : 'News'}</Link></p>
+      <p className="eyebrow"><Link href={`/${locale}/news`}>{t.title}</Link></p>
       <article>
         <h1 className="page-title">{title}</h1>
         <div className={styles.meta}>

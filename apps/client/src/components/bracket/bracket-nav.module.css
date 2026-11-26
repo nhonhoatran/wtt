@@ -130,3 +130,36 @@
     display: none;
   }
 }
+
+.nextCard {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .nextCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    border-radius: var(--radius-button);
+    background: var(--color-surface-muted);
+    color: var(--color-ink);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .nextCard:focus-visible {
+    outline: 2px solid var(--color-data);
+    outline-offset: 2px;
+  }
+}
+
+@media print {
+  .nextCard {
+    display: none;
+  }
+}

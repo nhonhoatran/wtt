@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import type { PublicEventDetail } from '@kamito/shared';
+import { describe, expect, it, vi } from 'vitest';
+import type { PublicEventDetail, PublicMatchDetail } from '@kamito/shared';
+const { getMatch } = vi.hoisted(() => ({ getMatch: vi.fn() }));
+vi.mock('../../src/lib/public-data', () => ({ getMatch, isUrlPart: () => true }));
+import { generateMetadata as matchPageMetadata } from '../../src/app/[locale]/events/[slug]/matches/[matchNo]/page';
 import { eventPageMetadata, pageMetadata } from '../../src/lib/page-metadata';
 
 const event = {
@@ -56,5 +59,35 @@ describe('eventPageMetadata', () => {
     expect(metadata.description).toBe(summary);
     expect(metadata.openGraph?.description).toBe(summary);
     expect(metadata.twitter?.description).toBe(summary);
+  });
+});
+
+describe('match page metadata', () => {
+  const match = {
+    matchNo: 9, status: 'OFFICIAL', subEvent: { name: 'Đơn nam', nameEn: 'Men singles' },
+    event: { slug: 'open', name: event.name, nameEn: event.nameEn }, round: { code: 'SF', number: 2 }, groupCode: null,
+    side1: { players: [{ name: 'Tên công khai', nameEn: 'Public display name' }] },
+    side2: { players: [{ name: 'Đối thủ', nameEn: 'Opponent' }] },
+  } as PublicMatchDetail;
+
+  it.each(['vi', 'en'] as const)('describes the %s match in standard and social metadata', async (locale) => {
+    getMatch.mockResolvedValue(match);
+    const metadata = await matchPageMetadata({ params: Promise.resolve({ locale, slug: 'open', matchNo: '9' }) });
+    for (const text of locale === 'vi'
+      ? ['Tên công khai', 'Đối thủ', event.name, 'Đơn nam', 'Bán kết', 'Đã kết thúc']
+      : ['Public display name', 'Opponent', event.nameEn, 'Men singles', 'Semifinals', 'Final']) {
+      expect(metadata.description).toContain(text);
+    }
+    expect(metadata.openGraph?.description).toBe(metadata.description);
+    expect(metadata.twitter?.description).toBe(metadata.description);
+    expect(metadata.alternates?.canonical).toBe(`/${locale}/events/open/matches/9`);
+  });
+
+  it('describes an undecided group match without inventing a participant', async () => {
+    getMatch.mockResolvedValue({ ...match, status: 'SCHEDULED', groupCode: 'A', side1: null, side2: null });
+    const metadata = await matchPageMetadata({ params: Promise.resolve({ locale: 'en', slug: 'open', matchNo: '9' }) });
+    expect(metadata.description).toContain('To be decided');
+    expect(metadata.description).toContain('Group A');
+    expect(metadata.description).toContain('Scheduled');
   });
 });

@@ -1,6 +1,7 @@
 import { expect, test } from './support/content-fixture';
 import { withSiteNavItems } from './support/content-settings';
 import { readFileSync } from 'node:fs';
+import type { E2eWorldFile } from './support/world-file';
 
 const root = (slug: string) => `/vi/events/${slug}`;
 
@@ -38,7 +39,7 @@ test.describe('SEO', () => {
   test('core pages provide localized descriptions in standard and social metadata', async ({ page, world }) => {
     for (const locale of ['vi', 'en'] as const) {
       const dictionary = JSON.parse(readFileSync(new URL(`../../src/i18n/${locale}.json`, import.meta.url), 'utf8'));
-      const routes = [`/${locale}`, `/${locale}/events/${world.world.slug}`, `/${locale}/events/${world.world.slug}/draws/MS`, `/${locale}/rankings/${world.ranking.code}`];
+      const routes = [`/${locale}`, `/${locale}/events/${world.world.slug}`, `/${locale}/events/${world.world.slug}/draws/MS`, `/${locale}/rankings/${world.ranking.code}`, `/${locale}/events/${world.world.slug}/matches/${world.playedMatchNo}`];
       for (const [index, route] of routes.entries()) {
         await page.goto(route);
         const metadata = await page.evaluate(() => Object.fromEntries(([
@@ -94,6 +95,20 @@ test.describe('SEO', () => {
     expect(sportsEvent.url).toBe(`${site}${path}`);
   });
 
+  test('canonical drops the ranking and round view parameters', async ({ page, world }) => {
+    const site = process.env.E2E_SITE_URL;
+    const draws = `${root(world.world.slug)}/draws/MS`;
+    for (const [visit, canonical] of [
+      [`${draws}?round=2`, draws],
+      [`${draws}?round=2&ranking=${world.ranking.code}`, draws],
+      [`/vi?ranking=${world.ranking.code}`, '/vi'],
+    ] as const) {
+      await page.goto(visit);
+      const href = await page.locator('link[rel="canonical"]').getAttribute('href');
+      expect(href, visit).toBe(`${site}${canonical}`);
+    }
+  });
+
   test('sitemap lists the event and robots points at the sitemap', async ({ request, world }) => {
     const site = process.env.E2E_SITE_URL;
     const sitemap = await request.get('/sitemap.xml');
@@ -130,13 +145,21 @@ test.describe('mobile layout', () => {
   test.skip(({ viewport }) => viewport?.width !== 390, 'mobile project only');
 
   for (const [name, pathOf] of [
-    ['events list', (slug: string) => `/vi/events?q=${slug}`],
-    ['event overview', (slug: string) => root(slug)],
-    ['draws page', (slug: string) => `${root(slug)}/draws/MS`],
+    ['events list', (w: E2eWorldFile) => `/vi/events?q=${w.world.tag}`],
+    ['event overview', (w: E2eWorldFile) => root(w.world.slug)],
+    ['matches tab', (w: E2eWorldFile) => `${root(w.world.slug)}/matches`],
+    ['draws page', (w: E2eWorldFile) => `${root(w.world.slug)}/draws/MS`],
+    ['draws page, chosen round', (w: E2eWorldFile) => `${root(w.world.slug)}/draws/MS?round=2`],
+    ['groups tab', (w: E2eWorldFile) => `${root(w.world.slug)}/groups/MD`],
+    ['match page', (w: E2eWorldFile) => `${root(w.world.slug)}/matches/${w.playedMatchNo}`],
+    ['rankings index', () => '/vi/rankings'],
+    ['ranking list', (w: E2eWorldFile) => `/vi/rankings/${w.ranking.code}`],
+    ['player profile', (w: E2eWorldFile) => `/vi/players/${w.ranking.playerSlug}`],
   ] as const) {
     test(`${name} does not scroll sideways at 390px`, async ({ page, world }) => {
-      await page.goto(pathOf(name === 'events list' ? world.world.tag : world.world.slug));
+      await page.goto(pathOf(world));
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(width).toBeLessThanOrEqual(390);
     });

@@ -24,7 +24,7 @@ export function RankingRowSummary({ row, name, locale, t }: { row: PublicRanking
       </span>
       <span className={styles.club}>{row.player.club}</span>
       <span className={styles.count}><span className="visually-hidden">{r.tournaments} </span>{row.resultsCounted}</span>
-      <span className={styles.points}><span className="visually-hidden">{r.points} </span>{row.points.toLocaleString(locale)}</span>
+      <span className={styles.points}><span className="visually-hidden">{r.points} </span><strong>{row.points.toLocaleString(locale)}</strong></span>
       <span className={styles.chevron} aria-hidden="true" />
       <span className="visually-hidden">{r.breakdown}</span>
     </summary>
