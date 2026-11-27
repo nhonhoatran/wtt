@@ -450,8 +450,9 @@ Chi tiết: [scheduling](./scheduling.md), [match-results](./match-results.md).
 ## Xếp hạng (phase 09)
 
 - **Hằng độ dài lý do và ghi chú** nằm trong `@kamito/shared` (`packages/shared/src/ranking-limits.ts`): `RANKING_REASON_MIN_LENGTH`, `RANKING_REASON_MAX_LENGTH`, `RANKING_NOTE_MAX_LENGTH`. API DTO và form admin cùng import, không viết lại số.
-- **"Hôm nay" của nghiệp vụ** lấy từ `rankingToday(settings)` (`apps/api/src/modules/ranking-jobs/ranking-today.ts`), theo `event.defaultTimezone`. Không lấy ngày theo UTC của server, cũng không lấy ngày của máy. Admin còn dùng ngày máy ở vài chỗ (ngày mặc định, tag "Hết hạn"). Đó là nợ đã ghi trong [changelog 2026-11-16](./project-changelog.md#2026-11-16--phase-09-màn-admin-xếp-hạng-chưa-commit). Không thêm chỗ mới theo cách đó.
-- **Ràng buộc nghiệp vụ kiểm ở API.** `disabledDate` của admin chỉ là gợi ý trên giao diện. Ràng buộc ngày (quy tắc không hồi tố, điểm và kỳ chốt không ở tương lai) phải có kiểm ở API. Hiện chưa có.
+- **"Hôm nay" của nghiệp vụ** lấy từ `rankingToday(settings)` (`apps/api/src/modules/ranking-jobs/ranking-today.ts`), theo `event.defaultTimezone`. Admin đọc `{today, timeZone}` từ `GET /admin/ranking/context` qua `useRankingDateContext`, làm mới khi mở màn/modal và mỗi phút; ngày mặc định, giới hạn chọn ngày và nhãn "Hết hạn" cùng dùng mốc này. Không suy ngày nghiệp vụ từ UTC server hoặc múi giờ máy người dùng. Trường chỉ có ngày giữ nguyên ngày lịch khi hiển thị.
+- **Ràng buộc nghiệp vụ kiểm ở API.** Lưu ma trận từ chối `effectiveFrom < today`; điểm thủ công từ chối `earnedAt > today`; dựng bản nháp và công bố kỳ chốt từ chối `asOfDate > today`. Lỗi 422 gắn đúng trường. Kiểm khi công bố áp dụng cả bản nháp cũ đã tồn tại trước guard; `disabledDate` của admin hỗ trợ người nhập.
+- **Theo dõi tác vụ dựng bản nháp:** chỉ `completed` kèm `snapshotId` của đúng job là thành công. Giữ lỗi worker, lỗi mạng/HTTP, 404 và completed thiếu kết quả trên màn hình; cho hỏi lại cùng job hoặc mở lịch sử kỳ chốt. Không tự tạo job mới hoặc chuyển sang bản nháp khác khi trạng thái chưa rõ.
 
 ## Xếp hạng và hồ sơ công khai (phase 10)
 

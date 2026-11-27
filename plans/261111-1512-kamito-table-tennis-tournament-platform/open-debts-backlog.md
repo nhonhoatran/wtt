@@ -1,10 +1,12 @@
-# Nợ còn mở — cập nhật 2026-11-26
+# Nợ còn mở — cập nhật 2026-11-27
 
 Danh sách việc dời lại sau lượt CI + audit admin ngày 2026-11-24. Làm xong mục nào thì gạch và ghi commit/bằng chứng.
 
 Lượt 2026-11-25 xử lý các mục local, kiểm trên trình duyệt với `localhost:5433/kamito_tt_phase12_test` (dữ liệu thử gắn tag, dọn sau khi kiểm). Đợt audit đã có commit `64c8b69` và báo cáo `10e3431`; phần redesign và kiểm tiếp được theo dõi riêng. Còn mở: S1, S2, T2, D1, D2 và A8 L3–L5 (L3/L5 chờ quyết định sản phẩm). A8 L1/L2 đã kiểm đạt trong lượt tiếp nối. Code review gốc: [code-reviewer-261125-open-debts-admin.md](../reports/code-reviewer-261125-open-debts-admin.md); kết quả sau sửa phải đối chiếu báo cáo A1/A8 và [plan redesign](../261125-0951-figma-ui-redesign-admin-client/plan.md).
 
 Lượt 2026-11-26 chạy `admin-full-flow` sau redesign trên `localhost:5433/kamito_tt_phase12_test`: desktop đạt 8/8 một lượt, mobile đạt 8/8 hai lượt; L4 đóng. Sáu lượt khác rớt vì bốn nguyên nhân riêng, ghi thành E1–E3 và bổ sung T2 bên dưới. Cùng ngày đã sửa E1 trong API và chạy lại: desktop 8/8 và mobile 8/8 trên bản có sửa, đóng E1 và E3; ghi thêm E4. Còn mở sau lượt này: S1, S2, T2, D1, D2, L3, L5, E2, E4. [Báo cáo](../reports/tester-261126-1620-admin-full-flow-after-redesign.md).
+
+Lượt 2026-11-27: người dùng chốt làm màu nội dung, tự động xếp lịch và `/search`. E2, E4, L3 và L5 đã sửa/kiểm theo bằng chứng ở từng dòng; API ngày xếp hạng và đồng hồ nghiệp vụ admin đã bổ sung. Runner full-flow chuyển vào `scripts/` với unit vòng đời và log từng tiến trình; desktop/mobile mới đều đạt 8 bước/60 phép kiểm làm mới, cleanup sạch và `.env` không đổi. Mobile dùng build sau default hồ sơ ẩn mới; desktop trước default này. Còn mở S1, S2, T2, D1, D2 và các gate tổng/ảnh-review cuối trong [plan](../261127-debt-closure/plan.md); không coi các lượt sạch đã sửa T2. `/search` có production vi/en, desktop/mobile trong lượt public 126 đạt/16 bỏ qua, axe 80; [review ảnh](../reports/tester-261127-public-visual-review.md) ghi rõ giới hạn.
 
 Nguồn: [audit UI 1440/390](./reports/ui-audit-261124-admin-1440-390.md), [code review](./reports/code-reviewer-261124-ci-and-admin-mobile.md), [phase 07](./phase-07-scheduling-sessions-tables-and-result-entry.md) mục "Việc còn mở".
 
@@ -13,7 +15,7 @@ Nguồn: [audit UI 1440/390](./reports/ui-audit-261124-admin-1440-390.md), [code
 | # | Việc | Chờ ai | Ghi chú |
 |---|---|---|---|
 | S1 | Trả lời checklist hạ tầng | Chủ hạ tầng | [infra-preflight-checklist-261124.md](./reports/infra-preflight-checklist-261124.md) |
-| S2 | Câu hỏi G1/G2/consent | BTC | Phase 12, mục "Câu hỏi chưa giải quyết" |
+| S2 | G1/G2/consent: hoàn tất điều kiện vận hành | BTC | [Người dùng đã duyệt ba gói](../261127-debt-closure/btc-consent-decisions.md) ngày 2026-11-27: G1 KEEP/no tránh CLB; G2 cơ chế 365 ngày/seed đôi/WO/chốt tay; BTC lưu consent ngoài ứng dụng, hồ sơ mới chỉ bật sau xác nhận, tuổi tắt/noindex bật. Vẫn chờ bảng điểm thật/ngày hiệu lực và đối chiếu bằng chứng từng VĐV; không backfill hoặc coi phê duyệt quy trình là consent |
 
 ## Admin UI
 
@@ -44,7 +46,7 @@ Nguồn: [audit UI 1440/390](./reports/ui-audit-261124-admin-1440-390.md), [code
 | # | Việc | Ghi chú |
 |---|---|---|
 | ~~T1~~ | ~~Khai `passThroughEnv` cho task `test`~~ | Xong 2026-11-25: dry-run của turbo liệt kê `DATABASE_URL` trong passthrough. Script gốc vẫn giữ `--env-mode=loose` |
-| T2 | Vitest API trên Windows thỉnh thoảng crash native `0xC0000409` | Chỉ ở máy local; chạy lại từng shard thì đạt. GitHub Actions (Linux) không gặp. `apps/api/vitest.config.ts` đã dùng `pool: 'threads'` để giảm crash nhưng vẫn còn; lỗi ở runtime native, chưa có cách sửa trong code dự án — giữ mở để theo dõi |
+| T2 | Vitest API trên Windows thỉnh thoảng crash native `0xC0000409` | Giữ mở: chưa xác định nguyên nhân. Chạy lại từng shard đã đạt; GitHub Actions Linux chưa gặp. `pool: 'threads'` không loại bỏ mọi crash. Node 26.13.1 hiện có guard upstream #61999, probe 30/30 sạch nhưng không tái hiện worker cũ. Runner đã thêm thời gian/runtime/mã hex, không retry hoặc nuốt lỗi; [báo cáo T2](../reports/debugger-261127-native-windows-t2.md) |
 
 Bổ sung theo dõi runtime 2026-11-25: focused Playwright sau sửa metadata đạt 56/12, exit 0 và JSON không errors/flaky, nhưng log có assertion `UV_HANDLE_CLOSING` sau test cuối. Chưa xác định tiến trình con phát sinh; không coi đây là log sạch hoặc cùng nguyên nhân với crash Vitest. Raw: `test-results/261125-c11-public-07f833ec-9bb3-4401-8e02-abcb6df3b3fe/playwright.log`.
 
@@ -63,15 +65,15 @@ Bổ sung 2026-11-26: worker của `admin-full-flow` (Vitest chạy `full-ui-wor
 |---|---|---|
 | ~~L1~~ | ~~Thử kéo bàn phím trên lưới lịch ở Firefox và WebKit~~ | Đạt 2026-11-25: Chromium 156, Firefox 157, WebKit 27.2; hủy bằng Space/Tab/Esc không PATCH, mũi tên + Space đúng 1 PATCH 200, `aria-pressed=false`. Firefox có hai lượt harness chưa hiện UI rồi lượt riêng đạt; không sửa mã sản phẩm. [Báo cáo](../reports/tester-261125-a8-browser-gates.md) |
 | ~~L2~~ | ~~Kiểm lưới 6 bàn ở 1280 px không cuộn ngang~~ | Đạt 2026-11-25 trên ba engine: trang 1280/1280 px, vùng cuộn lưới 715/715 px; sáu bàn thật từ DB. Đã phục hồi lịch và dọn toàn bộ session/bàn/user tạm. [Báo cáo](../reports/tester-261125-a8-browser-gates.md) |
-| L3 | Q8 màu theo nội dung (`Discipline.colorHex`, cần migration) | Chờ chốt; mặc định hiện tại là Tag mã nội dung, không màu |
+| ~~L3~~ | ~~Q8 màu theo nội dung (`Discipline.colorHex`, cần migration)~~ | Xong 2026-11-27: màu nullable cấu hình ở danh mục, viền + chú giải lịch giữ mã/tên và neutral fallback. Migration chỉ áp DB test đã xác nhận; API thật 5/5, DTO 6/6, helper 2/2, browser component 390/1440 đạt 2/2. [Báo cáo](../reports/tester-261127-import-colors-runner.md) |
 | ~~L4~~ | ~~Chạy E2E `apps/client/tests/admin-full-flow` sau khi đổi giao diện~~ | Đạt 2026-11-26: desktop 8/8 (`desktop-b454234d…`, 60 lần làm mới trang công khai, chậm nhất 1380 ms), mobile 8/8 (`mobile-a3ea6eee…`, chậm nhất 796 ms). Bốn lượt ngày 2026-11-25 đều rớt vì helper test đua thời điểm, đã sửa trong `ui.ts` và `results.ts`. Lượt desktop này chạy trước hai chỉnh nhỏ cuối của helper; lượt `desktop-c6d3eeff…` (E3) đạt trên helper cuối |
-| L5 | Q9 tự động xếp lịch | Phase riêng, chưa làm |
+| ~~L5~~ | ~~Q9 tự động xếp lịch~~ | Hoàn tất H ngày 2026-11-27: review backend, focused API/engine/classifier 21/21; modal cancel/stale 409 tại 390/1440; desktop/mobile full-flow preview/cancel/apply đạt, giữ lịch thủ công và cleanup sạch. [Backend review](../reports/code-review-261127-auto-schedule-backend.md), [full flow](../reports/tester-261127-admin-full-flow-continuation.md). Preview không ghi, apply kiểm fingerprint/version và transaction |
 
 ## Nợ phát hiện khi chạy admin-full-flow (2026-11-26)
 
 | # | Mức | Việc | Vị trí | Ghi chú |
 |---|---|---|---|---|
 | ~~E1~~ | ~~Trung bình~~ | ~~API trạng thái tác vụ xếp hạng có thể trả `completed` kèm `result: null`~~ | `apps/api/src/modules/ranking-jobs/ranking-enqueue.service.ts:73-74` | Đã sửa 2026-11-26. Nguyên nhân: `getJob` đọc `returnvalue` trước, `getState` đọc trạng thái sau bằng một lệnh Redis khác; tác vụ xong giữa hai lần đọc thì admin coi là xong nhưng không có `snapshotId` (`snapshot-jobs-tracker.tsx:59`). Gặp một lần ở bước 7 lượt `desktop-90974b9e…`; trace ghi `"state":"completed","attemptsMade":0,"result":null`. Sửa: đọc trạng thái (`getJobState`) trước, đọc job sau. BullMQ ghi trạng thái kết thúc và `returnvalue` trong cùng một lệnh, nên trường hợp xấu nhất còn lại là "chưa xong nhưng đã có kết quả", admin tự hỏi lại. Test hồi quy `ranking-enqueue.service.test.ts` rớt trước khi sửa, đạt sau khi sửa. Review độc lập không có lỗi chặn. Chạy lại `admin-full-flow` trên bản có sửa: desktop 8/8, mobile 8/8 |
-| E2 | Thấp | Dropdown "Chọn VĐV cho dòng này" ở bước xem trước nhập Excel rộng hơn màn hình điện thoại | `apps/admin/src/components/import-row-decision-select.tsx:48` | Đo ở 390 px với tên thử dài: dropdown rộng 667 px, trang bị nới thành 679 px. `popupMatchSelectWidth={false}` cho dropdown rộng theo nhãn dài nhất. Thử cho dropdown rộng bằng ô chọn và xuống dòng: không đủ vì ô chọn giãn theo cột bảng; đã hoàn lại. Cần quyết định cách hiển thị trên điện thoại |
+| ~~E2~~ | Thấp | ~~Dropdown "Chọn VĐV cho dòng này" ở bước xem trước nhập Excel rộng hơn màn hình điện thoại~~ | `apps/admin/src/components/import-row-decision-select.tsx` | Đã sửa 2026-11-27: trigger 260 px có giới hạn viewport, popup độc lập tối đa 480 px/viewport trừ 24 px, nhãn đầy đủ xuống dòng, hàng mobile ≥44 px. Browser React thật 3/3 ở 320/390/1440; pointer/bàn phím PATCH đúng. Đối chứng trước sửa ở 320/390 rớt geometry; sau sửa document đúng viewport. [Báo cáo](../reports/tester-261127-import-colors-runner.md) |
 | ~~E3~~ | ~~Thấp~~ | ~~Chạy lại desktop `admin-full-flow` trên helper cuối khi máy ổn định~~ | `test-results/261120-full-ui-runner.mjs` | Đạt 2026-11-26: `desktop-c6d3eeff…` 8/8 (60 lần làm mới, chậm nhất 851 ms) và `mobile-26a6fdfe…` 8/8 (chậm nhất 913 ms), cùng helper cuối và bản API có sửa E1; dọn xong, `.env` không đổi. Ba lượt desktop trước đó rớt: trang công khai cổng 3373 mất kết nối ở bước 4, API cổng 3371 mất kết nối ở bước 2, và E1 ở bước 7. Hai lần mất kết nối chưa rõ nguyên nhân và chưa tái hiện (runner lúc đó chưa ghi mã thoát, nay đã ghi); lúc đo, bộ nhớ commit của máy còn trống 4,7/47,4 GB, chưa chứng minh được liên quan. Nếu gặp lại thì theo dõi chung với T2 |
-| E4 | Thấp | Admin coi tác vụ dựng bản nháp là xong khi API trả 404, nhưng không có `snapshotId` | `apps/admin/src/pages/ranking/snapshot-jobs-tracker.tsx:50-59` | Có sẵn từ trước, review E1 chỉ ra. Tác vụ bị dọn khỏi hàng đợi trước lần hỏi đầu tiên của admin thì bảng theo dõi báo xong mà không mở được bản nháp vừa tạo. Chưa gặp trong các lượt chạy; chưa có test. Chưa sửa |
+| ~~E4~~ | Thấp | ~~Admin coi tác vụ dựng bản nháp là xong khi API trả 404, nhưng không có `snapshotId`~~ | `apps/admin/src/pages/ranking/snapshot-jobs-tracker.tsx` | Đã sửa 2026-11-27: chỉ completed có `snapshotId` là thành công; lỗi/404/thiếu result giữ hiển thị, hỏi lại cùng job hoặc mở lịch sử, không tạo job mới ngầm. Node 7/7 và browser component 9/9; hai đối chứng HEAD rớt đúng lỗi cũ. [Báo cáo](../reports/tester-261127-debt-closure-client.md) |

@@ -1,7 +1,7 @@
 ---
 phase: C7
 title: "Nhánh đấu (1-24, mobile 1-34) và bảng đấu"
-status: in-progress
+status: completed
 priority: P1
 effort: 5h
 depends_on: [C1, C2, C6]
@@ -80,7 +80,7 @@ Tạo:
 - [x] Tách CSS < 200 dòng
 - [x] Test in, e2e và axe đạt (báo cáo C11)
 - [x] Lighthouse production (lượt cuối C11: nhánh 100/100/100)
-- [ ] Mở kiểm đầy đủ ảnh/PDF theo C11
+- [x] Mở kiểm đủ 8 mosaic/40 trang PDF, trang lớn và ảnh đơn/đôi 1440/390 — 2026-11-27 ([báo cáo](../reports/tester-261127-debt-closure-client.md))
 
 
 ## Đồng bộ trạng thái 2026-11-25
@@ -88,6 +88,10 @@ Tạo:
 Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C7-bracket-groups.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
 
 Playwright/axe và test in đã đạt ở C11; Lighthouse production cuối nhánh 100/100/100, `runtimeError=null`. Đã lưu ảnh và đối chiếu một số ảnh chính; vẫn giữ mục mở kiểm đầy đủ ảnh/PDF.
+
+## Đồng bộ trạng thái 2026-11-27
+
+Kiểm in 9/9 đạt, audit độc lập 8/8 PDF giữ đủ 63 trận và tên; đã mở cả 40 trang qua tám mosaic và ảnh lớn kiểm tên xuống dòng. Hai lỗi phát hiện thuộc harness QA (chuẩn hóa whitespace và thiếu CSS TierBadge), đã sửa và chạy lại. Phần kiểm PDF C7 đã xong; C11 vẫn chờ ảnh/review cuối của các tính năng mới.
 
 ## Success criteria
 - `pnpm --filter @kamito/client test:print` đạt (8 PDF, đủ trận/tên, ngữ cảnh mỗi trang); ảnh PDF đã mở kiểm.

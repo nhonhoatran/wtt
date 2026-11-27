@@ -13,7 +13,7 @@ Phân tích: [admin gap](./research/admin-figma-gap.md) · [client gap](./resear
 ## Nguyên tắc
 - Dữ liệu thật từ API; giá trị nghiệp vụ là setting/DB có mặc định. List/lọc/phân trang ở server.
 - Lệch Figma khi Figma kém dễ dùng hoặc trái quy tắc nghiệp vụ — lý do ghi trong phase.
-- Không `prisma db push`; plan hiện không cần migration (trừ khi chốt admin Q8).
+- Không `prisma db push`; Q8 được chốt 2026-11-27, migration nullable màu nội dung chỉ áp DB test riêng đã xác nhận; chưa áp dev/staging.
 - Kiểm trình duyệt trên DB test `localhost:5433/kamito_tt_phase12_test`.
 
 ## Phase
@@ -51,6 +51,14 @@ Phân tích: [admin gap](./research/admin-figma-gap.md) · [client gap](./resear
 - Admin-full-flow sau redesign: desktop đạt 8/8 một lượt, mobile đạt 8/8 hai lượt trên `localhost:5433/kamito_tt_phase12_test`. Đã đánh dấu ô E2E của A8, A9, A10 và C11; checklist còn **155 mục đạt / 5 mục mở** (C11: đối chiếu ảnh với Figma, review diff cuối; C7: mở kiểm đủ ảnh/PDF; hai mục tùy chọn `/search` và màu theo nội dung).
 - Lượt desktop đạt đầu tiên chạy trước hai chỉnh nhỏ cuối của helper; ba lượt desktop chạy lại rớt vì server mất kết nối và một lỗi API có sẵn (E1). Sau khi sửa E1, desktop 8/8 và mobile 8/8 trên helper cuối; E1 và E3 đóng, còn E2 và E4 ở [backlog](../261111-1512-kamito-table-tennis-tournament-platform/open-debts-backlog.md).
 - A8, A9, A10 không còn việc mở ngoài Q8 tùy chọn của A8. C11 và C7 giữ `in-progress`.
+
+## Đồng bộ tiến độ 2026-11-27
+
+- Sweep toàn bộ 22 phase: **158 mục đạt / 2 mục mở**. Đóng Q8 A8 (màu), Q2 C3 (`/search`) sau người dùng chốt; C7 kiểm đủ ảnh/PDF hoàn tất theo [báo cáo](../reports/tester-261127-debt-closure-client.md). C11 còn ảnh các thay đổi mới và review/tester cuối.
+- E2 và E4 đã sửa có hồi quy trước/sau; màu có migration/API thật và browser component. Tự động xếp được đưa vào workstream H riêng, chưa đánh dấu hoàn tất. [Plan trả nợ](../261127-debt-closure/plan.md).
+- Các mốc staging, G1/G2/consent, cleanup DB dev và native Windows T2 tiếp tục mở. Không thay checkbox phase 01–12 bằng kết quả component/unit mới.
+
+Tiếp nối cùng ngày: public production 126 đạt/16 bỏ qua, axe 80 lượt không vi phạm; [review 80 ảnh+4 ảnh phụ](../reports/tester-261127-public-visual-review.md) đã ghi rõ các route/biến thể còn thiếu ảnh. Sweep lại vẫn **158/160**, hai ô C11 chưa đóng (ảnh đủ phạm vi và review diff cuối). Runner D và scheduler H/L5 hoàn tất riêng: backend review/integration và [desktop/mobile full-flow](../reports/tester-261127-admin-full-flow-continuation.md) mỗi lượt đủ 8 bước/60 phép kiểm làm mới, cleanup sạch. Desktop trước default consent mới, mobile sau default mới. [BTC/consent](../261127-debt-closure/btc-consent-decisions.md) được người dùng duyệt ba gói ngày 2026-11-27; default hồ sơ mới ẩn có API61/worker46/browser22, còn bảng điểm thật và bằng chứng từng người, không backfill dữ liệu cũ. [T2](../reports/debugger-261127-native-windows-t2.md) đã thêm diagnostics, chưa xác định nguyên nhân cũ.
 
 ## File dùng chung — chạy tuần tự
 - `packages/ui-tokens` (`build-css-variables.test.ts`): A1 → C1.

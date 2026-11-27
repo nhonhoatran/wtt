@@ -20,6 +20,7 @@
 - [Cài đặt](#cài-đặt)
 - [Mã lỗi](#mã-lỗi)
 - [Màn hình admin](#màn-hình-admin)
+- [Màu theo nội dung](#màu-theo-nội-dung)
 - [Chưa làm và việc còn mở](#chưa-làm-và-việc-còn-mở)
 
 ## Khái niệm
@@ -256,6 +257,14 @@ Tab **Lịch & kết quả** trong hub giải (`pages/event-hub/schedule-tab.tsx
 - **In phiếu trận** và **xuất lịch, kết quả** nằm trên thanh công cụ của tab. Nút "Làm mới trang công khai" gọi `POST /admin/events/:id/revalidate`.
 
 Thông báo cảnh báo `warnings` được hiện qua `apps/admin/src/api/write-warnings.ts` (xem [code-standards](./code-standards.md#cảnh-báo-ghi-warnings)).
+
+## Màu theo nội dung
+
+Từ 2026-11-27, danh mục **Nội dung chuẩn** cho tạo/sửa màu lịch `Discipline.colorHex`. Giá trị là `#RRGGBB`, chuẩn hóa viết hoa; bỏ trống hoặc xóa màu lưu `NULL`. Migration `20261127090000_add_discipline_color` chỉ thêm cột TEXT nullable, không gán màu mặc định cho dữ liệu cũ. Quyền ghi và audit theo CRUD danh mục hiện có.
+
+Danh sách và chi tiết trận admin trả thêm `discipline: {id, code, name, colorHex}` từ danh mục hiện hành. Lưới lịch và panel chưa xếp dùng màu làm viền trang trí; không có màu thì dùng viền trung tính của theme. Chú giải đầu lưới gộp theo nội dung, luôn giữ mã/tên; màu không thay thế chữ hoặc viền/cảnh báo trùng lịch. Phản hồi cũ thiếu metadata vẫn render được với fallback trung tính.
+
+Kiểm local: 5 ca API thật xác nhận migration/persistence/quyền/metadata trận, 6 ca DTO, 2 ca helper và 2 ca browser component thật ở 390/1440 px đạt. HTTP của browser fixture được mock; phần này không tự thay cho nghiệm thu toàn luồng. [Báo cáo](../plans/reports/tester-261127-import-colors-runner.md).
 
 ## Chưa làm và việc còn mở
 

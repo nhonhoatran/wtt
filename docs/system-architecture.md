@@ -1,9 +1,8 @@
 # System Architecture — Kamito
 
 > Cập nhật: 2026-11-19 · Trạng thái: có mã nguồn CMS phase 11 và tiếng Anh/SEO/hardening phase 12 trong working tree; kiểm API và public Playwright trên PostgreSQL/Redis local thật đã đạt trong phạm vi báo cáo. Chưa deploy staging. Trạng thái từng phase: xem [roadmap](./development-roadmap.md).
-> Bốc thăm và vòng bảng chi tiết: [draws-and-groups.md](./draws-and-groups.md).
 > Nguồn đối chiếu: `apps/*/src`, `packages/*/src`, `packages/db/prisma`, `docker/*`, `docker-compose*.yml`.
-> Tiêu chuẩn code xem [code-standards.md](./code-standards.md). Triển khai xem [deployment-guide.md](./deployment-guide.md). Chi tiết đăng nhập và phân quyền xem [auth-and-rbac.md](./auth-and-rbac.md).
+> Chi tiết: [bốc thăm](./draws-and-groups.md), [tiêu chuẩn code](./code-standards.md), [triển khai](./deployment-guide.md), [đăng nhập và phân quyền](./auth-and-rbac.md).
 
 ## Contents
 - [Tổng quan](#tổng-quan)
@@ -165,7 +164,6 @@ Migration theo thứ tự:
 3. `packages/db/prisma/migrations/20261112061544_add_tournament_master_data` (phase 04: danh mục, giải, nội dung thi đấu)
 4. `packages/db/prisma/migrations/20261112061630_add_media_assets` (phase 04: ảnh)
 5. `packages/db/prisma/migrations/20261112070130_add_single_default_partial_indexes` (phase 04: một mặc định duy nhất)
-
 6. `packages/db/prisma/migrations/20261112074412_add_players_pairs_competitors` (phase 05: `Player`, `Pair`, `Competitor`; sequence `player_code_seq`; CHECK)
 7. `packages/db/prisma/migrations/20261112074503_add_entries` (phase 05: `Entry`)
 8. `packages/db/prisma/migrations/20261112074532_add_import_jobs` (phase 05: `ImportJob`, `ImportRow`)
@@ -179,6 +177,8 @@ Migration theo thứ tự:
 16. `packages/db/prisma/migrations/20261115032757_add_player_public_name_key` (phase 08: khóa tên công khai, trigger/backfill/index; DB dev local đã áp dụng, staging chưa)
 17. `packages/db/prisma/migrations/20261119090000_add_content_cms` (phase 11: tin/video/trang tĩnh/tài trợ/liên hệ)
 18. `packages/db/prisma/migrations/20261119151407_add_content_english_fields` (phase 12: ba cột nullable `Article.categoryEn`, `StaticPage.footerGroupEn`, `Video.durationTextEn`)
+19. `packages/db/prisma/migrations/20261127090000_add_discipline_color` (màu lịch admin: `Discipline.colorHex` TEXT nullable, không default/backfill; đã áp dụng DB test riêng, chưa áp dev/staging)
+20. `packages/db/prisma/migrations/20261127110000_private_player_profile_default` (consent 2026-11-27: chỉ ALTER DEFAULT hồ sơ mới `false`, không UPDATE/backfill; đã áp DB test, chưa dev/staging; lúc áp có 0 VĐV cũ)
 
 Đợt 2026-11-19 chỉ migrate đủ 18 vào DB local riêng `localhost:5433/kamito_tt_phase12_test`; migration 17–18 chưa áp dụng DB dev/staging. SQL migration 18 chỉ thêm ba cột TEXT nullable, không rewrite hoặc xóa dữ liệu.
 
@@ -240,7 +240,7 @@ Các bảng danh mục do admin quản lý. Quy ước chung:
 | `Category` | `code` unique | `kind` (`AGE`, `SKILL`, `OPEN`), `minAge`, `maxAge` |
 | `Discipline` | `code` unique | `competitorKind` (`SINGLES`, `DOUBLES`), `genderRule` (`MEN`, `WOMEN`, `MIXED`, `OPEN`) |
 | `MatchFormat` | Partial unique index `MatchFormat_single_default` trên `isDefault` (chỉ một dòng `true`) | `bestOf`, `pointsPerGame`, `winBy`, `estimatedMinutes` |
-| `GroupScoringRule` | Partial unique index `GroupScoringRule_single_default` trên `isDefault` | Điểm thắng, thua, thua walkover, thua chưa đấu xong. `unfinishedMatchScoring`, `awardedGamePoints`. `withdrawalPolicy` nullable (`null` = chưa chốt). `tiebreakers` JSON (danh sách `TiebreakCriterion`) |
+| `GroupScoringRule` | Partial unique index `GroupScoringRule_single_default` trên `isDefault` | Điểm thắng/thua/walkover/chưa xong, `unfinishedMatchScoring`, `awardedGamePoints`, `tiebreakers` JSON. `withdrawalPolicy` nullable (`null` vẫn chặn rút); G1 duyệt `KEEP_PLAYED_RESULTS` ngày 2026-11-27 cho seed mới, không ghi đè rule cũ |
 | `Venue` | — | `address`, `city`, `mapUrl` (https) |
 | `VenueTable` | `(venueId, code)` unique | `venueId` → `Venue` (Cascade). `displayName`, `order` |
 
@@ -352,7 +352,7 @@ Nguồn: `packages/db/prisma/schema/players-and-entries.prisma`, `imports.prisma
 
 | Model | Vai trò | Ràng buộc chính |
 |---|---|---|
-| `Player` | Hồ sơ VĐV. `code` = tiền tố + số từ sequence Postgres `player_code_seq`; `slug`; `normalizedName` (chữ thường, bỏ dấu, dùng để khớp và tìm) | `code`, `slug` unique. `mergedIntoId` trỏ tới hồ sơ giữ lại khi gộp. `phone`, `email`, `birthDate` là dữ liệu riêng tư |
+| `Player` | Hồ sơ VĐV. `code` = tiền tố + sequence `player_code_seq`; `slug`; `normalizedName` dùng khớp/tìm | `code`, `slug` unique; `mergedIntoId` trỏ hồ sơ giữ lại. `phone`, `email`, `birthDate` riêng tư. Consent 2026-11-27: source default hồ sơ mới ẩn; migration chỉ ALTER DEFAULT, không backfill row cũ; rollout kiểm riêng |
 | `Pair` | Cặp đôi gồm hai VĐV khác nhau | CHECK `playerAId < playerBId`; unique `(playerAId, playerBId)` |
 | `Competitor` | Đơn vị được đăng ký, `PLAYER` hoặc `PAIR`. Entry và sau này là trận đấu trỏ vào đây, không trỏ thẳng vào Player/Pair | CHECK: đúng cột khớp `type` được điền. `displayName` làm mới trong cùng transaction khi đổi tên hoặc gộp |
 | `Entry` | Đăng ký của một competitor vào một nội dung | unique `(subEventId, competitorId)`; unique `(subEventId, stage, seed)` (nhiều NULL không xung đột). `status` CONFIRMED/WITHDRAWN; `stage` MAIN/QUALIFYING; `quotaType` DIRECT/WILDCARD/QUALIFIER; `eligibilityOverrideReason` |
@@ -609,7 +609,7 @@ Rate limit công khai ở `proxy.ts` của client, Lua atomic trong Redis dùng 
 
 `public-players` lọc và sắp xếp tên/hạng tại PostgreSQL trước phân trang. Hồ sơ chuẩn dùng `p-<UUID>` (`publicPlayerSlug` trong shared), không lộ slug sinh từ tên thật. Query đệ quy giải chuỗi gộp có chống vòng lặp; slug cũ hoặc hồ sơ đã gộp trả `{redirectTo}` khi đích công khai. Proxy Next chuyển 301; đích ẩn/ngừng hoạt động trả null và trang Next 404. Hồ sơ chuẩn có 3 truy vấn SQL: thông tin + setting, hạng, giải đã đăng ký; lịch sử kết quả phân trang ở endpoint riêng, chỉ trận `OFFICIAL` không BYE/void trong giải và draw công khai.
 
-Serializer whitelist tôn trọng tên thay thế; hồ sơ ẩn không có link/ảnh. Không trả SĐT, email, ngày/năm sinh. Tuổi lấy từ `player.showAge`, metadata theo `noindex`; không có JSON-LD `Person` hoặc URL VĐV trong sitemap. Cache gắn tag hồ sơ và tag chung `players`, `rankings`, `events`, `settings`; loader mutation gửi cả slug cũ và định danh chuẩn. Điểm theo vòng ở tab Thông tin lấy phiên bản có hiệu lực tại `endDate`; `rankingRules.write` làm mới tab sau khi lưu ma trận. Không thêm schema hay migration. Hợp đồng: `packages/shared/src/public-ranking-contract.ts`.
+Serializer whitelist tôn trọng tên thay thế; hồ sơ ẩn không link/ảnh, vẫn có tên trong kết quả; không SĐT/email/ngày-năm sinh. Consent 2026-11-27: BTC giữ bằng chứng ngoài ứng dụng, chỉ bật hồ sơ mới sau xác nhận; giữ `player.showAge=false`, `noindex=true`, không Person/sitemap, không model consent/backfill. [Quyết định](../plans/261127-debt-closure/btc-consent-decisions.md). Cache gắn tag hồ sơ + `players/rankings/events/settings`; mutation gửi slug cũ và ID chuẩn. Điểm tab Thông tin lấy phiên bản tại `endDate`; `rankingRules.write` refresh sau lưu ma trận. Hợp đồng: `packages/shared/src/public-ranking-contract.ts`.
 
 ## Xác thực và phân quyền (phase 03)
 
@@ -665,7 +665,7 @@ Quy tắc chung:
 | Origin check | `common/security/trusted-origin.ts` | `TrustedOriginMiddleware` cho ghi dưới `admin/*`, `auth/*`. Dùng lại trong bull-board |
 | Users | `modules/users/` | CRUD user (không xóa), reset mật khẩu, thu hồi phiên, ràng buộc ADMIN cuối |
 | Settings | `modules/settings/` | `AppSettingsService`: đọc DB mỗi lần, không giữ cache RAM riêng từng replica; sửa, reset, audit |
-| Xếp hạng | `modules/ranking-lists/`, `ranking-rules/`, `ranking-points/`, `ranking-snapshots/`, `ranking-jobs/` | Bảng xếp hạng, quy tắc điểm (ma trận có phiên bản), sổ điểm, kỳ chốt (nháp rồi công bố), job dựng bản nháp (`GET /admin/ranking/jobs/:id`). Điểm thủ công và công bố kỳ chốt có `@RequireStepUp()`. Ngày nghiệp vụ: `rankingToday()` (`ranking-jobs/ranking-today.ts`) theo múi giờ của giải |
+| Xếp hạng | `modules/ranking-lists/`, `ranking-rules/`, `ranking-points/`, `ranking-snapshots/`, `ranking-jobs/` | Bảng xếp hạng, quy tắc điểm (ma trận có phiên bản), sổ điểm, kỳ chốt (nháp rồi công bố), job dựng bản nháp (`GET /admin/ranking/jobs/:id`). Điểm thủ công và công bố kỳ chốt có `@RequireStepUp()`. API kiểm ngày theo `event.defaultTimezone`; `GET /admin/ranking/context` chia sẻ `{today, timeZone}` với admin |
 | Audit log (đọc) | `modules/audit-logs/` | Chỉ GET. Lọc theo actor, entity, action (tiền tố), khoảng thời gian |
 | Danh mục và địa điểm | `modules/tiers/`, `event-types/`, `categories/`, `disciplines/`, `match-formats/`, `group-scoring-rules/`, `venues/` | Mỗi module: controller + service kế thừa `CatalogCrudService`. Venue có thêm `admin/venues/:id/tables` (tạo nhanh nhiều bàn) |
 | Giải và nội dung thi đấu | `modules/events/`, `modules/sub-events/` | Slug (`event-slug.ts`), publish/unpublish, cancel/uncancel, delete có chặn, lọc `lifecycle`/`year`/`eventTypeId`/`publishStatus`. Sub-event đơn và bulk (tối đa 50 mục mỗi lần) |
@@ -729,7 +729,9 @@ Code phía admin (`apps/admin/src`):
 
 CMS có API admin/public cho tin, video, trang tĩnh, tài trợ và liên hệ; mutation ghi audit atomic rồi enqueue publishing/revalidation sau commit. Worker có job hẹn giờ, sweep và dọn liên hệ. Public SSR dùng whitelist, lọc/phân trang ở API; HTML được sanitize lúc ghi và lúc hiển thị. Nội dung tiếng Anh dùng fallback vi; phase 12 bổ sung category/duration/footer group và setting động `news.categoryLabelsEn` với kiểm own-property/kiểu chuỗi.
 
-Sitemap chạy runtime qua `/sitemap.xml` và `/sitemap/[id]`, helpers ở `src/lib/sitemap.ts`/`sitemap-xml.ts`. Payload dùng public scope; bộ chia tuân thủ 50.000 URL và 50 MiB UTF-8 sau escape/wrapper, tự tạo index, không cắt URL. Root/chunk không thương lượng locale nhưng vẫn tính vào ngân sách search động trong proxy, kể cả request giả header prefetch. Có hai locale, canonical/hreflang, OG/Twitter và JSON-LD; hồ sơ VĐV vẫn bị loại khỏi sitemap/`Person` khi gate đồng ý công khai chưa chốt.
+Sitemap chạy runtime qua `/sitemap.xml` và `/sitemap/[id]`, helpers ở `src/lib/sitemap.ts`/`sitemap-xml.ts`. Payload dùng public scope; bộ chia tuân thủ 50.000 URL và 50 MiB UTF-8 sau escape/wrapper, tự tạo index, không cắt URL. Root/chunk không thương lượng locale nhưng vẫn tính vào ngân sách search động trong proxy, kể cả request giả header prefetch. Có hai locale, canonical/hreflang, OG/Twitter và JSON-LD; quyết định consent 2026-11-27 tiếp tục loại hồ sơ VĐV khỏi sitemap/`Person`.
+
+`/:locale/search` là SSR tìm giải và VĐV qua hai hàm public hiện có, chạy song song và giữ kết quả bên còn hoạt động nếu một bên lỗi. Form GET chỉ nhận `q` đã chuẩn hóa/giới hạn; bỏ trống không gọi danh sách. Kết quả tìm không cache, dùng hạn mức search hiện có và metadata `noindex`; không bổ sung API tìm tin hoặc full-text. Chi tiết: [public-site](./public-site.md#tìm-kiếm).
 
 Helmet được đăng ký trước raw auth và bull-board. HTTP log chỉ giữ request id/method/route template/status; Better Auth và worker bỏ message/stack thô. `safeErrorSummary` chỉ xuất loại/mã được phép; Prisma mặc định không log (`log: []`). Client CSP vẫn report-only, chưa nonce, chưa nghiệm thu enforce; collector chỉ log origin/scheme marker/directive cho phép. Media public có CORP `cross-origin`, phần API còn lại giữ `same-origin`.
 
@@ -792,10 +794,7 @@ Lưu ý về mục 7 và 8: nguồn gốc là phase 01 và ghi nhận của ch�
 
 ## Liên quan
 
-- [draws-and-groups.md](./draws-and-groups.md): bốc thăm, hạt giống, vòng bảng, walkover treo, mã lỗi (phase 06).
-- [match-results.md](./match-results.md): nhập và chốt tỷ số, API trận, quy tắc tỷ số, tag revalidate (phase 07).
+- [draws-and-groups.md](./draws-and-groups.md) và [match-results.md](./match-results.md): bốc thăm, vòng bảng, walkover, API nhập/chốt tỷ số và tag revalidate (phase 06–07).
 - [public-site.md](./public-site.md): site công khai (phase 08 và 10): route, API public, xếp hạng/hồ sơ, cache, proxy, SEO, in ấn, CSP.
-- [code-standards.md](./code-standards.md): tiêu chuẩn code, migration, quy ước API, danh mục và upload.
-- [deployment-guide.md](./deployment-guide.md): compose, biến môi trường, quy trình phát hành, seed.
-- [auth-and-rbac.md](./auth-and-rbac.md): đăng nhập, phân quyền, cài đặt vận hành.
+- [code-standards.md](./code-standards.md), [deployment-guide.md](./deployment-guide.md), [auth-and-rbac.md](./auth-and-rbac.md): quy ước code/migration, compose/triển khai/seed và đăng nhập/phân quyền.
 - [project-changelog.md](./project-changelog.md) và [development-roadmap.md](./development-roadmap.md): lịch sử và trạng thái phase.

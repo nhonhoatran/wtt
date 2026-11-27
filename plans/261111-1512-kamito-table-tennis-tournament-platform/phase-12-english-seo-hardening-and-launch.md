@@ -179,9 +179,11 @@ Rollback: theo runbook; migration tương thích ngược nên bản trước ch
 
 - Giai đoạn sau: xem danh sách "Để giai đoạn sau" trong [plan.md](./plan.md#để-giai-đoạn-sau-ngoài-phạm-vi).
 
-## Câu hỏi chưa giải quyết
+## Câu hỏi ghi nhận ban đầu và trạng thái tiếp nối
 
 Ký hiệu: **[G1a]**, **[G1b]**, **[G2]** = câu hỏi thuộc cổng cứng (xem plan.md).
+
+**Cập nhật 2026-11-27:** người dùng trong phiên đã duyệt gói G1 cho câu 9/10/19–23 (KEEP, không tránh CLB); cơ chế G2 ở câu 11–13 (365 ngày, chốt tay, không điểm thua walkover trận thật đầu MAIN/QUALIFYING, seed đôi tổng kỳ PUBLISHED mới nhất), nhưng câu 11 vẫn thiếu bảng điểm thật/ngày hiệu lực/kỳ đầu. Câu 15 đã chốt BTC lưu bằng chứng ngoài ứng dụng, hồ sơ mới chỉ bật sau xác nhận, tuổi tắt/noindex bật, không Person/sitemap hoặc model consent mới. Phê duyệt quy trình không thay bằng chứng từng VĐV; S2 và nghiệm thu staging còn mở. Đây là ngày duyệt kỹ thuật, không tự đặt hiệu lực quy chế. [Quyết định và checklist](../261127-debt-closure/btc-consent-decisions.md). Giữ các câu gốc dưới đây làm lịch sử, với đính chính câu 22.
 
 1. Tài khoản GitHub, email commit, tên repo (cổng phase 01)?
 2. PostgreSQL/Redis/MinIO có dùng chung với dự án khác không; ai giữ thông tin đăng nhập; cấp được role PG runtime (chỉ DML) + role migrate riêng, service account MinIO giới hạn 1 bucket không?
@@ -204,5 +206,5 @@ Ký hiệu: **[G1a]**, **[G1b]**, **[G2]** = câu hỏi thuộc cổng cứng (x
 19. **[G1b]** Vòng bảng: nếu nhiều VĐV hòa mà tiêu chí phá hòa không tách được, có cho họ chung một hạng (vd 1, 1, 3) rồi BTC bốc thăm/xếp tay không? (Đang làm như vậy trong phase 06.)
 20. **[G1b]** Xếp tay khi phá hòa: hạng nhập tay là hạng tuyệt đối trong bảng (vd 1, 2, 3, 4), không phải thứ tự trong nhóm hòa? (Đang làm như vậy.)
 21. **[G1a]** Vòng loại: hạt giống 1..k có được xếp mỗi nhánh con một người không (hạt giống tốt nhất vào mỗi nhánh con một người)? (Đang làm như vậy.)
-22. **[G1b]** VĐV rút lui khi đang đấu một trận bảng: trận đang dở tính cho người đang dẫn, còn lại tính walkover? (Đang làm như vậy.)
+22. **[G1b]** Câu hỏi lịch sử: ~~trận đang dở tính cho người đang dẫn, còn lại tính walkover? (Đang làm như vậy.)~~ **Đính chính và đã duyệt 2026-11-27:** `KEEP_PLAYED_RESULTS` giữ trận `OFFICIAL`; mọi trận chưa `OFFICIAL`, kể cả `LIVE`, cho **đối thủ của người rút** thắng walkover, không xét ai đang dẫn. Mô tả lịch sử không khớp engine hiện tại.
 23. **[G1b]** Người đi tiếp của một bảng rút lui trước khi xếp vào nhánh chính: suất có chuyển cho người kế tiếp trong bảng không (người rút vẫn giữ hạng để hiển thị)? (Đang làm như vậy.)

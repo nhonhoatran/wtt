@@ -1,6 +1,6 @@
 # Bốc thăm, hạt giống, vòng bảng (phase 06)
 
-> Cập nhật: 2026-11-14 · Trạng thái: code xong, đã commit, chưa deploy staging. Gate G1a (mẫu hạt giống) và G1b (chia bảng, phá hòa, rút lui giữa bảng) chưa được BTC xác nhận. Xem [development-roadmap](./development-roadmap.md).
+> Cập nhật quyết định: 2026-11-27 · Code phase 06 đã commit, chưa deploy staging. Người dùng đã duyệt G1a/G1b trong phiên: giữ mẫu seed/pot hiện tại, không tránh CLB, `KEEP_PLAYED_RESULTS`; default seed mới được triển khai/kiểm riêng, không ghi đè rule cũ. [Bản quyết định](../plans/261127-debt-closure/btc-consent-decisions.md).
 > Nguồn đối chiếu: `packages/competition-engine/src/`, `apps/api/src/modules/{draws,groups,matches}/`, `packages/db/prisma/schema/{draws-and-matches,groups-and-standings}.prisma`, `packages/db/src/domain/draw-locks.ts`, `packages/shared/src/tournament-settings.ts`.
 > Tổng quan kiến trúc: [system-architecture](./system-architecture.md). Quy ước code: [code-standards](./code-standards.md#bốc-thăm-và-vòng-bảng-phase-06).
 
@@ -150,12 +150,12 @@ Entry trong `impacts` được chuyển thành `EntryBrief` (`hydrateImpacts`). 
 - **Sang nhánh chính.** Sinh MAIN bằng `POST /sub-events/:id/draws {kind: MAIN}` sau khi nhánh GROUP đã công bố (409 `GROUP_DRAW_NOT_PUBLISHED` nếu chưa). Nhì bảng được đặt vào nửa nhánh đối diện với nhất cùng bảng, để hai người cùng bảng không gặp nhau trước chung kết (`group-to-knockout-placement.ts`). Khi mọi bảng đã đấu xong và không còn hòa, gọi `place-group-qualifiers`.
 - **Rút lui giữa bảng.** Theo `GroupScoringRule.withdrawalPolicy`:
 
-| Policy | Trận đã đấu | Trận còn lại |
+| Policy | Trận đã chốt `OFFICIAL` | Mọi trận chưa `OFFICIAL` (kể cả `LIVE`) |
 |---|---|---|
 | `KEEP_PLAYED_RESULTS` | Giữ nguyên | Thành walkover cho đối thủ |
 | `VOID_ALL_RESULTS` | Mọi trận bảng của VĐV bị `isVoided` | Không đấu |
 
-  Chưa chọn policy → 409 `WITHDRAWAL_POLICY_MISSING`. VĐV rút vẫn giữ hạng để hiển thị, nhưng `qualified = false`. Suất đi tiếp dồn cho người kế tiếp.
+  G1 chốt `KEEP_PLAYED_RESULTS` ngày 2026-11-27: trận đang dở cho **đối thủ của người rút** thắng walkover, không xét ai đang dẫn. Rule cũ chưa chọn policy vẫn trả 409 `WITHDRAWAL_POLICY_MISSING`; seed idempotent không cập nhật row đã có. VĐV rút vẫn giữ hạng hiển thị, `qualified = false`; suất đi tiếp dồn cho người kế tiếp. Không tự backfill rule/giải cũ.
 - **Sau khi đã xếp vào MAIN** (có ô `GROUP_PLACE`): không recompute, không nhập hạng tay (409 `GROUPS_ALREADY_PLACED`).
 
 ## Walkover treo
@@ -229,8 +229,8 @@ Lỗi 409 mang thêm khóa chi tiết (whitelist trong `common/filters/http-exce
 | Hạng mục | Phase | Ghi chú |
 |---|---|---|
 | Lịch thi đấu, sửa và mở lại tỷ số | Đã làm (phase 07, đợt 2) | Lịch: [scheduling](./scheduling.md). Sửa và mở lại: [match-results](./match-results.md#mở-lại-trận) |
-| Lucky loser khi người thắng vòng loại đã rút | Chờ chủ giải quyết | Hiện: walkover ở MAIN |
-| Quy tắc đặt hạt giống | Chờ G1a | Hạt 1 và 2 ở hai đầu. Hạt 3–4 bốc ngẫu nhiên vào ô `S/2` hoặc `S/2+1`. Hạt 5–8 vào ô biên phần tư, tương tự cho các tầng sau (`seed-positions.ts`). BTC chưa xác nhận mẫu |
-| Chia bảng, phá hòa, rút lui giữa bảng theo quy chế BTC | Chờ G1b | Engine làm theo quy ước hiện tại |
+| Lucky loser khi người thắng vòng loại đã rút | Đã chọn 2026-11-27: không bổ sung | Giữ walkover ở MAIN |
+| Quy tắc đặt hạt giống | G1a đã duyệt trong phiên 2026-11-27 | Hạt 1/2 hai đầu; 3/4 bốc vào `S/2` hoặc `S/2+1`; các tầng sau vào biên phân đoạn; mỗi nhánh vòng loại nhận một seed tốt nhất (`seed-positions.ts`) |
+| Chia bảng, phá hòa, rút lui giữa bảng | G1b đã duyệt trong phiên 2026-11-27 | Giữ pot, điểm/tiêu chí hiện tại, hạng tay tuyệt đối; KEEP cho rút giữa bảng, không tránh CLB; đối chiếu rule cũ khi rollout, không tự ghi đè |
 | Gợi ý hạt giống từ bảng xếp hạng | 09 | `suggest-seeds` trả rỗng |
 | Revalidate sau xếp suất vòng loại và nhất/nhì bảng vào nhánh MAIN đã công bố | Đã làm (2026-11-14) | Hai route gửi `draw.placeQualifiers` khi nhánh đã công bố. Xem [cache-revalidation](./cache-revalidation.md#mutation-và-tag) |

@@ -2,12 +2,14 @@
 
 > Cập nhật: 2026-11-20 · CMS và SEO/hardening phase 12 có trong working tree; API local thật 132 ca/21 spec, full public trước metadata 96/8 skip, focused SEO/axe build cuối 27/5 skip, axe 36 scan không violation; lát cắt API → BullMQ → SSR 133 ms. Lighthouse mobile bốn route đạt Performance 99–100, Accessibility/SEO 100. DB riêng `localhost:5433/kamito_tt_phase12_test` đủ 18 migration; không áp migration mới vào dev/staging. Tải nhẹ có packet riêng; staging/production Dokploy và cổng ra mắt chưa được nghiệm thu.
 > Nguồn đối chiếu: `docker-compose.yml`, `docker-compose.dev.yml`, `docker/*`, `scripts/print-db-target.mjs`, `.env.example`, `.github/workflows/ci.yml`, `apps/api/src/cli/create-admin.ts`.
+> Bổ sung 2026-11-27: migration19 `Discipline.colorHex` và migration20 default hồ sơ mới ẩn đã áp DB test riêng xác nhận; chưa áp dev/staging. Migration20 chỉ ALTER DEFAULT, không backfill; DB test lúc áp có 0 VĐV cũ, không suy từ đó đã test bảo toàn row cũ. Runner full-flow trong `scripts/` thay điểm vào ignored cũ; lệnh và giới hạn ở [runbook](#admin-full-flow-có-runner-trong-git).
 > Kiến trúc và luồng khởi động xem [system-architecture.md](./system-architecture.md). Tiêu chuẩn migration xem [code-standards.md](./code-standards.md#database-và-migration).
 
 ## Contents
 - [Môi trường](#môi-trường)
 - [Chạy dev local](#chạy-dev-local)
 - [Playwright e2e (client)](#playwright-e2e-client)
+- [Admin full-flow có runner trong git](#admin-full-flow-có-runner-trong-git)
 - [Biến môi trường theo service](#biến-môi-trường-theo-service)
 - [Dokploy: compose và domain](#dokploy-compose-và-domain)
 - [Quy trình phát hành](#quy-trình-phát-hành)
@@ -148,6 +150,30 @@ Cổng dev:
 Cổng được chọn để tránh trùng dịch vụ đã có trên máy (PostgreSQL 5432, Redis 6379, một dự án khác dùng 9000).
 
 Bucket dev được tạo bởi service `s3-init` (AWS CLI) trong compose.
+
+## Admin full-flow có runner trong git
+
+Từ 2026-11-27, điểm vào là `scripts/admin-full-flow.mjs` (`pnpm test:admin-full-flow`); bản cũ trong `test-results/261120-full-ui-runner.mjs` chỉ là lịch sử. Cần Node 24+, dependencies/workspace đã cài, Chromium của Playwright, PostgreSQL test đã migrate/seed và Redis local. Runner chỉ nhận `localhost:5433/kamito_tt_phase12_test`, `MIGRATE_CONFIRM_TARGET` khớp và `REAL_TEST_DB_LEASE=full-ui`; không tự tạo DB hoặc migrate.
+
+Chạy tuần tự từ root, dùng file môi trường **ignored** riêng do người vận hành chuẩn bị, không sửa `.env` gốc:
+
+```powershell
+node --env-file=test-results/261127-debt-verification/test.env scripts/print-db-target.mjs --confirm
+$env:REAL_TEST_DB_LEASE = 'full-ui'
+node --env-file=test-results/261127-debt-verification/test.env scripts/admin-full-flow.mjs desktop --run
+node --env-file=test-results/261127-debt-verification/test.env scripts/admin-full-flow.mjs mobile --run
+Remove-Item Env:\REAL_TEST_DB_LEASE
+```
+
+Runner build mặc định; `--skip-build` dành cho lượt lặp với đúng artifacts đã build. Cổng 3371/3372/3373 phải trống và database test không có tác vụ kiểm khác đang giữ lease. Runner từ chối tái dùng server cũ, tạo run UUID với queue/storage/secret riêng, lấy khóa độc quyền `test-results/admin-full-flow.lock`, seed fixture sở hữu rồi chạy API dist, admin preview, Next production và worker thật.
+
+Đầu ra ở `test-results/admin-full-flow-<viewport>-<uuid>/`: log từng tiến trình, bản ghi exit, `result.json`, ảnh và artifacts Playwright. Khi lỗi hoặc Ctrl+C, runner hủy lệnh đang chạy, dừng cây tiến trình sở hữu, dọn fixture đúng world/namespace và nhả lock; kiểm hash `.env` trước/sau. Worker crash không có stop marker vẫn phải chứng minh cây tiến trình đã dừng và Redis không còn worker hoạt động trước khi dọn. `cleanupError` hoặc world còn lại cần được kiểm theo manifest; không xóa dữ liệu/queue ngoài fixture hoặc gỡ lock khi PID còn sống.
+
+Kiểm helper: `node --test scripts/admin-full-flow.test.mjs`; kiểm browser component riêng: `pnpm test:admin-browser` (HTTP mock, không thay full-flow). Trên Windows có thể đặt `PLAYWRIGHT_CHANNEL=chrome` khi dùng Chrome đã cài. Runner ban đầu đạt 13 + 1 POSIX-only skip trên Windows và 14/14 trong Linux container. Sau bổ sung diagnostics T2, lượt Windows mới đạt 14 + 1 POSIX-only skip; không cộng các lượt hoặc suy ra đã sửa crash. [Review](../plans/reports/code-review-261127-debt-closure-search-runner.md), [báo cáo thành phần](../plans/reports/tester-261127-import-colors-runner.md).
+
+Bản ghi exit hiện giữ thời điểm bắt đầu/kết thúc, thời lượng, phiên bản Node/libuv/V8, nền tảng/kiến trúc và `exitCodeHex` trên Windows cùng mã số gốc. Không ghi command/env hoặc tự chạy lại lệnh lỗi. Điều tra T2 trên Node 26.13.1: reproducer upstream 30/30 sạch, Application log ba ngày không có event phù hợp và không có crash dump; runtime hiện có fix Node #61999 nhưng chưa tái hiện nguyên nhân worker cũ. Giữ T2 mở; không tự hạ Node hay đổi pool từ kết quả này. [Chẩn đoán và giới hạn](../plans/reports/debugger-261127-native-windows-t2.md).
+
+Lượt desktop `55081e38-bb68-4296-a317-941f9ca6a3b0` và mobile `d6121820-32f8-4c66-9f1a-ea2db98f476e` ngày 2026-11-27 đều qua đủ tám bước/60 phép kiểm làm mới; runner `passed=true`, worker exit 0, cleanup mọi counter 0, `.env` không đổi và lease đã nhả. API/admin/client code 1 do runner taskkill sau browser, không phải native crash. Desktop (9,3 phút) có scheduler trước default hồ sơ/G1 mới; mobile (6,2 phút) chạy sau default mới, latency 468–1173 ms. Hai lượt giữ ba trận xếp tay, tự xếp thêm lần lượt 33/31 trận; không gọi cả hai viewport là cùng build cuối. [Báo cáo tiếp nối](../plans/reports/tester-261127-admin-full-flow-continuation.md).
 
 ## Biến môi trường theo service
 
@@ -359,7 +385,7 @@ Lệnh đọc `DATABASE_URL` từ `.env` ở root. Không truyền `DATABASE_URL
 Hành vi:
 - Idempotent: dòng đã có (theo `code`, hoặc `name` với thể thức và luật vòng bảng) được giữ nguyên, kể cả khi admin đã sửa.
 - Mặc định (`isDefault`) chỉ được đặt khi chưa có mặc định nào.
-- Luật vòng bảng seed với `withdrawalPolicy` để trống: rút lui giữa bảng bị chặn cho tới khi BTC chọn chính sách.
+- Seed cũ để `withdrawalPolicy` trống nên rút giữa bảng bị chặn. Người dùng đã chốt `KEEP_PLAYED_RESULTS` ngày 2026-11-27; source seed mới đã dùng lựa chọn này theo [quyết định](../plans/261127-debt-closure/btc-consent-decisions.md), kiểm/áp DB ghi riêng. Seed idempotent **không đổi rule cùng tên đã tồn tại, kể cả `withdrawalPolicy=null`**; chạy lại seed không bật policy cho giải cũ. Người vận hành đối chiếu/chọn rule phù hợp qua luồng quản trị đã duyệt; không mass-backfill hoặc seed khi lease kiểm khác còn giữ.
 - Staging và production: chỉ chạy sau khi đã đối chiếu `MIGRATE_CONFIRM_TARGET` của môi trường đó, cùng quy tắc với migrate.
 
 ## Runbook: migration lỗi
@@ -419,7 +445,9 @@ Log HTTP dùng allowlist method, request id, route template và status; không g
 
 Lượt 2026-11-20 sau thêm công cụ audit phát hiện một high ở Effect 3.20.0 qua `@prisma/config`. Override riêng `@prisma/config>effect: 3.22.1` đã được reviewer kiểm trên dependency thực; audit cuối **0 high/critical, 2 moderate**, exit 1 vì `uuid`/`minimatch` moderate. Frozen install và Prisma validate/generate/DB build, client build, API/worker typecheck/build đạt sau bản vá; không query PostgreSQL trong các kiểm này. Lịch sử lỗi symlink Windows/WSL và phạm vi kiểm có trong [review](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/code-reviewer-261120-phases08-12.md), [QA](../plans/261111-1512-kamito-table-tennis-tournament-platform/reports/tester-261120-local-checks.md). Audit này không đóng các cổng phát hành khác.
 
-URL hồ sơ VĐV không được bổ sung vào sitemap hoặc JSON-LD `Person` trong khi câu hỏi đồng ý công khai chưa được chốt. Tôn trọng `isPublicProfile`, `noindex` và tên công khai thay thế khi kiểm dữ liệu phát hành.
+Người dùng đã duyệt quy trình consent ngày 2026-11-27: BTC lưu bằng chứng ngoài ứng dụng; hồ sơ mới chỉ bật sau xác nhận đúng phạm vi, tuổi tắt và noindex bật. URL hồ sơ VĐV tiếp tục không bổ sung vào sitemap hoặc JSON-LD `Person`. Tôn trọng `isPublicProfile`, `noindex` và tên công khai thay thế khi kiểm dữ liệu phát hành; noindex không ẩn trang. Phê duyệt quy trình không chứng minh consent của dữ liệu cũ. [Quyết định và checklist nơi lưu/người phụ trách/dữ liệu cũ/VĐV nhỏ tuổi](../plans/261127-debt-closure/btc-consent-decisions.md#4-checklist-triển-khai-và-vận-hành).
+
+Default source/schema/API/admin/import đã đổi về ẩn, migration20 chỉ ALTER DEFAULT đã áp test; không backfill. Kiểm mới API 6 spec/61 test, worker 9 file/46 test và component browser 22/22 đạt; API explicit opt-in/PATCH omission giữ flags, form thật default/opt-in đúng ở 390/1440. DB test lúc migrate có 0 VĐV cũ nên phép so flags rỗng không thay test giữ dữ liệu. Mobile full-flow trên build mới đã đạt; scoped API/worker/admin lint+typecheck 6/6 đạt. Dev/staging chưa áp migration. [Bằng chứng có phạm vi](../plans/reports/tester-261127-admin-modal-continuation.md), [full flow](../plans/reports/tester-261127-admin-full-flow-continuation.md).
 
 ## Kiểm tra sau deploy
 

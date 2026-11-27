@@ -72,7 +72,7 @@ Tạo:
 - [x] Ticker thẻ mới
 - [x] Footer + MXH + bỏ chuỗi cứng
 - [x] Tách CSS < 200 dòng
-- [ ] (tùy Q2, chờ quyết định sản phẩm) `/search`
+- [x] Q2 chốt B 2026-11-27: `/search` SSR vi/en + header/menu mobile, unit 8/8 và review đạt; production browser theo [plan trả nợ](../261127-debt-closure/plan.md)
 - [x] Sửa test nav, fixture setting; chạy bộ kiểm
 
 
@@ -81,6 +81,10 @@ Tạo:
 Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-C3-site-shell.md). Kiểm tích hợp sau các phase: [báo cáo C11](../reports/fullstack-developer-261125-phase-C11-client-gates.md).
 
 Playwright/axe tích hợp đã đạt ở báo cáo C11. `/search` là tính năng tùy chọn chưa chốt Q2, không thuộc phần triển khai đã hoàn tất.
+
+## Đồng bộ trạng thái 2026-11-27
+
+`/search` đã được người dùng chốt theo B và triển khai trong I: hai nguồn public hiện có, không cache, rate limit hiện có, metadata noindex, lỗi từng nguồn độc lập. Không thêm tìm tin. [Review](../reports/code-review-261127-debt-closure-search-runner.md); kiểm production mới ghi riêng, không suy từ unit mock.
 
 ## Success criteria
 - `pnpm --filter @kamito/client typecheck lint test build` đạt (gồm `i18n-keys.test.ts`).

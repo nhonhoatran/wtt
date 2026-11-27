@@ -1,13 +1,13 @@
-# Phase A8 — Tab "Lịch thi đấu": toolbar ngày/buổi, tiến độ, tổng cảnh báo, ô trận, (tuỳ Q8) màu theo nội dung
+# Phase A8 — Tab "Lịch thi đấu": toolbar ngày/buổi, tiến độ, cảnh báo và màu nội dung
 
 ## Context links
 - Gap: [research/admin-figma-gap.md](./research/admin-figma-gap.md) mục "1-30"
 - Figma: `figma/admin/1-30.png` (cuối, 1440 px), `1-23…1-29.png` (kéo/thả, tooltip trùng)
 - Code: `apps/admin/src/pages/event-hub/schedule-tab.tsx` (166 dòng), `session-toolbar.tsx`, `session-grid.tsx`, `session-grid-cell.tsx` (155), `unscheduled-panel.tsx` (139), `schedule-actions.tsx`, `schedule-keyboard-drag.ts`, `schedule-dnd-accessibility.ts`, `schedule-types.ts`; `docs/scheduling.md:31-32,137,147-149`
-- Câu hỏi mở: Q8 (màu nội dung), Q9 (tự động xếp)
+- Quyết định: Q8 đã triển khai; Q9 đã chốt, triển khai riêng ở H trong plan trả nợ 2026-11-27.
 
 ## Overview
-- Ưu tiên: P2. Effort: ~4h (+2h nếu Q8 = có màu). Trạng thái: in-progress. Phụ thuộc: A4 (progress).
+- Ưu tiên: P2. Effort: ~4h (+2h màu Q8). Trạng thái: completed (2026-11-27). Phụ thuộc: A4 (progress).
 - Đổi giao diện; giữ nguyên mô hình ô (bàn × lượt), lưu ngay mỗi lần thả, kéo chuột + bàn phím.
 
 ## Key insights
@@ -74,7 +74,7 @@ Chỉ khi Q8 = có
 - [x] Kiểm keyboard drag + live region trên Chromium
 - [x] Kiểm keyboard drag trên Firefox/WebKit (backlog L1)
 - [x] Kiểm lưới 6 bàn thật ở 1280 px (backlog L2)
-- [ ] (Q8, tùy chọn chờ chốt) migration + màu
+- [x] Q8 được chốt 2026-11-27: migration nullable + API/form/viền/chú giải; API thật 5/5, DTO 6/6, browser 390/1440 đạt 2/2 ([báo cáo](../reports/tester-261127-import-colors-runner.md))
 - [x] Build và unit test đạt
 - [x] E2E admin-full-flow sau redesign (backlog L4, kiểm cùng C11) — đạt 2026-11-26: desktop 8/8 một lượt, mobile 8/8 hai lượt; [báo cáo](../reports/tester-261126-1620-admin-full-flow-after-redesign.md)
 
@@ -84,6 +84,12 @@ Chỉ khi Q8 = có
 Nguồn: [báo cáo triển khai](../reports/fullstack-developer-261125-phase-A8-admin-schedule.md).
 
 Đã kiểm kéo bàn phím và live region trên Chromium. Lượt tiếp nối [A8 browser gates](../reports/tester-261125-a8-browser-gates.md) xác nhận Chromium/Firefox/WebKit: hủy 0 PATCH, thả đúng 1 PATCH 200; lưới 6 bàn thật ở 1280 px không cuộn ngang. L1/L2 đã đóng; còn E2E tích hợp L4. Q8 màu theo nội dung là tùy chọn đang chờ quyết định, chưa tạo migration.
+
+## Đồng bộ trạng thái 2026-11-27
+
+Q8 đã triển khai G, migration chỉ áp DB test riêng sau xác nhận target. L3 đóng; Q9 đã được chốt và đang triển khai H trong [plan trả nợ](../261127-debt-closure/plan.md). Không coi browser component với HTTP mock là full-flow mới.
+
+H/L5 hoàn tất sau [review backend](../reports/code-review-261127-auto-schedule-backend.md), integration/engine/classifier 21/21 và UI preview/cancel/apply trên desktop `55081e38…`/mobile `d6121820…`: mỗi lượt đủ 8 bước/60 phép kiểm làm mới, giữ lịch thủ công, cleanup sạch. Modal còn có bốn ca cancel/session/stale 409 ở 390/1440. [Báo cáo root](../reports/tester-261127-admin-full-flow-continuation.md). Giữ phạm vi checklist A8 redesign cũ; H được đóng riêng trong plan trả nợ, không đóng các gate tổng/ảnh-review C11.
 
 ## Success criteria
 - Thả trận: request PATCH ngay, không có nút lưu; reload thấy đúng.

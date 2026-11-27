@@ -1,7 +1,22 @@
 # Project Changelog — Kamito
 
-> Cập nhật: 2026-11-26. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
+> Cập nhật: 2026-11-27. Mục mới nhất ở trên. Trạng thái commit ghi theo lịch sử git tại ngày cập nhật. Dòng "chưa commit" trong các mục cũ là trạng thái tại thời điểm mục đó được viết.
 > Lộ trình và trạng thái phase: [development-roadmap.md](./development-roadmap.md).
+
+## 2026-11-27 — Trả nợ ngày xếp hạng, mobile import, tracker, màu và search
+
+[Plan hiện tại](../plans/261127-debt-closure/plan.md) đạt 7/9 workstream, đã đóng H/L5; E/F rộng và hai mục C11 còn mở. Các số bên dưới là kiểm có phạm vi, không phải nghiệm thu staging.
+
+- API xếp hạng kiểm ngày quy tắc không hồi tố và điểm/kỳ chốt không ở tương lai, gồm bản nháp cũ khi publish. Admin dùng context ngày từ API theo `event.defaultTimezone`, refresh khi mở và mỗi phút, hiển thị date-only ổn định. Đã thêm hồi quy API/service và nhãn ngày admin; bỏ dòng nợ "chỉ admin chặn" khỏi quy ước hiện hành.
+- E4: chỉ completed có `snapshotId` của đúng job mới thành công; lỗi worker/HTTP/network, 404 và thiếu result giữ hiện, có hỏi lại cùng job/lịch sử. Node 7/7, browser React 9/9, hai đối chứng HEAD rớt đúng hành vi cũ. [Báo cáo](../plans/reports/tester-261127-debt-closure-client.md).
+- E2: popup chọn VĐV độc lập với cột bảng rộng, giới hạn viewport/480 px, tên đầy đủ xuống dòng, mục chạm mobile ≥44 px. Browser thật 320/390/1440 đạt 3/3, trước sửa mobile rớt geometry; đã kiểm pointer/bàn phím và mở ảnh. [Báo cáo](../plans/reports/tester-261127-import-colors-runner.md).
+- G/L3: `Discipline.colorHex` nullable, API chuẩn hóa RGB, admin chọn/xóa màu; danh sách/chi tiết trận có metadata nội dung hiện tại, lịch có viền/chú giải và fallback trung tính, giữ cảnh báo. Migration 19 chỉ áp test DB đã xác nhận; API 5/5, DTO 6/6, helper 2/2, browser 2/2 đạt. [Hợp đồng](./scheduling.md#màu-theo-nội-dung).
+- I: `/vi/search`, `/en/search` tìm giải và VĐV qua SSR/public serializers hiện có, không cache, rate limit cũ, noindex; header desktop/menu mobile có lối vào. Unit 8/8 và review đạt; production browser ghi riêng sau gate E. [Chi tiết](./public-site.md#tìm-kiếm), [review](../plans/reports/code-review-261127-debt-closure-search-runner.md).
+- D: runner full-flow và helper chuyển vào `scripts/`, có command root, guard DB/port/lease, log/exit record, abort và cleanup sở hữu. Sau bổ sung metadata runtime/thời gian/mã thoát Windows: 14 đạt/1 POSIX-only skip; Linux container trước đó 14/14 là lượt riêng. T2 chưa tái hiện, không coi diagnostics hoặc hai lượt E2E sạch là sửa native crash. [Runbook](./deployment-guide.md#admin-full-flow-có-runner-trong-git), [điều tra T2](../plans/reports/debugger-261127-native-windows-t2.md).
+- H/L5: preview/cancel/apply lịch tự động giữ ba trận xếp tay, kiểm phiên bản và áp dụng atomic; desktop/mobile mới đều đạt 8/8 bước và 60 kiểm cập nhật công khai, worker exit 0, cleanup sạch, `.env` không đổi. Desktop thêm 33 trận, mobile thêm 31. [Báo cáo E2E](../plans/reports/tester-261127-admin-full-flow-continuation.md).
+- G1/G2/consent: người dùng duyệt G1 và cơ chế G2, BTC lưu bằng chứng consent ngoài ứng dụng. Seed rule mới dùng KEEP; hồ sơ mới mặc định ẩn ở schema/API/admin/import, giữ noindex. Migration20 chỉ ALTER DEFAULT, đã áp DB test; không backfill. API 61/61, worker 46/46, browser component 22/22, lint/typecheck API/worker/admin 6/6 và build 9/9 đạt. Mobile dùng default mới, desktop chạy trước đó. Còn bảng điểm chính thức và bằng chứng từng VĐV. [Quyết định](../plans/261127-debt-closure/btc-consent-decisions.md).
+- Rà trước commit: sửa thêm modal ngày mở lại sau nửa đêm và lỗi tải/thử lại; đợi lần tải thành công của từng lần mở, giữ giá trị người dùng khi refresh nền lỗi. Tám ca browser route thật ở 390/1440 đạt sau các đối chứng đỏ. Toàn bộ API sau thay đổi default hồ sơ đạt 129 file/773 test trong 645,67 giây; các lượt full-stack phía trên có trước bản sửa hook cuối. [Review](../plans/reports/code-review-261127-admin-e2e-t2.md).
+- C7: kiểm in 9/9, audit 8 PDF/40 trang và mở đủ mosaic/ảnh; sửa hai lỗi harness QA thay vì đổi sản phẩm. Sweep redesign 22 phase: 158 checked/2 open, cả hai thuộc C11 cuối. S1/S2/staging, bằng chứng consent thật, D1/D2 và T2 giữ mở.
 
 ## 2026-11-26 — Admin-full-flow sau redesign; dọn dòng nợ cũ
 

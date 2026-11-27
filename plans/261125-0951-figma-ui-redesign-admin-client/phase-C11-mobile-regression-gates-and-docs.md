@@ -78,6 +78,12 @@ Báo cáo ban đầu C11 xác nhận Next dev 113 đạt/21 bỏ qua theo cấu 
 
 Full suite 119/15 và unit 188 là trước sửa metadata; không gọi focused là full suite mới. Raw ở `test-results/261125-c11-public-bedb9d04-2764-4475-8884-842af5e96167/` và `test-results/261125-c11-public-07f833ec-9bb3-4401-8e02-abcb6df3b3fe/`; [báo cáo tester](./reports/tester-261125-client-figma-regression.md). Focused có assertion native `UV_HANDLE_CLOSING` dù Playwright exit 0, chưa xác định tiến trình con. A8 L1/L2 đã đạt; admin-full-flow chưa chạy sau redesign. Đã lưu 28 ảnh, mới mở đối chiếu 7 ảnh chính; giữ ảnh/PDF và review cuối ở trạng thái mở.
 
+## Tiếp nối kiểm ngày 2026-11-27
+
+[Review ảnh production](../reports/tester-261127-public-visual-review.md) đã mở 80 captures (20 route × vi/en × 1440/390), thêm bốn ảnh raw tiếng Việt; lượt chạy tương ứng 126 đạt/16 bỏ qua, 0 lỗi/flaky và 80 axe scan không vi phạm. C7 đã kiểm riêng đủ tám PDF/40 trang. Báo cáo ảnh ghi rõ chưa có ảnh mới cho một số route/biến thể (en của danh sách VĐV và info/lịch giải, danh sách đăng ký/tin/video, BXH mở rộng); không gọi tập ảnh này là nghiệm thu mọi trang.
+
+Hai checkbox cuối giữ mở cho phạm vi ảnh còn lại và review toàn bộ diff/báo cáo cuối. E2E admin desktop `55081e38…`/mobile `d6121820…` cùng scheduling mới đã đạt, mỗi lượt 8 bước/60 phép kiểm làm mới, worker exit 0 và cleanup sạch. Desktop trước default consent mới; mobile sau default mới; không gộp thành hai viewport cùng build cuối. [Báo cáo root](../reports/tester-261127-admin-full-flow-continuation.md). H/L5 đóng riêng; T2/S2 và staging vẫn là cổng riêng. [Plan trả nợ](../261127-debt-closure/plan.md), [chẩn đoán T2](../reports/debugger-261127-native-windows-t2.md).
+
 ## Success criteria
 - Playwright toàn bộ đạt (desktop + mobile), axe 0 vi phạm mọi mức trên route mở rộng, `test:print` đạt, i18n-keys đạt.
 - Lighthouse mobile 4 route gate ≥ 85/90/95 (`runtimeError=null`); số thực ghi trong báo cáo.

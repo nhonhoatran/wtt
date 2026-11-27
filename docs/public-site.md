@@ -9,6 +9,7 @@
 - [Tổng quan](#tổng-quan)
 - [Trạng thái](#trạng-thái)
 - [Route](#route)
+- [Tìm kiếm](#tìm-kiếm)
 - [API công khai](#api-công-khai)
 - [Nội dung công khai (phase 11)](#nội-dung-công-khai-phase-11)
 - [Xếp hạng và hồ sơ VĐV (phase 10)](#xếp-hạng-và-hồ-sơ-vđv-phase-10)
@@ -87,6 +88,7 @@ Thư mục `apps/client/src/app/[locale]/`. Mọi route nhận `[locale]` là `v
 |---|---|---|---|
 | `/` | `ranking` (mã bảng của khối top VĐV) | `getHomeContent`, `getSiteName` | Các khối bật/tắt bằng setting; top xếp hạng nằm trong payload trang chủ. `ranking` chỉ chọn tab hiển thị, mã lạ hoặc lặp thì về bảng đầu; không vào canonical hay khóa cache |
 | `/events` | `q`, `tier`, `type`, `year`, `status`, `page` | `getEventList` | `q` có → không cache |
+| `/search` | `q` | `getEventList`, `getPlayerList` | Tìm song song giải/VĐV, không cache; rỗng không gọi API, metadata `noindex` |
 | `/events/calendar` | `year`, `tier` | `getEventCalendar` | Nhóm theo tháng |
 | `/events/:slug` | — | `getEvent` | Tab Tổng quan |
 | `/events/:slug/info` | `session`, `table` (mã công khai) | `getEventInfo`, `getSchedule`, `getEventRankingPoints` | Lịch và điểm theo vòng; vẫn mở khi chỉ có bảng điểm |
@@ -117,6 +119,14 @@ Quy tắc chung:
 - Slug `calendar` là slug dành riêng (API chặn tạo giải có slug này).
 - Trang không có dữ liệu hoặc chưa công bố thì `notFound()`.
 - Tab Trận tự chọn trạng thái có dữ liệu: giải đang diễn ra thử live → upcoming → completed, dừng ngay khi có trận; URL chọn state rõ ràng được giữ kể cả rỗng. Bộ lọc ngày là date input có min/max theo giải, server bỏ ngày sai/lặp/ngoài biên trước khi tạo cached query; không còn giới hạn 62 ngày. Nội dung chỉ có vòng loại thì mở thẳng vòng loại.
+
+## Tìm kiếm
+
+`/vi/search` và `/en/search` mở từ biểu tượng tìm kiếm header desktop hoặc menu mobile. Form GET nhận `q`, trim và giới hạn bằng `PUBLIC_SEARCH_MAX_LENGTH`; tham số lặp hoặc không được khai báo bị bỏ. Không có từ khóa thì hiện hướng dẫn, không gọi API liệt kê giải hay VĐV.
+
+Có từ khóa: SSR gọi `getEventList(query, true)` và `getPlayerList(query, true)` song song, dùng whitelist/phạm vi công khai sẵn có. Hai khối giữ tổng kết quả và link "xem tất cả" tới danh sách tương ứng với cùng `q`; phân trang tiếp ở các trang danh sách. Một nguồn lỗi thì khối còn lại vẫn hoạt động, khối lỗi có thông báo theo locale. Không thêm tìm tin hoặc API full-text.
+
+Dữ liệu tìm dùng `policy: none`/`cache: no-store`, chịu bucket search hiện có trong proxy; canonical/alternates không chứa từ khóa và metadata `noindex, follow`. Quyền riêng tư hồ sơ VĐV, tên công khai và cổng consent giữ theo serializer đang dùng. Unit route 8/8 và review độc lập đạt; kiểm production browser mới được ghi riêng trong [plan hiện tại](../plans/261127-debt-closure/plan.md), không suy từ unit mock. [Review](../plans/reports/code-review-261127-debt-closure-search-runner.md).
 
 ## Giao diện theo Figma (2026-11-25)
 
@@ -244,6 +254,7 @@ Các lượt mock ở trên là bằng chứng lịch sử về giao diện. Đ�
 - **Top N là cấu hình:** `ranking.overviewTopN` trong `/settings`, mặc định mẫu 10, cho phép 1–100. Danh sách dùng `public.listPageSize`, tách biệt cỡ trang quản trị. `<details>` chứa đủ điểm trong HTML nên mở được khi tắt JavaScript; không fetch mỗi dòng.
 - **Giữ phạm vi:** breakdown nội bộ mới lưu thêm `eventId` ổn định để kiểm đúng giải nguồn; tên và điểm vẫn là giá trị đã chốt, link dùng slug công khai hiện tại của chính id đó. Giải ẩn/hủy hoặc snapshot cũ thiếu `eventId` thì che tên, URL, mã hạng giải; điểm và ngày vẫn hiện. Không dùng slug cũ để cấp quyền vì slug có thể được giải khác dùng lại. Không trả `eventId`, `ledgerId`, ghi chú nội bộ hay entity thô; không sửa snapshot đã công bố, cần kỳ mới để có đủ nhãn cho dữ liệu cũ.
 - **Riêng tư hồ sơ:** serializer whitelist không trả SĐT, email, ngày/năm sinh hoặc `Player.slug`. Link công khai là `p-<UUID>` từ `publicPlayerSlug()`. Hồ sơ ẩn, ngừng hoạt động hoặc đã gộp vẫn có thể hiện tên trên bảng/nhánh nhưng không có link hay ảnh hồ sơ. Slug cũ và chuỗi gộp chuyển 301 tới định danh chuẩn khi đích còn công khai; đích ẩn trả 404.
+- **Quyết định consent 2026-11-27:** người dùng duyệt BTC lưu bằng chứng ngoài ứng dụng, hồ sơ mới mặc định ẩn và chỉ bật sau xác nhận đúng phạm vi; `player.showAge=false`, `noindex=true`, không Person/sitemap. Source API/admin/schema/import đã đổi default; migration chỉ `ALTER DEFAULT`, kiểm và rollout DB ghi riêng. Không backfill row cũ hoặc suy cờ public/noindex thành consent. Tên trong kết quả có phạm vi riêng; noindex không ẩn trang. [Quyết định và checklist vận hành](../plans/261127-debt-closure/btc-consent-decisions.md).
 - **Thông tin tổng hợp:** hồ sơ đọc thông tin + setting, hạng hiện tại và giải đã đăng ký bằng 3 truy vấn SQL; lịch sử kết quả là endpoint phân trang riêng. `sort=rank` của danh sách dùng hạng tốt nhất trong các kỳ mới nhất của bảng đang bật, chưa có hạng ở cuối. Tuổi chỉ hiện khi `player.showAge` bật, tính từ ngày sinh, thiếu thì dùng năm sinh, theo múi giờ cấu hình.
 - **Bảng điểm giải:** tab Thông tin dùng quy tắc mới nhất cho mỗi `(competitorKind, drawKind, stageCode)` có hiệu lực tại `endDate`; chỉ nội dung gắn bảng đang bật mới hiện. Tab vẫn có khi chưa có rich text hoặc lịch.
 - **Ngân sách truyền tải:** mốc 80 KiB là số byte body HTTP đã gzip, không phải JSON thô. `sendPublicJson` dùng gzip của Node cho `/rankings` và `/rankings/:listCode` khi client chấp nhận; SSR gửi `Accept-Encoding: gzip`. Kiểm HTTP thật 50 dòng × 20 khoản = 1.000 khoản giữ đầy đủ: JSON 377.129 byte, gzip 9.307 byte. JSON thô vượt mốc 80 KiB; không cắt điểm để đạt mốc. Bằng chứng: `apps/api/test-results/public-ranking-payload-budget.json`, suite `public-ranking-payload.e2e-spec.ts`.
@@ -351,7 +362,7 @@ Quy ước: mọi trang hiển thị nội dung gọi `pageMetadata` hoặc `eve
 
 Tên site (`getSiteName`, `lib/site-name.ts`): lấy từ `GET /public/site`. Nếu API lỗi thì dùng default của `appSettingRegistry.siteName`. Logo chính thức chưa có, header dùng wordmark chữ theo token.
 
-Metadata bảng có tên và ngày kỳ chốt. Hồ sơ lấy ảnh công khai làm OG, `noindex` quyết định `robots.index`; chưa xuất JSON-LD `Person` và chưa đưa VĐV vào sitemap cho tới khi chốt đồng ý công khai. Next.js đã ghim 16.4.5 trong phase 10; đây là bản vá được [advisory chính chủ GHSA-mfr8-8qww-v76h](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h) chỉ định.
+Metadata bảng có tên và ngày kỳ chốt. Hồ sơ lấy ảnh công khai làm OG, `noindex` quyết định `robots.index`; quy trình được duyệt ngày 2026-11-27 vẫn giữ noindex, không JSON-LD `Person` và không URL VĐV trong sitemap. Bằng chứng đồng ý từng người do BTC đối chiếu ngoài ứng dụng, tách biệt phê duyệt quy trình. Next.js đã ghim 16.4.5 trong phase 10; đây là bản vá được [advisory chính chủ GHSA-mfr8-8qww-v76h](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h) chỉ định.
 
 ## In ấn
 
@@ -391,7 +402,7 @@ Nguồn hiện tại sau rà ngày 2026-11-15: [đối chiếu nợ review](../p
 | Traefik: quy tắc chặn `/api/revalidate` theo path và `forwardedHeaders` | Phase 08 Spike E | Kiểm trên staging. Rate limit và IP phụ thuộc vào đây |
 | Áp migration CMS trên đích dev/staging và hoàn tất toàn bộ ma trận CMS | Phase 11 | 18 migration chỉ áp dụng trên DB local `_test`; API tích hợp và ba suite public thực tế đã đạt trong phạm vi nêu trên. Chưa áp dụng dev/staging hoặc nghiệm thu toàn bộ CMS |
 | Xác minh luồng CMS vận hành và storage thật; deploy staging | Phase 11 | Public E2E local và 5 ca processor publishing/sweep/retention thật đạt ngày 2026-11-20; còn toàn bộ ma trận quản trị, scheduler/worker process tự chạy theo giờ, S3/CDN và staging |
-| Nghiệm thu SEO runtime trên dữ liệu phát hành | Phase 12 | Chia file/index, giới hạn URL/byte và browser với API thật local đã đạt; còn validator, container và dữ liệu phát hành trên staging. Hồ sơ VĐV vẫn bị loại trong khi chưa chốt đồng ý công khai |
+| Nghiệm thu SEO runtime trên dữ liệu phát hành | Phase 12 | Chia file/index, giới hạn URL/byte và browser với API thật local đã đạt; còn validator, container và dữ liệu phát hành trên staging. Quy trình consent đã duyệt 2026-11-27 giữ hồ sơ VĐV ngoài sitemap/Person; bằng chứng từng người còn phải đối chiếu |
 | CSP enforce, nguồn iframe/media động | Phase 12 | Nonce và opt-in enforce đã kiểm local; còn nghiệm thu asset/CDN/video/proxy và báo cáo vi phạm staging |
 | Lighthouse, axe, tải nhẹ và E2E toàn luồng trên staging | Phase 12 | Chưa nghiệm thu. Mục tiêu mobile: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 95; axe không có critical; tải 5 req/s trong 2 phút không có 5xx và ghi p95 |
 

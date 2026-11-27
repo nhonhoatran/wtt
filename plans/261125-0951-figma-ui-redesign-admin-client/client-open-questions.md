@@ -5,7 +5,7 @@
 | # | Vấn đề | Phương án | Đề xuất | Trong lúc chờ |
 |---|---|---|---|---|
 | Q1 | Nút "Đăng ký thi đấu" (header 1-28). Không có tính năng đăng ký công khai; entry hiện do admin nhập/import | A. Setting `site.registrationUrl` trỏ form ngoài (Google Form…). B. Xây đăng ký online (form, duyệt, thanh toán…) — dự án riêng. C. Bỏ nút | **A** — rẻ, admin tự bật/tắt; B lập plan riêng nếu cần | Setting có sẵn từ C2, mặc định rỗng → nút ẩn |
-| Q2 | Icon tìm kiếm header. Không có API tìm chung; `articles` không nhận `q` | A. Bỏ icon. B. Trang `/search` gọi song song tìm giải + tìm VĐV (API đã có `q`), không cache, có rate limit. C. Tìm toàn site gồm tin (cần API mới/full-text) | **B** — không đổi API, hữu ích cho tra cứu VĐV | Icon ẩn; C3 chỉ làm B khi được chốt |
+| Q2 | Icon tìm kiếm header. Không có API tìm chung; `articles` không nhận `q` | A. Bỏ icon. B. Trang `/search` gọi song song tìm giải + tìm VĐV (API đã có `q`), không cache, có rate limit. C. Tìm toàn site gồm tin (cần API mới/full-text) | **Đã chốt B, 2026-11-27** | Đã triển khai SSR vi/en + header desktop/menu mobile, unit 8/8 và review đạt; kiểm production browser ghi riêng trong [plan](../261127-debt-closure/plan.md) |
 | Q3 | Mục menu "Trận đấu" toàn site. Chỉ có tab trận theo từng giải | A. Không có mục này. B. Trỏ tab trận của giải đang diễn ra (ẩn khi không có). C. Trang `/matches` liên giải (API mới: live/hôm nay/sắp tới) | **B** trước (không API), C nếu thường có nhiều giải cùng lúc | Không có trong `site.nav.items` mặc định |
 | Q4 | "Hạn đăng ký", "Thưởng: 150.000.000đ" trên thẻ/hàng giải | A. Thêm cột `Event.registrationDeadline`, `prizeText`/`prizeAmount` (migration + admin form). B. Bỏ | A nếu ban tổ chức thực sự công bố; cần nửa admin thêm form | Ẩn |
 | Q5 | Tài trợ: vị trí (khối trang chủ + footer đang trùng trên trang chủ) và hạng tài trợ (kim cương/vàng…) | Vị trí: A. Một dải site-wide sát footer mọi trang, bỏ khối riêng trang chủ (`home.sections.sponsors` đổi nghĩa thành bật/tắt dải). B. Chỉ trang chủ. C. Giữ cả hai. Hạng: dùng `Sponsor.roleLabel` có sẵn để nhóm, hoặc thêm cột hạng + thứ tự | Vị trí **A**; hạng: nhóm theo `roleLabel` (không migration) | Giữ hiện trạng (C), chỉ đổi kiểu; không chia hạng |
@@ -18,7 +18,7 @@
 
 ## Đã giải bằng setting (không cần quyết định thêm)
 - Mục menu, thứ tự, nhãn: `site.nav.items`. Liên kết MXH: `site.socialLinks` (rỗng → ẩn icon). Đoạn giới thiệu footer: `site.tagline`. Số trận ticker: `header.resultsStrip.limit` (có sẵn). Ngưỡng "Sắp hết hạn": `ranking.expiringSoonDays`. Giải hero: `home.featuredEventId` (có sẵn, nay được dùng). Màu hạng giải: `Tier.colorHex` (DB).
-- Màu theo nội dung thi đấu: Figma không dùng → không thêm.
+- Màu nội dung thuộc lịch admin (Q8 đã chốt 2026-11-27); site công khai không dùng màu này trong lượt hiện tại.
 
 ## Cần phối hợp với nửa admin
 - Editor thân thiện cho `site.nav.items`, `site.socialLinks` thay ô JSON trên `/settings`.
