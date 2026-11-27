@@ -139,3 +139,60 @@ jobs:
       - run: pnpm build
       - name: No db push anywhere
         run: "! grep -rn --include=package.json 'db push' apps packages package.json"
+
+  admin-full-flow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [desktop, mobile]
+    services:
+      postgres:
+        image: postgres:17.11-alpine3.23
+        env:
+          POSTGRES_USER: kamito
+          POSTGRES_PASSWORD: ci-full-ui-only-password
+          POSTGRES_DB: kamito_tt_phase12_test
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kamito -d kamito_tt_phase12_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8.2.11-alpine
+        ports: ["6380:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://kamito:ci-full-ui-only-password@localhost:5433/kamito_tt_phase12_test
+      MIGRATE_CONFIRM_TARGET: localhost:5433/kamito_tt_phase12_test
+      REDIS_URL: redis://localhost:6380
+      REAL_TEST_DB_LEASE: full-ui
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 24.15.0 }
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kamito/client exec playwright install --with-deps chromium
+      - run: pnpm db:print-target
+      - run: pnpm --filter @kamito/db exec prisma migrate deploy
+      - run: pnpm exec turbo run build --filter=@kamito/db
+      - run: pnpm --filter @kamito/db seed:config
+      - run: pnpm test:admin-full-flow ${{ matrix.viewport }} --run
+      - name: Admin error paths and mobile import selection
+        if: matrix.viewport == 'desktop'
+        run: pnpm test:admin-browser
+      - name: Save full-flow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-full-flow-${{ matrix.viewport }}
+          if-no-files-found: warn
+          path: |
+            test-results/admin-full-flow-*/result.json
+            test-results/admin-full-flow-*/results.json
+            test-results/admin-full-flow-*/process-exits.jsonl
+            test-results/admin-full-flow-*/*.log
+            test-results/admin-full-flow-*/full-ui-cleanup.json
+            test-results/admin-full-flow-*/artifacts/**/*.png
+            test-results/admin-full-flow-*/artifacts/**/*.pdf

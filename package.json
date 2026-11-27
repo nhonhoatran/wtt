@@ -11,6 +11,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test --env-mode=loose && node --test \"scripts/**/*.test.mjs\"",
+    "test:admin-full-flow": "node scripts/admin-full-flow.mjs",
+    "test:admin-browser": "node --test --test-concurrency=1 \"apps/admin/test/**/*.browser.mjs\"",
     "db:print-target": "node scripts/print-db-target.mjs"
   },
   "devDependencies": {
