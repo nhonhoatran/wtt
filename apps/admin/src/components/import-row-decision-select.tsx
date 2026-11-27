@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ApiError, apiFetch } from '../api/http-client';
 import { NEW_PLAYER_CHOICE, type ImportCandidate } from '../resources/imports/import-labels';
 import { playerSummary } from '../resources/players/player-labels';
+import styles from './import-row-decision-select.module.css';
 
 interface ImportRowDecisionSelectProps {
   importId: string;
@@ -45,8 +46,11 @@ export function ImportRowDecisionSelect({ importId, rowNo, slot, candidates, val
         { value: NEW_PLAYER_CHOICE, label: 'Tạo VĐV mới' },
       ]}
       aria-label={`Chọn VĐV ${slot} cho dòng ${rowNo}`}
+      className={styles.select}
+      classNames={{ popup: { root: styles.popup } }}
+      optionRender={(option) => <span className={styles.optionLabel}>{option.label}</span>}
+      virtual={false}
       popupMatchSelectWidth={false}
-      style={{ minWidth: 260 }}
     />
   );
 }

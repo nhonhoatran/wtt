@@ -1,0 +1,23 @@
+.select {
+  width: 260px;
+  max-width: calc(100vw - 24px);
+}
+
+/* The import table can be wider than the screen; its trigger must not size the popup. */
+.popup {
+  width: min(480px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+}
+
+.optionLabel {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 575px) {
+  .popup :global(.ant-select-item-option) {
+    min-height: 44px;
+    align-items: center;
+  }
+}
