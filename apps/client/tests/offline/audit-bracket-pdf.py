@@ -29,9 +29,11 @@ for form in ("singles", "doubles"):
             texts = [compact(page.extract_text()) for page in reader.pages]
             ids = [int(match) for text in texts for match in re.findall(r"(?m)^(?:Tran#|Match)([0-9]+)$", text)]
             all_text = "\n".join(texts)
+            # Names may wrap inside a seeded doubles row; keep newlines above for match-id checks.
+            name_text = re.sub(r"\s+", "", all_text)
             suffixes = ("A", "B") if form == "doubles" else ("A",)
             missing_names = [f"{number}{suffix}" for number in range(1, 65) for suffix in suffixes
-                             if f"NguyenPhuongHoangMinhChau{number}{suffix}" not in all_text]
+                             if f"NguyenPhuongHoangMinhChau{number}{suffix}" not in name_text]
             context = "Printverificationtournament" if locale == "en" else "Giaikiemtrabanin"
             sizes = [(float(page.mediabox.width), float(page.mediabox.height)) for page in reader.pages]
             row = {

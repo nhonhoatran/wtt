@@ -56,9 +56,14 @@ describe('session lifecycle and user management (real Postgres + Redis)', () => 
     const cookie = await kit.signIn(user);
     await kit.get(USERS, cookie).expect(403);
     await kit.write('patch', `${USERS}/${user.id}`, adminCookie, { role: 'ADMIN' }).expect(200);
-    await kit.get(ME, cookie).expect(401);
-    const fresh = await kit.signIn(user);
-    await kit.get(USERS, fresh).expect(200);
+    try {
+      await kit.get(ME, cookie).expect(401);
+      const fresh = await kit.signIn(user);
+      await kit.get(USERS, fresh).expect(200);
+    } finally {
+      // Leave the later last-admin concurrency case with exactly its two admins, even after an assertion fails.
+      await kit.write('patch', `${USERS}/${user.id}`, adminCookie, { role: 'RESULTS_OPERATOR' }).expect(200);
+    }
   });
 
   it('resets a password: sessions revoked, temporary password must be changed', async () => {
@@ -94,16 +99,20 @@ describe('session lifecycle and user management (real Postgres + Redis)', () => 
   it('never leaves zero active admins when two admins demote each other at once', async () => {
     const other = await kit.createUser({ role: 'ADMIN' });
     const otherCookie = await kit.signIn(other);
-    await Promise.allSettled([
-      kit.write('patch', `${USERS}/${other.id}`, adminCookie, { role: 'RESULTS_OPERATOR' }),
-      kit.write('patch', `${USERS}/${admin.id}`, otherCookie, { role: 'RESULTS_OPERATOR' }),
-    ]);
-    const survivors = await kit.prisma.user.count({
-      where: { id: { in: [admin.id, other.id] }, role: 'ADMIN', isActive: true },
-    });
-    expect(survivors).toBeGreaterThanOrEqual(1);
-    await kit.prisma.user.updateMany({ where: { id: admin.id }, data: { role: 'ADMIN' } });
-    adminCookie = await kit.signIn(admin);
+    expect(await kit.prisma.user.count({ where: { role: 'ADMIN', isActive: true } })).toBe(2);
+    try {
+      await Promise.allSettled([
+        kit.write('patch', `${USERS}/${other.id}`, adminCookie, { role: 'RESULTS_OPERATOR' }),
+        kit.write('patch', `${USERS}/${admin.id}`, otherCookie, { role: 'RESULTS_OPERATOR' }),
+      ]);
+      const survivors = await kit.prisma.user.count({
+        where: { id: { in: [admin.id, other.id] }, role: 'ADMIN', isActive: true },
+      });
+      expect(survivors).toBeGreaterThanOrEqual(1);
+    } finally {
+      await kit.prisma.user.updateMany({ where: { id: admin.id }, data: { role: 'ADMIN' } });
+      adminCookie = await kit.signIn(admin);
+    }
   });
 
   it('lists users with server-side search, filter, sort and paging', async () => {

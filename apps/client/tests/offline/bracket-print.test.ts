@@ -19,6 +19,7 @@ import scrollClasses from '../../src/components/common/scroll-region.module.css'
 import playerClasses from '../../src/components/players/players.module.css';
 import badgeClasses from '../../src/components/common/live-badge.module.css';
 import heroClasses from '../../src/components/events/event-hero.module.css';
+import tierClasses from '../../src/components/events/tier-badge.module.css';
 import navClasses from '../../src/components/common/pill-nav.module.css';
 import { clientRoot, moduleCss, productionFonts } from './offline-css';
 import { getDictionary } from '../../src/i18n/get-dictionary';
@@ -94,6 +95,7 @@ it('keeps 64-slot singles and doubles readable on screen and A4/A3 print sheets'
     moduleCss('src/components/players/players.module.css', playerClasses),
     moduleCss('src/components/common/live-badge.module.css', badgeClasses),
     moduleCss('src/components/events/event-hero.module.css', heroClasses),
+    moduleCss('src/components/events/tier-badge.module.css', tierClasses),
     moduleCss('src/components/common/pill-nav.module.css', navClasses),
   ])).join('\n');
   const browser = await chromium.launch();
@@ -128,6 +130,7 @@ it('keeps 64-slot singles and doubles readable on screen and A4/A3 print sheets'
           expect(screen.printHidden).toBe(true);
           expect(await page.locator('[data-event-hero]').isVisible()).toBe(true);
           expect(await page.locator('[data-bracket-title]').isVisible()).toBe(true);
+          expect(await page.locator(`.${tierClasses.badge}`).evaluate((element) => getComputedStyle(element).fontSize)).toBe('12px');
           await page.screenshot({ path: path.join(output, `${id}-${width}.png`), fullPage: true });
         }
         for (const [paper, width, height] of [['A4', 1047, 718], ['A3', 1511, 1047]] as const) {
