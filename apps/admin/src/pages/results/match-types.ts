@@ -17,6 +17,8 @@ export interface MatchListItem {
   subEventId: string;
   subEventCode: string;
   subEventName: string | null;
+  /** Older cached responses may not yet carry the optional catalog color. */
+  discipline?: { id: string; code: string; name: string; colorHex: string | null };
   drawKind: 'MAIN' | 'QUALIFYING' | 'GROUP';
   roundCode: string;
   groupCode: string | null;

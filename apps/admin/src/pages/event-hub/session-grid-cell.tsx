@@ -7,6 +7,7 @@ import { CONFLICT_NOTE_ATTRIBUTE } from './schedule-status-bar';
 import { conflictText, timeInZone, type ScheduleMatch, type SessionTable } from './schedule-types';
 import { DRAGGABLE_ROLE_DESCRIPTION } from './schedule-dnd-accessibility';
 import type { SlotTarget, useScheduleBoard } from './use-schedule-board';
+import { scheduleDisciplineColor } from './schedule-discipline-colors';
 
 export type ScheduleBoard = ReturnType<typeof useScheduleBoard>;
 
@@ -26,7 +27,11 @@ export const matchDragId = (matchId: string) => `match:${matchId}`;
 function MatchBody({ match, timeZone }: { match: ScheduleMatch; timeZone: string }) {
   const { token } = theme.useToken();
   return (
-    <Flex vertical gap={token.marginXXS} style={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
+    <Flex vertical gap={token.marginXXS} style={{
+      minWidth: 0, flex: 1, overflowWrap: 'anywhere',
+      borderInlineStart: `${token.lineWidthBold * 2}px solid ${scheduleDisciplineColor(match.discipline?.colorHex) ?? token.colorBorderSecondary}`,
+      paddingInlineStart: token.paddingXXS,
+    }}>
       <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
         #{match.matchNo} · {match.subEventCode} · {roundTitle(match.roundCode)}
         {match.groupCode ? ` · Bảng ${match.groupCode}` : ''}

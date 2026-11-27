@@ -7,7 +7,14 @@ const FORMAT_SELECT = { select: { name: true, bestOf: true, pointsPerGame: true,
 export const MATCH_RESULT_INCLUDE = {
   round: { select: { code: true, matchFormat: FORMAT_SELECT } },
   draw: { select: { kind: true, status: true, matchFormat: FORMAT_SELECT } },
-  subEvent: { select: { code: true, name: true, matchFormat: FORMAT_SELECT } },
+  subEvent: {
+    select: {
+      code: true,
+      name: true,
+      matchFormat: FORMAT_SELECT,
+      discipline: { select: { id: true, code: true, name: true, colorHex: true } },
+    },
+  },
   group: { select: { code: true } },
   session: { select: { code: true } },
   table: { select: { code: true, displayName: true } },
@@ -40,6 +47,7 @@ export function toMatchResultItem(m: MatchResultRow) {
     subEventId: m.subEventId,
     subEventCode: m.subEvent.code,
     subEventName: m.subEvent.name ?? m.subEvent.code,
+    discipline: m.subEvent.discipline,
     drawKind: m.draw.kind,
     roundCode: m.round.code,
     groupCode: m.group?.code ?? null,

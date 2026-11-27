@@ -1,11 +1,13 @@
 import { Form, Input, InputNumber, Select } from 'antd';
 import { CatalogCreatePage, CatalogEditPage, IsActiveField } from '../catalog-common/catalog-form-pages';
+import { ColorHexField } from '../catalog-common/color-hex-field';
 
 export interface DisciplineRecord {
   id: string;
   code: string;
   name: string;
   nameEn: string | null;
+  colorHex: string | null;
   competitorKind: 'SINGLES' | 'DOUBLES';
   genderRule: 'MEN' | 'WOMEN' | 'MIXED' | 'OPEN';
   order: number;
@@ -34,6 +36,9 @@ function DisciplineFields() {
       </Form.Item>
       <Form.Item name="nameEn" label="Tên tiếng Anh">
         <Input />
+      </Form.Item>
+      <Form.Item name="colorHex" label="Màu trên lịch thi đấu" extra="Bỏ trống để dùng viền trung tính. Mã và tên nội dung vẫn luôn hiển thị.">
+        <ColorHexField allowClear />
       </Form.Item>
       <Form.Item name="competitorKind" label="Đơn hay đôi" rules={[{ required: true, message: 'Chọn đơn hoặc đôi' }]}>
         <Select options={COMPETITOR_KIND_OPTIONS} placeholder="Chọn" />

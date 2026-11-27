@@ -1,6 +1,6 @@
 import { List } from '@refinedev/antd';
 import { CreateButton } from '../../components/crud-page';
-import { Table } from 'antd';
+import { Space, Table, theme } from 'antd';
 import { ListFilterBar } from '../../components/list-filter-bar';
 import { useCatalogAccess } from '../catalog-common/catalog-access';
 import { ACTIVE_FILTER_OPTIONS, actionsColumn, sortColumn, statusColumn, useCatalogTable } from '../catalog-common/catalog-table';
@@ -17,6 +17,7 @@ const RESOURCE = 'disciplines';
 
 export function DisciplineList() {
   const tableScroll = useTableScroll();
+  const { token } = theme.useToken();
   const { canCreate } = useCatalogAccess();
   const { tableProps, searchFormProps, sorters, filters, setFilters } = useCatalogTable<DisciplineRecord>(RESOURCE, { field: 'order', order: 'asc' });
 
@@ -38,7 +39,12 @@ export function DisciplineList() {
       <Table {...tableProps} rowKey="id" scroll={tableScroll}>
         {sortColumn<DisciplineRecord>(sorters, 'order', 'Thứ tự')}
         {sortColumn<DisciplineRecord>(sorters, 'code', 'Mã')}
-        {sortColumn<DisciplineRecord>(sorters, 'name', 'Tên')}
+        {sortColumn<DisciplineRecord>(sorters, 'name', 'Tên', (_, row) => (
+          <Space size="small">
+            <span aria-hidden style={{ display: 'inline-block', width: token.size, height: token.size, borderRadius: token.borderRadiusSM, background: row.colorHex ?? token.colorBorderSecondary }} />
+            {row.name}
+          </Space>
+        ))}
         <Table.Column<DisciplineRecord> key="kind" title="Đơn / đôi" render={(_, row) => COMPETITOR_KIND_LABELS[row.competitorKind]} />
         <Table.Column<DisciplineRecord> key="gender" title="Giới tính" render={(_, row) => GENDER_RULE_LABELS[row.genderRule]} />
         {statusColumn<DisciplineRecord>()}

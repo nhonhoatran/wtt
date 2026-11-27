@@ -79,6 +79,7 @@ model Discipline {
   code           String         @unique
   name           String
   nameEn         String?
+  colorHex       String?
   competitorKind CompetitorKind
   genderRule     GenderRule
   order          Int            @default(0)

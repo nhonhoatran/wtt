@@ -13,6 +13,7 @@ import { DRAGGABLE_ROLE_DESCRIPTION } from './schedule-dnd-accessibility';
 import { matchDragId, type ScheduleBoard } from './session-grid-cell';
 import { subEventsKey, subEventTitle, type SubEventRecord } from './sub-event-labels';
 import { useRoundOptions } from './use-round-options';
+import { scheduleDisciplineColor } from './schedule-discipline-colors';
 
 function UnscheduledItem({ match, board, canUpdate }: { match: ScheduleMatch; board: ScheduleBoard; canUpdate: boolean }) {
   const { token } = theme.useToken();
@@ -35,6 +36,7 @@ function UnscheduledItem({ match, board, canUpdate }: { match: ScheduleMatch; bo
         cursor: canUpdate ? 'grab' : undefined,
         opacity: drag.isDragging ? token.opacityLoading : undefined,
         border: `${token.lineWidth}px ${token.lineType} ${selected ? token.colorPrimary : token.colorBorderSecondary}`,
+        borderInlineStart: `${token.lineWidthBold * 2}px solid ${scheduleDisciplineColor(match.discipline?.colorHex) ?? token.colorBorderSecondary}`,
         background: selected ? token.colorPrimaryBg : undefined,
       }}
       {...drag.listeners}

@@ -3,6 +3,7 @@ import { GridSlot, type ScheduleBoard } from './session-grid-cell';
 import { TruncatedNotice } from './truncated-notice';
 import { tableLabel, type SessionRecord } from './schedule-types';
 import { useSessionGridMatches } from './use-session-grid-matches';
+import { ScheduleDisciplineLegend } from './schedule-discipline-legend';
 
 // Narrow enough for six tables beside the side panel; narrower screens scroll the grid sideways.
 const GRID_MIN_COLUMN_WIDTH = 104;
@@ -37,6 +38,7 @@ export function SessionGrid({ eventId, timeZone, session, canUpdate, board }: Se
 
   return (
     <Flex vertical gap="small">
+      <ScheduleDisciplineLegend matches={matches.data.data} />
       {matches.data.truncated && <TruncatedNotice action="hiện" shown={matches.data.data.length} total={matches.data.total} />}
       {canUpdate && (
         <Typography.Text type="secondary">
