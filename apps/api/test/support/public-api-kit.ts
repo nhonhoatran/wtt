@@ -85,6 +85,8 @@ export async function setupPublicWorld(kit: AuthTestKit, cookie: string): Promis
   await players.addEntries(sub('MD'), 10, 3);
   await players.addEntries(sub('WD'), 13, 4, { seeds: 2 });
   const playerIds = players.players.map((p) => p.id);
+  // Synthetic public-profile fixtures opt in explicitly; this records no consent for real people.
+  await kit.prisma.player.updateMany({ where: { id: { in: playerIds } }, data: { isPublicProfile: true } });
 
   const profile = privateProfile(fx.tag);
   await kit.prisma.player.update({

@@ -19,7 +19,7 @@ export function PlayerCreate() {
       <Form
         {...formProps}
         layout="vertical"
-        initialValues={{ isActive: true, isPublicProfile: true, noindex: true }}
+        initialValues={{ isActive: true, isPublicProfile: false, noindex: true }}
         onValuesChange={(changed) => fillBirthYear(form, changed)}
         onFinish={(values) => formProps.onFinish?.(cleanPlayerValues(values, 'create'))}
         style={{ maxWidth: PLAYER_FORM_MAX_WIDTH }}

@@ -74,6 +74,8 @@ describe('admin players (real Postgres)', () => {
       birthYear: 1999,
       birthDate: null,
       isActive: true,
+      isPublicProfile: false,
+      noindex: true,
       mergedInto: null,
       entryCount: 0,
       pairCount: 0,
@@ -82,6 +84,18 @@ describe('admin players (real Postgres)', () => {
     expect(row.normalizedName).toBe(`nguyen duc ${fixtures.tag.toLowerCase()}`);
     const audit = await kit.prisma.auditLog.findFirst({ where: { entityId: first.id, action: 'player.create' } });
     expect(audit).not.toBeNull();
+  });
+
+  it('keeps explicit public-profile opt-in and leaves it unchanged when PATCH omits the flag', async () => {
+    const created = await kit.write('post', `${API}/players`, adminCookie, {
+      fullName: `Đồng Ý Hồ Sơ ${fixtures.tag}`, gender: 'MALE', isPublicProfile: true,
+    }).expect(201);
+    const player = created.body.data;
+    fixtures.playerIds.push(player.id);
+    expect(player).toMatchObject({ isPublicProfile: true, noindex: true });
+    const updated = await kit.write('patch', `${API}/players/${player.id}`, adminCookie, { club: `CLB ${fixtures.tag}` }).expect(200);
+    expect(updated.body.data).toMatchObject({ isPublicProfile: true, noindex: true, club: `CLB ${fixtures.tag}` });
+    expect(await kit.prisma.player.findUniqueOrThrow({ where: { id: player.id } })).toMatchObject({ isPublicProfile: true, noindex: true });
   });
 
   it('suffixes the slug with -2 for the same name', async () => {

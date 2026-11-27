@@ -109,7 +109,7 @@ export function PlayerFormFields({ form, autoFocus, showPrivate = true }: { form
         <Form.Item name="isPublicProfile" label="Có trang hồ sơ công khai" valuePropName="checked">
           <Switch />
         </Form.Item>
-        <Form.Item name="noindex" label="Chặn Google lập chỉ mục" valuePropName="checked" extra="Bật khi chưa có đồng ý công khai của VĐV (nhất là VĐV nhỏ tuổi).">
+        <Form.Item name="noindex" label="Chặn Google lập chỉ mục" valuePropName="checked" extra="Yêu cầu công cụ tìm kiếm không lập chỉ mục, không ẩn trang. Tắt “Có trang hồ sơ công khai” để ẩn hồ sơ; tên trong kết quả và BXH vẫn hiển thị. Cần xác nhận đồng ý đúng phạm vi trước khi công khai.">
           <Switch />
         </Form.Item>
         <Form.Item name="publicDisplayName" label="Tên hiển thị công khai" extra="Để trống: dùng họ tên.">

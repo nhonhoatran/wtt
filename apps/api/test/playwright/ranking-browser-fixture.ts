@@ -32,6 +32,8 @@ export async function createRankingBrowserFixture(kit: AuthTestKit): Promise<Ran
   const world = await createRankingWorld(kit);
   const { prisma } = kit;
   const { entryIds } = await addEntries(kit, world, 52);
+  // These synthetic profile/search fixtures opt in explicitly; private cases below remain private.
+  await prisma.player.updateMany({ where: { id: { in: world.playerIds } }, data: { isPublicProfile: true } });
   const code = `RL-${world.tag}`;
   const name = `Xếp hạng thử nghiệm ${world.tag}`;
   const nameEn = `Test rankings ${world.tag}`;
@@ -63,7 +65,7 @@ export async function createRankingBrowserFixture(kit: AuthTestKit): Promise<Ran
   } });
   const empty = await prisma.player.create({ data: {
     code: `RZ-${world.tag}`, slug: `empty-rank-${world.tag}`, fullName: `Chưa thi đấu ${world.tag}`, normalizedName: `chua thi dau ${world.tag}`,
-    gender: 'FEMALE', countryCode: 'VN',
+    gender: 'FEMALE', countryCode: 'VN', isPublicProfile: true,
   } });
   world.playerIds.push(merged.id, empty.id);
 

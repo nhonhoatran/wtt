@@ -118,7 +118,8 @@ export class PlayersService {
             bioEn: body.bioEn,
             phone: body.phone,
             email: body.email,
-            isPublicProfile: body.isPublicProfile,
+            // BTC keeps consent evidence externally; omitted flags never opt a new player in.
+            isPublicProfile: body.isPublicProfile ?? false,
             noindex: body.noindex,
             isActive: body.isActive,
           },

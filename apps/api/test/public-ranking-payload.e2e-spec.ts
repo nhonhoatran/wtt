@@ -50,7 +50,8 @@ describe('public ranking payload with dense immutable breakdowns (real HTTP and 
       id: randomUUID(), code: `PL-${world.tag}-${index}`, slug: `payload-player-${world.tag}-${index}`,
       fullName: `Vận động viên ${world.tag} ${index + 1}`, fullNameEn: `Player ${world.tag} ${index + 1}`,
       normalizedName: `van dong vien ${world.tag} ${index + 1}`, club: `Câu lạc bộ bóng bàn ${world.tag} ${index % 5}`,
-      gender: 'MALE' as const, countryCode: 'VIE',
+      // Retain the dense public-link payload; synthetic rows make no claim about real consent.
+      gender: 'MALE' as const, countryCode: 'VIE', isPublicProfile: true,
     }));
     world.playerIds.push(...players.map((player) => player.id));
     await prisma.player.createMany({ data: players });

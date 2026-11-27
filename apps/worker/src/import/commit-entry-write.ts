@@ -35,7 +35,8 @@ async function createMissingPlayers(tx: Tx, resolved: Resolved[], settings: Comm
     }
     const identity = await allocatePlayerIdentity(tx, { fullName: item.slot.fullName }, settings.codeFormat);
     const player = await tx.player.create({
-      data: { ...identity, gender: item.slot.gender!, birthYear: item.slot.birthYear, club: item.slot.club, countryCode: settings.countryCode },
+      // An import file supplies registration data, not evidence for a public profile.
+      data: { ...identity, gender: item.slot.gender!, birthYear: item.slot.birthYear, club: item.slot.club, countryCode: settings.countryCode, isPublicProfile: false, noindex: true },
       select: { id: true },
     });
     state.createdByKey.set(item.newKey, player.id);

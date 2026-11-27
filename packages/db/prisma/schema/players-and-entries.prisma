@@ -36,8 +36,9 @@ model Player {
   normalizedName      String
   // Effective public name, maintained by a database trigger; never returned by public serializers.
   normalizedPublicName String               @default("")
-  isPublicProfile     Boolean               @default(true)
-  // On until the public-consent question is answered.
+  // BTC verifies external consent before explicitly enabling a new public profile.
+  isPublicProfile     Boolean               @default(false)
+  // Profiles remain noindex by default; consent evidence is managed externally by BTC.
   noindex             Boolean               @default(true)
   isActive            Boolean               @default(true)
   // Set when this profile was merged into another; its slug then redirects (301) to the target.
