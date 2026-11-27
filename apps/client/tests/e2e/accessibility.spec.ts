@@ -8,6 +8,8 @@ test.describe('public accessibility baseline', () => {
       const paths = [
         `/${locale}`,
         `/${locale}/events`,
+        `/${locale}/search`,
+        `/${locale}/search?q=${world.world.tag}`,
         `/${locale}/events?q=${world.world.tag}`,
         `/${locale}/events/calendar`,
         `/${locale}/events/${world.world.slug}`,
@@ -43,9 +45,7 @@ test.describe('public accessibility baseline', () => {
           }));
           summaries.push({ route, violations, incompleteRules: results.incomplete.map(({ id }) => id) });
           expect.soft(violations, `${route}: ${JSON.stringify(violations)}`).toEqual([]);
-          if (locale === 'vi' && index < 4) {
-            await page.screenshot({ path: testInfo.outputPath(`accessibility-${index}.png`), fullPage: true });
-          }
+          await page.screenshot({ path: testInfo.outputPath(`accessibility-${locale}-${index}.png`), fullPage: true });
         });
       }
       await testInfo.attach(`axe-${locale}-summary.json`, {

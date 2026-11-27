@@ -1,0 +1,31 @@
+.intro {
+  max-width: 60ch;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.section {
+  margin: 32px 0;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 16px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.heading a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}

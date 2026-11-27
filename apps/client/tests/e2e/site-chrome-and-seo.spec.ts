@@ -146,6 +146,7 @@ test.describe('mobile layout', () => {
 
   for (const [name, pathOf] of [
     ['events list', (w: E2eWorldFile) => `/vi/events?q=${w.world.tag}`],
+    ['search', (w: E2eWorldFile) => `/vi/search?q=${w.world.tag}`],
     ['event overview', (w: E2eWorldFile) => root(w.world.slug)],
     ['matches tab', (w: E2eWorldFile) => `${root(w.world.slug)}/matches`],
     ['draws page', (w: E2eWorldFile) => `${root(w.world.slug)}/draws/MS`],

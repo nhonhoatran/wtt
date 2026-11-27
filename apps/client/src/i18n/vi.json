@@ -2,6 +2,19 @@
   "site": {
     "skipToContent": "Bỏ qua tới nội dung"
   },
+  "search": {
+    "title": "Tìm kiếm",
+    "description": "Tìm giải đấu và vận động viên theo tên.",
+    "label": "Tên giải đấu hoặc vận động viên",
+    "submit": "Tìm kiếm",
+    "clear": "Xóa tìm kiếm",
+    "hint": "Nhập tên giải đấu hoặc vận động viên để bắt đầu tìm kiếm.",
+    "noEvents": "Không tìm thấy giải đấu phù hợp.",
+    "noPlayers": "Không tìm thấy vận động viên phù hợp.",
+    "unavailable": "Chưa tải được kết quả. Vui lòng thử tìm lại.",
+    "allEvents": "Xem tất cả {n} giải đấu",
+    "allPlayers": "Xem tất cả {n} vận động viên"
+  },
   "error": {
     "title": "Đã có lỗi khi tải trang",
     "body": "Vui lòng thử lại sau ít phút.",

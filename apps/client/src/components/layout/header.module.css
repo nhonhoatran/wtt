@@ -186,6 +186,33 @@
   margin-top: 12px;
 }
 
+.searchBar {
+  display: none;
+}
+
+.searchPanel,
+.searchBar {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  color: var(--color-surface);
+  text-decoration: none;
+}
+
+.searchPanel {
+  display: flex;
+  justify-content: flex-start;
+  font-weight: 600;
+}
+
+.searchPanel:focus-visible,
+.searchBar:focus-visible {
+  outline: 2px solid var(--color-live);
+  outline-offset: 2px;
+}
+
 @media (min-width: 768px) {
   .headerInner {
     height: 72px;
@@ -206,6 +233,10 @@
   }
 
   .registerBar {
+    display: inline-flex;
+  }
+
+  .searchBar {
     display: inline-flex;
   }
 }

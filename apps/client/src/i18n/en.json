@@ -2,6 +2,19 @@
   "site": {
     "skipToContent": "Skip to content"
   },
+  "search": {
+    "title": "Search",
+    "description": "Find tournaments and players by name.",
+    "label": "Tournament or player name",
+    "submit": "Search",
+    "clear": "Clear search",
+    "hint": "Enter a tournament or player name to start searching.",
+    "noEvents": "No matching tournaments found.",
+    "noPlayers": "No matching players found.",
+    "unavailable": "Results could not be loaded. Please try searching again.",
+    "allEvents": "View all {n} tournaments",
+    "allPlayers": "View all {n} players"
+  },
   "error": {
     "title": "Something went wrong",
     "body": "Please try again in a moment.",
