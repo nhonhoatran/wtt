@@ -37,8 +37,8 @@ const GROUP_SCORING_RULE = {
   pointsUnfinishedLoss: 1,
   unfinishedMatchScoring: 'AWARD_REMAINING_TO_WINNER' as const,
   awardedGamePoints: 11,
-  // Left null on purpose: organisers have not chosen a mid-group withdrawal policy yet.
-  withdrawalPolicy: null,
+  // Approved G1 choice (2026-11-27); only newly seeded rules use it, existing rules stay untouched.
+  withdrawalPolicy: 'KEEP_PLAYED_RESULTS' as const,
   tiebreakers: ['HEAD_TO_HEAD_POINTS', 'HEAD_TO_HEAD_GAME_RATIO', 'HEAD_TO_HEAD_POINT_RATIO', 'DRAW_OF_LOTS'],
   isDefault: true,
 };

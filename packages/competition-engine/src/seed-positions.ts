@@ -5,7 +5,7 @@ import { DrawParamsError } from './types.js';
 /**
  * Standard pattern: seeds 1 and 2 at the two ends; each following tier (seeds k+1..2k) is drawn
  * at random into the k section-boundary slots left free (S/2 and S/2+1 for seeds 3-4, quarter
- * boundaries for 5-8, ...). Pending organiser confirmation (gate G1a).
+ * boundaries for 5-8, ...). G1a pattern approved in the 2026-11-27 organiser decision.
  * Returns seed number -> position (1-based).
  */
 export function seedPositions(size: number, seedCount: number, rng: Rng): Map<number, number> {
