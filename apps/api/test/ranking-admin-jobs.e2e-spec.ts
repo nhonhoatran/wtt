@@ -35,7 +35,7 @@ describe('admin ranking recompute and job status', () => {
 
   it('every ranking route is closed to RESULTS_OPERATOR', async () => {
     const id = randomUUID();
-    const reads = ['ranking-lists', `ranking-lists/${id}`, 'ranking-rules?filter[competitorKind]=SINGLES&filter[drawKind]=MAIN', 'ranking-points', 'ranking-snapshots', `ranking-snapshots/${id}`, `ranking-snapshots/${id}/rows`, 'ranking/jobs/rank-x'];
+    const reads = ['ranking-lists', `ranking-lists/${id}`, 'ranking-rules?filter[competitorKind]=SINGLES&filter[drawKind]=MAIN', 'ranking-points', 'ranking-snapshots', `ranking-snapshots/${id}`, `ranking-snapshots/${id}/rows`, 'ranking/jobs/rank-x', 'ranking/context'];
     for (const path of reads) expect({ path, status: (await kit.get(`${API}/${path}`, operatorCookie)).status }).toEqual({ path, status: 403 });
     const writes: [Parameters<AuthTestKit['write']>[0], string][] = [
       ['post', 'ranking-lists'], ['patch', `ranking-lists/${id}`], ['delete', `ranking-lists/${id}`], ['put', 'ranking-rules/matrix'],
@@ -46,6 +46,12 @@ describe('admin ranking recompute and job status', () => {
       expect({ path, status: (await kit.write(method, `${API}/${path}`, operatorCookie)).status }).toEqual({ path, status: 403 });
     }
     await kit.get(`${API}/ranking-lists`).expect(401);
+    await kit.get(`${API}/ranking/context`).expect(401);
+  });
+
+  it('returns only the business calendar context to ranking readers', async () => {
+    const context = await kit.get(`${API}/ranking/context`, cookie).expect(200);
+    expect(context.body.data).toEqual({ today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), timeZone: expect.any(String) });
   });
 
   it('manual recompute by sub-event or event type marks dirty, queues, audits and lands in the ledger', async () => {

@@ -29,6 +29,7 @@ export class RankingPointsManualService {
 
   async create(body: CreateManualPointsBody, actorUserId: string) {
     const today = await rankingToday(this.settings);
+    if (body.earnedAt && body.earnedAt > today) throw fieldError('earnedAt', 'Ngày đạt điểm không được ở tương lai');
     return this.prisma.$transaction(async (tx) => {
       const list = await tx.rankingList.findUnique({ where: { id: body.rankingListId }, select: { validityDays: true } });
       if (!list) throw fieldError('rankingListId', 'Bảng xếp hạng không tồn tại');

@@ -1,4 +1,4 @@
-import { App, DatePicker, Form, Input, InputNumber, Modal, Select } from 'antd';
+import { Alert, App, Button, DatePicker, Form, Input, InputNumber, Modal, Select, Skeleton } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../api/http-client';
@@ -9,6 +9,7 @@ import { RANKING_REASON_MAX_LENGTH, RANKING_REASON_MIN_LENGTH } from '@kamito/sh
 import { DATE_ONLY_FORMAT, DISPLAY_DATE_FORMAT } from '../../resources/events/event-labels';
 import { useCatalogSelect } from '../../resources/events/use-catalog-options';
 import type { PlayerLookupItem } from '../../resources/players/player-labels';
+import { useRankingDateContext } from './use-ranking-date-context';
 
 interface FormValues {
   rankingListId?: string;
@@ -39,9 +40,10 @@ export function ManualPointsForm({ open, onClose, onCreated, defaultListId }: Pr
   const runWithStepUp = useStepUp();
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
+  const [ready, setReady] = useState(false);
+  const dateContext = useRankingDateContext(open);
+  const today = dateContext.data?.today;
   const lists = useCatalogSelect('ranking-lists', { labelOf: (row) => `${String(row.code)} – ${row.name}` });
-  const values = Form.useWatch([], form);
-  const ready = Boolean(values?.rankingListId && values.player && values.points && values.earnedAt && values.reason?.trim());
 
   const submit = async (input: FormValues) => {
     setSaving(true);
@@ -81,12 +83,16 @@ export function ManualPointsForm({ open, onClose, onCreated, defaultListId }: Pr
       title="Thêm điểm thủ công"
       okText="Thêm điểm"
       cancelText="Hủy"
-      okButtonProps={{ loading: saving, disabled: !ready }}
+      okButtonProps={{ loading: saving, disabled: !ready || !today || dateContext.isError }}
       onOk={() => form.submit()}
       onCancel={onClose}
+      afterClose={() => setReady(false)}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" initialValues={{ earnedAt: dayjs(), rankingListId: defaultListId }} onFinish={submit} preserve={false}>
+      {dateContext.isError && <Alert type="error" showIcon message="Không tải được ngày nghiệp vụ" action={<Button size="small" onClick={() => void dateContext.refetch()}>Thử lại</Button>} />}
+      {!today && !dateContext.isError && <Skeleton active />}
+      {today && <Form form={form} layout="vertical" initialValues={{ earnedAt: dayjs(today), rankingListId: defaultListId }} onFinish={submit} preserve={false}
+        onValuesChange={(_, values: FormValues) => setReady(Boolean(values.rankingListId && values.player && values.points && values.earnedAt && values.reason?.trim()))}>
         <Form.Item name="rankingListId" label="Bảng xếp hạng" rules={[{ required: true, message: 'Chọn bảng xếp hạng' }]}>
           <Select {...lists.selectProps} placeholder="Chọn bảng xếp hạng" />
         </Form.Item>
@@ -105,7 +111,7 @@ export function ManualPointsForm({ open, onClose, onCreated, defaultListId }: Pr
           <InputNumber precision={0} />
         </Form.Item>
         <Form.Item name="earnedAt" label="Ngày đạt điểm" rules={[{ required: true, message: 'Chọn ngày đạt điểm' }]}>
-          <DatePicker format={DISPLAY_DATE_FORMAT} allowClear={false} disabledDate={(date) => date.isAfter(dayjs(), 'day')} />
+          <DatePicker format={DISPLAY_DATE_FORMAT} allowClear={false} disabledDate={(date) => date.format(DATE_ONLY_FORMAT) > today} />
         </Form.Item>
         <Form.Item
           name="expiresAt"
@@ -133,7 +139,7 @@ export function ManualPointsForm({ open, onClose, onCreated, defaultListId }: Pr
         >
           <Input.TextArea rows={2} maxLength={RANKING_REASON_MAX_LENGTH} />
         </Form.Item>
-      </Form>
+      </Form>}
     </Modal>
   );
 }

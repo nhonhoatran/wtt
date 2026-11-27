@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { addDays } from '@kamito/ranking-engine';
+import { rankingToday } from '../src/modules/ranking-jobs/ranking-today.js';
+import { AppSettingsService } from '../src/modules/settings/app-settings.service.js';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { addEntries, cleanupRankingWorld, createRankingWorld, type RankingWorld } from './support/ranking-test-kit.js';
 
@@ -12,11 +15,13 @@ describe('admin ranking points ledger', () => {
   let steppedCookie: string;
   let plainCookie: string;
   let w: RankingWorld;
+  let today: string;
   const post = (body: object, cookie = steppedCookie) => kit.write('post', `${API}/ranking-points`, cookie, body);
   const manual = (over: object = {}) => ({ rankingListId: w.listId, playerId: w.playerIds[0], points: 120, reason: 'Imported history', ...over });
 
   beforeAll(async () => {
     kit = await AuthTestKit.start();
+    today = await rankingToday(kit.app.get(AppSettingsService));
     const user = await kit.createUser({ role: 'ADMIN' });
     admin = user;
     plainCookie = await kit.signIn(user);
@@ -39,6 +44,7 @@ describe('admin ranking points ledger', () => {
       manual({ reason: undefined }), manual({ reason: 'ab' }), manual({ points: 0 }), manual({ points: 1.5 }),
       manual({ rankingListId: randomUUID() }), manual({ playerId: randomUUID() }),
       manual({ earnedAt: '2099-01-10', expiresAt: '2099-01-10' }), manual({ earnedAt: '2099-13-01' }),
+      manual({ earnedAt: addDays(today, 1) }),
     ];
     const statuses = [];
     for (const body of invalid) statuses.push((await post(body)).status);
@@ -51,12 +57,12 @@ describe('admin ranking points ledger', () => {
   });
 
   it('creates a MANUAL row with list-validity expiry and an audit entry carrying the reason', async () => {
-    const res = await post(manual({ earnedAt: '2099-03-01' })).expect(201);
+    const res = await post(manual({ earnedAt: today })).expect(201);
     expect(res.body.data).toMatchObject({ source: 'MANUAL', points: 120, subEventId: null, createdById: admin.id, reason: 'Imported history' });
-    expect(res.body.data.expiresAt.slice(0, 10)).toBe('2100-03-01');
+    expect(res.body.data.expiresAt.slice(0, 10)).toBe(addDays(today, 365));
     const [entry] = await kit.prisma.auditLog.findMany({ where: { action: 'ranking.points.manual.create', entityId: res.body.data.id } });
     expect(entry).toMatchObject({ actorId: admin.id, reason: 'Imported history' });
-    expect(entry?.after).toMatchObject({ playerId: w.playerIds[0], points: 120, earnedAt: '2099-03-01' });
+    expect(entry?.after).toMatchObject({ playerId: w.playerIds[0], points: 120, earnedAt: today });
   });
 
   it('lists with server-side filter, search, sort and paging', async () => {

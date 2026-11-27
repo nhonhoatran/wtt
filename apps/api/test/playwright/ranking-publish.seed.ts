@@ -67,12 +67,12 @@ it('publishes through the real admin API and BullMQ worker then refreshes the wa
     rankingListId: world.listId, asOfDate: new Date(date),
     rows: { create: { playerId: player.id, rank, points, resultsCounted: 0, breakdown: [] } },
   } });
-  const previous = await snapshot('2099-06-01', 2, 137);
+  const previous = await snapshot('2020-06-01', 2, 137);
   await kit.prisma.rankingSnapshot.update({ where: { id: previous.id }, data: { status: 'PUBLISHED', publishedAt: new Date() } });
-  const next = await snapshot('2099-07-01', 1, 827);
+  const next = await snapshot('2020-07-01', 1, 827);
   const url = `${siteUrl}/vi/rankings/RL-${world.tag}`;
   const before = await (await fetch(url)).text();
-  expect(before).toContain('01/06/2099');
+  expect(before).toContain('01/06/2020');
   expect(before).toContain('<strong>137</strong>');
   const started = performance.now();
   const published = await kit.write('post', `/api/v1/admin/ranking-snapshots/${next.id}/publish`, cookie).expect(200);
@@ -80,20 +80,20 @@ it('publishes through the real admin API and BullMQ worker then refreshes the wa
   let html = '';
   while (performance.now() - started < 10_000) {
     html = await (await fetch(url)).text();
-    if (html.includes('01/07/2099') && html.includes('<strong>827</strong>')) break;
+    if (html.includes('01/07/2020') && html.includes('<strong>827</strong>')) break;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   const elapsedMs = Math.round(performance.now() - started);
-  expect(html).toContain('01/07/2099');
+  expect(html).toContain('01/07/2020');
   expect(html).toContain('<strong>827</strong>');
-  expect(html).not.toContain('Cập nhật ngày 01/06/2099');
+  expect(html).not.toContain('Cập nhật ngày 01/06/2020');
   expect(elapsedMs).toBeLessThanOrEqual(10_000);
   expect(await queue.getCompletedCount()).toBeGreaterThan(0);
   const outputFile = (process.env.E2E_PUBLISH_PROBE_FILE ?? 'test-results/public-ranking-publish-refresh.json')
     .replaceAll('{pid}', String(process.pid));
   await mkdir(path.dirname(outputFile), { recursive: true });
   await writeFile(outputFile, JSON.stringify({
-    fromDate: '2099-06-01', toDate: '2099-07-01', fromPoints: 137, toPoints: 827,
+    fromDate: '2020-06-01', toDate: '2020-07-01', fromPoints: 137, toPoints: 827,
     elapsedMs, limitMs: 10_000, completedRevalidationJobs: await queue.getCompletedCount(),
     workflow: 'real admin publish -> isolated BullMQ revalidation worker -> warmed SSR HTML',
   }, null, 2));

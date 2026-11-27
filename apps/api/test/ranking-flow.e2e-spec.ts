@@ -7,7 +7,7 @@ import { playRounds } from './support/ranking-draw-builder.js';
 import { deleteSnapshotsOfLists } from './support/ranking-test-kit.js';
 import { startRankingTestWorker, waitUntil, type TestRankingWorker } from './support/ranking-worker-kit.js';
 
-const AS_OF = '2099-06-01';
+const AS_OF = '2020-06-01';
 const POINTS = { W: 1000, F: 700, SF: 400, QF: 200, R16: 100 } as const;
 
 interface Format {
@@ -45,7 +45,8 @@ describe('ranking end to end: 16-player knockout -> ledger -> draft -> publish -
     tierId = (await prisma.tier.create({ data: { code: `FT-${fx.tag}`, name: `Flow tier ${fx.tag}`, colorHex: '#123456' } })).id;
     eventTypeId = (await prisma.eventType.create({ data: { code: `FE-${fx.tag}`, name: `Flow type ${fx.tag}`, tierId } })).id;
     listId = (await prisma.rankingList.create({ data: { code: `FL-${fx.tag}`, name: `Flow list ${fx.tag}`, competitorKind: 'SINGLES', genderRule: 'MEN', validityDays: 365 } })).id;
-    await prisma.event.update({ where: { id: fx.eventId }, data: { eventTypeId } });
+    // Publication is historical; a future test date must not bypass the API's business-date guard.
+    await prisma.event.update({ where: { id: fx.eventId }, data: { eventTypeId, startDate: new Date('2020-05-01'), endDate: new Date('2020-05-02') } });
     await prisma.subEvent.updateMany({ where: { eventId: fx.eventId }, data: { rankingListId: listId } });
     await prisma.rankingPointsRule.createMany({
       data: Object.entries(POINTS).map(([stageCode, points]) => ({

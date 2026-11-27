@@ -44,8 +44,10 @@ function SnapshotPreview({ id }: { id: string }) {
   const onRebuilt = useCallback(
     (results: SnapshotJobResult[]) => {
       setRebuilding(false);
-      const rebuilt = results[0]?.snapshotId;
-      if (rebuilt && rebuilt !== id) navigate(`/ranking-snapshots/${rebuilt}`, { replace: true });
+      const result = results[0];
+      if (result?.outcome !== 'succeeded') return;
+      const rebuilt = result.snapshotId;
+      if (rebuilt !== id) navigate(`/ranking-snapshots/${rebuilt}`, { replace: true });
       else void refetch();
     },
     [id, navigate, refetch],
@@ -55,11 +57,14 @@ function SnapshotPreview({ id }: { id: string }) {
   if (error || !snapshot) {
     const notFound = error instanceof ApiError && error.statusCode === 404;
     return (
-      <Result
-        status={notFound ? '404' : 'error'}
-        title={notFound ? 'Không tìm thấy kỳ chốt' : 'Không tải được kỳ chốt'}
-        extra={notFound ? <Link to="/ranking-snapshots"><Button type="primary">Về danh sách kỳ chốt</Button></Link> : <Button onClick={() => refetch()}>Thử lại</Button>}
-      />
+      <Flex vertical gap="middle">
+        {jobs.length > 0 && <SnapshotJobsTracker key={jobs.map((job) => job.jobId).join()} jobs={jobs} onFinished={onRebuilt} />}
+        <Result
+          status={notFound ? '404' : 'error'}
+          title={notFound ? 'Không tìm thấy kỳ chốt' : 'Không tải được kỳ chốt'}
+          extra={notFound ? <Link to="/ranking-snapshots"><Button type="primary">Về danh sách kỳ chốt</Button></Link> : <Button onClick={() => refetch()}>Thử lại</Button>}
+        />
+      </Flex>
     );
   }
 

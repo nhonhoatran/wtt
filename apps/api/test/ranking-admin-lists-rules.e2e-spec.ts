@@ -128,6 +128,8 @@ describe('admin ranking lists and rules', () => {
     await put({ ...base, cells: [{ ...cell, points: -1 }] }).expect(422);
     await put({ ...base, cells: [{ ...cell, stageCode: 'bad code!' }] }).expect(422);
     await put({ ...base, effectiveFrom: '2099-02-31', cells: [cell] }).expect(422);
+    const historical = await put({ ...base, effectiveFrom: '2000-01-01', cells: [cell] }).expect(422);
+    expect(historical.body.error.fields).toHaveProperty('effectiveFrom');
     await put({ ...base, cells: [{ ...cell, eventTypeId: '00000000-0000-4000-8000-000000000000' }] }).expect(422);
     expect(await kit.prisma.rankingPointsRule.count({ where: { eventTypeId: w.eventTypeId } })).toBe(0);
   });

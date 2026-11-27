@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { getDefaultSortOrder, List, useTable } from '@refinedev/antd';
 import { getDefaultFilter, useCan, useInvalidate } from '@refinedev/core';
-import { Button, Flex, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Flex, Space, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { ListFilterBar } from '../../components/list-filter-bar';
@@ -13,6 +13,8 @@ import { POINTS_SOURCE_COLORS, POINTS_SOURCE_LABELS, POINTS_SOURCE_OPTIONS, POIN
 import { RankingPointsDeleteModal, type DeletablePoints } from './ranking-points-delete-modal';
 import { useRankingPointsFilterOptions } from './use-ranking-points-filter-options';
 import { useTableScroll } from '../../components/use-table-scroll';
+import { rankingDateOnly, rankingPointsExpired } from './ranking-date-labels';
+import { useRankingDateContext } from './use-ranking-date-context';
 
 interface PointsRow {
   id: string;
@@ -29,12 +31,12 @@ interface PointsRow {
 }
 
 const RESOURCE = 'ranking-points';
-const dateText = (value: string) => dayjs(value).format(DISPLAY_DATE_FORMAT);
-const isExpired = (row: PointsRow) => !dayjs(row.expiresAt).isAfter(dayjs(), 'day');
+const dateText = (value: string) => dayjs(rankingDateOnly(value)).format(DISPLAY_DATE_FORMAT);
 
 export function RankingPointsPage() {
   const tableScroll = useTableScroll();
   const pageSize = useListPageSize();
+  const dateContext = useRankingDateContext();
   const invalidate = useInvalidate();
   const canCreate = useCan({ resource: 'rankings', action: 'create' }).data?.can ?? false;
   const canDelete = useCan({ resource: 'rankings', action: 'delete' }).data?.can ?? false;
@@ -60,6 +62,7 @@ export function RankingPointsPage() {
         ) : undefined
       }
     >
+      {dateContext.isError && <Alert type="error" showIcon message="Không kiểm tra được ngày hết hạn" description="Ngày hết hạn vẫn hiển thị; nhãn hết hạn sẽ cập nhật khi kết nối lại." />}
       <ListFilterBar searchForm={searchFormProps.form}
         filters={filters}
         setFilters={setFilters}
@@ -112,7 +115,7 @@ export function RankingPointsPage() {
           sorter
           defaultSortOrder={getDefaultSortOrder('expiresAt', sorters)}
           render={(_, row) =>
-            isExpired(row) ? (
+            rankingPointsExpired(row.expiresAt, dateContext.data?.today) ? (
               <Space size="small">
                 <Typography.Text type="secondary">{dateText(row.expiresAt)}</Typography.Text>
                 <Tag>Hết hạn</Tag>

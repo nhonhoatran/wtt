@@ -7,6 +7,8 @@ import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { markRankingDirty } from '../ranking-jobs/ranking-dirty-marker.js';
 import { RankingEnqueueService } from '../ranking-jobs/ranking-enqueue.service.js';
+import { rankingToday } from '../ranking-jobs/ranking-today.js';
+import { AppSettingsService } from '../settings/app-settings.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import type { SaveMatrixBody } from './ranking-rule-dtos.js';
@@ -21,11 +23,13 @@ export class RankingRulesSaveService {
     private readonly audit: AuditService,
     private readonly enqueuer: RankingEnqueueService,
     private readonly revalidation: RevalidationEnqueueService,
+    private readonly settings: AppSettingsService,
   ) {}
 
   /** One save = the changed cells under one effective date; saving the same date again edits that version. */
   async save(body: SaveMatrixBody, actorUserId: string) {
     const { competitorKind, drawKind, effectiveFrom, cells } = body;
+    if (effectiveFrom < await rankingToday(this.settings)) throw fieldError('effectiveFrom', 'Ngày áp dụng không được trước ngày hôm nay');
     const eventTypeIds = [...new Set(cells.map((cell) => cell.eventTypeId))];
     if (new Set(cells.map((cell) => cellKey(cell.eventTypeId, cell.stageCode))).size !== cells.length) throw fieldError('cells', 'Có ô bị trùng');
 

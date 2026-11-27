@@ -3,7 +3,10 @@ import { findDirtySubEventIds, type Prisma } from '@kamito/db';
 import { publicPlayerSlug } from '@kamito/shared';
 import { AuditService } from '../../common/audit/audit.service.js';
 import { toIsoDate } from '../../common/validation/iso-date-field.js';
+import { fieldError } from '../../common/validation/parse-body.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { rankingToday } from '../ranking-jobs/ranking-today.js';
+import { AppSettingsService } from '../settings/app-settings.service.js';
 import { CACHE_TAGS } from '../revalidation/cache-tags.js';
 import { RevalidationEnqueueService } from '../revalidation/revalidation-enqueue.service.js';
 import { findPreviousSnapshot } from './ranking-snapshot-previous.js';
@@ -31,6 +34,7 @@ export class RankingSnapshotPublishService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationEnqueueService,
+    private readonly settings: AppSettingsService,
   ) {}
 
   async publish(id: string, actorUserId: string) {
@@ -62,6 +66,8 @@ export class RankingSnapshotPublishService {
     if (snapshot.status !== 'DRAFT') {
       throw new ConflictException({ code: 'RANKING_SNAPSHOT_NOT_DRAFT', message: 'Bản chốt này đã được công bố' });
     }
+    // Also validate drafts created before this guard existed, or before the business timezone changed.
+    if (toIsoDate(snapshot.asOfDate) > await rankingToday(this.settings)) throw fieldError('asOfDate', 'Ngày chốt không được ở tương lai');
     const dirty = await findDirtySubEventIds(tx, snapshot.rankingListId);
     if (dirty.length) {
       throw new ConflictException({ code: 'RANKING_SNAPSHOT_STALE', message: `${dirty.length} nội dung chưa tính lại, hãy dựng lại bản nháp`, dirtySubEvents: dirty });

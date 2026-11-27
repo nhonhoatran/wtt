@@ -19,6 +19,8 @@ const RECOMPUTE_TARGET_MS = 2_000;
 const SNAPSHOT_TARGET_MS = 10_000;
 const FLAKE_FACTOR = 3;
 const PLAYERS = 5_000;
+// Fixture writes are outside the measured processor time; Vitest must allow setup plus that existing metric budget.
+const FIXTURE_SETUP_BUDGET_MS = 30_000;
 
 describe('ranking performance (real Postgres)', () => {
   let kit: AuthTestKit;
@@ -37,12 +39,14 @@ describe('ranking performance (real Postgres)', () => {
   });
 
   it('recomputes a played 128-entry draw', async () => {
+    const fixtureStarted = performance.now();
     const w = await createRankingWorld(kit);
     worlds.push(w);
     await addRules(kit, w, ['W', 'F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128'].map((stageCode, i) => ({ stageCode, points: 1000 - i * 100 })));
     const { entryIds } = await addEntries(kit, w, 128);
     const built = await buildKnockout(kit, w, { slots: entryIds, codes: ['R128', 'R64', 'R32', 'R16', 'QF', 'SF', 'F'] });
     await playRounds(kit, built, () => 1);
+    log(`recompute fixture 128 entries: ${Math.round(performance.now() - fixtureStarted)} ms`);
 
     const started = performance.now();
     await worker.recomputeSubEvent(deps(), w.subEventId);
@@ -50,9 +54,10 @@ describe('ranking performance (real Postgres)', () => {
     log(`recompute 128 entries: ${elapsed} ms (target ${RECOMPUTE_TARGET_MS} ms)`);
     expect(await kit.prisma.rankingPointsEarned.count({ where: { subEventId: w.subEventId } })).toBe(128);
     expect(elapsed).toBeLessThan(RECOMPUTE_TARGET_MS * FLAKE_FACTOR);
-  });
+  }, FIXTURE_SETUP_BUDGET_MS + RECOMPUTE_TARGET_MS * FLAKE_FACTOR);
 
   it('builds a snapshot for 5,000 players', async () => {
+    const fixtureStarted = performance.now();
     const w = await createRankingWorld(kit, { withList: false });
     worlds.push(w);
     const tag = randomUUID().slice(0, 8);
@@ -68,6 +73,7 @@ describe('ranking performance (real Postgres)', () => {
         earnedAt: new Date('2099-01-01T00:00:00Z'), expiresAt: new Date('2100-01-01T00:00:00Z'),
       })),
     });
+    log(`snapshot fixture ${PLAYERS} players: ${Math.round(performance.now() - fixtureStarted)} ms`);
 
     const started = performance.now();
     const result = await worker.buildSnapshot(deps(), { listId: w.listId, asOf: '2099-06-01' });
@@ -75,5 +81,5 @@ describe('ranking performance (real Postgres)', () => {
     log(`snapshot ${PLAYERS} players: ${elapsed} ms (target ${SNAPSHOT_TARGET_MS} ms)`);
     expect(result).toMatchObject({ outcome: 'built', rows: PLAYERS });
     expect(elapsed).toBeLessThan(SNAPSHOT_TARGET_MS * FLAKE_FACTOR);
-  });
+  }, FIXTURE_SETUP_BUDGET_MS + SNAPSHOT_TARGET_MS * FLAKE_FACTOR);
 });

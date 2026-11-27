@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { addDays } from '@kamito/ranking-engine';
 import { AuthTestKit } from './support/auth-test-kit.js';
 import { addRules, cleanupRankingWorld, markDirtySql, type RankingWorld } from './support/ranking-test-kit.js';
 import { createPlayedFinal, startRankingTestWorker, waitUntil, type TestRankingWorker } from './support/ranking-worker-kit.js';
@@ -35,6 +36,7 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     worker = await startRankingTestWorker(kit);
     const played = await createPlayedFinal(kit, worlds);
     w = played.w;
+    await kit.prisma.event.update({ where: { id: w.eventId }, data: { startDate: new Date('2020-05-01'), endDate: new Date('2020-05-02') } });
     finalId = played.finalId;
     await addRules(kit, w, [{ stageCode: 'W', points: 1000 }, { stageCode: 'F', points: 700 }]);
   });
@@ -46,7 +48,7 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
 
   it('builds a draft through the queue (recomputing dirty content first), previews rows and replaces a same-day draft', async () => {
     await markDirtySql(kit, w.subEventId);
-    const draftId = await buildDraft('2099-06-01');
+    const draftId = await buildDraft('2020-06-01');
 
     const list = await kit.get(`${API}/ranking-snapshots?filter[listId]=${w.listId}&filter[status]=DRAFT`, cookie).expect(200);
     expect(list.body.data).toHaveLength(1);
@@ -69,7 +71,7 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     await kit.get(`${API}/ranking-snapshots/${draftId}/rows?filter[changed]=maybe`, cookie).expect(400);
     await kit.get(`${API}/ranking-snapshots/${draftId}/rows?filter[bogus]=1`, cookie).expect(400);
 
-    expect(await buildDraft('2099-06-01')).not.toBe(draftId);
+    expect(await buildDraft('2020-06-01')).not.toBe(draftId);
     expect(await kit.prisma.rankingSnapshot.count({ where: { rankingListId: w.listId, status: 'DRAFT' } })).toBe(1);
   });
 
@@ -78,7 +80,17 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     await drafts({}).expect(422);
     await drafts({ all: true, listIds: [w.listId] }).expect(422);
     await drafts({ listIds: [randomUUID()] }).expect(422);
-    await drafts({ listIds: [w.listId], asOfDate: '2099-02-31' }).expect(422);
+    await drafts({ listIds: [w.listId], asOfDate: '2020-02-31' }).expect(422);
+    const today = (await kit.get(`${API}/ranking/context`, cookie).expect(200)).body.data.today as string;
+    const future = addDays(today, 1);
+    const rejected = await drafts({ listIds: [w.listId], asOfDate: future }).expect(422);
+    expect(rejected.body.error.fields).toHaveProperty('asOfDate');
+    // Existing drafts still pass through publication validation; creating one directly models legacy data.
+    const legacy = await kit.prisma.rankingSnapshot.create({ data: { rankingListId: w.listId, asOfDate: new Date(future) } });
+    const publication = await kit.write('post', `${API}/ranking-snapshots/${legacy.id}/publish`, cookie).expect(422);
+    expect(publication.body.error.fields).toHaveProperty('asOfDate');
+    expect((await kit.prisma.rankingSnapshot.findUniqueOrThrow({ where: { id: legacy.id } })).status).toBe('DRAFT');
+    await kit.write('delete', `${API}/ranking-snapshots/${legacy.id}`, cookie).expect(200);
     const unknown = randomUUID();
     await kit.get(`${API}/ranking-snapshots/${unknown}`, cookie).expect(404);
     await kit.get(`${API}/ranking-snapshots/${unknown}/rows`, cookie).expect(404);
@@ -87,7 +99,7 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
   });
 
   it('publish needs step-up, freezes the snapshot, and published snapshots cannot be republished, deleted or edited', async () => {
-    const draftId = await buildDraft('2099-06-01');
+    const draftId = await buildDraft('2020-06-01');
     await kit.write('post', `${API}/ranking-snapshots/${draftId}/publish`, plainCookie).expect(403);
     expect((await kit.prisma.rankingSnapshot.findUniqueOrThrow({ where: { id: draftId } })).status).toBe('DRAFT');
 
@@ -113,11 +125,11 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
   it('the next snapshot carries previousRank and movement; a stale draft cannot be published; a draft can be deleted', async () => {
     await kit.prisma.match.update({ where: { id: finalId }, data: { winnerSide: 2 } });
     await markDirtySql(kit, w.subEventId);
-    const second = await buildDraft('2099-07-01');
+    const second = await buildDraft('2020-07-01');
     const moved = (await rows(second, 'sort=rank:asc')).data.map((r: { playerId: string; rank: number; previousRank: number; movement: number }) => [r.playerId, r.rank, r.previousRank, r.movement]);
     expect(moved).toEqual([[w.playerIds[1], 1, 2, 1], [w.playerIds[0], 2, 1, -1]]);
 
-    const prior = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2099-06-01T00:00:00Z') } });
+    const prior = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2020-06-01T00:00:00Z') } });
     const withPrevious = (await rows(second, 'sort=rank:asc')).data.map((r: { playerId: string; points: number; previousPoints: number }) => [r.playerId, r.points, r.previousPoints]);
     expect(withPrevious).toEqual([[w.playerIds[1], 1000, 700], [w.playerIds[0], 700, 1000]]);
     await kit.prisma.player.update({ where: { id: w.playerIds[0]! }, data: { club: 'Zeta Smash Club' } });
@@ -126,8 +138,8 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
     expect(byClub.data[0]).toMatchObject({ playerId: w.playerIds[0], player: { club: 'Zeta Smash Club' } });
     expect((await rows(second, 'filter[changed]=true')).total).toBe(2);
 
-    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 250, earnedAt: new Date('2099-05-01'), expiresAt: new Date('2099-06-15'), reason: 'expiry in period' } });
-    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 99, earnedAt: new Date('2099-05-01'), expiresAt: new Date('2099-06-01'), reason: 'expiry on previous asOf is outside' } });
+    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 250, earnedAt: new Date('2020-05-01'), expiresAt: new Date('2020-06-15'), reason: 'expiry in period' } });
+    await kit.prisma.rankingPointsEarned.create({ data: { rankingListId: w.listId, playerId: w.playerIds[0]!, source: 'MANUAL', points: 99, earnedAt: new Date('2020-05-01'), expiresAt: new Date('2020-06-01'), reason: 'expiry on previous asOf is outside' } });
     const summary = (await kit.get(`${API}/ranking-snapshots/${second}/summary`, cookie).expect(200)).body.data;
     expect(summary).toMatchObject({ rows: 2, changed: 2, newcomers: 0, expiredPoints: 250, previous: { id: prior.id } });
 
@@ -142,19 +154,19 @@ describe('admin ranking snapshots: draft, preview, publish', () => {
   });
 
   it('previous period is the latest other published snapshot for same-day and back-dated drafts', async () => {
-    const published = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2099-06-01T00:00:00Z') } });
+    const published = await kit.prisma.rankingSnapshot.findFirstOrThrow({ where: { rankingListId: w.listId, status: 'PUBLISHED', asOfDate: new Date('2020-06-01T00:00:00Z') } });
     const summaryOf = async (id: string) => (await kit.get(`${API}/ranking-snapshots/${id}/summary`, cookie).expect(200)).body.data;
     expect((await summaryOf(published.id)).previous).toBeNull();
 
     await markDirtySql(kit, w.subEventId);
-    const sameDay = await buildDraft('2099-06-01');
+    const sameDay = await buildDraft('2020-06-01');
     expect((await summaryOf(sameDay)).previous).toMatchObject({ id: published.id });
     const sameDayRows = (await rows(sameDay)).data as { previousRank: number | null }[];
     expect(sameDayRows.every((r) => r.previousRank !== null)).toBe(true);
     expect((await rows(sameDay, 'filter[changed]=true')).total).toBe((await summaryOf(sameDay)).changed);
 
     await markDirtySql(kit, w.subEventId);
-    const backDated = await buildDraft('2099-05-15');
+    const backDated = await buildDraft('2020-05-15');
     expect((await summaryOf(backDated)).previous).toMatchObject({ id: published.id });
     expect(((await rows(backDated)).data as { previousRank: number | null }[]).every((r) => r.previousRank !== null)).toBe(true);
     await kit.write('delete', `${API}/ranking-snapshots/${backDated}`, cookie).expect(200);

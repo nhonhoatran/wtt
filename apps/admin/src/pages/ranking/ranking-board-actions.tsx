@@ -11,6 +11,7 @@ import { publishConfirmLines } from './ranking-board-labels';
 import { formatSnapshotDate } from './ranking-snapshots-page';
 import { SnapshotDraftModal } from './snapshot-draft-modal';
 import { SnapshotJobsTracker, type SnapshotJobRef } from './snapshot-jobs-tracker';
+import { snapshotJobsSucceeded } from './snapshot-job-state';
 import type { BoardSnapshot, BoardSummary } from './use-current-snapshot';
 
 interface BoardActionsProps {
@@ -110,8 +111,8 @@ export function useRankingBoardActions({ listId, snapshot, summary }: BoardActio
         <SnapshotJobsTracker
           key={jobs.map((job) => job.jobId).join()}
           jobs={jobs}
-          onFinished={() => {
-            setJobs([]);
+          onFinished={(results) => {
+            if (snapshotJobsSucceeded(results)) setJobs([]);
             setRebuilding(false);
             void refresh();
           }}
