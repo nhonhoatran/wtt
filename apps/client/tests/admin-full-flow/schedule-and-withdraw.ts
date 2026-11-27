@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
+import { autoSchedule } from './auto-schedule';
 import { openDraw, type DrawFixture } from './draws';
 import { dateInput, uiResponse } from './ui';
 import { saveEvidence, type EventFixture, type FullUiWorld, type RunEvidence } from './world';
@@ -40,6 +41,7 @@ export async function scheduleAndPrint(page: Page, world: FullUiWorld, event: Ev
   expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
   await print.screenshot({ path: info.outputPath('match-sheets-print.png'), fullPage: true });
   await print.close();
+  await autoSchedule(page, event, placed, info);
 }
 
 export async function withdrawGroupEntrant(page: Page, world: FullUiWorld, event: EventFixture, groupDraw: DrawFixture, entrant: string, groupCode: string, matchNo: number): Promise<void> {

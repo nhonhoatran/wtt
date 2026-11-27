@@ -1,4 +1,5 @@
 import { Flex, Segmented } from 'antd';
+import { AutoScheduleButton } from './auto-schedule-button';
 import { ScheduleActions } from './schedule-actions';
 import { dayPillLabel, sessionRangeLabel, type SessionRecord } from './schedule-types';
 import { SessionHeaderMenu } from './session-header-menu';
@@ -32,7 +33,10 @@ export function SessionToolbar({ eventId, days, day, sessionsOfDay, session, can
         </div>
         {canUpdate && <SessionHeaderMenu session={session} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} />}
       </Flex>
-      <ScheduleActions eventId={eventId} sessionId={session.id} canUpdate={canUpdate} />
+      <Flex gap="small" wrap>
+        {canUpdate && <AutoScheduleButton eventId={eventId} sessionId={session.id} />}
+        <ScheduleActions eventId={eventId} sessionId={session.id} canUpdate={canUpdate} />
+      </Flex>
     </Flex>
   );
 }

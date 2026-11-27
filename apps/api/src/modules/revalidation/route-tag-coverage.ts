@@ -80,6 +80,8 @@ export const ROUTE_TAG_RULES: Record<string, RouteTagRule> = {
   'POST /admin/event-types': tags('eventType.write'),
   'POST /admin/events': tags('event.create'),
   'POST /admin/events/:eventId/sessions': tags('session.create'),
+  'POST /admin/events/:eventId/auto-schedule/preview': none('read-only schedule proposal; does not write reservations'),
+  'POST /admin/events/:eventId/auto-schedule/apply': tags('schedule.update'),
   'POST /admin/events/:eventId/sub-events': tags('subEvent.create'),
   'POST /admin/events/:eventId/sub-events/bulk': tags('subEvent.create'),
   'POST /admin/events/:id/cancel': tags('event.cancel'),
